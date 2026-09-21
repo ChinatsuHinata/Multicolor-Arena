@@ -1,0 +1,104 @@
+{
+  "version": "0.18.0",
+  "real_two_computers_tested": false,
+  "rules_manifest_verified": 14,
+  "tests": [
+    {
+      "name": "test_v018_core",
+      "checks": null,
+      "errors": []
+    },
+    {
+      "name": "test_v018_session",
+      "checks": 27,
+      "errors": []
+    },
+    {
+      "name": "test_v018_boundaries",
+      "checks": 24,
+      "errors": []
+    },
+    {
+      "name": "test_v018_ui-visual",
+      "checks": 19,
+      "errors": []
+    },
+    {
+      "name": "test_v017_payment",
+      "checks": 58,
+      "errors": []
+    },
+    {
+      "name": "test_v015_ui",
+      "checks": 29,
+      "errors": []
+    },
+    {
+      "name": "test_v016_stack",
+      "checks": 19,
+      "errors": []
+    },
+    {
+      "name": "test_v015_rules",
+      "checks": 504,
+      "errors": []
+    }
+  ],
+  "counted_rule_and_ui_checks": 680,
+  "independent_process_match": {
+    "game_id": "8eb0b6caf4633a207765bcca431958578a0d59a923dcb446",
+    "life": [
+      20,
+      -1
+    ],
+    "score": [
+      1,
+      0
+    ],
+    "sequence": 412,
+    "turn": 17,
+    "winner": 0,
+    "errors": []
+  },
+  "release_checks": [
+    {
+      "mode": "first",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "mode": "restart",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "mode": "empty",
+      "exit": 0,
+      "errors": []
+    }
+  ],
+  "release_check_count": 1546,
+  "final_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-v0.18.0/Multicolour.exe",
+      "bytes": 109168640,
+      "sha256": "55d0890717cfb0009a00a2dab25d2acae633cf237be05f617bac3c715b8a50ad"
+    },
+    {
+      "path": "builds/Windows-v0.18.0/Multicolour.pck",
+      "bytes": 587838332,
+      "sha256": "cb9789150af3e438f6cca69f29ff1cbd12639d260b02ea6047e03e704f716b29"
+    },
+    {
+      "path": "builds/极彩Multicolour-Windows-v0.18.0-LAN.zip",
+      "bytes": 623568902,
+      "sha256": "41c94eb4d6b1e63369747c114360d5ae4fc558150714d7b0425e086a5e454fad"
+    }
+  ],
+  "archive_validated": true
+}

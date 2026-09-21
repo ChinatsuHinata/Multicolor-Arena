@@ -1,0 +1,10 @@
+69 checks; 9 failures
+first use enters stack and counts exactly once
+first Yuyuko trigger deals exactly one damage
+same death cannot enqueue duplicate Yuyuko triggers
+second activation chooses a separate target and deals one damage
+third death cannot activate a third time in the same turn
+declining optional trigger does not consume a use
+hand card is highlighted for additional discard cost
+hand target can be selected without discarding yet
+confirmed hand-cost ability discards then reanimates normally

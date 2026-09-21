@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('scripts/rules/catalogue_spells.gd');s=p.read_text(encoding='utf-8-sig');s=s[:s.index('static func resolve_complex(_e')]+Path('work/v013_complex.txt').read_text(encoding='utf-8-sig');s=s.replace('"spell-fdf-021":e.draw(who);if e.flip_coin(who):C.copy_spell(e,t)','"spell-fdf-021":\n   e.draw(who)\n   if e.flip_coin(who):C.copy_spell(e,t)');p.write_text(s,encoding='utf-8')

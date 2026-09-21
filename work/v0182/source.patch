@@ -1,0 +1,97 @@
+--- before/scripts/rules/duel_engine.gd
++++ scripts/rules/duel_engine.gd
+@@ -409,6 +409,7 @@
+  var c=pending.card
+  var destination=c.get("return_destination","grave")
+  var before=c.get("return_snapshot",c.duplicate(true)).duplicate(true)
++ var observers=c.get("return_death_observers",[])
+  var blink_owner=int(c.get("blink_return_owner",-1));c.erase("blink_return_owner")
+  pending={}
+  if yes:
+@@ -416,10 +417,16 @@
+   note("自机返回自机区 · 计时 2")
+  else:
+   shift(c,destination); players[c.owner][destination].append(c)
+-  if destination=="grave" and before.zone=="field": Extra.on_death(self,c,before)
+-  if before.zone=="field":Roster.on_leave(self,before,c)
+-  if blink_owner>=0 and destination=="exile":Roster.field_many(self,[c],blink_owner)
+- c.erase("return_snapshot"); c.erase("return_destination")
++ # Returning home after death does not erase the death event. Retain the
++ # field observers from before the move, including simultaneous casualties.
++ if destination=="grave" and before.zone=="field":
++  var previous_observers=death_observers
++  death_observers=observers
++  Extra.on_death(self,c,before)
++  death_observers=previous_observers
++ if before.zone=="field":Roster.on_leave(self,before,c)
++ if not yes and blink_owner>=0 and destination=="exile":Roster.field_many(self,[c],blink_owner)
++ c.erase("return_snapshot"); c.erase("return_destination"); c.erase("return_death_observers")
+  revision+=1; pump_choices()
+ func enter_field(c: Dictionary,who: int) -> bool:
+  if not field_error(c,who).is_empty(): to_grave(c); return false
+@@ -1063,6 +1070,9 @@
+   return
+  if zone=="grave" and c.get("exile_on_grave",false):zone="exile"
+  var before=c.duplicate(true)
++ var return_death_observers=[]
++ if c.leader and offer_return and before.zone=="field" and zone=="grave":
++  return_death_observers=(death_observers if not death_observers.is_empty() else units(0)+units(1)).duplicate(true)
+  var from_top=c.zone=="deck" and not players[c.owner].deck.is_empty() and players[c.owner].deck[0].uid==c.uid
+  detach(c)
+  if before.zone=="field": Extra.on_leave(self,before)
+@@ -1072,6 +1082,7 @@
+   present_move(c,zone);c.zone=zone;Roster.on_leave(self,before,c)
+   shift(c,"void"); return
+  if c.leader and before.zone!="leader" and offer_return and zone in ["hand","deck","grave","exile","palette"]:
++  c.return_death_observers=return_death_observers
+   present_move(c,"return_pending");c.zone="return_pending"; c.epoch+=1; c.return_destination=zone; c.return_snapshot=before; returns.append(c); return
+  var from_owner=c.owner
+  c.owner=c.get("original_owner",c.owner)
+--- before/scripts/rules/expanded_abilities.gd
++++ scripts/rules/expanded_abilities.gd
+@@ -236,7 +236,7 @@
+    if dead_valid: e.delayed.append({"owner":who,"phase":"prepare","effect":"return_grave","ref":e.ref_target(dead),"zone":"grave"})
+   "crystal":
+    if dead_valid and valid(e,target) and e.find_card(target.uid).tapped:
+-    var palette=e.find_card(target.uid); e.move_to(palette,"grave"); e.move_to(dead,"palette"); dead.tapped=true
++    var palette=e.find_card(target.uid); e.move_to(palette,"grave"); e.move_to(dead,"palette"); dead.tapped=false
+   "leave_ufo": create_token(e,who,"token_ufo")
+   "enter_halfghost": create_token(e,who,"token_halfghost")
+   "leader_death_damage": e.damage_target(target,int(data.get("amount",1)))
+--- before/net/lan_session.gd
++++ net/lan_session.gd
+@@ -12,7 +12,7 @@
+ const Transport=preload("res://net/lan_transport.gd")
+ const Discovery=preload("res://net/lan_discovery.gd")
+ const Metrics=preload("res://net/connection_metrics.gd")
+-const VERSION="0.18.1-lan2"
++const VERSION="0.18.2-lan3"
+ var transport
+ var discovery
+ var identity={}
+--- before/export_presets.cfg
++++ export_presets.cfg
+@@ -9,9 +9,9 @@
+ dedicated_server=false
+ custom_features=""
+ export_filter="all_resources"
+-include_filter=""
+-exclude_filter=""
+-export_path="../../Desktop/荠菜0.16/Multicolour Arena.zip"
++include_filter="cards/*.json,data/*.json,net/*.json"
++exclude_filter="work/*,tests/*,tools/*,docs/*,builds/*,saves/*,addons/*,scripts/export_verification/*,recourse/MulticolourOnline/*,recourse/新增卡片/*,recourse/新增卡片 编写/*"
++export_path="builds/Windows-v0.18.2/Multicolour.exe"
+ patches=PackedStringArray()
+ patch_delta_encoding=false
+ patch_delta_compression_level_zstd=19
+--- before/tests/test_v09_rules.gd
++++ tests/test_v09_rules.gd
+@@ -73,7 +73,7 @@
+  expect(e.debug_move(leader.uid,"hand").is_empty() and e.debug_move(leader.uid,"leader").is_empty(),"debug chosen leader can return to leader zone")
+  fresh(); a=enter("1"); settle(); expect(e.has_haste(a),"Sunny enters and grants haste")
+  var crystal=put("164","palette"); crystal.tapped=true
+- e.move_to(a,"grave"); settle(); expect(a.zone=="palette" and a.tapped and crystal.zone=="grave","crystal exchanges dead unit with tapped palette")
++ e.move_to(a,"grave"); settle(); expect(a.zone=="palette" and not a.tapped and crystal.zone=="grave","crystal exchanges dead unit with tapped palette and enters upright")
+  fresh(); a=put("5"); e.move_to(a,"grave"); settle(); expect(e.players[0].hand.size()==1 and e.players[0].life==21,"Daiyousei death draw and life")
+  fresh(); a=put("11","hand"); enter("14"); settle(); expect(a.zone=="field" and e.players[1].life==19,"autumn enters from hand and Koakuma drains")
+  fresh(); a=put("15"); expect(not e.can_possess(a),"Rumia cannot possess"); e.move_to(a,"grave"); settle(); expect(a.zone=="palette" and a.tapped,"Rumia death enters tapped palette")

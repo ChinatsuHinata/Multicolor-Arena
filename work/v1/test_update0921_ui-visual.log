@@ -1,0 +1,23 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: two response buttons visible
+PASS: neither selected defaults
+PASS: button: 全响应
+PASS: all response selected exclusively
+PASS: button: 不响应
+PASS: no response deselects all response
+PASS: button: 不响应
+PASS: click selected toggle returns to default
+PASS: player buffs beside life
+PASS: buffs to the right of health bar
+PASS: landscape preview texture
+PASS: hand and field remain portrait
+PASS: stack spell displayed landscape
+PASS: unit preview remains portrait
+PASS: 50 main cards fit within one-page area
+PASS: separate leader slot retained
+PASS: deck editor preview landscape
+UPDATE0921 UI 17 checks; failures=[]

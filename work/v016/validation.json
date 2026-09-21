@@ -1,0 +1,33 @@
+{
+  "version": "0.16",
+  "scope": "stack UI implemented; networking design only",
+  "checks": 82,
+  "results": [
+    {
+      "log": "test_v016_stack-visual.log",
+      "checks": 19,
+      "errors": []
+    },
+    {
+      "log": "test_v016_targets-visual.log",
+      "checks": 35,
+      "errors": []
+    },
+    {
+      "log": "ui_check.log",
+      "checks": 28,
+      "errors": []
+    }
+  ],
+  "screenshots": [
+    "crowded-field-stack.png"
+  ],
+  "limitations": [
+    "No real network connection or China-wide latency test; platform/BO3/reconnection remain design only.",
+    "Legacy v0.9.3/v0.9.4 harnesses include superseded optional-trigger/haste assumptions; original harnesses restored. Current stack and target checks use dedicated v0.16 fixtures."
+  ],
+  "preserved": {
+    "tests/test_v093.gd": true,
+    "tests/test_v094.gd": true
+  }
+}

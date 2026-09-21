@@ -1,0 +1,32 @@
+v0.9.5: 662 checks; 0 failures; no project script errors in selected final logs.
+v095-final-test_v095_rules.log
+  V095_RULES: 49 checks; 0 failures
+v095-final-test_v095.log
+  V095_TEST: 35 checks; 0 failures
+v095-final-test_v095_edges.log
+  V095_EDGES: 30 checks; 0 failures
+v095-test_v09_rules.log
+  V09_RULES: 144 checks; 0 failures
+v095-final-test_v09_matches.log
+  V09_MATCHES: 17 checks; 0 failures
+v095-test_v07_matches.log
+  V07_MATCHES: 14 checks; 0 failures
+v095-test_v08.log
+  V08_TEST: 59 checks; 0 failures
+v095-test_v082.log
+  V082_TEST: 41 checks; 0 failures
+v095-test_v081.log
+  V081_TEST: 20 checks; 0 failures
+v095-final-test_v094.log
+  V094_TEST: 47 checks; 0 failures
+v095-test_v092.log
+  V092_TEST: 61 checks; 0 failures
+v095-final-test_v06.log
+  V06_TEST: 38 checks; 0 failures; 463 actions; 23 turns
+v095-final-test_v093.log
+  V093_TEST: 70 checks; 0 failures
+v095-final-test_v09_ui.log
+  V09_UI: 37 checks; 0 failures
+8 expanded-pool complete matches; all four added cards actually used.
+Current saved decks SHA256: 0A945DBB0DFD2CB2CB4704219E92A6CBA6FD69B0E58C148FA1B8813CC723AC74
+Nue cost uses provisional first-table-row 3 red + 1 black; interpretation pending.

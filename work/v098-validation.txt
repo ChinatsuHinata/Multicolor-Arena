@@ -1,0 +1,14 @@
+v0.9.8 validation; 275 checks; 0 failures
+Youmu combat timing confirmed; rule behavior unchanged; regression coverage added.
+Debug browser toggles closed, including observation; private and mandatory choices preserved.
+v098-rules.log: V098_RULES: 33 checks; 0 failures
+v098-ui.log: V098_UI: 67 checks; 0 failures
+v098-regression-test_v096.log: V096_UI: 57 checks; 0 failures
+v098-regression-test_v094.log: V094_TEST: 47 checks; 0 failures
+v098-regression-test_v082.log: V082_TEST: 41 checks; 0 failures
+v098-regression-test_v095_edges.log: V095_EDGES: 30 checks; 0 failures
+Pending folder: 104 previously pending images/import configs have unchanged hashes. Five additional JPGs and changed desktop.ini found relative to v0.9.7 manifest; left untouched, no new cards imported.
+Card database: 65 registered cards; all image hashes verified.
+Saved decks SHA256: C420771B0D716506CF3115B44C6DD99FA97B64B46F71B1AE2DC3570DCA01EB7A
+Screenshots: v098-debug-open.png; v098-returned-to-duel.png; v098-youmu-exile-stack.png; v098-youmu-death-trigger.png
+Only pre-existing Windows root certificate diagnostic; no project script or shader errors.

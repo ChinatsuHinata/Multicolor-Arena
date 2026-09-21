@@ -1,0 +1,22 @@
+v096-rules.log: 98 checks; 0 failures
+v096-final-test_v096.log: 57 checks; 0 failures
+v096-regression-test_v095_rules.log: 49 checks; 0 failures
+v096-regression-test_v09_rules.log: 144 checks; 0 failures
+v096-regression-test_v09_matches.log: 17 checks; 0 failures
+v096-regression-test_v07_matches.log: 14 checks; 0 failures
+v096-regression-test_v095_edges.log: 30 checks; 0 failures
+v096-regression-test_v095.log: 35 checks; 0 failures
+v096-final-test_v094.log: 47 checks; 0 failures
+v096-regression-test_v093.log: 70 checks; 0 failures
+v096-regression-test_v092.log: 61 checks; 0 failures
+v096-regression-test_v08.log: 59 checks; 0 failures
+v096-regression-test_v082.log: 41 checks; 0 failures
+v096-final-test_v081.log: 20 checks; 0 failures
+v096-regression-test_v09_ui.log: 35 checks; 0 failures
+v096-regression-test_v06.log: 39 checks; 0 failures
+Total: 816 checks; 0 failures
+Selected final logs contain no project script or shader errors.
+Existing Windows root-certificate diagnostic remains.
+saves/decks.json SHA256: C420771B0D716506CF3115B44C6DD99FA97B64B46F71B1AE2DC3570DCA01EB7A
+Earlier failed v096-regression-test_v081.log is superseded by v096-final-test_v081.log. Its one-second fixed wait was replaced by waiting for combat animation completion; this accounts for the new required damage hold.
+Visual review: v096-pile-grid.png, v096-deck-tab.png, v096-hybrid-payment.png, v096-first-strike-negative-health.png, v096-damage-allocation-centered.png, v096-debug-destination.png, v094-trigger-order.png.

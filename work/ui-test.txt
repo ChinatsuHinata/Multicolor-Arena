@@ -1,0 +1,1 @@
+PASS: editor add/remove; setup; draw 5; play; attack; AI turn; surrender destination; menu restoration.

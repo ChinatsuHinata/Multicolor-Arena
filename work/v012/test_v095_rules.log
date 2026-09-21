@@ -1,0 +1,55 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: new database card registered: 91
+PASS: new card art exists: 91
+PASS: new database card registered: 133
+PASS: new card art exists: 133
+PASS: new database card registered: rec_unit_097
+PASS: new card art exists: rec_unit_097
+PASS: new database card registered: soi_unit_086
+PASS: new card art exists: soi_unit_086
+PASS: Orin end step offers optional recovery
+PASS: Orin recovery excludes enemy cards, spells and printed leaders
+PASS: ordinary Orin recovers to hand without leader replacement
+PASS: leader Orin pauses grave return for replacement choice
+PASS: replacement places unit directly on battlefield
+PASS: declining replacement keeps original return-to-hand action
+PASS: shrine enables ordinary Orin replacement
+PASS: shrine replacement completes
+PASS: leader counter enables Orin replacement
+PASS: power threshold rejects a larger returned unit
+PASS: full battlefield keeps legal return to hand
+PASS: replacement rechecks physical card epoch and zone
+PASS: reanimation runs normal mandatory enter trigger
+PASS: ordinary Nue has haste without leader enter ability
+PASS: Nue leader enter choice: 造成2点伤害
+PASS: Nue can target either side including itself: 造成2点伤害
+PASS: stack caption identifies selected Nue mode: 造成2点伤害
+PASS: Nue mode resolves: 造成2点伤害
+PASS: Nue leader enter choice: 横置
+PASS: Nue can target either side including itself: 横置
+PASS: stack caption identifies selected Nue mode: 横置
+PASS: Nue mode resolves: 横置
+PASS: Nue leader enter choice: 抓一张牌
+PASS: Nue can target either side including itself: 抓一张牌
+PASS: stack caption identifies selected Nue mode: 抓一张牌
+PASS: Nue mode resolves: 抓一张牌
+PASS: shrine enables ordinary Nue enter ability
+PASS: optional Nue trigger can be declined
+PASS: one available unit cannot block menace
+PASS: menace skips impossible single-block prompt
+PASS: unblocked menace deals spirit damage
+PASS: menace rejects exactly one selected blocker
+PASS: two blockers can block menace
+PASS: AI chooses two blockers for menace
+PASS: new spell selects one own and one opposing unit
+PASS: new battle spell can be cast
+PASS: spell creates battle response window without attack declaration
+PASS: spell battle deals reciprocal combat damage
+PASS: spell does not start battle with invalid target
+PASS: new Mokou pays one red and returns itself
+PASS: real saved decks unchanged
+V095_RULES: 49 checks; 0 failures
+

@@ -1,0 +1,85 @@
+{
+  "checks": 1765,
+  "failures": 0,
+  "completed_matches": 24,
+  "tests": [
+    {
+      "test": "test_v012_rules",
+      "checks": 110,
+      "failures": 0
+    },
+    {
+      "test": "test_v012_ui-visual",
+      "checks": 23,
+      "failures": 0
+    },
+    {
+      "test": "test_v011_rules",
+      "checks": 188,
+      "failures": 0
+    },
+    {
+      "test": "test_v011_edges",
+      "checks": 81,
+      "failures": 0
+    },
+    {
+      "test": "test_v011_ucs",
+      "checks": 40,
+      "failures": 0
+    },
+    {
+      "test": "test_v010_rules",
+      "checks": 146,
+      "failures": 0
+    },
+    {
+      "test": "test_v098_rules",
+      "checks": 33,
+      "failures": 0
+    },
+    {
+      "test": "test_v096_rules",
+      "checks": 302,
+      "failures": 0
+    },
+    {
+      "test": "test_v095_rules",
+      "checks": 49,
+      "failures": 0
+    },
+    {
+      "test": "test_v09_rules",
+      "checks": 144,
+      "failures": 0
+    },
+    {
+      "test": "test_duel_rules",
+      "checks": 36,
+      "failures": 0
+    },
+    {
+      "test": "test_v097_database",
+      "checks": 548,
+      "failures": 0
+    },
+    {
+      "test": "test_v010_ui",
+      "checks": 43,
+      "failures": 0
+    },
+    {
+      "test": "test_v011_ui",
+      "checks": 22,
+      "failures": 0
+    }
+  ],
+  "images": 87,
+  "new_definitions": 18,
+  "database_count": 269,
+  "excel_text_verified_ids": 78,
+  "saved_decks_unchanged": true,
+  "precon_templates_unchanged": true,
+  "images_sha256_unchanged": true,
+  "halfghost_sha256": "5bd5ca81ee80588d0efbe62e365471c9a0fdd82438d73097b51d8c6ced8ae96c"
+}

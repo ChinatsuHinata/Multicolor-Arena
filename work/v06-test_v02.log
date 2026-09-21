@@ -1,0 +1,17 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: drag main to side conserves count
+PASS: drag into leader slot
+PASS: list adds card
+PASS: 70 cards fit scrollable main region
+PASS: setup has no forced redirect
+PASS: battle uses Node3D
+PASS: playmat has texture
+PASS: 50 card pile is 5/3 height of 30
+PASS: one geometry layer per remaining card
+PASS: rule engine starts with four cards
+PASS: grave cards remain inside 3D scene
+PASS: return from battle
+REVISION_TEST: 12 checks; 0 failures

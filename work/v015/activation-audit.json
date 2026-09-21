@@ -1,0 +1,443 @@
+[
+  {
+    "explicit_restriction": false,
+    "id": "21",
+    "key": "grave_return",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "35",
+    "key": "exile_grave",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "61",
+    "key": "grave_reanimate",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "71",
+    "key": "sacrifice_buff",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "79",
+    "key": "leader_bounce",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "rec_unit_097",
+    "key": "grave_return",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-ex05",
+    "key": "keine_devour",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "field-rei-004",
+    "key": "standing_blast",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-070",
+    "key": "letty_shield",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "spell-mar-003",
+    "key": "laser",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-ex02",
+    "key": "yukari_active",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-rei-026",
+    "key": "sanae_search",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-mar-ex",
+    "key": "marisa_recover",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "field-rei-003",
+    "key": "watch_counter",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-rei-023",
+    "key": "minoriko_untap",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-fdf-128",
+    "key": "wine_discount",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-ucs-093",
+    "key": "medicine_return",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "25",
+    "key": "hatate_return",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "32",
+    "key": "hina_redirect",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "34",
+    "key": "clown_sweep",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "76",
+    "key": "satori_discard",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "77",
+    "key": "alice_search",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "77",
+    "key": "alice_recycle",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "82",
+    "key": "kanako_blast",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": true,
+    "id": "85",
+    "key": "kaguya_end",
+    "opponent": "只能在自己回合发动",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "90",
+    "key": "suika_counter",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-smm07",
+    "key": "sanae_search",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-lof-001",
+    "key": "courage_ping",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-lof-001",
+    "key": "courage_die",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-htk-002",
+    "key": "tokiko_copy",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-htk-033",
+    "key": "mask_sorrow",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-htk-031",
+    "key": "mask_joy",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-htk-032",
+    "key": "mask_anger",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "item-fdn-044",
+    "key": "item-fdn-044",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "item-lof-009",
+    "key": "item-lof-009",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "spell-fdn-032",
+    "key": "spell-fdn-032",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "item-ucs-017",
+    "key": "item-ucs-017",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": true,
+    "id": "item-fdf-096",
+    "key": "item-fdf-096",
+    "opponent": "只能在自由时机启动",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "item-ucs-013",
+    "key": "item-ucs-013",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "item-htk-008",
+    "key": "item-htk-008",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdn-036",
+    "key": "character-fdn-036:self",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdn-038",
+    "key": "character-fdn-038",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "spell-fdf-059",
+    "key": "spell-fdf-059",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": true,
+    "id": "character-fdn-006",
+    "key": "character-fdn-006",
+    "opponent": "只能在自由时机启动",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdn-043",
+    "key": "character-fdn-043",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-smm05",
+    "key": "character-smm05",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-098",
+    "key": "character-fdf-098",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-112",
+    "key": "character-fdf-112",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-102",
+    "key": "character-fdf-102",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdn-027",
+    "key": "character-fdn-027",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "spell-fdn-019",
+    "key": "spell-fdn-019",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-fdf-127",
+    "key": "token-fdf-127",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-113",
+    "key": "character-fdf-113",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdf-111",
+    "key": "character-fdf-111",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-fdn-041",
+    "key": "character-fdn-041",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "token-fdf-129",
+    "key": "token-fdf-129",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-ucs-065",
+    "key": "character-ucs-065:health",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "character-ucs-065",
+    "key": "character-ucs-065:spirit",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "new-spx-005",
+    "key": "n21:SPX-005:self",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "new-spx-003",
+    "key": "n21:frog_tap",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "new-spx-003",
+    "key": "n21:frog_counter",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "new-spx-002",
+    "key": "n21:gourd_reset",
+    "opponent": "",
+    "own": ""
+  },
+  {
+    "explicit_restriction": false,
+    "id": "new-spx-002",
+    "key": "n21:gourd_counter",
+    "opponent": "",
+    "own": ""
+  }
+]

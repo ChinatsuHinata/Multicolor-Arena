@@ -1,0 +1,14 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PROGRESS host seq=5 turn=0
+PROGRESS host seq=56 turn=5
+PROGRESS host seq=106 turn=7
+PROGRESS host seq=156 turn=9
+PROGRESS host seq=206 turn=11
+PROGRESS host seq=256 turn=13
+PROGRESS host seq=306 turn=15
+PROGRESS host seq=356 turn=16
+PROGRESS host seq=406 turn=17
+PROCESS_COMPLETE host turn=17 actions=406 errors=[]

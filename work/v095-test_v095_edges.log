@@ -1,0 +1,36 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: compact debug sidebar still supports silent move to field
+PASS: debug drop records only debug movement and restores sidebar
+PASS: debug-mode click without drag still activates a legal card
+PASS: normal deck sidebar hides all card faces
+PASS: normal hidden deck click does not reveal or cast
+PASS: image region picker supports deck
+PASS: right inspecting region card preserves selection: deck
+PASS: region selection retains source zone: deck
+PASS: history blocks clicks over an existing choice: deck
+PASS: closing history restores existing region choice: deck
+PASS: image region picker supports grave
+PASS: right inspecting region card preserves selection: grave
+PASS: region selection retains source zone: grave
+PASS: history blocks clicks over an existing choice: grave
+PASS: closing history restores existing region choice: grave
+PASS: image region picker supports exile
+PASS: right inspecting region card preserves selection: exile
+PASS: region selection retains source zone: exile
+PASS: history blocks clicks over an existing choice: exile
+PASS: closing history restores existing region choice: exile
+PASS: inactive leader preview retains both normal and gray leader ability text
+PASS: leader counter removes gray formatting
+PASS: five-color palette renders five hexagons
+PASS: five hexagons span complete card width
+PASS: card art normalized: 91
+PASS: card art normalized: 133
+PASS: card art normalized: rec_unit_097
+PASS: card art normalized: soi_unit_086
+PASS: zoom out works from new centered camera distance
+PASS: real saved decks unchanged
+V095_EDGES: 30 checks; 0 failures
+

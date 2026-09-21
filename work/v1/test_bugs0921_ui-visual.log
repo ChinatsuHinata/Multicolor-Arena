@@ -1,0 +1,24 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 12个相同要石合并一张卡图
+PASS: 展示合并不改变真实卡牌数量
+PASS: 要石卡图标出数量
+PASS: 战场卡面显示增减指示物和防避
+PASS: 颜色盘指示物显示
+PASS: 左侧详情与卡面指示物一致
+PASS: 多选时选中要石独立展开，其余仍显示数量
+PASS: 合并要石可正常发动且只牺牲一个
+PASS: 使用后剩余11个要石
+PASS: 使用后重新合并剩余要石
+PASS: 雪中椛进场有待选卡名的触发
+PASS: 卡名检索窗口独立置顶，堆叠让出输入区域
+PASS: 卡名检索窗口居中
+PASS: 能够检索卡名
+PASS: button: 确定
+PASS: 鼠标选择名称并确认，触发留在堆叠等待响应
+PASS: 选名结束后恢复堆叠显示
+PASS: 组卡器照国只显示一张并保留旧ID兼容
+BUGS0921 UI 18 checks; failures=[]

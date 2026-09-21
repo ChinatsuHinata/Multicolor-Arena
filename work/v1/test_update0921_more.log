@@ -1,0 +1,38 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS Yukari sacrifice field activation
+PASS Yukari minus spirit resolves
+PASS Yukari once per turn
+PASS spirit adjustment expires at next own preparation
+PASS Yukari returns all named fields simultaneously
+PASS train search resolves before copy payment offer
+PASS train copy pays two yellow
+PASS train copy put on stack
+PASS frog arrival fire uses frog power
+PASS next own end searches red frog
+PASS frog counter offered for spell targeting own god
+PASS frog counter actually counters card
+PASS gourd reset activation resolves
+PASS printer gun deals four
+PASS printer gun searches up to two balls
+PASS Blizzard distributes three damage
+PASS three books split among hand grave palette
+PASS same book cannot be selected twice
+PASS book destinations and tapped palette honored
+PASS double death removes timers across both leaders
+PASS double arrival sacrifice X balls sweeps all units and opponent
+PASS deer shot destroys both sides named permanents
+PASS dark noh fires both distinct main abilities and doubles Kokoro
+PASS dark noh exiles itself
+PASS both Kokoro mood triggers fully resolve
+PASS Mayumi enter and death abilities resolve without actual zone change
+PASS placing a timer also triggers Cirno self ability
+PASS fresh drunk counter grants a new next-end trigger after earlier trigger was countered
+PASS dark noh ignores original grave-zone trigger condition
+PASS dark noh includes main trigger character-lof-004
+PASS dark noh includes main trigger sanae_end
+PASS dark noh includes main trigger cat:momiji_name
+PASS dark noh excludes Marisa self ability even for actual leader
+UPDATE0921 MORE 33 checks; failures=[]

@@ -1,0 +1,107 @@
+{
+  "version": "1.1",
+  "real_two_computers_tested": false,
+  "usb_tested": false,
+  "tests": [
+    {
+      "name": "test_v11_bugs",
+      "checks": 126
+    },
+    {
+      "name": "test_v11_ui-visual",
+      "checks": 9
+    },
+    {
+      "name": "test_bugs0921_rules",
+      "checks": 73
+    },
+    {
+      "name": "test_bugs0921_network",
+      "checks": 22
+    },
+    {
+      "name": "test_update0921_undo",
+      "checks": 58
+    },
+    {
+      "name": "test_update0921_network_ui-visual",
+      "checks": 17
+    },
+    {
+      "name": "test_portable",
+      "checks": 85
+    },
+    {
+      "name": "test_v0182_rules",
+      "checks": 38
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43
+    },
+    {
+      "name": "test_v013_rules",
+      "checks": 120
+    },
+    {
+      "name": "test_v013_units",
+      "checks": 45
+    },
+    {
+      "name": "test_v013_edges",
+      "checks": 138
+    },
+    {
+      "name": "test_v014_rules",
+      "checks": 55
+    },
+    {
+      "name": "test_v015_rules",
+      "checks": 542
+    },
+    {
+      "name": "test_update0921_cards",
+      "checks": 70
+    },
+    {
+      "name": "test_update0921_more",
+      "checks": 33
+    }
+  ],
+  "checks": 1474,
+  "release_first_checks": 564,
+  "release_storage_checks": {
+    "restart": 545,
+    "empty": 563
+  },
+  "archive_crc_validated": true,
+  "extracted_bytes_identical": true,
+  "checksum_tools_positive_and_negative_passed": true,
+  "final_extracted_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-1.1/MulticolorArena.exe",
+      "bytes": 109168640,
+      "sha256": "8c565b670de4db84c93fd5cb1eb2a48bdcb7b01bdbd0c0953aeb455692465cad"
+    },
+    {
+      "path": "builds/Windows-1.1/MulticolorArena.pck",
+      "bytes": 624449996,
+      "sha256": "7658914dcb94992b6af2a7b34aa7422bd6481e051db2c0edcbafafd18a4547a8"
+    },
+    {
+      "path": "builds/MulticolorArena-1.1-win64.zip",
+      "bytes": 659976299,
+      "sha256": "ba1eba2bbdff6fc3b9a5c4e205912bdffcf2228e33864a3c04d55ff1a2f21e6b"
+    },
+    {
+      "path": "builds/CheckTransfer-1.1.cmd",
+      "bytes": 972,
+      "sha256": "4a114a62a00c10640ad2fdf46adb51d1b75cd4944efdb8959b5e4f73429b4fc7"
+    }
+  ]
+}

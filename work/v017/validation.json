@@ -1,0 +1,27 @@
+{
+  "version": "0.17",
+  "checks": 106,
+  "results": [
+    {
+      "log": "test_v017_payment-visual.log",
+      "checks": 58,
+      "errors": []
+    },
+    {
+      "log": "test_v015_ui.log",
+      "checks": 29,
+      "errors": []
+    },
+    {
+      "log": "test_v016_stack.log",
+      "checks": 19,
+      "errors": []
+    }
+  ],
+  "screenshots": [
+    "recommended-payment.png",
+    "replace-blue-resource.png",
+    "ran-discount.png"
+  ],
+  "scope": "Recommended payment implemented; LAN design only; no live networking or new share build."
+}

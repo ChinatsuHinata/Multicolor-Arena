@@ -1,0 +1,17 @@
+[
+  {
+    "test": "test_v096",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "test": "test_v014_rules",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "test": "test_v013_edges",
+    "exit": 0,
+    "errors": []
+  }
+]

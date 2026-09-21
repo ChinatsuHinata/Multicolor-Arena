@@ -1,0 +1,11 @@
+v0.9.7 database migration
+65 registered IDs unchanged.
+65 images moved to recourse/数据库 using stable IDs; SHA256 unchanged.
+65 definitions unchanged except image path; imported texture metadata source_file updated.
+Existing registered card 177 recovered from pending folder, not a new card import.
+105 other pending files (52 images) unchanged by file name and SHA256.
+Godot: 140 checks; 0 failures; every registered texture loads; editor and battle tested with card 177.
+No project script or shader errors; existing Windows certificate diagnostic only.
+Saved decks unchanged: C420771B0D716506CF3115B44C6DD99FA97B64B46F71B1AE2DC3570DCA01EB7A
+Screenshot: work/v097-card177-editor.png; work/v097-card177-battle.png
+Backup and move manifest: work/v097-backup; work/v097-migration.json

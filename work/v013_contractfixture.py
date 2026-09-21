@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('tests/test_v013_contracts.gd');s=p.read_text(encoding='utf-8').replace('["53","54","2"]','["7","character-fdf-091","character-fdn-038","82"]').replace('"spell-fdf-047","spell-fdf-049"]','"spell-fdf-047","spell-fdf-049","character-fdf-029","spell-fdf-045","character-fdn-045"]').replace('  put("164","field",who)','  put("164","field",who)\n  var timed=put("spell-fdf-040","field",who);timed.timer=2');p.write_text(s,encoding='utf-8')

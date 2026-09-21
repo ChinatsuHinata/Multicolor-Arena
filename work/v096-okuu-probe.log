@@ -1,0 +1,13 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+OKUU render ms=798 debug=false modal=false browser=false local={  } priority=0
+PASS: button: 结束主要阶段
+AFTER PASS phase=possession pending={  } priority=1 revision=11
+PASS: Okuu alone does not block ending main phase
+OKUU render ms=607 debug=true modal=false browser=false local={  } priority=0
+PASS: button: 结束主要阶段
+AFTER PASS phase=possession pending={ "kind": "possession", "owner": 1 } priority=1 revision=10
+PASS: Okuu alone does not block ending main phase
+OKUU_PROBE 4 failures []

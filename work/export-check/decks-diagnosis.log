@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+CARDS 486 
+1.0红u =>  id_type 4
+1.0四色妖梦 =>  id_type 4
+预组-灵梦 =>  id_type 4
+预组-魔理沙 =>  id_type 4
+OK

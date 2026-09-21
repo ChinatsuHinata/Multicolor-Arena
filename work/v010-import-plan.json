@@ -1,0 +1,1283 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "source_id": "character-soi-018",
+      "name": "阳花的妖怪「风见幽香」",
+      "identity": "阳花的妖怪「风见幽香」",
+      "source": "recourse/新增卡片/image16.png",
+      "operation": "move",
+      "sha256": "aa12313d2881c12a1ff7b8164c14b9892e66b559eef03f0e5c0dd2ee1cb09b81",
+      "card_id": "character-soi-018",
+      "primary": true,
+      "destination": "recourse/数据库/character-soi-018.png"
+    },
+    {
+      "source_id": "character-soi-006",
+      "name": "运送春天的妖精「莉莉白」",
+      "identity": "运送春天的妖精「莉莉白」",
+      "source": "recourse/新增卡片/image4.png",
+      "operation": "move",
+      "sha256": "52f1f3ad118d2ded35e8a4c5373197bdc30818f9048727ae4730e9bf94f9b486",
+      "card_id": "character-soi-006",
+      "primary": true,
+      "destination": "recourse/数据库/character-soi-006.png"
+    },
+    {
+      "source_id": "spell-soi-098",
+      "name": "「人神ノ嬉」",
+      "identity": "「人神ノ嬉」",
+      "source": "recourse/新增卡片/image95.png",
+      "operation": "move",
+      "sha256": "378a2096ec8e8250a13418828aa80e1b378f1561d45cc5950cfb3a936831f3fd",
+      "card_id": "spell-soi-098",
+      "primary": true,
+      "destination": "recourse/数据库/spell-soi-098.png"
+    },
+    {
+      "source_id": "spell-fdf-054",
+      "name": "「云中」",
+      "identity": "「云中」",
+      "source": "recourse/新增卡片/「云中」__spell-fdf-054.jpg",
+      "operation": "move",
+      "sha256": "a40a034f0dfe2d965673e1bee5291ef9f804823446ae8f2fe8f4094d1c1e9b36",
+      "card_id": "spell-fdf-054",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-054.jpg"
+    },
+    {
+      "source_id": "spell-rei-015",
+      "name": "「山涧ノ川」",
+      "identity": "「山涧ノ川」",
+      "source": "recourse/新增卡片/「山涧ノ川」__spell-rei-015.jpg",
+      "operation": "move",
+      "sha256": "c904a6c65929874e1019cfbc6ca29cce89085e4ef3de8f6653115e21634dce8f",
+      "card_id": "spell-rei-015",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-015.jpg"
+    },
+    {
+      "source_id": "spell-mar-007",
+      "name": "「灵击符」",
+      "identity": "「灵击符」",
+      "source": "recourse/新增卡片/「灵击符」.jpg",
+      "operation": "move",
+      "sha256": "a1142dd7a597fa6303b773ffe833714d3ca57f16d6555c8a03f7e90df106c49f",
+      "card_id": "spell-mar-007",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-007.jpg"
+    },
+    {
+      "source_id": "field-fdn-016",
+      "name": "「祈雨ノ阵」",
+      "identity": "「祈雨ノ阵」",
+      "source": "recourse/新增卡片/「祈雨ノ阵」.jpg",
+      "operation": "move",
+      "sha256": "7747477a4d720fd06a116161f7e242338dd48b1423d5234c367f2abca28c65a1",
+      "card_id": "field-fdn-016",
+      "primary": true,
+      "destination": "recourse/数据库/field-fdn-016.jpg"
+    },
+    {
+      "source_id": "spell-fdf-ex05",
+      "name": "「红色ノ幻想乡」",
+      "identity": "「红色ノ幻想乡」",
+      "source": "recourse/新增卡片/「红色ノ幻想乡」__spell-fdf-ex05.jpg",
+      "operation": "move",
+      "sha256": "c894a632d2c44c8317a25059830be0da1428d6de2dd1d6b7d61dc498d14b8408",
+      "card_id": "spell-fdf-ex05",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-ex05.jpg"
+    },
+    {
+      "source_id": "spell-rei-006",
+      "name": "「约定」",
+      "identity": "「约定」",
+      "source": "recourse/新增卡片/「约定」.jpg",
+      "operation": "move",
+      "sha256": "eb6f64110378f974b7e6e4ef2972df87d1f92c1d9b5601f0986db6111330b2de",
+      "card_id": "spell-rei-006",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-006.jpg"
+    },
+    {
+      "source_id": "spell-mar-005",
+      "name": "「结界ノ一侧」",
+      "identity": "「结界ノ一侧」",
+      "source": "recourse/新增卡片/「结界ノ一侧」.jpg",
+      "operation": "move",
+      "sha256": "839d67e5660810780af61d1debf68e6cc28f98dae4c13f9c72ef94e03d7aacfa",
+      "card_id": "spell-mar-005",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-005.jpg"
+    },
+    {
+      "source_id": "character-fdf-ex05",
+      "name": "吞噬历史的半兽「上白泽慧音」",
+      "identity": "吞噬历史的半兽「上白泽慧音」",
+      "source": "recourse/新增卡片/吞噬历史的半兽「上白泽慧音」__character-fdf-ex05.jpg",
+      "operation": "move",
+      "sha256": "27ca674f937af4f8411b075164ec56537a21dcb55ebd5fa467958715e9a2b616",
+      "card_id": "character-fdf-ex05",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-ex05.jpg"
+    },
+    {
+      "source_id": "token-fdf-133",
+      "name": "吸血鬼衍生物",
+      "identity": "吸血鬼衍生物",
+      "source": "recourse/新增卡片/吸血鬼衍生物__token-fdf-133.jpg",
+      "operation": "move",
+      "sha256": "711c1fe0a2031c6a4f0d337237438c0d9652e5eebf4c8726edc94cbb8384fb43",
+      "card_id": "token-fdf-133",
+      "primary": true,
+      "destination": "recourse/数据库/token-fdf-133.jpg"
+    },
+    {
+      "source_id": "character-rei-ex01",
+      "name": "夏的妖精「爱塔妮缇拉尔瓦」",
+      "identity": "夏的妖精「爱塔妮缇拉尔瓦」",
+      "source": "recourse/新增卡片/夏的妖精「爱塔妮缇拉尔瓦」__character-rei-ex01.jpg",
+      "operation": "move",
+      "sha256": "d85e81db9f0acccac0fecd9b53217b255cfd446ffd2875d4eb3e7afab72e5bf1",
+      "card_id": "character-rei-ex01",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-ex01.jpg"
+    },
+    {
+      "source_id": "character-fdf-ex04",
+      "name": "大地的守护神「比那名居天子」",
+      "identity": "大地的守护神「比那名居天子」",
+      "source": "recourse/新增卡片/大地的守护神「比那名居天子」__character-fdf-ex04.jpg",
+      "operation": "move",
+      "sha256": "dacbda331e4a56b2b33d38260d335a1bd4e899455b4dfc3a96d5f1ae0e052589",
+      "card_id": "character-fdf-ex04",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-ex04.jpg"
+    },
+    {
+      "source_id": "character-rei-001",
+      "name": "大结界的巫女「博丽灵梦」",
+      "identity": "大结界的巫女「博丽灵梦」",
+      "source": "recourse/新增卡片/大结界的巫女「博丽灵梦」__character-rei-001.jpg",
+      "operation": "move",
+      "sha256": "13e0fa7734c3005d718adb7b1c35eacd8bc5bb91ce84a3b064639a601034199e",
+      "card_id": "character-rei-001",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-001.jpg"
+    },
+    {
+      "source_id": "spell-fdf-020",
+      "name": "宝具「阴阳鬼神玉」",
+      "identity": "宝具「阴阳鬼神玉」",
+      "source": "recourse/新增卡片/宝具「阴阳鬼神玉」__spell-fdf-020.jpg",
+      "operation": "move",
+      "sha256": "ed18582f9315cf6f904174576c70040e4c6f78459208d085663de18ef155d2e4",
+      "card_id": "spell-rei-010",
+      "primary": false,
+      "destination": "recourse/数据库/异画与重复/v0.10/spell-fdf-020.jpg"
+    },
+    {
+      "source_id": "spell-fdf-ex",
+      "name": "宝具「阴阳鬼神玉」",
+      "identity": "宝具「阴阳鬼神玉」",
+      "source": "recourse/新增卡片/宝具「阴阳鬼神玉」__spell-fdf-ex.jpg",
+      "operation": "move",
+      "sha256": "ed18582f9315cf6f904174576c70040e4c6f78459208d085663de18ef155d2e4",
+      "card_id": "spell-rei-010",
+      "primary": false,
+      "destination": "recourse/数据库/异画与重复/v0.10/spell-fdf-ex.jpg"
+    },
+    {
+      "source_id": "spell-rei-010",
+      "name": "宝具「阴阳鬼神玉」",
+      "identity": "宝具「阴阳鬼神玉」",
+      "source": "recourse/新增卡片/宝具「阴阳鬼神玉」__spell-rei-010.jpg",
+      "operation": "move",
+      "sha256": "ed18582f9315cf6f904174576c70040e4c6f78459208d085663de18ef155d2e4",
+      "card_id": "spell-rei-010",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-010.jpg"
+    },
+    {
+      "source_id": "character-mar-020",
+      "name": "实验中的魔女「雾雨魔理沙」",
+      "identity": "实验中的魔女「雾雨魔理沙」",
+      "source": "recourse/新增卡片/实验中的魔女「雾雨魔理沙」__character-mar-020.jpg",
+      "operation": "move",
+      "sha256": "d24ce52d96bb3cdb3d488b735617c63148557734364dc95179379f18bba8bb2f",
+      "card_id": "character-mar-020",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-020.jpg"
+    },
+    {
+      "source_id": "token-smm-025",
+      "name": "小人衍生物",
+      "identity": "小人衍生物",
+      "source": "recourse/新增卡片/小人衍生物.jpg",
+      "operation": "move",
+      "sha256": "853fad0769588ee1e9072319811ccd5d7673ff1dd7ebb6651a521d68fb7231a5",
+      "card_id": "token-smm-025",
+      "primary": true,
+      "destination": "recourse/数据库/token-smm-025.jpg"
+    },
+    {
+      "source_id": "character-rei-017",
+      "name": "小径的红叶巫女「博丽灵梦」",
+      "identity": "小径的红叶巫女「博丽灵梦」",
+      "source": "recourse/新增卡片/小径的红叶巫女「博丽灵梦」__character-rei-017.jpg",
+      "operation": "move",
+      "sha256": "d7d6d4be856d0a51bf161b57f0a75a6430c3f33fe42f4d6283921575a05d3d38",
+      "card_id": "character-rei-017",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-017.jpg"
+    },
+    {
+      "source_id": "character-rei-007",
+      "name": "「山童探险家」",
+      "identity": "「山童探险家」",
+      "source": "recourse/新增卡片/山童探险家.jpg",
+      "operation": "move",
+      "sha256": "59b34adbbcbe3ede2a92701778fd6088af50ae8ba83334c080a1afb19efb1762",
+      "card_id": "character-rei-007",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-007.jpg"
+    },
+    {
+      "source_id": "field-rei-004",
+      "name": "常置阵",
+      "identity": "常置阵",
+      "source": "recourse/新增卡片/常置阵.jpg",
+      "operation": "move",
+      "sha256": "3b0740df7d370247da821be8e3e719c093c3ccd7775f381b9560605e571c1f3e",
+      "card_id": "field-rei-004",
+      "primary": true,
+      "destination": "recourse/数据库/field-rei-004.jpg"
+    },
+    {
+      "source_id": "character-rec-096",
+      "name": "幸运的白兔「因幡帝」",
+      "identity": "幸运的白兔「因幡帝」",
+      "source": "recourse/新增卡片/幸运的白兔「因幡帝」__character-rec-096.jpg",
+      "operation": "move",
+      "sha256": "d653111444a4f0b1a543858abd47aac7d604d2567635e2914ac1ee14d16672e9",
+      "card_id": "character-rec-096",
+      "primary": true,
+      "destination": "recourse/数据库/character-rec-096.jpg"
+    },
+    {
+      "source_id": "character-fdf-070",
+      "name": "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
+      "identity": "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
+      "source": "recourse/新增卡片/幻想的冬天之物「蕾蒂·霍瓦特洛克」__character-fdf-070.jpg",
+      "operation": "move",
+      "sha256": "2a76304bc56d470506b1fa593a070982b3eee24f46562179c1f06064c28caf60",
+      "card_id": "character-fdf-070",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-070.jpg"
+    },
+    {
+      "source_id": "token-fdn-085",
+      "name": "幻象衍生物",
+      "identity": "幻象衍生物",
+      "source": "recourse/新增卡片/幻象衍生物.jpg",
+      "operation": "move",
+      "sha256": "31ddd8f31220fe53561a0216db4e48ac50fd9eb5ceeeec2f237e806a6ee272be",
+      "card_id": "token-fdn-085",
+      "primary": true,
+      "destination": "recourse/数据库/token-fdn-085.jpg"
+    },
+    {
+      "source_id": "spell-mar-002",
+      "name": "恋心「Double Spark」",
+      "identity": "恋心「Double Spark」",
+      "source": "recourse/新增卡片/恋心「Double Spark」.jpg",
+      "operation": "move",
+      "sha256": "a04cbee556e83d58276fac43ecb19a64d983b9566e8287420b8af3ee6cfae89b",
+      "card_id": "spell-mar-002",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-002.jpg"
+    },
+    {
+      "source_id": "spell-mar-003",
+      "name": "恋符「Non-Directional Laser」",
+      "identity": "恋符「Non-Directional Laser」",
+      "source": "recourse/新增卡片/恋符「Non-Directional Laser」.jpg",
+      "operation": "move",
+      "sha256": "01e1b1753cdadf91a93b58ee3754dd49684cb07dee0d162d3b9906bbb2f165dc",
+      "card_id": "spell-mar-003",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-003.jpg"
+    },
+    {
+      "source_id": "character-fdf-ex01",
+      "name": "恶魔之妹「芙兰朵露·斯卡蕾特」",
+      "identity": "恶魔之妹「芙兰朵露·斯卡蕾特」",
+      "source": "recourse/新增卡片/恶魔之妹「芙兰朵露·斯卡蕾特」__character-fdf-ex01.jpg",
+      "operation": "move",
+      "sha256": "e3190b16dd78124f6b3977de7b5b3b7a53b3e4ef690d5b266f50afa40f8ad5af",
+      "card_id": "character-fdf-ex01",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-ex01.jpg"
+    },
+    {
+      "source_id": "field-fdf-108",
+      "name": "旧都",
+      "identity": "旧都",
+      "source": "recourse/新增卡片/旧都__field-fdf-108.jpg",
+      "operation": "move",
+      "sha256": "ae1540601d098d782196b1c47b80a352e50881e0407bacc2541c957e3ef3b316",
+      "card_id": "field-fdf-108",
+      "primary": true,
+      "destination": "recourse/数据库/field-fdf-108.jpg"
+    },
+    {
+      "source_id": "spell-fdf-019",
+      "name": "星符「Escape Velocity」",
+      "identity": "星符「Escape Velocity」",
+      "source": "recourse/新增卡片/星符「Escape Velocity」__spell-fdf-019.jpg",
+      "operation": "move",
+      "sha256": "2fe9a5a89290852a84e588277ebead4485d09c07eaf325bba3c4e1363bb0bd27",
+      "card_id": "spell-fdf-019",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-019.jpg"
+    },
+    {
+      "source_id": "spell-fdf-023",
+      "name": "星符「Meteonic Shower」",
+      "identity": "星符「Meteonic Shower」",
+      "source": "recourse/新增卡片/星符「Meteonic Shower」__spell-fdf-023.jpg",
+      "operation": "move",
+      "sha256": "7083896c7933a7e500262556c26aac9e20184105ab03d5b29a5861e521bd4a9d",
+      "card_id": "spell-fdf-023",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-023.jpg"
+    },
+    {
+      "source_id": "character-fdf-116",
+      "name": "月之头脑「八意永琳」",
+      "identity": "月之头脑「八意永琳」",
+      "source": "recourse/新增卡片/月之头脑「八意永琳」__character-fdf-116.jpg",
+      "operation": "move",
+      "sha256": "2b728164d00cbefe9356e40f136aee54d19f67d54d5ab9b21576c780fcff07a0",
+      "card_id": "character-fdf-116",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-116.jpg"
+    },
+    {
+      "source_id": "token-fdf-132",
+      "name": "月兔衍生物",
+      "identity": "月兔衍生物",
+      "source": "recourse/新增卡片/月兔衍生物.jpg",
+      "operation": "move",
+      "sha256": "fc81f158887a5c667ea0547035870f8385d9a160c610986b43144621fd0caf89",
+      "card_id": "token-fdf-132",
+      "primary": true,
+      "destination": "recourse/数据库/token-fdf-132.jpg"
+    },
+    {
+      "source_id": "spell-fdf-011",
+      "name": "梦符「二重结界」",
+      "identity": "梦符「二重结界」",
+      "source": "recourse/新增卡片/梦符「二重结界」__spell-fdf-011.jpg",
+      "operation": "move",
+      "sha256": "e271deb6f4c884d2dbcb42b2757f066521cb0f524e58675a215c75d5d800eca9",
+      "card_id": "spell-fdf-011",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-011.jpg"
+    },
+    {
+      "source_id": "character-rei-022",
+      "name": "毗沙门天「寅丸星」",
+      "identity": "毗沙门天「寅丸星」",
+      "source": "recourse/新增卡片/毗沙门天「寅丸星」__character-rei-022.jpg",
+      "operation": "move",
+      "sha256": "d9441c26f1c1cb78bbdc84181de2f498af0b0a606a2a16b0efece5446b6733c5",
+      "card_id": "character-rei-022",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-022.jpg"
+    },
+    {
+      "source_id": "spell-fdf-004",
+      "name": "灵符「梦想妙珠」",
+      "identity": "灵符「梦想妙珠」",
+      "source": "recourse/新增卡片/灵符「梦想妙珠」__spell-fdf-004.jpg",
+      "operation": "move",
+      "sha256": "36053e936ccc396b80e47f22ee8b1e4200f378ca573443ce430f1b908d2e63e3",
+      "card_id": "spell-rei-011",
+      "primary": false,
+      "destination": "recourse/数据库/异画与重复/v0.10/spell-fdf-004.jpg"
+    },
+    {
+      "source_id": "spell-rei-011",
+      "name": "灵符「梦想妙珠」",
+      "identity": "灵符「梦想妙珠」",
+      "source": "recourse/新增卡片/灵符「梦想妙珠」__spell-rei-011.jpg",
+      "operation": "move",
+      "sha256": "36053e936ccc396b80e47f22ee8b1e4200f378ca573443ce430f1b908d2e63e3",
+      "card_id": "spell-rei-011",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-011.jpg"
+    },
+    {
+      "source_id": "spell-rei-012",
+      "name": "灵符「梦想封印-散-」",
+      "identity": "灵符「梦想封印-散-」",
+      "source": "recourse/新增卡片/灵符「梦想封印-散-」__spell-rei-012.jpg",
+      "operation": "move",
+      "sha256": "a020e37e3c21c7c7c593ef0e6c7ab3c2f122f0b5ba020b7998b229b33155efe7",
+      "card_id": "spell-rei-012",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-012.jpg"
+    },
+    {
+      "source_id": "character-fdf-099",
+      "name": "生意兴隆的吉祥物「豪德寺三花」",
+      "identity": "生意兴隆的吉祥物「豪德寺三花」",
+      "source": "recourse/新增卡片/生意兴隆的吉祥物「豪德寺三花」__character-fdf-099.jpg",
+      "operation": "move",
+      "sha256": "18022986955f457b93b674015d77d258e42ec1caffc5d7826baf770fe909a496",
+      "card_id": "character-fdf-099",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-099.jpg"
+    },
+    {
+      "source_id": "spell-fdf-007",
+      "name": "神技「八方鬼缚阵」",
+      "identity": "神技「八方鬼缚阵」",
+      "source": "recourse/新增卡片/神技「八方鬼缚阵」.jpg",
+      "operation": "move",
+      "sha256": "713783fc640aa88e56928c10807abf70d2dedd8014760be7c2de487de2e0d34d",
+      "card_id": "spell-fdf-007",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-007.jpg"
+    },
+    {
+      "source_id": "character-fdf-ex02",
+      "name": "神隐的主犯「八云紫」",
+      "identity": "神隐的主犯「八云紫」",
+      "source": "recourse/新增卡片/神隐的主犯「八云紫」__character-fdf-ex02.jpg",
+      "operation": "move",
+      "sha256": "2d4d2f08f2ca12d12aaf122b4a24494193c02bd5b8d8f774d47abd321c50b512",
+      "card_id": "character-fdf-ex02",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-ex02.jpg"
+    },
+    {
+      "source_id": "character-rei-026",
+      "name": "祭祀风之人「东风谷早苗」",
+      "identity": "祭祀风之人「东风谷早苗」",
+      "source": "recourse/新增卡片/祭祀风之人「东风谷早苗」__character-rei-026.jpg",
+      "operation": "move",
+      "sha256": "bf611cecd622d0baafe788f5586566cd647bdc8b2c0babd80cd2276674460394",
+      "card_id": "character-rei-026",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-026.jpg"
+    },
+    {
+      "source_id": "field-rei-005",
+      "name": "系缚阵",
+      "identity": "系缚阵",
+      "source": "recourse/新增卡片/系缚阵.jpg",
+      "operation": "move",
+      "sha256": "3acebbe45139f02497bfe23194d3e1cba70f0500a5798e95fbe36d8becd98b6c",
+      "card_id": "field-rei-005",
+      "primary": true,
+      "destination": "recourse/数据库/field-rei-005.jpg"
+    },
+    {
+      "source_id": "spell-rei-002",
+      "name": "结界「扩散结界」",
+      "identity": "结界「扩散结界」",
+      "source": "recourse/新增卡片/结界「扩散结界」.jpg",
+      "operation": "move",
+      "sha256": "86e0a35c99f4ca4eff3d286ca39e417fc310749ffd8b2377cde6f88929520cf0",
+      "card_id": "spell-rei-002",
+      "primary": true,
+      "destination": "recourse/数据库/spell-rei-002.jpg"
+    },
+    {
+      "source_id": "character-mar-ex",
+      "name": "胆大心细的魔法使「雾雨魔理沙」",
+      "identity": "胆大心细的魔法使「雾雨魔理沙」",
+      "source": "recourse/新增卡片/胆大心细的魔法使「雾雨魔理沙」__character-mar-ex.jpg",
+      "operation": "move",
+      "sha256": "8d5f79ebaff8b949603f78269d33eb72a0c089d0a7a219788968ccce06572cdb",
+      "card_id": "character-mar-ex",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-ex.jpg"
+    },
+    {
+      "source_id": "token-kmo-027",
+      "name": "蝙蝠衍生物",
+      "identity": "蝙蝠衍生物",
+      "source": "recourse/新增卡片/蝙蝠衍生物.jpg",
+      "operation": "move",
+      "sha256": "00a76a08d01a91471339c8750863c580b99c9a26e20101cba1a13b4e0eaf4b08",
+      "card_id": "token-kmo-027",
+      "primary": true,
+      "destination": "recourse/数据库/token-kmo-027.jpg"
+    },
+    {
+      "source_id": "field-rei-003",
+      "name": "警醒阵",
+      "identity": "警醒阵",
+      "source": "recourse/新增卡片/警醒阵.jpg",
+      "operation": "move",
+      "sha256": "5267079b71f3c9e7aafce2101f4eeebb502e3eceaf7742f21fc2a0db8f5ecf60",
+      "card_id": "field-rei-003",
+      "primary": true,
+      "destination": "recourse/数据库/field-rei-003.jpg"
+    },
+    {
+      "source_id": "character-rec-104",
+      "name": "识文解意的爱书「本居小铃」",
+      "identity": "识文解意的爱书「本居小铃」",
+      "source": "recourse/新增卡片/识文解意的爱书「本居小铃」__character-rec-104.jpg",
+      "operation": "move",
+      "sha256": "c9d586b8956edf873af7604a69ecc53290e323b85b999f9a63a00bbafa091d57",
+      "card_id": "character-rec-104",
+      "primary": true,
+      "destination": "recourse/数据库/character-rec-104.jpg"
+    },
+    {
+      "source_id": "field-smm-004",
+      "name": "辉光之城",
+      "identity": "辉光ノ城",
+      "source": "recourse/新增卡片/辉光之城__field-smm-004.jpg",
+      "operation": "move",
+      "sha256": "97c7f2ffaf98544e2d627a484a4d12b3fc1ee63333da1cac7666fbebf770bce9",
+      "card_id": "field-smm-004",
+      "primary": true,
+      "destination": "recourse/数据库/field-smm-004.jpg"
+    },
+    {
+      "source_id": "spell-mar-004",
+      "name": "邪恋「容易结果ノ极限火花」",
+      "identity": "邪恋「容易结果ノ极限火花」",
+      "source": "recourse/新增卡片/邪恋「容易结果ノ极限火花」.jpg",
+      "operation": "move",
+      "sha256": "f4da1c62434f5f4d83a398fbe7e3bfeb8007246c98f450ab035c0fd10a02aad7",
+      "card_id": "spell-mar-004",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-004.jpg"
+    },
+    {
+      "source_id": "field-mar-006",
+      "name": "雾雨魔法店",
+      "identity": "雾雨魔法店",
+      "source": "recourse/新增卡片/雾雨魔法店.jpg",
+      "operation": "move",
+      "sha256": "afff550d70415c978752d863f29630beca6c57bb6bd5153130e1299f1aee560b",
+      "card_id": "field-mar-006",
+      "primary": true,
+      "destination": "recourse/数据库/field-mar-006.jpg"
+    },
+    {
+      "source_id": "character-ucs-060",
+      "name": "鬼神仙人「茨木华扇」",
+      "identity": "鬼神仙人「茨木华扇」",
+      "source": "recourse/新增卡片/鬼神仙人「茨木华扇」__character-ucs-060.jpg",
+      "operation": "move",
+      "sha256": "5880228a9edad4a60f452f986edf45060a541a6b05f5f620b328dfbd7a0debfb",
+      "card_id": "character-ucs-060",
+      "primary": true,
+      "destination": "recourse/数据库/character-ucs-060.jpg"
+    },
+    {
+      "source_id": "token-fdf-130",
+      "name": "鬼衍生物",
+      "identity": "鬼衍生物",
+      "source": "recourse/新增卡片/鬼衍生物.jpg",
+      "operation": "move",
+      "sha256": "150ed8b985df4a6f88e81ae4e03930637a6e4b7391c3e28f5fb7f62c4bcefc0a",
+      "card_id": "token-fdf-130",
+      "primary": true,
+      "destination": "recourse/数据库/token-fdf-130.jpg"
+    },
+    {
+      "source_id": "character-fdf-ex03",
+      "name": "魔神复诵「圣白莲」",
+      "identity": "魔神复诵「圣白莲」",
+      "source": "recourse/新增卡片/魔神复诵「圣白莲」__character-fdf-ex03.jpg",
+      "operation": "move",
+      "sha256": "854558e6ff67723d9ae2341b44477ee5ebdd4fc85097a410d56d4a8d7b6f6916",
+      "card_id": "character-fdf-ex03",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-ex03.jpg"
+    },
+    {
+      "source_id": "spell-fdf-036",
+      "name": "魔符「Stardust Reverie」",
+      "identity": "魔符「Stardust Reverie」",
+      "source": "recourse/新增卡片/魔符「Stardust Reverie」__spell-fdf-036.jpg",
+      "operation": "move",
+      "sha256": "3ffede171e423fca1b3b1fcc5cae175c96f00c769ba8ed9c4caafbd3168f862a",
+      "card_id": "spell-fdf-036",
+      "primary": true,
+      "destination": "recourse/数据库/spell-fdf-036.jpg"
+    },
+    {
+      "source_id": "character-fdf-095",
+      "name": "鲵吞亭的店花「奥野田美宵」",
+      "identity": "鲵吞亭的店花「奥野田美宵」",
+      "source": "recourse/新增卡片/鲵吞亭的店花「奥野田美宵」__character-fdf-095.jpg",
+      "operation": "move",
+      "sha256": "0afd08b01bb72e43713e21086d24e2b36c47c3954075cc660905a59a20f879a1",
+      "card_id": "character-fdf-095",
+      "primary": true,
+      "destination": "recourse/数据库/character-fdf-095.jpg"
+    },
+    {
+      "source_id": "character-rei-023",
+      "name": "丰收之秋「秋穰子」",
+      "identity": "丰收之秋「秋穰子」",
+      "source": "recourse/爬虫/丰收之秋「秋穰子」__character-rei-023.jpg",
+      "operation": "copy",
+      "sha256": "c3d89292db10d621713c4158e68a16bcc216af3d0966ac70153eade59ae8b824",
+      "card_id": "character-rei-023",
+      "primary": true,
+      "destination": "recourse/数据库/character-rei-023.jpg"
+    },
+    {
+      "source_id": "spell-mar-012",
+      "name": "光击「射月」",
+      "identity": "光击「射月」",
+      "source": "recourse/爬虫/光击「射月」__spell-mar-012.jpg",
+      "operation": "copy",
+      "sha256": "583f4614a2e97966d704ae8d181fd1cb58cda9e04a70169ce3425d4119a79acd",
+      "card_id": "spell-mar-012",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-012.jpg"
+    },
+    {
+      "source_id": "spell-mar-013",
+      "name": "「春」",
+      "identity": "「春」",
+      "source": "recourse/爬虫/「春」__spell-mar-013.jpg",
+      "operation": "copy",
+      "sha256": "fadc6a596adbfa2e3a482101e073e39987d0a530f46b988756a30253d35af046",
+      "card_id": "spell-mar-013",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-013.jpg"
+    },
+    {
+      "source_id": "spell-mar-014",
+      "name": "「Paranoid Lost」",
+      "identity": "「Paranoid Lost」",
+      "source": "recourse/爬虫/「Paranoid Lost」__spell-mar-014.jpg",
+      "operation": "copy",
+      "sha256": "b0907537bb413fd23fb4f96449b2fffb576823138913e43afd8cb4fdef8bcd4f",
+      "card_id": "spell-mar-014",
+      "primary": true,
+      "destination": "recourse/数据库/spell-mar-014.jpg"
+    },
+    {
+      "source_id": "item-mar-017",
+      "name": "「八卦炉」",
+      "identity": "「八卦炉」",
+      "source": "recourse/爬虫/「八卦炉」__item-mar-017.jpg",
+      "operation": "copy",
+      "sha256": "f2dd6ce82dbb01916fd3504e6e12bd79c718d6d2b0ff9e197b846780e6626f5a",
+      "card_id": "item-mar-017",
+      "primary": true,
+      "destination": "recourse/数据库/item-mar-017.jpg"
+    },
+    {
+      "source_id": "character-mar-021",
+      "name": "知识与避世的少女「帕秋莉·诺蕾姬」",
+      "identity": "知识与避世的少女「帕秋莉·诺蕾姬」",
+      "source": "recourse/爬虫/知识与避世的少女「帕秋莉·诺蕾姬」__character-mar-021.jpg",
+      "operation": "copy",
+      "sha256": "1b1507483cc318a710c6b093f21b79a2d33f8949f5bfa216b5a0f1e8bc02e1c5",
+      "card_id": "character-mar-021",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-021.jpg"
+    },
+    {
+      "source_id": "character-mar-022",
+      "name": "月之都的射手「清兰」",
+      "identity": "月之都的射手「清兰」",
+      "source": "recourse/爬虫/月之都的射手「清兰」__character-mar-022.jpg",
+      "operation": "copy",
+      "sha256": "2da9415aec6c3d1f3641fc31ca7973bae82cf79690f14c0b3d68bd502272d1b8",
+      "card_id": "character-mar-022",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-022.jpg"
+    },
+    {
+      "source_id": "character-mar-023",
+      "name": "勤奋的图书管理员「小恶魔」",
+      "identity": "勤奋的图书管理员「小恶魔」",
+      "source": "recourse/爬虫/勤奋的图书管理员「小恶魔」__character-mar-023.jpg",
+      "operation": "copy",
+      "sha256": "b4c079548b498998253eb211c6fedd9c54041778d29c285543f906612b4da5cc",
+      "card_id": "character-mar-023",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-023.jpg"
+    },
+    {
+      "source_id": "character-mar-024",
+      "name": "美丽的绯之衣「永江衣玖」",
+      "identity": "美丽的绯之衣「永江衣玖」",
+      "source": "recourse/爬虫/美丽的绯之衣「永江衣玖」__character-mar-024.jpg",
+      "operation": "copy",
+      "sha256": "02ada7a51df22dc8bb793aa07d756cabada5aa6c64cc34ac07dd6a9ff43f1b63",
+      "card_id": "character-mar-024",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-024.jpg"
+    },
+    {
+      "source_id": "character-mar-025",
+      "name": "无名的读书妖怪「朱鹭子」",
+      "identity": "无名的读书妖怪「朱鹭子」",
+      "source": "recourse/爬虫/无名的读书妖怪「朱鹭子」__character-mar-025.jpg",
+      "operation": "copy",
+      "sha256": "7acbf669474641bf3d86f10f232c175339fbc4e07ecc5dd79a90f6d1b18105ea",
+      "card_id": "character-mar-025",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-025.jpg"
+    },
+    {
+      "source_id": "character-mar-ex01",
+      "name": "七曜魔法使「帕秋莉·诺蕾姬」",
+      "identity": "七曜魔法使「帕秋莉·诺蕾姬」",
+      "source": "recourse/爬虫/七曜魔法使「帕秋莉·诺蕾姬」__character-mar-ex01.jpg",
+      "operation": "copy",
+      "sha256": "c0de655b311bc23cee081aa357c19d10c79a15ba1c448f63cd00afd5f549de29",
+      "card_id": "character-mar-ex01",
+      "primary": true,
+      "destination": "recourse/数据库/character-mar-ex01.jpg"
+    },
+    {
+      "source_id": "token-fdf-128",
+      "card_id": "token-fdf-128",
+      "name": "美宵之酒",
+      "identity": "美宵之酒",
+      "source": "recourse/爬虫/美宵之酒.jpg",
+      "destination": "recourse/数据库/token-fdf-128.jpg",
+      "operation": "copy",
+      "primary": true,
+      "sha256": "c869760bf6c385ccfc1f7b47be58335046e71960a126a7c7aa5c2ecaa2f8bcec"
+    },
+    {
+      "source_id": "token-ucs-093",
+      "card_id": "token-ucs-093",
+      "name": "蓬莱之药",
+      "identity": "蓬莱之药",
+      "source": "recourse/爬虫/蓬莱之药.jpg",
+      "destination": "recourse/数据库/token-ucs-093.svg",
+      "operation": "copy",
+      "primary": true,
+      "sha256": "f0b4dd7411a8d7993a38a1cf6a3e1eb1a67db02805f158330ecc4ef1050c17d1"
+    }
+  ],
+  "registered_new_ids": [
+    "character-soi-018",
+    "character-soi-006",
+    "spell-soi-098",
+    "spell-fdf-054",
+    "spell-rei-015",
+    "spell-mar-007",
+    "field-fdn-016",
+    "spell-fdf-ex05",
+    "spell-rei-006",
+    "spell-mar-005",
+    "character-fdf-ex05",
+    "token-fdf-133",
+    "character-rei-ex01",
+    "character-fdf-ex04",
+    "character-rei-001",
+    "spell-rei-010",
+    "character-mar-020",
+    "token-smm-025",
+    "character-rei-017",
+    "character-rei-007",
+    "field-rei-004",
+    "character-rec-096",
+    "character-fdf-070",
+    "token-fdn-085",
+    "spell-mar-002",
+    "spell-mar-003",
+    "character-fdf-ex01",
+    "field-fdf-108",
+    "spell-fdf-019",
+    "spell-fdf-023",
+    "character-fdf-116",
+    "token-fdf-132",
+    "spell-fdf-011",
+    "character-rei-022",
+    "spell-rei-011",
+    "spell-rei-012",
+    "character-fdf-099",
+    "spell-fdf-007",
+    "character-fdf-ex02",
+    "character-rei-026",
+    "field-rei-005",
+    "spell-rei-002",
+    "character-mar-ex",
+    "token-kmo-027",
+    "field-rei-003",
+    "character-rec-104",
+    "field-smm-004",
+    "spell-mar-004",
+    "field-mar-006",
+    "character-ucs-060",
+    "token-fdf-130",
+    "character-fdf-ex03",
+    "spell-fdf-036",
+    "character-fdf-095",
+    "character-rei-023",
+    "spell-mar-012",
+    "spell-mar-013",
+    "spell-mar-014",
+    "item-mar-017",
+    "character-mar-021",
+    "character-mar-022",
+    "character-mar-023",
+    "character-mar-024",
+    "character-mar-025",
+    "character-mar-ex01",
+    "token-fdf-128",
+    "token-ucs-093"
+  ],
+  "precons": [
+    {
+      "deck": {
+        "id": "precon_reimu_v1",
+        "name": "预组-灵梦",
+        "leader": "character-rei-001",
+        "main": [
+          "spell-rei-002",
+          "spell-rei-002",
+          "field-rei-003",
+          "field-rei-003",
+          "field-rei-004",
+          "field-rei-004",
+          "field-rei-005",
+          "field-rei-005",
+          "spell-rei-006",
+          "spell-rei-006",
+          "character-rei-007",
+          "character-rei-007",
+          "spell-fdf-011",
+          "100",
+          "100",
+          "spell-rei-010",
+          "spell-rei-010",
+          "spell-rei-011",
+          "spell-rei-011",
+          "spell-rei-011",
+          "spell-rei-012",
+          "spell-rei-012",
+          "field-smm-004",
+          "field-smm-004",
+          "spell-soi-098",
+          "spell-soi-098",
+          "spell-rei-015",
+          "spell-rei-015",
+          "170",
+          "character-rei-017",
+          "character-rei-017",
+          "character-ucs-060",
+          "character-ucs-060",
+          "character-rec-096",
+          "character-rec-096",
+          "29",
+          "29",
+          "character-rec-104",
+          "character-rec-104",
+          "character-rei-022",
+          "character-rei-022",
+          "character-rei-023",
+          "character-rei-023",
+          "character-soi-018",
+          "character-soi-018",
+          "177",
+          "177",
+          "character-rei-026",
+          "character-rei-026",
+          "character-rei-ex01"
+        ],
+        "side": []
+      },
+      "counts": [
+        {
+          "source_code": "REI-002",
+          "card_id": "spell-rei-002",
+          "name": "结界「扩散结界」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-003",
+          "card_id": "field-rei-003",
+          "name": "警醒阵",
+          "count": 2
+        },
+        {
+          "source_code": "REI-004",
+          "card_id": "field-rei-004",
+          "name": "常置阵",
+          "count": 2
+        },
+        {
+          "source_code": "REI-005",
+          "card_id": "field-rei-005",
+          "name": "系缚阵",
+          "count": 2
+        },
+        {
+          "source_code": "REI-006",
+          "card_id": "spell-rei-006",
+          "name": "「约定」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-007",
+          "card_id": "character-rei-007",
+          "name": "「山童探险家」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-008",
+          "card_id": "spell-fdf-011",
+          "name": "梦符「二重结界」",
+          "count": 1
+        },
+        {
+          "source_code": "REI-009",
+          "card_id": "100",
+          "name": "灵符「梦想封印-瞬-」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-010",
+          "card_id": "spell-rei-010",
+          "name": "宝具「阴阳鬼神玉」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-011",
+          "card_id": "spell-rei-011",
+          "name": "灵符「梦想妙珠」",
+          "count": 3
+        },
+        {
+          "source_code": "REI-012",
+          "card_id": "spell-rei-012",
+          "name": "灵符「梦想封印-散-」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-013",
+          "card_id": "field-smm-004",
+          "name": "辉光ノ城",
+          "count": 2
+        },
+        {
+          "source_code": "REI-014",
+          "card_id": "spell-soi-098",
+          "name": "「人神ノ嬉」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-015",
+          "card_id": "spell-rei-015",
+          "name": "「山涧ノ川」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-016",
+          "card_id": "170",
+          "name": "博丽神社",
+          "count": 1
+        },
+        {
+          "source_code": "REI-017",
+          "card_id": "character-rei-017",
+          "name": "小径的红叶巫女「博丽灵梦」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-018",
+          "card_id": "character-ucs-060",
+          "name": "鬼神仙人「茨木华扇」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-019",
+          "card_id": "character-rec-096",
+          "name": "幸运的白兔「因幡帝」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-020",
+          "card_id": "29",
+          "name": "键盘手「莉莉卡·普莉兹姆利巴」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-021",
+          "card_id": "character-rec-104",
+          "name": "识文解意的爱书「本居小铃」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-022",
+          "card_id": "character-rei-022",
+          "name": "毗沙门天「寅丸星」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-023",
+          "card_id": "character-rei-023",
+          "name": "丰收之秋「秋穰子」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-024",
+          "card_id": "character-soi-018",
+          "name": "阳花的妖怪「风见幽香」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-025",
+          "card_id": "177",
+          "name": "「正义宝塔ノ光」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-026",
+          "card_id": "character-rei-026",
+          "name": "祭祀风之人「东风谷早苗」",
+          "count": 2
+        },
+        {
+          "source_code": "REI-EX01",
+          "card_id": "character-rei-ex01",
+          "name": "夏的妖精「爱塔妮缇拉尔瓦」",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "deck": {
+        "id": "precon_marisa_v1",
+        "name": "预组-魔理沙",
+        "leader": "character-mar-ex",
+        "main": [
+          "spell-mar-002",
+          "spell-mar-002",
+          "spell-mar-003",
+          "spell-mar-003",
+          "spell-mar-004",
+          "spell-mar-004",
+          "spell-mar-005",
+          "spell-mar-005",
+          "spell-mar-007",
+          "spell-mar-007",
+          "field-mar-006",
+          "field-mar-006",
+          "spell-fdf-036",
+          "99",
+          "99",
+          "spell-fdf-023",
+          "spell-fdf-023",
+          "spell-fdf-019",
+          "spell-fdf-019",
+          "spell-mar-012",
+          "spell-mar-012",
+          "spell-mar-013",
+          "spell-mar-013",
+          "spell-mar-014",
+          "spell-mar-014",
+          "spell-fdf-054",
+          "spell-fdf-054",
+          "164",
+          "164",
+          "item-mar-017",
+          "item-mar-017",
+          "character-fdf-095",
+          "character-fdf-095",
+          "character-fdf-070",
+          "character-fdf-070",
+          "character-mar-020",
+          "character-mar-020",
+          "character-mar-021",
+          "character-mar-021",
+          "character-mar-022",
+          "character-mar-022",
+          "character-mar-023",
+          "character-mar-023",
+          "character-mar-024",
+          "character-mar-024",
+          "character-mar-025",
+          "character-mar-025",
+          "character-fdf-099",
+          "character-fdf-099",
+          "character-mar-ex01"
+        ],
+        "side": []
+      },
+      "counts": [
+        {
+          "source_code": "MAR-002",
+          "card_id": "spell-mar-002",
+          "name": "恋心「Double Spark」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-003",
+          "card_id": "spell-mar-003",
+          "name": "恋符「Non-Directional Laser」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-004",
+          "card_id": "spell-mar-004",
+          "name": "邪恋「容易结果ノ极限火花」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-005",
+          "card_id": "spell-mar-005",
+          "name": "「结界ノ一侧」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-007",
+          "card_id": "spell-mar-007",
+          "name": "「灵击符」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-006",
+          "card_id": "field-mar-006",
+          "name": "雾雨魔法店",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-008",
+          "card_id": "spell-fdf-036",
+          "name": "魔符「Stardust Reverie」",
+          "count": 1
+        },
+        {
+          "source_code": "MAR-009",
+          "card_id": "99",
+          "name": "恋符「极限火花」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-010",
+          "card_id": "spell-fdf-023",
+          "name": "星符「Meteonic Shower」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-011",
+          "card_id": "spell-fdf-019",
+          "name": "星符「Escape Velocity」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-012",
+          "card_id": "spell-mar-012",
+          "name": "光击「射月」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-013",
+          "card_id": "spell-mar-013",
+          "name": "「春」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-014",
+          "card_id": "spell-mar-014",
+          "name": "「Paranoid Lost」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-015",
+          "card_id": "spell-fdf-054",
+          "name": "「云中」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-016",
+          "card_id": "164",
+          "name": "「妖魔书」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-017",
+          "card_id": "item-mar-017",
+          "name": "「八卦炉」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-018",
+          "card_id": "character-fdf-095",
+          "name": "鲵吞亭的店花「奥野田美宵」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-019",
+          "card_id": "character-fdf-070",
+          "name": "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-020",
+          "card_id": "character-mar-020",
+          "name": "实验中的魔女「雾雨魔理沙」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-021",
+          "card_id": "character-mar-021",
+          "name": "知识与避世的少女「帕秋莉·诺蕾姬」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-022",
+          "card_id": "character-mar-022",
+          "name": "月之都的射手「清兰」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-023",
+          "card_id": "character-mar-023",
+          "name": "勤奋的图书管理员「小恶魔」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-024",
+          "card_id": "character-mar-024",
+          "name": "美丽的绯之衣「永江衣玖」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-025",
+          "card_id": "character-mar-025",
+          "name": "无名的读书妖怪「朱鹭子」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-026",
+          "card_id": "character-fdf-099",
+          "name": "生意兴隆的吉祥物「豪德寺三花」",
+          "count": 2
+        },
+        {
+          "source_code": "MAR-EX01",
+          "card_id": "character-mar-ex01",
+          "name": "七曜魔法使「帕秋莉·诺蕾姬」",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "note": "照片MAR-006灵击符与MAR-007雾雨魔法店的编号顺序和缓存卡目相反，按牌名核对。衍生物不进入预组。"
+}

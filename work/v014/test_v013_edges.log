@@ -1,0 +1,143 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: activation has legal selection item-fdn-044
+PASS: activation allowed item-fdn-044
+PASS: activation commits item-fdn-044 
+PASS: activation completes item-fdn-044
+PASS: activation has legal selection item-lof-009
+PASS: activation allowed item-lof-009
+PASS: activation commits item-lof-009 
+PASS: activation completes item-lof-009
+PASS: activation has legal selection item-ucs-017
+PASS: activation allowed item-ucs-017
+PASS: activation commits item-ucs-017 
+PASS: activation completes item-ucs-017
+PASS: activation has legal selection item-fdf-096
+PASS: activation allowed item-fdf-096
+PASS: activation commits item-fdf-096 
+PASS: activation completes item-fdf-096
+PASS: activation has legal selection item-ucs-013
+PASS: activation allowed item-ucs-013
+PASS: activation commits item-ucs-013 
+PASS: activation completes item-ucs-013
+PASS: activation has legal selection item-htk-008
+PASS: activation allowed item-htk-008
+PASS: activation commits item-htk-008 
+PASS: activation completes item-htk-008
+PASS: activation has legal selection character-fdn-036:self
+PASS: activation allowed character-fdn-036:self
+PASS: activation commits character-fdn-036:self 
+PASS: activation completes character-fdn-036:self
+PASS: activation has legal selection character-fdn-038
+PASS: activation allowed character-fdn-038
+PASS: activation commits character-fdn-038 
+PASS: activation completes character-fdn-038
+PASS: activation has legal selection character-fdn-006
+PASS: activation allowed character-fdn-006
+PASS: activation commits character-fdn-006 
+PASS: activation completes character-fdn-006
+PASS: activation has legal selection character-fdn-043
+PASS: activation allowed character-fdn-043
+PASS: activation commits character-fdn-043 
+PASS: activation completes character-fdn-043
+PASS: activation has legal selection character-smm05
+PASS: activation allowed character-smm05
+PASS: activation commits character-smm05 
+PASS: activation completes character-smm05
+PASS: activation has legal selection character-fdf-098
+PASS: activation allowed character-fdf-098
+PASS: activation commits character-fdf-098 
+PASS: activation completes character-fdf-098
+PASS: activation has legal selection character-fdf-112
+PASS: activation allowed character-fdf-112
+PASS: activation commits character-fdf-112 
+PASS: activation completes character-fdf-112
+PASS: activation has legal selection character-fdf-102
+PASS: activation allowed character-fdf-102
+PASS: activation commits character-fdf-102 
+PASS: activation completes character-fdf-102
+PASS: activation has legal selection character-fdn-027
+PASS: activation allowed character-fdn-027
+PASS: activation commits character-fdn-027 
+PASS: activation completes character-fdn-027
+PASS: activation has legal selection character-fdf-113
+PASS: activation allowed character-fdf-113
+PASS: activation commits character-fdf-113 
+PASS: activation completes character-fdf-113
+PASS: activation has legal selection character-fdf-111
+PASS: activation allowed character-fdf-111
+PASS: activation commits character-fdf-111 
+PASS: activation completes character-fdf-111
+PASS: activation has legal selection character-fdn-041
+PASS: activation allowed character-fdn-041
+PASS: activation commits character-fdn-041 
+PASS: activation completes character-fdn-041
+PASS: activation has legal selection character-ucs-065:health
+PASS: activation allowed character-ucs-065:health
+PASS: activation commits character-ucs-065:health 
+PASS: activation completes character-ucs-065:health
+PASS: activation has legal selection character-ucs-065:spirit
+PASS: activation allowed character-ucs-065:spirit
+PASS: activation commits character-ucs-065:spirit 
+PASS: activation completes character-ucs-065:spirit
+PASS: activation has legal selection spell-fdn-032
+PASS: activation allowed spell-fdn-032
+PASS: activation commits spell-fdn-032 
+PASS: activation completes spell-fdn-032
+PASS: activation has legal selection spell-fdf-059
+PASS: activation allowed spell-fdf-059
+PASS: activation commits spell-fdf-059 
+PASS: activation completes spell-fdf-059
+PASS: activation has legal selection spell-fdn-019
+PASS: activation allowed spell-fdn-019
+PASS: activation commits spell-fdn-019 
+PASS: activation completes spell-fdn-019
+PASS: activation has legal selection token-fdf-127
+PASS: activation allowed token-fdf-127
+PASS: activation commits token-fdf-127 
+PASS: activation completes token-fdf-127
+PASS: activation has legal selection token-fdf-129
+PASS: activation allowed token-fdf-129
+PASS: activation commits token-fdf-129 
+PASS: activation completes token-fdf-129
+PASS: Yachie also suppresses Utsuho delayed return trigger
+PASS: exiled tokens trigger Doremy before ceasing
+PASS: rain ghost tale coalesces four milled cards once
+PASS: old engine top to grave paths notify rain ghost tale
+PASS: retarget preserves chosen spell mode
+PASS: Catadioptric copy uses new X without paying
+PASS: additional cost spell put on stack
+PASS: retarget does not ask to repay doll cost
+PASS: retarget preserves already paid dolls
+PASS: doll pitch works without palette mana
+PASS: doll discarded only at committed cast
+PASS: Otome Bunraku protects Alice
+PASS: Nue deployment mode preserves selection metadata
+PASS: unknown object additional sacrifice commits
+PASS: unknown object sacrificed before spell resolves
+PASS: Cherry cannot exile the very spell being cast
+PASS: revealed Agni may cast for one red and resolves
+PASS: free timing permission does not bypass Patchouli role constraint
+PASS: trigger contract cat:nuclear_return
+PASS: invalid private trigger payment rejected without mutation
+PASS: manual trigger payment applies exactly once
+PASS: new lifesteal two parsed and functional
+PASS: new lifesteal four parsed character-ucs-067
+PASS: new lifesteal four parsed character-fdn-048
+PASS: copied unit ignores noncopiable counters
+PASS: unit copy token ceases off battlefield
+PASS: madness prevents ending main before legal attack
+PASS: timed ability duplication independent of timer amount
+PASS: activate spell-fdn-032 
+PASS: madness is one named stat counter, not two counters
+PASS: removing madness counter removes stat bonus and attack obligation
+PASS: Sakuya duplicated mill triggers both retain the full batch count
+PASS: explicit resolution spell-fdn-040
+PASS: palette-return spell restores damage classification
+PASS: explicit resolution spell-fdn-003
+PASS: damage distribution retains original spell source after selection
+PASS: retargeted generic damage ability keeps both players and units legal
+PASS: retarget lookup preserves actual priority owner
+V013_EDGES: 138 checks; [] failures

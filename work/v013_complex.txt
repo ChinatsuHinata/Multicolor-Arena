@@ -1,0 +1,174 @@
+static func resolve_complex(e,t):
+ var C=e.Cat;var c=t.card;var id=c.card_id;var who=t.owner;var p=e.players[who];var a=t.target;var foe=1-who;var exile=false
+ match id:
+  "spell-fdn-017":
+   var groups=[]
+   for z in ["field","grave","palette"]:groups.append(C.group(e,e.players[a.player][z],0,2,{"field":"战场","grave":"墓地","palette":"颜色盘"}[z]+" · 移除至多两张"))
+   C.choose(e,t,"cat:qed",e.Pack.selection(groups,id))
+  "spell-ucs-022":
+   var groups=[]
+   for name in ["宇佐见莲子","玛艾露贝莉·赫恩"]:
+    var pool=[]
+    for card_id in e.DB.IDS:
+     if e.cards[card_id].kind in ["自机","单位"] and name in e.cards[card_id].name:pool.append({"outside_id":card_id,"mode":e.cards[card_id].name,"none":true})
+    groups.append(e.Pack.group(pool,0,1,"从游戏外选择"+name))
+   C.choose(e,t,"cat:outside",e.Pack.selection(groups,id))
+  "spell-fdf-072":
+   if a.get("mode","")=="名称改为不明物体并抓牌":
+    if C.unit(e,a):
+     var u=e.find_card(a.uid);C.rename(e,u,"不明物体")
+    e.draw(who)
+   else:C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"封兽鵺")),0,1,"放入封兽鵺"))
+  "spell-fdf-122":C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"多多良小伞")),1,1,"放入多多良小伞"))
+  "spell-fdn-046":search(e,t,(p.hand+p.grave+p.palette+p.deck).filter(func(u):return e.is_unit(u) and C.character(e,u,"歌莉娅人偶")),1,1,"field")
+  "spell-fdf-081":
+   e.draw(0,2);e.draw(1,2)
+   C.choose(e,t,"cat:poverty_pair",C.pick(e,e.players[1-who].palette,mini(2,e.players[1-who].palette.size()),2,"在对方颜色盘放置贫乏指示物"),{"other":1-who,"first":true})
+  "spell-ucs-054":C.choose(e,t,"cat:split_grave",C.pick(e,p.grave,0,p.grave.size(),"分出墓地第一堆"),{"controller":who,"all":C.refs(e,p.grave)},foe)
+  "spell-fdf-060":
+   var victims=(e.units(0)+e.units(1)).duplicate()
+   for u in victims:e.destroy(u)
+   C.choose(e,t,"cat:resurrect",C.pick(e,victims.filter(func(u):return u.zone=="grave"),0,victims.size(),"横置放入你的战场"))
+  "spell-fdf-043":
+   if C.unit(e,a):
+    var u=e.find_card(a.uid);var owner=u.owner;var before=e.stat(u,"health")-u.damage;var dealt=C.damage(e,a,8);var overflow=maxi(0,dealt-maxi(0,before))
+    for other in e.units(owner):
+     if other.uid!=u.uid:C.damage(e,e.ref_target(other),overflow)
+  "spell-fdf-048":C.choose(e,t,"cat:cherry_prevent",C.pick(e,e.players[foe].hand,0,e.players[foe].hand.size(),"移除手牌，每张防止2点伤害"),{"amount":int(c.get("exiled_hand",0))*3,"target":a.picks[0][0],"controller":who},foe)
+  "spell-fdf-052":
+   for s in e.stack:
+    if s.id!=a.stack_id:continue
+    var choices=e.targets_for(s.card.card_id,s.owner) if s.kind=="card" else e.Extra.activation_options(e,s.source,s.effect) if s.get("activation",false) else e.trigger_options(s)
+    C.choose(e,t,"cat:retarget",choices,{"id":s.id});break
+  "spell-fdf-051":
+   var list=C.selected(e,a)
+   if not list.is_empty():
+    var u=list[0];var old=u.epoch;e.destroy(u)
+    if u.zone!="field" or u.epoch!=old:
+     var x=int(a.get("x",0));var options=[{"none":true,"mode":"X 翻倍","value":x*2}]
+     if x%2==0:options.append({"none":true,"mode":"X 减半","value":x/2})
+     C.choose(e,t,"cat:copy_x",options,{"entry":t.duplicate(true)})
+  "spell-fdf-021":e.draw(who);if e.flip_coin(who):C.copy_spell(e,t)
+  "spell-fdf-082":
+   var ignored=a.get("ignore_color","无");var removed=[]
+   if ignored=="蓝":
+    for u in C.selected(e,a):e.move_to(u,"exile");removed.append(u)
+   if ignored!="黄":C.choose(e,t,"cat:copy_exile",C.pick(e,(e.players[0].exile+e.players[1].exile).filter(func(u):return e.is_unit(u)),0,2,"复制至多两个除外单位"))
+  "spell-fdn-011":
+   var groups=[]
+   for kinds in [["结界"],["自机","单位"],["道具"],["符卡"]]:groups.append(C.group(e,p.deck.filter(func(u):return e.cards[u.card_id].kind in kinds),0,1,"检索"+" / ".join(kinds)))
+   C.choose(e,t,"cat:four_search",e.Pack.selection(groups,id));exile=true
+  "spell-fdf-032":
+   if C.unit(e,a):C.choose(e,t,"cat:brain_name",C.name_options(e),{"target":a})
+  "spell-fdf-015":
+   var top=p.deck.slice(0,5);C.reveal(e,top)
+   C.choose(e,t,"cat:heaven",C.pick(e,top.filter(func(u):return e.cards[u.card_id].kind=="符卡"),0,2,"将至多两张符卡送墓"),{"top":C.refs(e,top),"target":a})
+  "spell-fdf-121":
+   C.mill(e,foe,4);e.players[foe].life-=3
+   C.choose(e,t,"cat:atonement_discard",C.pick(e,e.players[foe].hand,mini(2,e.players[foe].hand.size()),2,"弃两张牌"),{},foe)
+  "spell-fdf-045":C.choose(e,t,"cat:scythe",C.pick(e,e.units(foe),0,1,"牺牲一个单位，或失去2点生命"),{"remaining":3,"controller":who},foe)
+  "spell-fdn-039":
+   var one=C.selected(e,a);var two=C.selected(e,a,1)
+   for u in one:e.move_to(u,"hand")
+   for u in two:
+    if u.zone=="field":C.buff(e,u,0,1,1,["不能被阻挡"])
+  "spell-ucs-057":
+   var one=C.selected(e,a);var two=C.selected(e,a,1)
+   if not one.is_empty() and not two.is_empty() and one[0].uid!=two[0].uid:C.copy_unit(e,one[0],two[0],true)
+  "spell-fdf-006":pass # Graveyard static ability; resolution sends this card to the grave.
+  "spell-fdn-018":
+   C.choose(e,t,"cat:death_song_mode",[{"none":true,"mode":"自机区"},{"none":true,"mode":"牌库"}])
+  _:push_error("未覆盖的新符卡契约："+id);return false
+ e.resolving_spell=false;e.move_to(c,"exile" if exile else "grave");return true
+static func resolve_complex_choice(e,t):
+ var C=e.Cat;var who=t.owner;var p=e.players[who];var a=t.target;var d=t.get("data",{})
+ match t.effect:
+  "cat:qed":
+   var n=0
+   for r in e.Pack.flatten(a):
+    if C.valid(e,r):
+     var u=e.find_card(r.uid)
+     if not e.is_unit(u):n+=1
+     e.move_to(u,"exile")
+   e.draw(who,n)
+  "cat:outside":
+   for r in e.Pack.flatten(a):
+    if r.has("outside_id"):
+     var u=e.make_card(r.outside_id,who,"void");e.move_to(u,"hand");C.reveal(e,[u])
+  "cat:deploy":e.Roster.field_many(e,C.selected(e,a),who)
+  "cat:poverty_pair":
+   for u in C.selected(e,a):e.Roster.Batch.counter(e,u,"poverty",1,who)
+   if d.first:C.choose(e,t,"cat:poverty_pair",C.pick(e,p.palette,mini(2,p.palette.size()),2,"在对方颜色盘放置贫乏指示物"),{"first":false},d.other)
+  "cat:split_grave":
+   var chosen=e.Pack.picked(a);var rest=d.all.filter(func(r):return r not in chosen)
+   C.choose(e,t,"cat:take_pile",[{"none":true,"mode":"第一堆 · %d 张" % chosen.size(),"pile":0},{"none":true,"mode":"第二堆 · %d 张" % rest.size(),"pile":1}],{"piles":[chosen,rest]},d.controller)
+  "cat:take_pile":
+   var n=d.piles[1-a.pile].filter(func(r):return C.valid(e,r)).size()
+   for r in d.piles[a.pile]:
+    if C.valid(e,r):e.move_to(e.find_card(r.uid),"hand")
+   e.gain_life(who,n)
+  "cat:resurrect":
+   var list=C.selected(e,a);e.Roster.field_many(e,list,who,true)
+   for u in list:
+    if u.zone=="field":C.delay(e,u,"exile",who)
+  "cat:cherry_prevent":
+   var list=C.selected(e,a)
+   for u in list:e.move_to(u,"exile")
+   C.damage(e,d.target,maxi(0,d.amount-list.size()*2))
+  "cat:retarget":
+   for s in e.stack:
+    if s.id==d.id:s.target=a.duplicate(true)
+  "cat:copy_x":C.copy_spell(e,d.entry,a.value)
+  "cat:spell_copy":
+   var c=d.card;var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":a,"name":e.cards[c.card_id].name,"copy":true};e.next_stack+=1;e.stack.append(copy);e.priority=e.active;e.passes=0
+  "cat:copy_exile":
+   for u in C.selected(e,a):C.copy_token(e,who,u)
+  "cat:four_search":
+   var list=[]
+   for r in e.Pack.flatten(a):
+    if C.valid(e,r):list.append(e.find_card(r.uid))
+   C.reveal(e,list)
+   var eligible=list.filter(func(u):return e.Extra.cost_value(e,u)<=5 and e.field_error(u,who).is_empty() and (e.Roster.permanent(e,u) or "时符" in e.cards[u.card_id].spell_type or "乐章" in e.cards[u.card_id].spell_type))
+   C.choose(e,t,"cat:four_enter",C.pick(e,eligible,mini(1,eligible.size()),1,"放进战场的一张牌"),{"all":C.refs(e,list)})
+  "cat:four_enter":
+   var chosen=C.selected(e,a);e.Roster.field_many(e,chosen,who)
+   for r in d.all:
+    if C.valid(e,r):e.move_to(e.find_card(r.uid),"hand")
+   e.shuffle(p.deck)
+  "cat:brain_name":
+   if C.unit(e,d.target):
+    var u=e.find_card(d.target.uid);var owner=u.owner;var list=e.players[owner].hand+e.players[owner].deck.slice(0,1);C.reveal(e,list)
+    var matches=list.filter(func(v):return C.normalized(e.cards[v.card_id].name)==C.normalized(a.card_name))
+    if matches.size()>0:e.destroy(u)
+    if matches.size()>1:
+     for v in matches:e.move_to(v,"grave")
+  "cat:heaven":
+   for u in C.selected(e,a):e.move_to(u,"grave")
+   var rest=d.top.filter(func(r):return C.valid(e,r));e.shuffle(rest)
+   for r in rest:e.move_to(e.find_card(r.uid),"deck")
+   C.damage(e,d.target,p.grave.filter(func(u):return e.cards[u.card_id].kind=="符卡").size())
+  "cat:atonement_discard":
+   for u in C.selected(e,a):e.move_to(u,"grave")
+   var biggest=0
+   for u in e.units(who):biggest=maxi(biggest,e.Extra.cost_value(e,u))
+   C.continued_move(e,t,e.units(who).filter(func(u):return e.Extra.cost_value(e,u)==biggest),mini(1,e.units(who).size()),1,"sacrifice","牺牲颜色值最大的单位")
+  "cat:scythe":
+   var list=C.selected(e,a)
+   if list.is_empty():p.life-=2;e.gain_life(d.controller,2)
+   else:e.sacrifice(list[0])
+   if d.remaining>1:C.choose(e,t,"cat:scythe",C.pick(e,e.units(who),0,1,"牺牲单位或失去2点生命"),{"remaining":d.remaining-1,"controller":d.controller})
+  "cat:death_song_mode":
+   var pool=[p.leader] if a.mode=="自机区" and p.leader.zone=="leader" else p.deck.filter(func(u):return e.is_unit(u)) if a.mode=="牌库" else []
+   C.choose(e,t,"cat:death_song",C.pick(e,pool,mini(1,pool.size()),1,"选择送去墓地的单位"),{"shuffle":a.mode=="牌库"})
+  "cat:death_song":
+   for u in C.selected(e,a):e.move_to(u,"grave")
+   if d.shuffle:e.shuffle(p.deck)
+   e.gain_life(who,4)
+  "cat:grant":
+   if C.valid(e,d.ref):
+    var u=e.find_card(d.ref.uid);e.forced_cast={"owner":who,"uid":u.uid,"free":d.free,"cost":d.cost};e.priority=who
+    var plan=e.payment(who,e.cast_cost(who,u,a))
+    if plan.ways>0:e.commit_cast(who,u.uid,a,plan.plan)
+    e.forced_cast={}
+  _:return false
+ return true

@@ -1,0 +1,115 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 486 definitions load
+PASS: new database record spell-lof-025
+PASS: explicit executable effects spell-lof-025
+PASS: new database record spell-fdn-066
+PASS: explicit executable effects spell-fdn-066
+PASS: new database record spell-htk-018
+PASS: explicit executable effects spell-htk-018
+PASS: new database record spell-fdn-069
+PASS: explicit executable effects spell-fdn-069
+PASS: new database record character-lof-003
+PASS: explicit executable effects character-lof-003
+PASS: new database record character-lof-017
+PASS: explicit executable effects character-lof-017
+PASS: new database record spell-lof-007
+PASS: explicit executable effects spell-lof-007
+PASS: new database record spell-htk-003
+PASS: explicit executable effects spell-htk-003
+PASS: new database record spell-fdf-083
+PASS: explicit executable effects spell-fdf-083
+PASS: new database record character-fdn-068
+PASS: explicit executable effects character-fdn-068
+PASS: new database record character-lof-001
+PASS: explicit executable effects character-lof-001
+PASS: new database record character-htk-001
+PASS: explicit executable effects character-htk-001
+PASS: new database record character-fdn-067
+PASS: explicit executable effects character-fdn-067
+PASS: new database record character-htk-002
+PASS: explicit executable effects character-htk-002
+PASS: new database record character-ucs-007
+PASS: explicit executable effects character-ucs-007
+PASS: new database record token-htk-033
+PASS: explicit executable effects token-htk-033
+PASS: new database record token-htk-031
+PASS: explicit executable effects token-htk-031
+PASS: new database record token-htk-032
+PASS: explicit executable effects token-htk-032
+PASS: mask is nonconstructible item token-htk-031
+PASS: mask is nonconstructible item token-htk-032
+PASS: mask is nonconstructible item token-htk-033
+PASS: mask colors from supplied art where token worksheet omits color
+PASS: Lily gains chosen color
+PASS: Sanae adds one counter to batch
+PASS: Sanae modifies named courage counters
+PASS: opponent placement does not benefit opposing Sanae
+PASS: color counters track multiplicity
+PASS: explicit resolution spell-lof-025
+PASS: peach doubles each existing type then applies Sanae replacement
+PASS: explicit resolution spell-lof-025
+PASS: peach life draw mode
+PASS: explicit resolution spell-lof-025
+PASS: peach ramp mode
+PASS: Sanae leader triggers on miracle cast
+PASS: miracle draw survives zero optional unit targets
+PASS: activate courage_ping 
+PASS: Cirno tap ping and courage
+PASS: nonleader cannot use Cirno self ability
+PASS: Cirno die ability commits
+PASS: two counters paid and one D6 stored on stack
+PASS: D6 amount resolves without reroll
+PASS: explicit resolution spell-lof-007
+PASS: icicle counts courage and hits both targets
+PASS: Larva sacrifice and equal counters
+PASS: opponent chooses Kokoro first mood
+PASS: joy creates small mask
+PASS: Kokoro self replacement and no repeated mood
+PASS: three exhausted moods cause no impossible prompt
+PASS: activate mask_joy 
+PASS: joy sacrifices token and resets target
+PASS: joy prevents all turn damage
+PASS: activate mask_anger 
+PASS: anger grants spirit and annihilate
+PASS: activate mask_sorrow 
+PASS: sorrow taps chosen opponent palette and draws
+PASS: explicit resolution spell-fdf-083
+PASS: angry mask doubles token creation and damage with Kokoro
+PASS: explicit resolution spell-fdn-066
+PASS: fairy pilgrimage rewrites pending spell
+PASS: rewritten spell creates 3/3/3 fairy for its controller instead of damage
+PASS: explicit resolution spell-fdn-069
+PASS: blue flower removes stack card and inserts third
+PASS: explicit resolution spell-fdn-069
+PASS: blue flower short library fallback
+PASS: cast spell-htk-018 
+PASS: night sakura enters with two time counters
+PASS: night sakura resurrects selected grave unit
+PASS: time spell expires at zero
+PASS: Tokiko discounts first item by two
+PASS: first item may be cast with no resources
+PASS: discount consumed by first cast
+PASS: activate tokiko_copy 
+PASS: copied item preserves art and mana ability
+PASS: item copy sacrificed at next end
+PASS: Toyohime prohibits opponent unit activation off-turn
+PASS: Toyohime leaves item activation legal
+PASS: unit activation legal on controller turn
+PASS: Toyohime flash and combat keywords
+PASS: Sannyo prevents noncombat damage
+PASS: Sannyo still receives combat damage
+PASS: emotion modes allow repeated identical targets
+PASS: explicit resolution spell-htk-003
+PASS: repeated damage modes resolve in order
+PASS: explicit resolution spell-htk-003
+PASS: emotion recovery returns chosen unit
+PASS: explicit resolution spell-htk-003
+PASS: tax choice belongs to original spell controller
+PASS: paid tax preserves spell and resumes remaining modes
+PASS: explicit resolution spell-htk-003
+PASS: declining emotion tax counters pending card
+PASS: saved decks unchanged
+V012_RULES: 110 checks; 0 failures

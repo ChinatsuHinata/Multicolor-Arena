@@ -1,0 +1,278 @@
+[
+  {
+    "id": "1",
+    "name": "日之光「桑尼·米尔克」",
+    "source": "CHARACTER (单位)!行2 · SOI-001",
+    "image": "image1.png"
+  },
+  {
+    "id": "5",
+    "name": "「大妖精」",
+    "source": "CHARACTER (单位)!行8 · SOI-007",
+    "image": "image5.png"
+  },
+  {
+    "id": "6",
+    "name": "可怕的波动「芙兰朵露·斯卡蕾特」",
+    "source": "CHARACTER (单位)!行9 · SOI-008",
+    "image": "image6.png"
+  },
+  {
+    "id": "11",
+    "name": "巡秋而来「秋静叶」",
+    "source": "CHARACTER (单位)!行14 · SOI-013",
+    "image": "image11.png"
+  },
+  {
+    "id": "14",
+    "name": "「小恶魔」",
+    "source": "CHARACTER (单位)!行17 · SOI-016",
+    "image": "image14.png"
+  },
+  {
+    "id": "15",
+    "name": "宵暗的妖怪「露米娅」",
+    "source": "CHARACTER (单位)!行18 · SOI-017",
+    "image": "image15.png"
+  },
+  {
+    "id": "18",
+    "name": "天狗记者「射命丸文」",
+    "source": "CHARACTER (单位)!行21 · SOI-020",
+    "image": "image18.png"
+  },
+  {
+    "id": "21",
+    "name": "蓬莱的人之形「藤原妹红」",
+    "source": "CHARACTER (单位)!行24 · SOI-023",
+    "image": "image21.png"
+  },
+  {
+    "id": "23",
+    "name": "地壳下的嫉妒心「水桥帕露西」",
+    "source": "CHARACTER (单位)!行26 · SOI-025",
+    "image": "image23.png"
+  },
+  {
+    "id": "28",
+    "name": "提琴手「露娜萨·普莉兹姆利巴」",
+    "source": "CHARACTER (单位)!行31 · SOI-030",
+    "image": "image28.png"
+  },
+  {
+    "id": "29",
+    "name": "键盘手「莉莉卡·普莉兹姆利巴」",
+    "source": "CHARACTER (单位)!行32 · SOI-031；费用与属性按卡图补全",
+    "image": "image29.png"
+  },
+  {
+    "id": "30",
+    "name": "小号手「梅露兰·普莉兹姆利巴」",
+    "source": "CHARACTER (单位)!行33 · SOI-032",
+    "image": "image30.png"
+  },
+  {
+    "id": "33",
+    "name": "狂气月兔「铃仙·优昙华院·因幡」",
+    "source": "CHARACTER (单位)!行36 · SOI-035",
+    "image": "image33.png"
+  },
+  {
+    "id": "35",
+    "name": "地狱的最高裁判长「四季映姬」",
+    "source": "CHARACTER (单位)!行38 · SOI-037",
+    "image": "image35.png"
+  },
+  {
+    "id": "38",
+    "name": "引雷的亡灵「苏我屠自古」",
+    "source": "CHARACTER (单位)!行41 · SOI-040",
+    "image": "image38.png"
+  },
+  {
+    "id": "39",
+    "name": "苍天的庭师「魂魄妖梦」",
+    "source": "CHARACTER (单位)!行42 · SOI-041",
+    "image": "image39.png"
+  },
+  {
+    "id": "41",
+    "name": "刚欲同盟盟主「饕餮尤魔」",
+    "source": "CHARACTER (单位)!行44 · SOI-043",
+    "image": "image41.png"
+  },
+  {
+    "id": "48",
+    "name": "雪之亡灵「西行寺幽幽子」",
+    "source": "CHARACTER (单位)!行51 · SOI-050",
+    "image": "image48.png"
+  },
+  {
+    "id": "49",
+    "name": "星降的风水师「物部布都」",
+    "source": "CHARACTER (单位)!行52 · SOI-051",
+    "image": "image49.png"
+  },
+  {
+    "id": "61",
+    "name": "忠诚的死体「宫古芳香」",
+    "source": "CHARACTER (单位)!行64 · SOI-063",
+    "image": "image61.png"
+  },
+  {
+    "id": "64",
+    "name": "未知力量X「封兽ぬえ」",
+    "source": "CHARACTER (单位)!行67 · SOI-066",
+    "image": "image64.png"
+  },
+  {
+    "id": "71",
+    "name": "华胥的亡灵「西行寺幽幽子」",
+    "source": "CHARACTER (单位)!行73 · SOI-072",
+    "image": "image71.png"
+  },
+  {
+    "id": "75",
+    "name": "红魔馆的女仆「十六夜咲夜」",
+    "source": "CHARACTER (单位)!行78 · SOI-077",
+    "image": "image75.png"
+  },
+  {
+    "id": "78",
+    "name": "地底的太阳「灵乌路空」",
+    "source": "CHARACTER (单位)!行81 · SOI-080",
+    "image": "image78.png"
+  },
+  {
+    "id": "79",
+    "name": "飞散红叶的天狗「射命丸文」",
+    "source": "CHARACTER (单位)!行82 · SOI-081",
+    "image": "image79.png"
+  },
+  {
+    "id": "87",
+    "name": "二百由旬之一闪「魂魄妖梦」",
+    "source": "CHARACTER (单位)!行92 · SOI-089",
+    "image": "image87.png"
+  },
+  {
+    "id": "soi_unit_004",
+    "name": "「狼女」",
+    "source": "CHARACTER (单位)!行5 · SOI-004",
+    "image": "狼女__character-soi-004.jpg"
+  },
+  {
+    "id": "94",
+    "name": "「秋意ノ溪」",
+    "source": "SPELL （符卡）!行2 · SOI-097",
+    "image": "image94.png"
+  },
+  {
+    "id": "106",
+    "name": "「彼岸ノ神想」",
+    "source": "SPELL （符卡）!行14 · SOI-109",
+    "image": "image106.png"
+  },
+  {
+    "id": "110",
+    "name": "「背德ノ吸血鬼」",
+    "source": "SPELL （符卡）!行18 · SOI-113",
+    "image": "image110.png"
+  },
+  {
+    "id": "118",
+    "name": "空观剑「六根清净斩」",
+    "source": "SPELL （符卡）!行26 · SOI-122",
+    "image": "image118.png"
+  },
+  {
+    "id": "120",
+    "name": "「反魂蝶」",
+    "source": "SPELL （符卡）!行28 · SOI-124",
+    "image": "image120.png"
+  },
+  {
+    "id": "130",
+    "name": "「永夜蛰居」",
+    "source": "SPELL （符卡）!行40 · SOI-136",
+    "image": "image130.png"
+  },
+  {
+    "id": "131",
+    "name": "「神游」",
+    "source": "SPELL （符卡）!行41 · SOI-137",
+    "image": "image131.png"
+  },
+  {
+    "id": "139",
+    "name": "「不明ノ正体」",
+    "source": "SPELL （符卡）!行49 · SOI-145",
+    "image": "image139.png"
+  },
+  {
+    "id": "141",
+    "name": "「出鞘」",
+    "source": "SPELL （符卡）!行51 · SOI-147",
+    "image": "image141.png"
+  },
+  {
+    "id": "143",
+    "name": "「极光」",
+    "source": "SPELL （符卡）!行53 · SOI-149",
+    "image": "image143.png"
+  },
+  {
+    "id": "147",
+    "name": "「无意识ノ雨」",
+    "source": "SPELL （符卡）!行57 · SOI-153",
+    "image": "image147.png"
+  },
+  {
+    "id": "162",
+    "name": "「Hell's Tokamak」",
+    "source": "SPELL （符卡）!行71 · SOI-167",
+    "image": "image162.png"
+  },
+  {
+    "id": "163",
+    "name": "「萤燈ノ森」",
+    "source": "SPELL （符卡）!行72 · SOI-168",
+    "image": "image163.png"
+  },
+  {
+    "id": "176",
+    "name": "「异星弹幕ノ空」",
+    "source": "SPELL （符卡）!行73 · SOI-181",
+    "image": "image176.png"
+  },
+  {
+    "id": "177",
+    "name": "「正义宝塔ノ光」",
+    "source": "SPELL （符卡）!行74 · SOI-182",
+    "image": "image177.png"
+  },
+  {
+    "id": "166",
+    "name": "「早苗的御币」",
+    "source": "ITEM {道具}!行4 · SOI-099",
+    "image": "image166.png"
+  },
+  {
+    "id": "168",
+    "name": "「幽幽子的折扇」",
+    "source": "ITEM {道具}!行6 · SOI-101",
+    "image": "image168.png"
+  },
+  {
+    "id": "169",
+    "name": "红魔馆",
+    "source": "FIELD(结界)!行2 · SOI-102",
+    "image": "image169.png"
+  },
+  {
+    "id": "174",
+    "name": "有顶ノ天",
+    "source": "FIELD(结界)!行7 · SMM-002",
+    "image": "image174.png"
+  }
+]

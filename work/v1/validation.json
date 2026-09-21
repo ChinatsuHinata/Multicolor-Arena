@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "real_two_computers_tested": false,
+  "usb_tested": false,
+  "tests": [
+    {
+      "name": "test_v0182_rules",
+      "checks": 38
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43
+    },
+    {
+      "name": "test_v0181_ui-visual",
+      "checks": 28
+    },
+    {
+      "name": "test_v1_network",
+      "checks": 45
+    },
+    {
+      "name": "test_v1_ui-visual",
+      "checks": 40
+    }
+  ],
+  "checks": 194,
+  "release_first_checks": 522,
+  "archive_crc_validated": true,
+  "extracted_bytes_identical": true,
+  "checksum_tools_positive_and_negative_passed": true,
+  "final_extracted_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-v1.0/MulticolorArena.exe",
+      "bytes": 109168640,
+      "sha256": "e0a659e4a9c2aecbbe6fc46d8ae54d9c833d4eb2aaf016319449f39ab0b624d1"
+    },
+    {
+      "path": "builds/Windows-v1.0/MulticolorArena.pck",
+      "bytes": 587849832,
+      "sha256": "009c27185478a4f84e17e94ab6552e68476f42194dfc1d415f2fb6a06f4f7133"
+    },
+    {
+      "path": "builds/MulticolorArena-1.0-win64.zip",
+      "bytes": 623581519,
+      "sha256": "79bf32428064749e8d00d96ea5bfc3fe1909318cb478716d09cf342d93c27d94"
+    },
+    {
+      "path": "builds/CheckTransfer-1.0.cmd",
+      "bytes": 972,
+      "sha256": "2ea6b538274958141b283e59e2f5a3c3b5c6fab0219530f7287a833974fce557"
+    }
+  ]
+}

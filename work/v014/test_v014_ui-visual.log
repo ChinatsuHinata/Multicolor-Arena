@@ -1,0 +1,55 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: stage and hand centered on viewport
+PASS: unit item support and palette cards share dimensions
+PASS: barriers and timed spells lie landscape
+PASS: own melody uses right central landscape slot
+PASS: opposing melody uses left central slot
+PASS: camera locked at nearest distance
+PASS: entire mat within fixed camera viewport (-11.5, 0.0, -8.0)
+PASS: entire mat within fixed camera viewport (11.5, 0.0, -8.0)
+PASS: entire mat within fixed camera viewport (-11.5, 0.0, 8.0)
+PASS: entire mat within fixed camera viewport (11.5, 0.0, 8.0)
+PASS: palette card is fully visible 116
+PASS: palette card is fully visible 117
+PASS: palette card is fully visible 118
+PASS: palette card is fully visible 119
+PASS: palette card is fully visible 120
+PASS: palette card is fully visible 121
+PASS: palette card is fully visible 122
+PASS: palette card is fully visible 123
+PASS: palette card is fully visible 153
+PASS: palette card is fully visible 154
+PASS: palette card is fully visible 155
+PASS: palette card is fully visible 156
+PASS: palette card is fully visible 157
+PASS: palette card is fully visible 158
+PASS: palette card is fully visible 159
+PASS: palette card is fully visible 160
+PASS: matching side panels and two-column pile browser
+PASS: counter preview +3/+3/+3
+PASS: counter preview -2/-2
+PASS: counter preview 自机：1
+PASS: counter preview 计时：2
+PASS: counter preview 贫穷：1
+PASS: counter preview 惊吓：2
+PASS: counter preview 勇气等级：4
+PASS: counter preview 梦违：1
+PASS: counter preview 狂乱：2
+PASS: counter preview 红色指示物：2
+PASS: counter preview 黄色指示物：1
+PASS: preview refreshes counter changes on same instance
+PASS: opposing hand starts concealed
+PASS: only selected hand card temporarily public
+PASS: other hand remains hidden
+PASS: revealing pauses further actions
+PASS: hand returns to private after one second
+PASS: every repeated and bottom reveal animates once
+PASS: each face remains public one full second
+PASS: reveal completion restores interaction
+PASS: animation never changes logical zones
+PASS: UI leaves saved decks unchanged
+V014_UI: 49 checks; [] failures

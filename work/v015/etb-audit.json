@@ -1,0 +1,546 @@
+[
+  {
+    "events": [
+      "marisa_enter"
+    ],
+    "id": "68",
+    "name": "普通的魔法使「雾雨魔理沙」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_haste"
+    ],
+    "id": "1",
+    "name": "日之光「桑尼·米尔克」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_drain"
+    ],
+    "id": "14",
+    "name": "「小恶魔」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_grave_damage"
+    ],
+    "id": "18",
+    "name": "天狗记者「射命丸文」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_sweep"
+    ],
+    "id": "28",
+    "name": "提琴手「露娜萨·普莉兹姆利巴」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_color_evasion"
+    ],
+    "id": "29",
+    "name": "键盘手「莉莉卡·普莉兹姆利巴」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_blink"
+    ],
+    "id": "30",
+    "name": "小号手「梅露兰·普莉兹姆利巴」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_fight"
+    ],
+    "id": "39",
+    "name": "苍天的庭师「魂魄妖梦」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_palette_replace"
+    ],
+    "id": "49",
+    "name": "星降的风水师「物部布都」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_unblockable"
+    ],
+    "id": "75",
+    "name": "红魔馆的女仆「十六夜咲夜」",
+    "passed": true
+  },
+  {
+    "events": [
+      "enter_halfghost"
+    ],
+    "id": "87",
+    "name": "二百由旬之一闪「魂魄妖梦」",
+    "passed": true
+  },
+  {
+    "events": [
+      "leader_enter_modes"
+    ],
+    "id": "soi_unit_086",
+    "name": "未确认幻想飞行物「封兽ぬえ」",
+    "passed": true
+  },
+  {
+    "events": [
+      "ramp_enter"
+    ],
+    "id": "character-soi-018",
+    "name": "阳花的妖怪「风见幽香」",
+    "passed": true
+  },
+  {
+    "events": [
+      "sand_add"
+    ],
+    "id": "character-rei-007",
+    "name": "「山童探险家」",
+    "passed": true
+  },
+  {
+    "events": [
+      "tewi_counters"
+    ],
+    "id": "character-rec-096",
+    "name": "幸运的白兔「因幡帝」",
+    "passed": true
+  },
+  {
+    "events": [
+      "eirin_return"
+    ],
+    "id": "character-fdf-116",
+    "name": "月之头脑「八意永琳」",
+    "passed": true
+  },
+  {
+    "events": [
+      "mike_swap"
+    ],
+    "id": "character-fdf-099",
+    "name": "生意兴隆的吉祥物「豪德寺三花」",
+    "passed": true
+  },
+  {
+    "events": [
+      "yukari_blink"
+    ],
+    "id": "character-fdf-ex02",
+    "name": "神隐的主犯「八云紫」",
+    "passed": true
+  },
+  {
+    "events": [
+      "bind_field"
+    ],
+    "id": "field-rei-005",
+    "name": "系缚阵",
+    "passed": true
+  },
+  {
+    "events": [
+      "marisa_search"
+    ],
+    "id": "character-mar-ex",
+    "name": "胆大心细的魔法使「雾雨魔理沙」",
+    "passed": true
+  },
+  {
+    "events": [
+      "kosuzu_destroy"
+    ],
+    "id": "character-rec-104",
+    "name": "识文解意的爱书「本居小铃」",
+    "passed": true
+  },
+  {
+    "events": [
+      "castle_exile"
+    ],
+    "id": "field-smm-004",
+    "name": "辉光之城",
+    "passed": true
+  },
+  {
+    "events": [
+      "byakuren_x"
+    ],
+    "id": "character-fdf-ex03",
+    "name": "魔神复诵「圣白莲」",
+    "passed": true
+  },
+  {
+    "events": [
+      "seiran_exile"
+    ],
+    "id": "character-mar-022",
+    "name": "月之都的射手「清兰」",
+    "passed": true
+  },
+  {
+    "events": [
+      "koakuma_palette"
+    ],
+    "id": "character-mar-023",
+    "name": "勤奋的图书管理员「小恶魔」",
+    "passed": true
+  },
+  {
+    "events": [
+      "tokiko_search"
+    ],
+    "id": "character-mar-025",
+    "name": "无名的读书妖怪「朱鹭子」",
+    "passed": true
+  },
+  {
+    "events": [
+      "patch_topthree"
+    ],
+    "id": "character-mar-ex01",
+    "name": "七曜魔法使「帕秋莉·诺蕾姬」",
+    "passed": true
+  },
+  {
+    "events": [
+      "letty_freeze"
+    ],
+    "id": "12",
+    "name": "冬之妖怪「蕾蒂·霍瓦特洛克」",
+    "passed": true
+  },
+  {
+    "events": [
+      "dai_search"
+    ],
+    "id": "13",
+    "name": "湖畔的住人「大妖精」",
+    "passed": true
+  },
+  {
+    "events": [
+      "luna_life"
+    ],
+    "id": "2",
+    "name": "月之光「露娜·切露德」",
+    "passed": true
+  },
+  {
+    "events": [
+      "komachi_exile"
+    ],
+    "id": "26",
+    "name": "三途川之引渡人「小野冢小町」",
+    "passed": true
+  },
+  {
+    "events": [
+      "star_destroy"
+    ],
+    "id": "3",
+    "name": "三月精「斯塔·萨菲雅」",
+    "passed": true
+  },
+  {
+    "events": [
+      "keiki_copy"
+    ],
+    "id": "45",
+    "name": "孤援的造型神「埴安神袿姬」",
+    "passed": true
+  },
+  {
+    "events": [
+      "chen_counter"
+    ],
+    "id": "46",
+    "name": "「橙」",
+    "passed": true
+  },
+  {
+    "events": [
+      "nazrin_draw"
+    ],
+    "id": "63",
+    "name": "探宝队员「纳兹琳」",
+    "passed": true
+  },
+  {
+    "events": [
+      "kyouko_shuffle"
+    ],
+    "id": "66",
+    "name": "回声山彦「幽谷响子」",
+    "passed": true
+  },
+  {
+    "events": [
+      "hourai_ping"
+    ],
+    "id": "7",
+    "name": "「蓬莱人偶」",
+    "passed": true
+  },
+  {
+    "events": [
+      "satori_scry"
+    ],
+    "id": "76",
+    "name": "第三只眼「古明地觉」",
+    "passed": true
+  },
+  {
+    "events": [
+      "yuuka_ramp"
+    ],
+    "id": "86",
+    "name": "四季鲜花之主「风见幽香」",
+    "passed": true
+  },
+  {
+    "events": [
+      "suwako_top"
+    ],
+    "id": "93",
+    "name": "土著神之顶「洩矢诹访子」",
+    "passed": true
+  },
+  {
+    "events": [
+      "sakuya_timer"
+    ],
+    "id": "character-ucs-032",
+    "name": "小夜岚的女仆「十六夜咲夜」",
+    "passed": true
+  },
+  {
+    "events": [
+      "orin_discard"
+    ],
+    "id": "character-ucs-038",
+    "name": "旧地狱的宠物妖怪「火焰猫燐」",
+    "passed": true
+  },
+  {
+    "events": [
+      "miko_divide"
+    ],
+    "id": "character-ucs-069",
+    "name": "星降之处的道士「丰聪耳神子」",
+    "passed": true
+  },
+  {
+    "events": [
+      "parsee_catchup"
+    ],
+    "id": "character-ucs-042",
+    "name": "绿眼的无间妒嫉「水桥帕露西」",
+    "passed": true
+  },
+  {
+    "events": [
+      "larva_sacrifice"
+    ],
+    "id": "character-lof-017",
+    "name": "仲夏的妖精「爱塔妮缇拉尔瓦」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-lof-004"
+    ],
+    "id": "character-lof-004",
+    "name": "「花田的妖精」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdn-024"
+    ],
+    "id": "character-fdn-024",
+    "name": "「地灵殿的妖精」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdf-106"
+    ],
+    "id": "character-fdf-106",
+    "name": "天才的造型神「埴安神袿姬」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-036"
+    ],
+    "id": "character-ucs-036",
+    "name": "孤影悄然的妖怪「古明地觉」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdf-092"
+    ],
+    "id": "character-fdf-092",
+    "name": "小小的贤将「纳兹琳」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-020"
+    ],
+    "id": "character-ucs-020",
+    "name": "少女秘封俱乐部「宇佐见莲子」",
+    "passed": true
+  },
+  {
+    "events": [
+      "spell-fdf-024"
+    ],
+    "id": "spell-fdf-024",
+    "name": "月符「静寂ノ月神」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-023"
+    ],
+    "id": "character-ucs-023",
+    "name": "柳树下的首级「赤蛮奇」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdf-065"
+    ],
+    "id": "character-fdf-065",
+    "name": "污秽的有机怪物「天火人血枪」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdf-046"
+    ],
+    "id": "character-fdf-046",
+    "name": "禁止通行「云居一轮&云山」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-034"
+    ],
+    "id": "character-ucs-034",
+    "name": "空想人格的保持者「古明地恋」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-003"
+    ],
+    "id": "character-ucs-003",
+    "name": "繁星的引导者「饭纲丸龙」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-ucs-067:self"
+    ],
+    "id": "character-ucs-067",
+    "name": "绯红的宵暗「蕾米莉亚·斯卡蕾特」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdn-048:self"
+    ],
+    "id": "character-fdn-048",
+    "name": "绯红的霄暗「蕾米莉亚·斯卡雷特」",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdf-114"
+    ],
+    "id": "character-fdf-114",
+    "name": "耳边低语的邪恶白狐「菅牧典」",
+    "passed": true
+  },
+  {
+    "events": [
+      "field-rei-013"
+    ],
+    "id": "field-rei-013",
+    "name": "辉光ノ城",
+    "passed": true
+  },
+  {
+    "events": [
+      "character-fdn-034"
+    ],
+    "id": "character-fdn-034",
+    "name": "辘轳首的怪奇「赤蛮奇」",
+    "passed": true
+  },
+  {
+    "events": [
+      "cat:momiji_name"
+    ],
+    "id": "character-fdf-101",
+    "name": "雪中的天狗「犬走椛」",
+    "passed": true
+  },
+  {
+    "events": [
+      "spell-fdn-012"
+    ],
+    "id": "spell-fdn-012",
+    "name": "魂魄「幽冥求闻持聪ノ法」",
+    "passed": true
+  },
+  {
+    "events": [
+      "n21:SPX-007"
+    ],
+    "id": "new-spx-007",
+    "name": "「废弃列车车厢」",
+    "passed": true
+  },
+  {
+    "events": [
+      "n21:SPX-005"
+    ],
+    "id": "new-spx-005",
+    "name": "境界的妖怪「八云紫」",
+    "passed": true
+  },
+  {
+    "events": [
+      "n21:ETO-003"
+    ],
+    "id": "new-eto-003",
+    "name": "命定的重逢「莲子」&「梅莉」",
+    "passed": true
+  },
+  {
+    "events": [
+      "n21:ETO-002"
+    ],
+    "id": "new-eto-002",
+    "name": "二重身「宇佐见堇子」",
+    "passed": true
+  }
+]

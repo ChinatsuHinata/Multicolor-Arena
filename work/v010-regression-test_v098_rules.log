@@ -1,0 +1,39 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: designated Youmu has her commander ability
+PASS: first strike hurts a surviving defender before it retaliates
+PASS: mandatory exile enters stack in the first-strike response window
+PASS: ordinary damage waits for the trigger and responses
+PASS: surviving defender is exiled by the ability without dealing damage
+PASS: exiled defender cannot participate in the ordinary damage step
+PASS: exiled defender does not cause a second damage batch
+PASS: lethal first strike sends Parsee to grave before trigger resolution
+PASS: death trigger and Youmu trigger both enter stack
+PASS: death trigger is queued rather than bypassing the stack
+PASS: Parsee death ability resolves once
+PASS: Youmu does not exile the dead graveyard object
+PASS: dead defender does not retaliate
+PASS: optional death return is offered after the lethal hit
+PASS: death return creates a new field instance
+PASS: old Youmu trigger cannot exile the returned instance
+PASS: returned unit does not rejoin its previous combat
+PASS: surviving normal defender deals its full damage after exile is countered
+PASS: ordinary damage is shown separately and Youmu never strikes twice
+PASS: lethal retaliation keeps the actual leader return choice
+PASS: countered-exile combat finishes after leader choice
+PASS: ordinary Youmu copy does not inherit commander exile
+PASS: ordinary defender retaliates after unmarked Youmu's first strike
+PASS: defensive first strike is the only first damage
+PASS: surviving attacker deals ordinary damage and receives no duplicate first strike
+PASS: defensive first strike completes
+PASS: half-ghost first strike triggers the leader's exile ability
+PASS: half-ghost exile prevents subsequent retaliation
+PASS: prevented first-strike damage creates no exile trigger
+PASS: protected ordinary blocker can still retaliate
+PASS: two first strikers deal simultaneous damage before exile
+PASS: exile cannot undo damage already dealt simultaneously
+PASS: saved decks unchanged
+V098_RULES: 33 checks; 0 failures
+

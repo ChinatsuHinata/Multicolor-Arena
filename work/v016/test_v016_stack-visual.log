@@ -1,0 +1,25 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: button: 确定
+PASS: targeted spell enters independent stack
+PASS: no stack mesh or collider remains above battlefield
+PASS: stack area lies wholly outside battlefield
+PASS: large upright stack artwork
+PASS: twelve opposing units remain unobscured
+PASS: stack-to-target arrow remains
+PASS: right click opens stack card preview
+PASS: ETB still asks for battlefield target
+PASS: observation opens with stack present
+PASS: far-right unit is inspectable in observation
+PASS: far-right opposing unit can be selected behind prior stack location
+PASS: button: 确定
+PASS: ability caption remains below artwork
+PASS: long stack keeps all entries
+PASS: long stack can scroll
+PASS: oldest entry reachable at rail bottom
+PASS: stack rail does not cover payment controls
+PASS: saved decks unchanged
+V016_STACK: 19 checks; [] failures

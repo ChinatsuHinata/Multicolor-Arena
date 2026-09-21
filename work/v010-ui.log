@@ -1,0 +1,49 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: saved precons are selected after a fresh launch
+PASS: test loader selects the two photo precons
+PASS: test precons use normal strict deck validation
+PASS: tokens excluded from normal editor library
+PASS: editor does not preload all 132 oversized textures
+PASS: Reimu precon displays all fifty main cards
+PASS: both precons start with four cards and 46 in library
+PASS: new precon starts with pile browser and preview closed
+PASS: Spread starts ordered target choice
+PASS: dynamic group can be finished
+PASS: button: 完成选择（2）
+PASS: two chosen targets are still private
+PASS: right click cancels multi-target declaration without mutation
+PASS: dynamic group can be finished
+PASS: button: 完成选择（2）
+PASS: button: 确定
+PASS: confirm publishes selected targets and pays once
+PASS: stack draws arrows to both declared targets
+PASS: selected target order controls actual damage
+PASS: button: 确定
+PASS: search opens region window during resolution
+PASS: Master Spark alias appears as a valid search result
+PASS: selection still awaits complete group confirmation
+PASS: button: 完成选择（1）
+PASS: button: 确定
+PASS: region search choice fully resolves and returns control
+PASS: button: 确定
+PASS: dynamic group can be finished
+PASS: button: 确定
+PASS: optional search can finish with zero cards
+PASS: button: X = 2
+PASS: Byakuren X is an explicit player choice
+PASS: button: 确定
+PASS: X payment is committed with the card
+PASS: X enters with counters and its life trigger resolves
+PASS: Keine access creates own exile action tab
+PASS: opponent-owned devoured card is selectable from own action row
+PASS: button: 确定
+PASS: borrowed card follows ordinary confirmation flow
+PASS: Flandre offers both player and unit attack
+PASS: button: 确定
+PASS: unit attack target is committed through battlefield selection
+PASS: UI verification leaves saved decks unchanged
+V010_UI: 43 checks; 0 failures

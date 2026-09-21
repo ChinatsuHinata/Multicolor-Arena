@@ -1,0 +1,12 @@
+from pathlib import Path
+p=Path(r'C:\Users\tzx20\Documents\test')
+f=p/'scripts/duel_view.gd';s=f.read_text(encoding='utf-8-sig')
+s=s.replace('var drag_origin=Vector2.ZERO','var drag_origin=Vector2.ZERO\nvar drag_pointer=Vector2.ZERO')
+s=s.replace('drag_uid=uid; drag_origin=at; dragging=false','drag_uid=uid; drag_origin=at; drag_pointer=at; dragging=false')
+s=s.replace('  var at=get_global_mouse_position()\n  if at.distance','  var at=make_input_local(event).position\n  drag_pointer=at\n  if at.distance')
+s=s.replace(' elif event is InputEventMouseButton:\n  if event.button_index==MOUSE_BUTTON_RIGHT',' elif event is InputEventMouseButton:\n  drag_pointer=make_input_local(event).position\n  if event.button_index==MOUSE_BUTTON_RIGHT')
+s=s.replace('var uid=drag_uid; var moved=dragging; var at=get_global_mouse_position()','var uid=drag_uid; var moved=dragging; var at=drag_pointer')
+s=s.replace('for i in range(actions.size()):\n  var action=actions[i]','panel.set_meta("action_card_uid",c.uid)\n for i in range(actions.size()):\n  var action=actions[i]')
+f.write_text(s,encoding='utf-8')
+f=p/'scripts/duel_table.gd';s=f.read_text(encoding='utf-8-sig').replace('camera.fov=45','camera.fov=33').replace('camera.position=Vector3(0,23.5,18)*camera_distance\n camera.look_at(Vector3(0,0,0.5))','camera.position=Vector3(0,23.5,18)*camera_distance+Vector3(-2,0,0)\n camera.look_at(Vector3(-2,0,0.5))')
+f.write_text(s,encoding='utf-8')

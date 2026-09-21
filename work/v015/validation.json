@@ -1,0 +1,112 @@
+{
+  "date": "2026-09-19",
+  "version": "0.15",
+  "checks": 1524,
+  "complete_matches": 20,
+  "entry_cards": 64,
+  "activation_entries": 58,
+  "tests": [
+    {
+      "log": "work\\v015\\test_v098_rules.log",
+      "checks": 33,
+      "summary": "V098_RULES: 33 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v095_rules.log",
+      "checks": 49,
+      "summary": "V095_RULES: 49 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v098.log",
+      "checks": 67,
+      "summary": "V098_UI: 67 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v010_rules.log",
+      "checks": 146,
+      "summary": "V010_RULES: 146 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v011_rules.log",
+      "checks": 188,
+      "summary": "V011_RULES: 188 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v012_rules.log",
+      "checks": 110,
+      "summary": "V012_RULES: 110 checks; 0 failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v013_rules.log",
+      "checks": 120,
+      "summary": "V013_RULES: 120 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v013_edges.log",
+      "checks": 138,
+      "summary": "V013_EDGES: 138 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v014_rules.log",
+      "checks": 55,
+      "summary": "V014_RULES: 55 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v014_ui.log",
+      "checks": 49,
+      "summary": "V014_UI: 49 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v015_rules.log",
+      "checks": 504,
+      "summary": "V015_RULES: 504 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v015_ui-visual.log",
+      "checks": 28,
+      "summary": "V015_UI: 28 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v013_ui-visual.log",
+      "checks": 37,
+      "summary": "V013_UI: 37 checks; [] failures",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v013_matches.log",
+      "checks": 0,
+      "summary": "V013_MATCHES: 12 mixed new card matches; 0 unfinished",
+      "project_errors": []
+    },
+    {
+      "log": "work\\v015\\test_v010_matches.log",
+      "checks": 0,
+      "summary": "V010_MATCHES: 8 matches; 0 unfinished",
+      "project_errors": []
+    }
+  ],
+  "preserved_files": [
+    "saves\\.gdignore",
+    "saves\\decks.json",
+    "saves\\decks.json.bak",
+    "saves\\settings.json",
+    "data\\test_precons.json"
+  ],
+  "notes": [
+    "图形交互日志为visual后缀；根证书存储诊断为既有系统诊断。",
+    "翻牌时间线0.5秒；单张墙钟时间另含贴图准备、帧调度与测试轮询。",
+    "尚未穷举所有卡牌组合。"
+  ]
+}

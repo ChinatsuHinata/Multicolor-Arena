@@ -1,0 +1,55 @@
+{
+  "version": "0.18.2",
+  "real_two_computers_tested": false,
+  "usb_tested": false,
+  "tests": [
+    {
+      "name": "test_v0182_rules",
+      "checks": 38
+    },
+    {
+      "name": "test_v098_rules",
+      "checks": 33
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43
+    },
+    {
+      "name": "test_v0181_latency",
+      "checks": 9
+    }
+  ],
+  "checks": 123,
+  "release_first_checks": 518,
+  "archive_crc_validated": true,
+  "extracted_bytes_identical": true,
+  "checksum_tools_positive_and_negative_passed": true,
+  "final_extracted_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-v0.18.2/Multicolour.exe",
+      "bytes": 109168640,
+      "sha256": "55d0890717cfb0009a00a2dab25d2acae633cf237be05f617bac3c715b8a50ad"
+    },
+    {
+      "path": "builds/Windows-v0.18.2/Multicolour.pck",
+      "bytes": 587843096,
+      "sha256": "661ca7aa573820808f15f509ef606f1ddc09e0927f81b55d992567601677e6af"
+    },
+    {
+      "path": "builds/Multicolour-v0.18.2-win64.zip",
+      "bytes": 623575315,
+      "sha256": "98202f13d3062d2e575eaf544834b1255b6597d296a3615db4874da4068f7996"
+    },
+    {
+      "path": "builds/CheckTransfer-v0.18.2.cmd",
+      "bytes": 972,
+      "sha256": "b9cc0e3c86f0c3660ea751978870428c90be5444bd0db00a89e5053d1f94d5e4"
+    }
+  ]
+}

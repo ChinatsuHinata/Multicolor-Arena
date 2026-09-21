@@ -1,0 +1,8 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "free() -> void".
+   at: GDScript::reload (res://scripts/rules/excel_abilities.gd:95)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+   at: GDScript::reload (res://scripts/rules/duel_engine.gd:0)
+ERROR: Failed to load script "res://scripts/rules/duel_engine.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

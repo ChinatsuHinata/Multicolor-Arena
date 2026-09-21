@@ -1,0 +1,33 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: test decks available without editing saved decks
+PASS: payment defaults on and response mode defaults to smart
+PASS: manual payment reservation produces no public action
+PASS: manual reservation previews tap without changing engine
+PASS: cancel restores all reservations without opponent-visible changes
+PASS: ambiguous automatic payment asks first
+PASS: UI commits spell onto visible stack
+PASS: response creates second stack card
+PASS: mouse picks opposing stack card as counter target
+PASS: UI battle counter chain resolves correctly
+PASS: surrender is inside battle settings
+PASS: full response holds even without playable card
+PASS: default response auto-passes empty response window
+PASS: mouse hand drag enters payment selection
+PASS: mouse click on multicolor palette opens color choice
+PASS: button exists: 黄
+PASS: mouse color choice reserves chosen color
+PASS: button exists: 取消使用
+PASS: mouse cancel returns reserved color
+PASS: only enabled attack needs no action popup
+PASS: root mouse input picks 3D unit to attack
+PASS: only legal payment commits directly
+PASS: button exists: 投降
+PASS: button exists: 投降
+PASS: settings submenu surrender ends current match
+PASS: button exists: 返回对局准备
+PASS: result returns to match preparation
+PASS: player saves unchanged
+DUEL_UI_TEST: 28 checks; 0 failures

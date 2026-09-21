@@ -1,0 +1,914 @@
+extends Control
+# Replace this with a res:// image path to change the battlefield background.
+@export_file("*.png", "*.jpg", "*.webp") var battlefield_background: String = "res://recourse/垫子3.png"
+const CARD_BACK_PATH = "res://recourse/卡背.jpg"
+const Store = preload("res://scripts/deck_store.gd")
+const GOLD = Color("#d9b775")
+const INK = Color("#101c28")
+const MUTED = Color("#91a5b7")
+const WHITE = Color("#e8edf0")
+var deck_canvas: Control
+var screen: Control
+var page = ""
+var decks: Array = []
+var draft: Dictionary
+var dirty = false
+var load_error = ""
+var selected = "70"
+var zone = "main"
+var query = ""
+var filter_kind = "全部"
+var selected_colors: Array = []
+var color_buttons = {}
+var main_scroll: ScrollContainer
+var main_content: Control
+var library: GridContainer
+var deck_rows: VBoxContainer
+var preview: Control
+var counts: Label
+var name_label: Label
+var saved_select: OptionButton
+var player_choice = 0
+var ai_choice = 0
+var skip_check = false
+var ai_one = false
+var textures = {}
+var duel_view
+var lan_session
+var network_game_open=""
+var status = ""
+var debug_mode=false
+var about_code=""
+var fullscreen = false
+var add_amount = 1
+var zone_buttons = {}
+var settings_path = "res://saves/settings.json" if OS.has_feature("editor") else "user://settings.json"
+var sideboard_session
+var sideboard_original={}
+var sideboard_previous={}
+var sideboard_waiting=false
+var sideboard_status: Label
+var sideboard_done: Button
+var replay_controller
+
+func _ready():
+ var f = SystemFont.new()
+ f.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC"])
+ var t = Theme.new()
+ t.default_font = f
+ t.default_font_size = 18
+ theme = t
+ var loaded = Store.load_decks()
+ decks = loaded.decks
+ for i in range(decks.size()):
+  if decks[i].id=="precon_reimu_v1": player_choice=i
+  elif decks[i].id=="precon_marisa_v1": ai_choice=i
+ load_error = loaded.get("error", "")
+ if Store.CARDS.is_empty(): load_error=Store.Database.last_error
+ draft = Store.blank()
+ if FileAccess.file_exists(settings_path):
+  var saved_settings = JSON.parse_string(FileAccess.get_file_as_string(settings_path))
+  if saved_settings is Dictionary:
+   fullscreen = saved_settings.get("fullscreen", false) == true
+ if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+ menu()
+ if not load_error.is_empty(): alert(load_error)
+
+func _draw():
+ draw_rect(Rect2(0,0,1600,900), Color("#09121d"))
+ if page=="battle": return
+ for i in range(22):
+  draw_circle(Vector2(1150,400),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
+
+func clear_page(next: String):
+ if page=="sideboard" and next!="sideboard":restore_editor_draft()
+ if is_instance_valid(screen):
+  remove_child(screen)
+  screen.queue_free()
+ screen = Control.new()
+ screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ add_child(screen)
+ page = next
+ queue_redraw()
+
+func box(parent: Node, rect: Rect2, color: Color = INK, border: Color = Color("#30424f")) -> Panel:
+ var p = Panel.new()
+ p.position = rect.position
+ p.size = rect.size
+ p.add_theme_stylebox_override("panel", style(color,border))
+ parent.add_child(p)
+ return p
+
+func style(color: Color, border: Color = Color("#3d5161")) -> StyleBoxFlat:
+ var s = StyleBoxFlat.new()
+ s.bg_color = color
+ s.border_color = border
+ s.set_border_width_all(1)
+ s.set_corner_radius_all(10)
+ s.content_margin_left = 14
+ s.content_margin_right = 14
+ s.content_margin_top = 7
+ s.content_margin_bottom = 7
+ return s
+
+func label(parent: Node, text: String, rect: Rect2, font_size: int = 18, color: Color = WHITE) -> Label:
+ var l = Label.new()
+ l.text = text
+ l.position = rect.position
+ l.size = rect.size
+ l.add_theme_font_size_override("font_size",font_size)
+ l.add_theme_color_override("font_color",color)
+ l.clip_text = true
+ l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ parent.add_child(l)
+ return l
+
+func button(parent: Node, text: String, rect: Rect2, action: Callable, accent: bool = false) -> Button:
+ var b = Button.new()
+ b.text = text
+ b.position = rect.position
+ b.size = rect.size
+ b.add_theme_stylebox_override("normal",style(Color("#3b3325") if accent else Color("#192a38"),GOLD if accent else Color("#3d5161")))
+ b.add_theme_stylebox_override("hover",style(Color("#4b4130") if accent else Color("#294354"),GOLD))
+ b.add_theme_stylebox_override("pressed",style(Color("#615135"),GOLD))
+ b.add_theme_stylebox_override("focus",style(Color(0,0,0,0),GOLD))
+ b.add_theme_color_override("font_color",GOLD if accent else WHITE)
+ b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+ b.pressed.connect(action)
+ parent.add_child(b)
+ return b
+
+func texture(id: String) -> Texture2D:
+ if id=="back": return load(CARD_BACK_PATH)
+ if id=="potato": return load("res://assets/potato.svg")
+ if id=="token_halfghost" and Store.CARDS.has("token-ucs-099"):return texture("token-ucs-099")
+ if id in ["token_ufo","token_halfghost"]: return load("res://assets/"+id+".svg")
+ if not Store.CARDS.has(id):
+  if is_instance_valid(duel_view) and duel_view.engine.cards.has(id):
+   var info=duel_view.engine.cards[id]
+   if info.has("copy_source_id"):return texture(info.copy_source_id)
+   if info.get("token",false):return load("res://assets/roster_token.svg")
+  return null
+ if textures.has(id):
+  var cached=textures[id]; textures.erase(id); textures[id]=cached
+  return cached
+ var resource = load(Store.CARDS[id].image) as Texture2D
+ if resource == null: return null
+ var img = resource.get_image()
+ if img.get_width() > img.get_height(): img.rotate_90(CLOCKWISE)
+ img.resize(1200,1676,Image.INTERPOLATE_LANCZOS)
+ if not img.has_mipmaps(): img.generate_mipmaps()
+ var tex = ImageTexture.create_from_image(img)
+ # Keep the growing library lazy and bound CPU/GPU cache residency.
+ if textures.size()>=48: textures.erase(textures.keys()[0])
+ textures[id] = tex
+ return tex
+
+func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable()) -> Control:
+ var p = box(parent,rect,Color("#172936"),GOLD if id in ["68","70"] else Color("#416078"))
+ var art = TextureRect.new()
+ art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+ art.texture = texture(id)
+ art.position = Vector2(5,5)
+ art.size = rect.size - Vector2(10,10)
+ art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ p.add_child(art)
+ if clickable.is_valid():
+  p.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+  p.gui_input.connect(func(event):
+   if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT: clickable.call())
+ return p
+
+func header(title: String, back: Callable):
+ label(screen,"multicolor:arena  /  1.0",Rect2(42,22,500,34),20,GOLD)
+ label(screen,title,Rect2(42,68,1100,48),32)
+ button(screen,"返回",Rect2(1430,32,126,46),back)
+ box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
+
+func alert(message: String, title: String = "提示"):
+ var d = AcceptDialog.new()
+ d.title = title
+ d.dialog_text = message
+ d.min_size = Vector2i(540,180)
+ d.get_ok_button().text = "知道了"
+ d.confirmed.connect(d.queue_free)
+ d.canceled.connect(d.queue_free)
+ add_child(d)
+ d.popup_centered()
+
+func confirm_action(message: String, action: Callable):
+ var d = ConfirmationDialog.new()
+ d.title = "确认操作"
+ d.dialog_text = message
+ d.min_size = Vector2i(500,170)
+ d.get_ok_button().text = "确认"
+ d.get_cancel_button().text = "取消"
+ d.confirmed.connect(func(): d.queue_free(); action.call())
+ d.canceled.connect(d.queue_free)
+ add_child(d)
+ d.popup_centered()
+
+func guard(action: Callable):
+ if dirty: confirm_action("当前卡组有未保存的修改。是否放弃修改并继续？",func():
+  var restored=Store.blank()
+  for d in decks:
+   if d.id==draft.id: restored=d.duplicate(true); break
+  draft=restored
+  dirty=false
+  action.call())
+ else: action.call()
+
+func menu():
+ clear_page("menu")
+ label(screen,"VERSION 1.0",Rect2(92,74,900,42),18,GOLD)
+ label(screen,"multicolor:arena",Rect2(86,173,760,125),66)
+ label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(94,309,740,48),24,MUTED)
+ button(screen,"人机对战    →",Rect2(96,422,440,70),setup,true)
+ button(screen,"联网对战",Rect2(96,512,440,64),online)
+ button(screen,"编辑牌组",Rect2(96,594,440,64),func(): editor())
+ button(screen,"设置",Rect2(96,676,440,64),settings)
+ button(screen,"关于",Rect2(96,758,440,64),about)
+ button(screen,"对局回放",Rect2(570,758,280,64),replays)
+ card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
+ card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
+
+func online():
+ reload_decks()
+ if not is_instance_valid(lan_session):
+  lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize()
+  lan_session.snapshot_ready.connect(network_snapshot_ready)
+  lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
+ clear_page("online")
+ var lobby=preload("res://net/lan_lobby.gd").new();screen.add_child(lobby);lobby.build(self,lan_session)
+func network_snapshot_ready():
+ if lan_session.latest_snapshot.game_id!=network_game_open:
+  network_game_open=lan_session.latest_snapshot.game_id
+  call_deferred("return_network_battle")
+func return_network_battle():
+ if lan_session.latest_snapshot.is_empty():return
+ var fresh_game=not is_instance_valid(duel_view) or duel_view.network_session==null or lan_session.local_game_id!=lan_session.latest_snapshot.game_id
+ lan_session.snapshots=[lan_session.latest_snapshot.duplicate(true)]
+ if not fresh_game:lan_session.snapshots.back().projection.state.presentation_events=[]
+ clear_page("battle")
+ duel_view=preload("res://scripts/duel_view.gd").new();screen.add_child(duel_view);duel_view.begin(self,{},{},0,0,lan_session)
+
+func settings():
+ clear_page("settings")
+ header("设置",menu)
+ var cb = CheckButton.new()
+ cb.text = "全屏显示"
+ cb.position = Vector2(420,290)
+ cb.size = Vector2(700,60)
+ cb.button_pressed = fullscreen
+ cb.toggled.connect(func(value):
+  fullscreen = value
+  DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if value else DisplayServer.WINDOW_MODE_WINDOWED)
+  var f = FileAccess.open(settings_path,FileAccess.WRITE)
+  if f: f.store_string(JSON.stringify({"fullscreen":value}))
+  else: alert("无法保存设置。"))
+ screen.add_child(cb)
+ 
+
+func editor(sideboarding: bool=false):
+ if not sideboarding:reload_decks()
+ clear_page("sideboard" if sideboarding else "editor")
+ label(screen,"换备牌" if sideboarding else "卡组编辑器",Rect2(24,12,270,46),28,GOLD)
+ button(screen,"返回",Rect2(1480,14,100,40),online if sideboarding else func(): guard(menu))
+ button(screen,"排序卡组",Rect2(1300,14,156,40),sort_current_deck)
+ box(screen,Rect2(18,72,286,810))
+ preview=Control.new()
+ preview.position=Vector2(30,88)
+ screen.add_child(preview)
+ box(screen,Rect2(320,72,902,810))
+ name_label=label(screen,"",Rect2(338,80,670,36),23,GOLD)
+ counts=label(screen,"",Rect2(338,818,858,32),17,MUTED)
+ deck_canvas=Control.new()
+ deck_canvas.position=Vector2(334,126)
+ deck_canvas.size=Vector2(874,680)
+ screen.add_child(deck_canvas)
+ if sideboarding:
+  sideboard_status=label(screen,"",Rect2(1252,270,314,320),20,GOLD)
+  sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  sideboard_done=button(screen,"更换完成",Rect2(1252,756,314,64),complete_sideboard,true)
+  update_preview();update_deck_rows();sideboard_changed()
+  return
+ box(screen,Rect2(1238,72,344,810))
+ var search=LineEdit.new()
+ search.placeholder_text="搜索卡牌"
+ search.text=query
+ search.position=Vector2(1252,88)
+ search.size=Vector2(314,42)
+ search.text_changed.connect(func(value): query=value; update_library())
+ screen.add_child(search)
+ color_buttons.clear()
+ var colors=["全部","红","蓝","绿","黄","黑"]
+ var swatches=[Color("#344553"),Color("#a83035"),Color("#337aa7"),Color("#39794d"),Color("#ac963b"),Color("#383a42")]
+ for i in range(colors.size()):
+  var color=colors[i]
+  var b=button(screen,color,Rect2(1252+i*53,142,47,36),func(): toggle_color(color))
+  b.add_theme_font_size_override("font_size",16)
+  b.add_theme_stylebox_override("normal",style(swatches[i]))
+  b.add_theme_stylebox_override("pressed",style(swatches[i],GOLD))
+  b.toggle_mode=true
+  color_buttons[color]=b
+ refresh_color_buttons()
+ var kind=OptionButton.new()
+ kind.position=Vector2(1252,190)
+ kind.size=Vector2(314,38)
+ for x in ["全部","自机","单位","符卡","道具","结界"]: kind.add_item(x)
+ kind.select(["全部","自机","单位","符卡","道具","结界"].find(filter_kind))
+ kind.item_selected.connect(func(i): filter_kind=kind.get_item_text(i); update_library())
+ screen.add_child(kind)
+ var scroll=ScrollContainer.new()
+ scroll.position=Vector2(1252,242)
+ scroll.size=Vector2(314,345)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ screen.add_child(scroll)
+ library=GridContainer.new()
+ scroll.set_drag_forwarding(Callable(),can_return_card,return_card_to_library)
+ library.columns=1
+ library.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ library.add_theme_constant_override("v_separation",6)
+ scroll.add_child(library)
+ library.set_drag_forwarding(Callable(),can_return_card,return_card_to_library)
+ saved_select=OptionButton.new()
+ saved_select.position=Vector2(1252,602)
+ saved_select.size=Vector2(314,40)
+ saved_select.add_item("卡组")
+ for d in decks:
+  saved_select.add_item(d.name)
+  if d.id==draft.id: saved_select.select(saved_select.item_count-1)
+ saved_select.item_selected.connect(func(i):
+  if i>0: guard(func(): draft=decks[i-1].duplicate(true); dirty=false; editor()))
+ screen.add_child(saved_select)
+ button(screen,"保存",Rect2(1252,656,150,42),save_deck,true)
+ button(screen,"使用卡组",Rect2(1416,656,150,42),use_deck)
+ button(screen,"复制",Rect2(1252,710,150,42),copy_deck)
+ button(screen,"粘贴",Rect2(1416,710,150,42),func(): guard(paste_dialog))
+ button(screen,"新建",Rect2(1252,764,150,42),func(): guard(func(): draft=Store.blank(); dirty=false; editor(); rename_dialog()))
+ button(screen,"重命名",Rect2(1416,764,150,42),rename_dialog)
+ button(screen,"清空卡组",Rect2(1252,818,150,42),func(): confirm_action("清空当前卡组？",func(): draft.main.clear(); draft.side.clear(); draft.leader=""; dirty=true; update_deck_rows()))
+ button(screen,"删除卡组",Rect2(1416,818,150,42),delete_deck_dialog)
+ update_preview()
+ update_library()
+ update_deck_rows()
+
+func free_children(parent: Node):
+ for c in parent.get_children():
+  parent.remove_child(c)
+  c.queue_free()
+
+func toggle_color(color: String):
+ if color=="全部": selected_colors.clear()
+ elif color in selected_colors: selected_colors.erase(color)
+ else: selected_colors.append(color)
+ refresh_color_buttons()
+ update_library()
+
+func refresh_color_buttons():
+ for color in color_buttons:
+  var active=selected_colors.is_empty() if color=="全部" else color in selected_colors
+  color_buttons[color].set_pressed_no_signal(active)
+  color_buttons[color].text=("✓" if active and color!="全部" else "")+color
+
+func matches_colors(info: Dictionary) -> bool:
+ if selected_colors.is_empty(): return true
+ return info.colors.size()==selected_colors.size() and info.colors.all(func(color): return color in selected_colors)
+
+func update_preview():
+ free_children(preview)
+ card(preview,selected,Rect2(0,0,260,350))
+ var info=Store.CARDS[selected]
+ var scroll=ScrollContainer.new()
+ scroll.name="CardTextScroll"
+ scroll.position=Vector2(0,362)
+ scroll.size=Vector2(260,341)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ preview.add_child(scroll)
+ var column=VBoxContainer.new()
+ column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ column.add_theme_constant_override("separation",12)
+ scroll.add_child(column)
+ for value in [info.name,card_description(selected)]:
+  var text=Label.new()
+  text.text=value
+  text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  text.add_theme_font_size_override("font_size",20 if value==info.name else 17)
+  text.add_theme_color_override("font_color",GOLD if value==info.name else WHITE)
+  column.add_child(text)
+ if sideboard_session==null:button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
+
+func update_library():
+ free_children(library)
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if not info.constructible: continue
+  if not query.is_empty() and not query.to_lower() in info.name.to_lower(): continue
+  if filter_kind!="全部" and info.kind!=filter_kind: continue
+  if not matches_colors(info): continue
+  var row=preload("res://scripts/deck_card.gd").new()
+  row.card_id=id
+  row.source_zone="library"
+  row.texture_provider=func(): return texture(id)
+  row.set_meta("card_id",id)
+  row.custom_minimum_size=Vector2(296,64)
+  row.add_theme_stylebox_override("panel",style(Color("#142737")))
+  library.add_child(row)
+  var full_name=label(row,info.name,Rect2(10,4,276,54),17,WHITE)
+  full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  full_name.clip_text=false
+  full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  row.tooltip_text=info.name
+  row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
+  row.clicked.connect(func(card_id,_from,_index,right):
+   selected=card_id
+   update_preview()
+   if not right: add_to("side" if zone=="side" else "main"))
+  row.set_drag_forwarding(row._get_drag_data,can_return_card,return_card_to_library)
+
+func can_return_card(_at: Vector2, data: Variant) -> bool:
+ return valid_drag_source(data) and data.source_zone in ["main","side","leader"]
+
+func valid_drag_source(data: Variant) -> bool:
+ if not data is Dictionary or not Store.CARDS.has(data.get("card_id","")): return false
+ var source=data.get("source_zone","")
+ if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"]):return false
+ if source=="library": return true
+ if source=="leader": return draft.leader==data.card_id
+ if source in ["main","side"]:
+  var index=int(data.get("source_index",-1))
+  return index>=0 and index<draft[source].size() and draft[source][index]==data.card_id
+ return false
+
+func return_card_to_library(at: Vector2, data: Variant):
+ if not can_return_card(at,data): return
+ if data.source_zone=="leader": draft.leader=""
+ else: draft[data.source_zone].remove_at(int(data.source_index))
+ dirty=true
+ update_deck_rows()
+
+func main_card_rect(index: int) -> Rect2:
+ # Eleven columns; the leader occupies the first two cells of the first two rows.
+ var column=2+index%9 if index<18 else (index-18)%11
+ var row=index/9 if index<18 else 2+(index-18)/11
+ return Rect2(4+column*77,4+row*100,70,97)
+
+func update_deck_rows():
+ name_label.text=draft.name+(" *" if dirty else "")
+ counts.text="主卡组 %d / 70     副卡组 %d / 10     自机 %d / 1" % [draft.main.size(),draft.side.size(),0 if draft.leader.is_empty() else 1]
+ if sideboard_session!=null:
+  counts.text="主卡组 %d / %d     副卡组 %d / 10     自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
+  if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
+ var old_scroll=main_scroll.scroll_vertical if is_instance_valid(main_scroll) else 0
+ free_children(deck_canvas)
+ main_scroll=ScrollContainer.new()
+ main_scroll.name="MainDeckScroll"
+ main_scroll.size=Vector2(874,509)
+ main_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ deck_canvas.add_child(main_scroll)
+ main_content=Control.new()
+ main_content.name="MainDeckCards"
+ var height=maxf(509,main_card_rect(maxi(0,draft.main.size()-1)).end.y+5)
+ main_content.custom_minimum_size=Vector2(854,height)
+ main_scroll.add_child(main_content)
+ make_drop_zone("main",Rect2(0,0,854,height),main_content)
+ make_drop_zone("leader",Rect2(0,0,154,200),main_content)
+ if not draft.leader.is_empty(): editor_card(draft.leader,"leader",0,Rect2(4,4,140,195),main_content)
+ for i in range(draft.main.size()):
+  editor_card(draft.main[i],"main",i,main_card_rect(i),main_content)
+ main_scroll.set_deferred("scroll_vertical",old_scroll)
+ var side_parent=deck_canvas
+ var side_origin=Vector2(9,559)
+ if sideboard_session!=null:
+  var side_scroll=ScrollContainer.new();side_scroll.name="SideDeckScroll";side_scroll.position=Vector2(0,553);side_scroll.size=Vector2(872,124);side_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;deck_canvas.add_child(side_scroll)
+  side_parent=Control.new();side_parent.custom_minimum_size=Vector2(maxi(872,draft.side.size()*86+12),114);side_scroll.add_child(side_parent)
+  make_drop_zone("side",Rect2(Vector2.ZERO,side_parent.custom_minimum_size),side_parent);side_origin=Vector2(9,2)
+ else:make_drop_zone("side",Rect2(0,553,872,124))
+ for i in range(draft.side.size()):
+  editor_card(draft.side[i],"side",i,Rect2(side_origin+Vector2(i*86,0),Vector2(78,109)),side_parent)
+ label(deck_canvas,"副卡组",Rect2(5,519,130,32),18,GOLD)
+ var color_counts={"红":0,"蓝":0,"绿":0,"黄":0,"黑":0}
+ for id in draft.main:
+  for color in Store.CARDS[id].colors: color_counts[color]+=1
+ var index=0
+ for c in color_counts:
+  label(deck_canvas,"%s %d" % [c,color_counts[c]],Rect2(146+index*116,519,108,30),18,MUTED)
+  index+=1
+
+func add_selected(): add_to(zone)
+func add_to(target: String):
+ var amount = 1 if target=="leader" else add_amount
+ var copy = draft.duplicate(true)
+ for i in range(amount):
+  var error = Store.add_card(copy,selected,target)
+  if not error.is_empty(): alert(error); return
+ draft=copy
+ zone = target
+ dirty = true
+ update_deck_rows()
+
+func remove_card(id: String):
+ if zone == "leader": draft.leader = ""
+ else: draft[zone].erase(id)
+ dirty = true
+ update_deck_rows()
+
+func rename_dialog():
+ var d = ConfirmationDialog.new()
+ d.title = "卡组名称"
+ d.min_size = Vector2i(500,180)
+ var entry = LineEdit.new()
+ entry.text = draft.name
+ entry.max_length = 40
+ entry.position = Vector2(24,42)
+ entry.size = Vector2(450,48)
+ d.add_child(entry)
+ d.get_ok_button().text = "确定"
+ d.get_cancel_button().text = "取消"
+ d.confirmed.connect(func():
+  var new_name = entry.text.strip_edges()
+  if new_name.is_empty(): alert("卡组名称不能为空。")
+  else:
+   draft.name=new_name
+   dirty=true
+   update_deck_rows()
+  d.queue_free())
+ d.canceled.connect(d.queue_free)
+ add_child(d)
+ d.popup_centered()
+ entry.grab_focus()
+ entry.select_all()
+
+func save_deck():
+ if not load_error.is_empty(): alert(load_error); return
+ var error = Store.validate(draft)
+ if not error.is_empty(): alert(error,"无法保存"); return
+ var next = decks.duplicate(true)
+ var found = false
+ for i in range(next.size()):
+  if next[i].id == draft.id: next[i]=draft.duplicate(true); found=true; break
+ if not found: next.append(draft.duplicate(true))
+ error = Store.save_file(draft)
+ if not error.is_empty(): alert(error,"保存失败"); return
+ decks = next
+ dirty = false
+ editor()
+
+func delete_deck_dialog():
+ if not load_error.is_empty(): alert(load_error,"无法删除"); return
+ confirm_action("删除卡组「%s」？" % draft.name,func():
+  var error=delete_current_deck()
+  if not error.is_empty(): alert(error,"删除失败")
+  else: editor())
+
+func delete_current_deck(path: String="") -> String:
+ if not load_error.is_empty(): return load_error
+ var removed_index=-1
+ for i in range(decks.size()):
+  if decks[i].id==draft.id: removed_index=i; break
+ if removed_index<0:
+  draft=Store.blank(); dirty=false; zone="main"
+  return ""
+ var player_id=decks[player_choice].id if player_choice>=0 and player_choice<decks.size() else ""
+ var ai_id=decks[ai_choice].id if ai_choice>=0 and ai_choice<decks.size() else ""
+ var next=decks.duplicate(true)
+ next.remove_at(removed_index)
+ var error=Store.delete_file(draft.id) if path.is_empty() else Store.persist(next,path)
+ if not error.is_empty(): return error
+ # Keep the previous in-memory state until the saved replacement succeeds.
+ decks=next
+ player_choice=remaining_deck_index(player_id,player_choice)
+ ai_choice=remaining_deck_index(ai_id,ai_choice)
+ draft=Store.blank() if decks.is_empty() else decks[mini(removed_index,decks.size()-1)].duplicate(true)
+ dirty=false; zone="main"
+ return ""
+
+func remaining_deck_index(id: String,fallback: int) -> int:
+ for i in range(decks.size()):
+  if decks[i].id==id: return i
+ return clampi(fallback,0,maxi(0,decks.size()-1))
+
+func copy_deck():
+ var error = Store.validate(draft)
+ if not error.is_empty(): alert(error,"无法复制"); return
+ DisplayServer.clipboard_set(JSON.stringify(draft))
+ 
+
+func paste_dialog():
+ var d = ConfirmationDialog.new()
+ d.title = "粘贴卡组代码"
+ d.min_size = Vector2i(690,430)
+ var entry = TextEdit.new()
+ entry.position=Vector2(20,40)
+ entry.size=Vector2(650,310)
+ entry.text=DisplayServer.clipboard_get()
+ d.add_child(entry)
+ d.get_ok_button().text="导入为新卡组"
+ d.get_cancel_button().text="取消"
+ d.confirmed.connect(func():
+  var result=Store.decode(entry.text)
+  if result.has("error"): alert(result.error,"导入失败")
+  else: draft=result.deck; dirty=true; editor()
+  d.queue_free())
+ d.canceled.connect(d.queue_free)
+ add_child(d)
+ d.popup_centered()
+
+func setup():
+ reload_decks()
+ clear_page("setup")
+ header("人机对战",menu)
+ player_choice=clampi(player_choice,0,maxi(0,decks.size()-1))
+ ai_choice=clampi(ai_choice,0,maxi(0,decks.size()-1))
+ for i in range(2):
+  var x=220+i*620
+  box(screen,Rect2(x,186,540,340))
+  label(screen,"你的卡组" if i==0 else "人机的卡组",Rect2(x+24,205,440,40),24,GOLD)
+  var pick=OptionButton.new()
+  pick.position=Vector2(x+24,266)
+  pick.size=Vector2(492,50)
+  if decks.is_empty():
+   pick.add_item("未选择")
+  else:
+   for d in decks: pick.add_item(d.name)
+   pick.select(player_choice if i==0 else ai_choice)
+  pick.item_selected.connect(func(index):
+   if i==0: player_choice=index
+   else: ai_choice=index
+   setup())
+  screen.add_child(pick)
+  if not decks.is_empty():
+   var chosen=decks[player_choice if i==0 else ai_choice]
+   card(screen,chosen.leader,Rect2(x+24,340,106,151))
+   label(screen,"主卡组 %d\n副卡组 %d" % [chosen.main.size(),chosen.side.size()],Rect2(x+160,352,340,110),22)
+ var skip=CheckButton.new()
+ skip.text="不检查卡组"
+ skip.position=Vector2(420,568)
+ skip.size=Vector2(800,45)
+ skip.button_pressed=skip_check
+ skip.toggled.connect(func(value): skip_check=value)
+ screen.add_child(skip)
+ var one=CheckButton.new()
+ one.text="人机必定投 1"
+ one.position=Vector2(420,630)
+ one.size=Vector2(800,45)
+ one.button_pressed=ai_one
+ one.toggled.connect(func(value): ai_one=value)
+ screen.add_child(one)
+ button(screen,"开始对战",Rect2(570,721,460,68),start_match,true)
+ button(screen,"编辑牌组",Rect2(1080,730,250,50),editor)
+ button(screen,"载入测试卡组",Rect2(80,730,270,50),load_test_decks)
+
+func start_match():
+ if decks.is_empty(): alert("请选择卡组。"); return
+ for i in [player_choice,ai_choice]:
+  var error=Store.validate(decks[i],not skip_check)
+  if not error.is_empty():
+   alert("「%s」：%s" % [decks[i].name,error],"卡组不合规")
+   return
+ var your_roll = randi_range(2,6) if ai_one else randi_range(1,6)
+ var bot_roll = 1 if ai_one else randi_range(1,6)
+ while your_roll==bot_roll: your_roll=randi_range(1,6); bot_roll=randi_range(1,6)
+ if your_roll>bot_roll:
+  var d=ConfirmationDialog.new()
+  d.title="你赢得了投点"
+  d.dialog_text="你投出 %d，人机投出 %d。请选择先后手。" % [your_roll,bot_roll]
+  d.min_size=Vector2i(540,180)
+  d.get_ok_button().text="我方先手"
+  d.get_cancel_button().text="我方后手"
+  d.confirmed.connect(func(): d.queue_free(); begin_battle(true))
+  d.canceled.connect(func(): d.queue_free(); begin_battle(false))
+  add_child(d)
+  d.popup_centered()
+ else:
+  begin_battle(false)
+  alert("你投出 %d，人机投出 %d。人机选择先手。" % [your_roll,bot_roll],"投点结果")
+
+func begin_battle(first: bool):
+ clear_page("battle")
+ duel_view=preload("res://scripts/duel_view.gd").new()
+ duel_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ screen.add_child(duel_view)
+ duel_view.begin(self,decks[player_choice],decks[ai_choice],0 if first else 1)
+
+func load_test_decks():
+ var templates=JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json"))
+ if not templates is Dictionary: alert("测试套牌模板读取失败"); return
+ var positions=[]
+ for template in templates.decks:
+  var error=Store.validate(template,true)
+  if not error.is_empty(): alert(error); return
+  var found=-1
+  for i in range(decks.size()):
+   if decks[i].id==template.id: found=i; break
+  if found<0: found=decks.size(); decks.append(template.duplicate(true))
+  else: decks[found]=template.duplicate(true)
+  positions.append(found)
+ player_choice=positions[0]; ai_choice=positions[1]; skip_check=false; ai_one=true
+ setup()
+
+func load_legacy_test_decks():
+ for id in ["demo_reimu","demo_marisa"]:
+  for d in decks.duplicate():
+   if d.id==id: decks.erase(d)
+ var reimu=Store.blank("测试 · 灵梦")
+ reimu.id="demo_reimu"; reimu.leader="70"
+ var marisa=Store.blank("测试 · 魔理沙")
+ marisa.id="demo_marisa"; marisa.leader="68"
+ for i in range(5):
+  reimu.main.append_array(["164","164","165","165","167","68","70","99","100","170"])
+  marisa.main.append_array(["164","164","165","167","167","68","70","99","100","170"])
+ player_choice=decks.size(); ai_choice=decks.size()+1
+ decks.append(reimu); decks.append(marisa)
+ skip_check=true; ai_one=true
+ setup()
+
+func card_description(id: String) -> String:
+ return Store.CARDS[id].rules_text
+
+func make_drop_zone(target: String, rect: Rect2, parent: Node = null):
+ var panel=box(parent if parent else deck_canvas,rect,Color("#13232f"),GOLD if zone==target else Color("#3b5060"))
+ panel.set_drag_forwarding(Callable(),func(_at,data): return valid_drag_source(data),func(_at,data): drop_editor_card(data,target))
+ if target=="leader" and draft.leader.is_empty(): label(panel,"自机",Rect2(20,60,90,40),24,MUTED)
+
+func editor_card(id: String, source: String, index: int, rect: Rect2, parent: Node = null):
+ var tile=preload("res://scripts/deck_card.gd").new()
+ tile.card_id=id
+ tile.face_texture=texture(id)
+ tile.source_zone=source
+ tile.source_index=index
+ tile.position=rect.position
+ tile.size=rect.size
+ tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if source=="leader" else Color("#677585")))
+ (parent if parent else deck_canvas).add_child(tile)
+ var art=TextureRect.new()
+ art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+ art.texture=texture(id)
+ art.position=Vector2(3,3)
+ art.size=rect.size-Vector2(6,6)
+ art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+ art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ tile.add_child(art)
+ tile.preview_requested.connect(func(card_id): selected=card_id; update_preview())
+ tile.clicked.connect(func(card_id,from,index_in_deck,right):
+  selected=card_id
+  zone=from
+  if sideboard_session!=null:
+   update_preview()
+   if not right and from in ["main","side"]:drop_editor_card({"card_id":card_id,"source_zone":from,"source_index":index_in_deck},"side" if from=="main" else "main")
+   return
+  if right:
+   if from=="leader": draft.leader=""
+   else: draft[from].remove_at(index_in_deck)
+   dirty=true
+   update_deck_rows()
+  else: add_to(from))
+ tile.set_drag_forwarding(tile._get_drag_data,func(_at,data): return valid_drag_source(data),func(_at,data): drop_editor_card(data,source))
+
+func drop_editor_card(data: Dictionary, target: String):
+ if not valid_drag_source(data) or target not in ["main","side","leader"]: return
+ var source=data.get("source_zone","")
+ if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"] or target not in ["main","side"]):return
+ if source==target: return
+ var next=draft.duplicate(true)
+ var error=""
+ if sideboard_session!=null:next[target].append(data.card_id)
+ else:error=Store.add_card(next,data.card_id,target)
+ if not error.is_empty(): alert(error); return
+ if source=="leader": next.leader="" if target!="leader" else next.leader
+ elif source in ["main","side"]:
+  var index=int(data.get("source_index",-1))
+  if index>=0 and index<next[source].size(): next[source].remove_at(index)
+ draft=next
+ dirty=true
+ zone=target
+ update_deck_rows()
+
+func use_deck():
+ var error=Store.validate(draft)
+ if not error.is_empty(): alert(error); return
+ save_deck()
+ if dirty: return
+ for i in range(decks.size()):
+  if decks[i].id==draft.id: player_choice=i; break
+ setup()
+
+
+func about():
+ clear_page("about")
+ about_code=""
+ var title=label(screen,"关于",Rect2(100,210,1400,70),44,GOLD)
+ title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var version=label(screen,"multicolor:arena  1.0",Rect2(100,295,1400,44),24,GOLD)
+ version.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var body=label(screen,"这是测试文字",Rect2(100,365,1400,90),32)
+ body.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ if debug_mode:
+  var state=label(screen,"调试模式已开启",Rect2(100,495,1400,44),22,GOLD)
+  state.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  button(screen,"退出调试模式",Rect2(670,571,260,50),func(): debug_mode=false; about())
+ button(screen,"返回",Rect2(670,660,260,54),menu)
+
+func _unhandled_key_input(event: InputEvent):
+ if page!="about" or not event is InputEventKey or not event.pressed or event.echo: return
+ if event.unicode<=0: return
+ about_code=(about_code+String.chr(event.unicode).to_lower()).right(10)
+ if about_code=="multicolor": debug_mode=true; about()
+
+func sort_current_deck():
+ if sideboard_session!=null and sideboard_locked():return
+ var before=JSON.stringify([draft.main,draft.side])
+ Store.sort_deck(draft)
+ if JSON.stringify([draft.main,draft.side])!=before: dirty=true
+ update_deck_rows()
+
+func open_sideboard(session):
+ if session.room.get("status","")!="between" or not session.can_act() or session.room.ready[session.seat]:return
+ sideboard_previous={"draft":draft.duplicate(true),"dirty":dirty,"selected":selected,"zone":zone}
+ sideboard_session=session;sideboard_original=session.room.own_deck.duplicate(true)
+ draft=sideboard_original.duplicate(true);dirty=false;selected=draft.leader;zone="main";sideboard_waiting=false
+ if not session.changed.is_connected(sideboard_changed):session.changed.connect(sideboard_changed)
+ if not session.error_raised.is_connected(sideboard_error):session.error_raised.connect(sideboard_error)
+ editor(true)
+
+func sideboard_locked() -> bool:
+ return sideboard_session==null or sideboard_waiting or not sideboard_session.can_act()
+
+func complete_sideboard():
+ if sideboard_locked():return
+ var error=preload("res://net/series_controller.gd").sideboard_error(draft,sideboard_original,sideboard_session.room.strict)
+ if not error.is_empty():sideboard_status.text=error;return
+ sideboard_waiting=true;sideboard_done.disabled=true;sideboard_status.text="正在确认更换…"
+ sideboard_session.room_action({"name":"deck","deck":draft.duplicate(true)})
+
+func sideboard_changed():
+ if page!="sideboard" or sideboard_session==null:return
+ if sideboard_session.room.get("status","")!="between":
+  sideboard_waiting=false;sideboard_done.disabled=true;sideboard_status.text=sideboard_session.connection_status() if sideboard_session.ended() else "当前已不能换备牌";return
+ if sideboard_waiting and not sideboard_session.busy and sideboard_session.room.own_deck==draft:
+  online();return
+ sideboard_done.disabled=sideboard_locked()
+ if not sideboard_session.can_act():sideboard_status.text=sideboard_session.connection_status()
+ elif not sideboard_waiting:sideboard_status.text=""
+
+func sideboard_error(error: String):
+ if page!="sideboard":return
+ sideboard_waiting=false;sideboard_done.disabled=sideboard_locked();sideboard_status.text=error
+
+func restore_editor_draft():
+ if sideboard_session!=null:
+  if sideboard_session.changed.is_connected(sideboard_changed):sideboard_session.changed.disconnect(sideboard_changed)
+  if sideboard_session.error_raised.is_connected(sideboard_error):sideboard_session.error_raised.disconnect(sideboard_error)
+ if not sideboard_previous.is_empty():
+  draft=sideboard_previous.draft;dirty=sideboard_previous.dirty;selected=sideboard_previous.selected;zone=sideboard_previous.zone
+ sideboard_session=null;sideboard_previous={};sideboard_original={};sideboard_waiting=false
+
+func reload_decks():
+ var a=decks[player_choice].id if player_choice>=0 and player_choice<decks.size() else ""
+ var b=decks[ai_choice].id if ai_choice>=0 and ai_choice<decks.size() else ""
+ var loaded=Store.load_decks()
+ if loaded.has("error"):load_error=loaded.error;return
+ load_error="";decks=loaded.decks
+ player_choice=remaining_deck_index(a,player_choice);ai_choice=remaining_deck_index(b,ai_choice)
+ if not dirty and not draft.is_empty():
+  for d in decks:
+   if d.id==draft.id:draft=d.duplicate(true);break
+ if not loaded.get("warnings",[]).is_empty():call_deferred("alert","以下文件未导入，其他卡组可正常使用：\n"+"\n".join(loaded.warnings))
+
+func offer_replay(archive):
+ if archive.prompted or archive.frames.is_empty():return
+ if get_children().any(func(child):return child is AcceptDialog and child.visible):
+  await get_tree().create_timer(0.3).timeout
+  offer_replay(archive);return
+ archive.prompted=true
+ var dialog=ConfirmationDialog.new();dialog.title="保存回放";dialog.dialog_text="对局已结束，是否保存回放？"
+ dialog.min_size=Vector2i(520,180);dialog.get_ok_button().text="保存";dialog.get_cancel_button().text="不保存"
+ dialog.confirmed.connect(func():
+  dialog.hide()
+  var result=archive.save()
+  if result.has("error"):alert(result.error,"回放保存失败")
+  else:alert("已保存至：\n"+result.path,"回放已保存")
+  dialog.queue_free())
+ dialog.canceled.connect(dialog.queue_free);add_child(dialog);dialog.popup_centered()
+
+func replays():
+ clear_page("replays");header("对局回放",menu)
+ label(screen,"replay / .mreply",Rect2(80,151,1350,42),22,GOLD)
+ var folder=Store.Paths.root().path_join("replay");Store.Paths.initialize()
+ var scroll=ScrollContainer.new();scroll.position=Vector2(80,217);scroll.size=Vector2(1440,630);screen.add_child(scroll)
+ var list=VBoxContainer.new();list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.add_theme_constant_override("separation",16);scroll.add_child(list)
+ var files=DirAccess.get_files_at(folder);files.reverse()
+ for filename in files:
+  if filename.get_extension().to_lower()!="mreply":continue
+  var row=Button.new();row.text=filename;row.custom_minimum_size=Vector2(1380,64);list.add_child(row)
+  row.pressed.connect(func():
+   var result=preload("res://scripts/replay_archive.gd").read(folder.path_join(filename))
+   if result.has("error"):alert(result.error,"无法播放");return
+   clear_page("battle")
+   replay_controller=preload("res://scripts/replay_player.gd").new();screen.add_child(replay_controller)
+   replay_controller.error_raised.connect(func(error):alert(error))
+   replay_controller.build(self,result.archive))
+ if list.get_child_count()==0:
+  var empty=Label.new();empty.text="暂无回放";list.add_child(empty)

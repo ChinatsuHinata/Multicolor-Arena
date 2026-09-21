@@ -1,0 +1,86 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: Star destroys opposing artifact
+PASS: Hourai enters with Alice and can ping a player
+PASS: Shanghai draws on death while Alice is controlled
+PASS: Daiyousei searches and reveals fairy
+PASS: activate hatate_return 
+PASS: Hatate bounce triggers own hand replacement
+PASS: Wriggle excludes black blockers
+PASS: Seiga opponent chooses highest-power sacrifice then controller loses two
+PASS: Nazrin draws two and bottoms one
+PASS: Kyouko shuffles exactly three then gains one
+PASS: Koishi leader is unblockable
+PASS: Koishi coin at main phase start
+PASS: Remilia grants lifesteal to another red unit
+PASS: Satori preserves explicit chosen top order
+PASS: Cirno returns to leader with zero timer
+PASS: Yuuka ETB ramp
+PASS: Yuuka attack ramp
+PASS: Suwako grants other green units haste
+PASS: Suwako cannot select a nongreen fairy
+PASS: Shinmyoumaru cast trigger creates kobito
+PASS: Meiling untaps and gains power/health when spell is used
+PASS: Kogasa gains legal fast timing while opponent attacks
+PASS: Hina finds legal stack target change
+PASS: activate hina_redirect 
+PASS: Hina pays life and redirects lethal damage to herself
+PASS: explicit resolution 98
+PASS: Tengu pair bounces one same-category unit per player
+PASS: explicit resolution 97
+PASS: simultaneous fairy return: Luna sees both returned units
+PASS: explicit resolution 114
+PASS: blink creates a new field instance
+PASS: explicit resolution 114
+PASS: leader declining leader-zone replacement returns from blink
+PASS: explicit resolution 105
+PASS: miracle terminus taps all opposing units
+PASS: explicit resolution 116
+PASS: three damage sweep removes both sides simultaneously
+PASS: explicit resolution 122
+PASS: hand army selects multiple units
+PASS: explicit resolution 158
+PASS: palette army includes units and artifacts
+PASS: explicit resolution 119
+PASS: history exile grants same-turn free use
+PASS: history access expires next turn
+PASS: explicit resolution 128
+PASS: Philosopher exiles revealed spells with condition bypass
+PASS: explicit resolution 123
+PASS: counter ability removes ability from stack
+PASS: counter targeting own unit is legal
+PASS: explicit resolution 136
+PASS: targeting counter sends spell to grave
+PASS: explicit resolution 126
+PASS: lake mills first then counts caster grave
+PASS: explicit resolution 127
+PASS: waterfall uses chosen unit power as spell damage
+PASS: explicit resolution 144
+PASS: crimson untap mode
+PASS: explicit resolution 145
+PASS: quiet draw-discard mode completes selected discard
+PASS: explicit resolution 149
+PASS: Door reveals through self card and puts it on field
+PASS: explicit resolution 152
+PASS: Fire scry supports choosing none to grave, ordering, then drawing
+PASS: explicit resolution 153
+PASS: Doll army bypasses slots for all dolls for rest of game
+PASS: explicit resolution 154
+PASS: tap one then destroy all tapped opponents
+PASS: explicit resolution 155
+PASS: fairy festival buffs all three stats
+PASS: fairy festival returns fairies at own end
+PASS: explicit resolution 161
+PASS: wheel resolves two different chosen modes
+PASS: explicit resolution 178
+PASS: cloud kills attacker then optionally blinks own unit
+PASS: kaleidoscope draws and swaps hand/palette
+PASS: Activity records differently-named entry
+PASS: Activity does not draw on same-name entry
+PASS: Mist lake reveals top four and selects a fairy
+PASS: Snow time spell damages all units at own end
+PASS: explicit resolution 159
+PASS: end turn exiles unresolved stack and skips its damage
+V011_EDGES: 81 checks; 0 failures

@@ -1,0 +1,12 @@
+[
+  {
+    "test": "res://work/v0151/preview.gd",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "test": "res://work/v0151/ui_check.gd",
+    "exit": 0,
+    "errors": []
+  }
+]

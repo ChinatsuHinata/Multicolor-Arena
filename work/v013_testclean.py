@@ -1,0 +1,3 @@
+from pathlib import Path
+p=Path('tests/test_v013_edges.gd');s=p.read_text(encoding='utf-8').replace('e.players[0].palette[0].poverty=3','e.players[0].palette[0].poverty=3\n if k=="spell-fdf-059":put("character-fdf-103")').replace('fresh();a=put("character-fdn-007");b=put("character-fdf-090");b.leader_counters=1;','fresh();a=put("character-fdn-007");b=put("character-fdf-090","field",1);b.leader_counters=1;');s='\n'.join(line for line in s.splitlines() if 'if false else null' not in line)+'\n';p.write_text(s,encoding='utf-8')
+p=Path('tests/test_v013_rules.gd');s=p.read_text(encoding='utf-8');a=s.index('func full_settle():');b=s.index('func run():',a);s=s[:a]+s[b:];p.write_text(s,encoding='utf-8')

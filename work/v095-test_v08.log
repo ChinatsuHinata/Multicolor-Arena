@@ -1,0 +1,64 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: keyword descriptions omit explanatory definitions
+PASS: original buff text retained and vanilla description blank
+PASS: playable hand starts blue
+PASS: attackable permanent starts blue
+PASS: selecting hand becomes yellow without casting
+PASS: click selected hand deselects
+PASS: power and spirit above base are green
+PASS: remaining health below base is red
+PASS: all stat comparisons use below-base red and neutral equality
+PASS: tapping darkens only that permanent instance
+PASS: tapped palette also darkens
+PASS: summoning rule retained without UI text indicator
+PASS: untapping restores original brightness
+PASS: inline payment decision includes observation toggle
+PASS: visible button: 观察战场
+PASS: observation hides inline payment controls
+PASS: inspect battlefield while observing without advancing game
+PASS: visible button: 返回选择
+PASS: same inline payment choice is restored with local data
+PASS: visible button: 手动支付
+PASS: visible button: 观察战场
+PASS: visible button: 返回选择
+PASS: manual payment reservations survive observation
+PASS: committed stack card clears selection border
+PASS: unit with attack and ability retains action choice
+PASS: visible button: 观察战场
+PASS: visible button: 返回选择
+PASS: ability action menu survives observation
+PASS: target selection also offers battlefield observation
+PASS: visible button: 观察战场
+PASS: visible button: 返回选择
+PASS: observation click does not commit target or lose ability
+PASS: single attack action selects privately without popup
+PASS: visible button: 攻击
+PASS: declared attacker displays sword
+PASS: each declared blocker displays shield
+PASS: reused visual shows correct card art: card_1
+PASS: reused visual shows correct card art: card_103
+PASS: reused visual shows correct card art: card_52
+PASS: reused visual shows correct card art: card_104
+PASS: reused visual shows correct card art: card_105
+PASS: reused visual shows correct card art: card_106
+PASS: multi-block damage choice opens at resolution
+PASS: three blockers display exactly two frameless card faces
+PASS: damage buttons assign first two and calculate last remainder
+PASS: allocation cannot exceed attack total
+PASS: visible button: 观察战场
+PASS: visible button: 返回选择
+PASS: damage allocation and original dialog survive observation
+PASS: visible button: 确定分配
+PASS: damage starts collision animation
+PASS: lethal attacker mesh stays visible until collision completes
+PASS: attacker and blocker both move toward collision
+PASS: three blockers receive three visible impacts
+PASS: collision sequence uses every assigned blocker
+PASS: post-animation scene matches actual damage allocation
+PASS: unblocked attacker lunges straight toward opposite side
+PASS: unblocked animation preserves spirit damage
+PASS: player deck file unchanged
+V08_TEST: 59 checks; 0 failures

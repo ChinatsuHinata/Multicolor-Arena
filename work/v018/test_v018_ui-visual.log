@@ -1,0 +1,25 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: LAN menu exposes create room
+PASS: guest acts as stable seat one
+PASS: guest sees both hands with correct counts
+PASS: guest sees own faces and host backs
+PASS: guest battlefield perspective rotated
+PASS: button: 保留
+PASS: guest UI mulligan reaches authority
+PASS: guest recommends tool mana
+PASS: guest gold recommendation visible
+PASS: guest replaces payment resource locally
+PASS: private payment edits never reach authority
+PASS: guest cancellation is private
+PASS: guest activation atomically enters shared stack
+PASS: guest and host show same stack
+PASS: selected mana tapped once after commit
+PASS: resolution is consistent on guest
+PASS: battle has lobby return path
+PASS: network match cannot use debug mutation
+PASS: read model cannot mutate host authority
+V018 UI 19 checks; [] failures

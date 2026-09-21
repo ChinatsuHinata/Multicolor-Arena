@@ -1,0 +1,32 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS host listens
+PASS UDP room discovery
+PASS guest connects
+PASS host approval requested
+PASS handshake and ready acknowledgement
+PASS both decks registered
+PASS game snapshots delivered
+PASS host is sole authority
+PASS guest cannot read host hand
+PASS own deck order concealed
+PASS host command synchronized
+PASS guest mulligan acknowledged
+PASS duplicate command not applied twice
+PASS both mulligans enter first turn
+PASS disconnect freezes rules
+PASS cannot act while disconnected
+PASS automatic reconnect restores original seat
+PASS reconnect preserves full authoritative state
+PASS reconnect recovers phase
+PASS first result counted once
+PASS single-game result enters between-game preparation
+PASS sideboarding rejects cards outside registered pool
+PASS BO3 starts second game
+PASS BO3 first two wins completes
+PASS BO3 score consistent
+PASS host process recovery file loads
+PASS persisted series survives restore
+V018 SESSION 27 checks; failures=[]

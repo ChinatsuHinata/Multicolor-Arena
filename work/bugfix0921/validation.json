@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "real_two_computers_tested": false,
+  "usb_tested": false,
+  "tests": [
+    {
+      "name": "test_bugs0921_rules",
+      "checks": 73
+    },
+    {
+      "name": "test_bugs0921_ui-visual",
+      "checks": 18
+    },
+    {
+      "name": "test_bugs0921_network",
+      "checks": 22
+    },
+    {
+      "name": "test_portable",
+      "checks": 85
+    },
+    {
+      "name": "test_portable_ui-visual",
+      "checks": 22
+    },
+    {
+      "name": "test_v0182_rules",
+      "checks": 38
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43
+    },
+    {
+      "name": "test_v0181_ui-visual",
+      "checks": 28
+    },
+    {
+      "name": "test_v1_network",
+      "checks": 45
+    },
+    {
+      "name": "test_v1_ui-visual",
+      "checks": 40
+    }
+  ],
+  "checks": 414,
+  "release_first_checks": 534,
+  "release_storage_checks": {
+    "restart": 515,
+    "empty": 533
+  },
+  "archive_crc_validated": true,
+  "extracted_bytes_identical": true,
+  "checksum_tools_positive_and_negative_passed": true,
+  "final_extracted_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-1.0-bugfix0921/MulticolorArena.exe",
+      "bytes": 109168640,
+      "sha256": "19e8275e1471d4ca86ef423fe54bc790b1568e8680d83a333bb7c5a77b6a0e34"
+    },
+    {
+      "path": "builds/Windows-1.0-bugfix0921/MulticolorArena.pck",
+      "bytes": 587889564,
+      "sha256": "f0c8cb322b1de699554fa209c4da2dc0faca0a566712c4a0ef42a81ee70e5d2f"
+    },
+    {
+      "path": "builds/MulticolorArena-1.0-bugfix0921-win64.zip",
+      "bytes": 623628827,
+      "sha256": "e2b7d53488ff2b9c7fcfa214e14998442d2e566099a685f7d469e56cfdacbb07"
+    },
+    {
+      "path": "builds/CheckTransfer-bugfix0921.cmd",
+      "bytes": 983,
+      "sha256": "f01927b94bf7c4d69ced0e9f3263b479b7d238e2515cfa0f52fecf76a8511537"
+    }
+  ]
+}

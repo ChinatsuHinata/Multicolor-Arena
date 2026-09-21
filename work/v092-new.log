@@ -1,0 +1,46 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: clicking normal deck opens right browser
+PASS: right-hand vertical list
+PASS: entire deck is represented
+PASS: all normal deck entries are hidden
+PASS: hidden entries show actual card-back art
+PASS: right-click cannot reveal hidden deck identities
+PASS: normal mode cannot debug-drag hidden cards
+PASS: mouse wheel scrolls the vertical pile
+PASS: graveyard lists visible top first
+PASS: browsing does not reverse actual graveyard
+PASS: public grave cards can be inspected
+PASS: exile pile opens
+PASS: opposing deck also hides faces outside debug
+PASS: all pile views preserve gameplay state
+PASS: debug deck shows faces in draw order
+PASS: dragged artifact enters without payment or stack
+PASS: debug placement has no event choices
+PASS: source pile updates after drag
+PASS: debug Sunny placement does not trigger haste
+PASS: debug placement does not apply the ETB effect silently either
+PASS: cannot transfer ownership by dropping on opponent field
+PASS: right click cancels debug dragging
+ERROR: field card can be dragged into graveyard silently
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v092.gd:112)
+       [2] drag (res://tests/test_v092.gd:38)
+ERROR: Index p_index = 0 is out of bounds ((int)data.children_cache.size() - data.internal_children_front_count_cache - data.internal_children_back_count_cache = 0).
+   at: get_child (scene/main/node.cpp:1861)
+   GDScript backtrace (most recent call first):
+       [0] top_art (res://tests/test_v092.gd:57)
+       [1] run (res://tests/test_v092.gd:114)
+SCRIPT ERROR: Attempt to call function 'get_node' in base 'null instance' on a null instance.
+   at: top_art (res://tests/test_v092.gd:57)
+   GDScript backtrace (most recent call first):
+       [0] top_art (res://tests/test_v092.gd:57)
+       [1] run (res://tests/test_v092.gd:114)
+SCRIPT ERROR: Invalid call. Nonexistent function 'get_global_rect' in base 'Nil'.
+   at: run (res://tests/test_v092.gd:114)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_v092.gd:114)

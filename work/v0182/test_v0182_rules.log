@@ -1,0 +1,44 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: lethal damage offers designated leader return
+PASS: dead Yuyuko returns home with two timers
+PASS: returning home still offers her optional death trigger
+PASS: self-death uses last field information and enters stack once
+PASS: both players remain legal targets after leader return
+PASS: self-death resolves exactly one damage and one use
+PASS: repeated state checks do not replay the death
+PASS: return context is removed after dispatch
+PASS: declining return also triggers once
+PASS: optional self-death may be declined without spending a use
+PASS: friendly death uses the first activation
+PASS: self-death can use the second activation after a friendly death
+PASS: self-death respects the per-turn limit
+PASS: pending return retains its own simultaneous-death snapshot
+PASS: simultaneous self and friendly deaths each trigger once
+PASS: simultaneous batch consumes exactly two uses
+PASS: sacrificed Yuyuko triggers after returning home
+PASS: destroyed Yuyuko triggers after returning home
+PASS: non-death return from hand creates no death trigger
+PASS: non-death return from exile creates no death trigger
+PASS: non-death return from deck creates no death trigger
+PASS: non-death return from palette creates no death trigger
+PASS: exile replacement is not a death
+PASS: unmarked Yuyuko copy has no leader ability
+PASS: recovered pending return retains identity and observer snapshots
+PASS: recovered simultaneous deaths resolve identically
+PASS: crystal is offered on death
+PASS: crystal selects only the tapped palette card
+PASS: crystal exchanges cards and enters palette untapped
+PASS: crystallized card can immediately supply its color
+PASS: crystallized card renders upright and undimmed
+PASS: declining crystal leaves both zones unchanged
+PASS: upright palette is not a legal crystal payment
+PASS: crystal cannot exchange an upright palette card
+PASS: crystal does not move a corpse that left the grave
+PASS: crystal rechecks that the selected palette card is still tapped
+PASS: Rumia's different explicitly tapped entry is unchanged
+PASS: saved decks unchanged
+V0182_RULES: 38 checks; 0 failures
+

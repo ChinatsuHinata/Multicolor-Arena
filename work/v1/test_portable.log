@@ -1,0 +1,90 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS first launch creates four mdeck files
+PASS replay directory created at startup
+PASS four individual UTF-8 deck files
+PASS shareable deck written
+PASS re-enter discovers copied deck
+PASS bad import isolated from healthy decks
+PASS save updates original individual file
+PASS delete removes only selected file
+PASS deleted presets do not reappear on restart
+PASS restore test decks
+PASS host opens duel and spectator transports
+PASS separate spectator port listening
+PASS player requests seat
+PASS players synchronized
+PASS observer joins full room
+PASS observer never receives action authority
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS observer receives authoritative battlefield
+PASS both hands and libraries hidden from spectator
+PASS no private choices or registered deck leak
+PASS observer packet cannot alter game
+PASS observer departure never pauses players
+PASS observer may rejoin during play
+PASS player sync never waits for slow spectator acknowledgments
+PASS spectator backpressure cannot stall player acknowledgments
+PASS slow observer catches up to authoritative state
+PASS bounded observer queue preserves accurate final state and public log
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS no replay prompt after BO3 game one
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS no replay prompt after BO3 game two
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS each player prompted once at series end
+PASS process recovery retains earlier games and recorded states
+PASS all three games stored in one replay
+PASS mreply file saved
+PASS saved replay passes checksum and schema
+PASS replay retains every recorded state
+PASS exact state playback step 0
+PASS exact state playback step 1
+PASS exact state playback step 2
+PASS exact state playback step 3
+PASS exact state playback step 4
+PASS exact state playback step 5
+PASS exact state playback step 6
+PASS exact state playback step 7
+PASS exact state playback step 8
+PASS exact state playback step 9
+PASS exact state playback step 10
+PASS exact state playback step 11
+PASS exact state playback step 12
+PASS exact state playback step 13
+PASS exact state playback step 14
+PASS exact state playback step 15
+PASS exact state playback step 16
+PASS exact state playback step 17
+PASS exact state playback step 18
+PASS exact state playback step 19
+PASS exact state playback step 20
+PASS exact state playback step 21
+PASS exact state playback step 22
+PASS exact state playback step 23
+PASS exact state playback step 24
+PASS exact state playback step 25
+PASS exact state playback step 26
+PASS exact state playback step 27
+PASS exact state playback step 28
+PASS exact state playback step 29
+PASS exact state playback step 30
+PASS exact state playback step 31
+PASS damaged replay refused
+PASS 30 second timeout awards entire BO3 to remaining host
+PASS forfeit preserves played scores, marks actual loser
+PASS host timeout is labeled local guest win
+PORTABLE: 85 checks; 0 failures

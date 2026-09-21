@@ -1,0 +1,25 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: attack response window exists before checking blockers
+PASS: empty defending field automatically declares no blockers
+PASS: skipping blocker choice does not skip damage response window
+PASS: unblocked attack deals actual spirit damage
+PASS: tapped unit and artifact are not legal blockers
+PASS: blocking restrictions also skip an impossible choice
+PASS: one legal blocker still waits for player choice
+PASS: legal blocker keeps manual blocking controls
+PASS: manual blocking still resolves simultaneous combat
+PASS: newly entered untapped unit can still block
+PASS: no blockers does not suppress a playable response unit
+PASS: defender can cast response unit during attack window
+PASS: blocker query includes the unit that entered during response
+PASS: empty blocker prompt never reaches the UI
+PASS: enabled full response still offers legal response window
+PASS: full response waits without inventing a blocker choice
+PASS: default response automatically reaches unblocked damage
+PASS: ability stack copy has no selection outline or glow
+PASS: source permanent selection remains independent of stack
+PASS: player deck file unchanged
+V081_TEST: 20 checks; 0 failures

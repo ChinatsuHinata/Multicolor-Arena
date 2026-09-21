@@ -1,0 +1,46 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: hand cards enlarged
+PASS: one opponent card back per hand card
+PASS: persistent world renders continuously
+PASS: playable hand card has gold border
+PASS: right click hand inspects correct card
+PASS: right click palette inspects card
+PASS: right click grave inspects visible top
+PASS: opponent hand inspection does not reveal identity
+PASS: deck inspection does not leak hidden top card
+PASS: plain hand click does not cast
+PASS: drag release inside hand cancels
+PASS: drag out of hand prepares card
+PASS: drag preview does not change public game
+PASS: manual reservation remains private
+PASS: cancel returns card and all reserved costs
+PASS: committed hand card appears in 3D stack
+PASS: stack card enlarged
+PASS: right click stack inspects response
+PASS: response resolves correctly after animated presentation
+PASS: unit click asks for action without attacking
+PASS: right click elsewhere cancels action menu
+PASS: choosing attack declares attack
+PASS: draw cast tap attack and resolution use animation tracks
+PASS: no response button when no legal response
+PASS: empty opponent-main response auto passes
+PASS: full response forces button without playable cards
+PASS: new unit is summoning sick
+PASS: summoning sickness persists through opponent turn
+PASS: controller reset clears summoning sickness
+PASS: attack and activated ability offered separately
+PASS: cancel activated ability refunds all costs
+PASS: ability stacks while permanent stays in battlefield
+PASS: activated ability resolves independently
+PASS: phase transition displays center banner
+PASS: long animated match reaches game result
+PASS: same world survives every action and turn
+PASS: scene node count remains bounded
+PASS: material cache remains bounded
+PASS: world image is neither black nor white after full match
+PASS: player deck file unchanged
+V06_TEST: 40 checks; 0 failures; 473 actions; 23 turns

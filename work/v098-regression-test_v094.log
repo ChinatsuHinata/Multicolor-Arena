@@ -1,0 +1,54 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: mandatory Sunny trigger is already on stack before target selection
+PASS: provisional stack entry records incomplete target declaration
+PASS: mandatory target selection is inline and cannot be declined
+PASS: Sunny can target self, friendly or opposing unit
+PASS: summoning sickness has a textless mist on the field
+PASS: ability copy on stack has no summoning mist
+PASS: stack caption names only the active Sunny ability
+PASS: mandatory stack entry does not inherit selected gold outline
+PASS: unconfirmed mandatory target blocks both priority passes
+PASS: activated abilities cannot precede pending triggers
+PASS: mandatory trigger rejects decline and invalid target
+PASS: right click clears target selection but keeps mandatory stack entry
+PASS: button: 确定
+PASS: target confirmation finalizes existing stack entry exactly once
+PASS: selected self target is committed
+PASS: finalized mandatory ability gains its target arrow
+PASS: mandatory ability resolves normally and its caption disappears
+PASS: mist ends when summoning sickness ends
+PASS: reentering creates a new sickness period
+PASS: optional trigger has the requested explicit question
+PASS: optional question sits above bottom-right confirmation
+PASS: long card name wraps inside right-side question instead of overflowing
+PASS: optional trigger stays off stack before player confirms
+PASS: button: 不使用
+PASS: declining optional trigger leaves stack and usage unchanged
+PASS: button: 确定
+PASS: Yuyuko stack caption distinguishes death trigger from sacrifice ability
+PASS: optional death trigger still deals one damage and counts one use
+PASS: active player orders triggers first even when queued second
+PASS: simultaneous triggers use separate card faces in centered panel
+PASS: button: 观察战场
+PASS: trigger ordering can pause to observe without changing choices
+PASS: button: 返回选择
+PASS: clicked trigger card is processed before the other same-controller trigger
+PASS: button: 不使用
+PASS: remaining mandatory triggers enter in active/nonactive controller order
+PASS: each stacked ability has its own caption
+PASS: multiple ability captions do not overlap below the stack
+PASS: ordered mandatory triggers resolve last-in-first-out without duplication
+PASS: simultaneous brave end-step triggers also use controller ordering
+PASS: AI completes trigger ordering without stalling
+PASS: ordered brave triggers preserve untapping behavior
+PASS: attack confirmation is on the right
+PASS: response control is on the right
+PASS: settings actions stay inside centered dialog
+PASS: opponent's newly entered units also show the mist
+PASS: player deck file unchanged
+V094_TEST: 47 checks; 0 failures
+

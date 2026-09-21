@@ -1,0 +1,33 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: palette colors do not satisfy leader permanent constraint
+PASS: leader timer forbids use
+PASS: colored permanents satisfy leader constraint
+PASS: leader keeps identity and cannot attack on entry turn
+PASS: same-title unit cannot be cast
+PASS: lethal leader offers return choice
+PASS: leader returns with two counters instead of grave
+PASS: own end phase reduces leader timer once
+PASS: brave enters stack before untapping
+PASS: card counter cannot target triggered ability
+PASS: brave untaps only when its trigger resolves
+PASS: ordinary Marisa does not automatically gain leader ability
+PASS: shrine grants leader ability to ordinary Marisa
+PASS: spell use pauses to choose Marisa trigger target
+PASS: Marisa trigger sits above original spell
+PASS: trigger survives source leaving battlefield
+PASS: original spell still resolves after trigger
+PASS: shrine effect stops after it leaves
+PASS: Marisa actual entry creates optional three-damage trigger
+PASS: entry trigger uses three damage
+PASS: leave-return object identity invalidates old target
+PASS: multiple blockers request attacker allocation
+PASS: multiple blocking applies allocated and simultaneous damage
+PASS: losing all declared blockers ends combat without player damage
+PASS: cleanup requires discard to seven
+PASS: discard resumes turn progression
+PASS: empty palette growth is not a failed draw
+PASS: empty required draw loses match
+DUEL_RULES_TEST: 28 checks; 0 failures

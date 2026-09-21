@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: name declaration has search input
+PASS: button: 巧言令色的白兔「因幡帝」
+PASS: button: 确定
+PASS: declared name resolves from stack through UI
+PASS: normal library browser reveals only permitted top card
+PASS: button: 确定
+PASS: manual payment opens with generated mana
+PASS: button: 确认支付
+PASS: generated mana paid through manual UI
+PASS: attack tax is privately selectable before attack
+PASS: attack payment cancellation leaves attack undeclared
+PASS: outside game selector lists dream character names
+PASS: outside game card target is selectable
+PASS: button: 少女秘封俱乐部「宇佐见莲子」
+PASS: dynamic group can be finished
+PASS: button: 下一项（1）
+PASS: dynamic group can be finished
+PASS: button: 跳过此项
+PASS: button: 确定
+PASS: outside game choice can complete through UI
+PASS: button: 支付费用
+PASS: button: 确定
+PASS: trigger payment opens private manual selection
+PASS: canceling trigger payment preserves pending choice and resources
+PASS: button: 支付费用
+PASS: button: 确定
+PASS: button: 确认支付
+PASS: UI trigger cost returns spell to hand after paying
+PASS: button: 确定
+PASS: revealed-card casting offers private manual cost
+PASS: button: 确认支付
+PASS: revealed-card payment submits normal stack entry
+PASS: dynamic group can be finished
+PASS: button: 完成选择（0）
+PASS: button: 确定
+PASS: revealed Agni resolves its normal damage after Patchouli cast trigger
+PASS: new UI keeps saved decks unchanged
+V013_UI: 37 checks; [] failures

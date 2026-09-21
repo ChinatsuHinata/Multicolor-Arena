@@ -1,0 +1,53 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+SCRIPT ERROR: Invalid access to property or key 'from' on a base object of type 'Dictionary'.
+   at: <anonymous lambda> (res://scripts/duel_reveal.gd:144)
+   GDScript backtrace (most recent call first):
+       [0] <anonymous lambda> (res://scripts/duel_reveal.gd:144)
+PASS: mandatory Sunny trigger is already on stack before target selection
+PASS: provisional stack entry records incomplete target declaration
+PASS: mandatory target selection is inline and cannot be declined
+PASS: Sunny can target self, friendly or opposing unit
+PASS: summoning sickness has a textless mist on the field
+PASS: ability copy on stack has no summoning mist
+PASS: stack caption names only the active Sunny ability
+PASS: mandatory stack entry does not inherit selected gold outline
+PASS: unconfirmed mandatory target blocks both priority passes
+PASS: activated abilities cannot precede pending triggers
+PASS: mandatory trigger rejects decline and invalid target
+PASS: right click clears target selection but keeps mandatory stack entry
+PASS: button: 确定
+PASS: target confirmation finalizes existing stack entry exactly once
+PASS: selected self target is committed
+PASS: finalized mandatory ability gains its target arrow
+PASS: mandatory ability resolves normally and its caption disappears
+PASS: mist ends when summoning sickness ends
+ERROR: reentering creates a new sickness period
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v094.gd:48)
+       [2] settle (res://tests/test_v092.gd:45)
+SCRIPT ERROR: Invalid access to property or key 'from' on a base object of type 'Dictionary'.
+   at: <anonymous lambda> (res://scripts/duel_reveal.gd:144)
+   GDScript backtrace (most recent call first):
+       [0] <anonymous lambda> (res://scripts/duel_reveal.gd:144)
+PASS: optional trigger has the requested explicit question
+PASS: optional question sits above bottom-right confirmation
+PASS: long card name wraps inside right-side question instead of overflowing
+ERROR: optional trigger stays off stack before player confirms
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v094.gd:56)
+       [2] settle (res://tests/test_v092.gd:45)
+PASS: button: 不使用
+PASS: declining optional trigger leaves stack and usage unchanged
+PASS: button: 确定
+SCRIPT ERROR: Invalid access to property or key 'ability_2' on a base object of type 'Dictionary'.
+   at: run (res://tests/test_v094.gd:62)
+   GDScript backtrace (most recent call first):
+       [0] run (res://tests/test_v094.gd:62)
+       [1] settle (res://tests/test_v092.gd:45)

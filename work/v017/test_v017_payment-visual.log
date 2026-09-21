@@ -1,0 +1,64 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: click immediately prepares the card
+PASS: recommend blue item and green-blue palette
+PASS: dual palette pays green
+PASS: hand and both recommended resources are gold
+PASS: complete plan offers activate without unrelated blue resources
+PASS: recommendation never taps or publicly changes state
+PASS: deselecting item exposes only remaining blue producers
+PASS: incomplete payment hides activate and its question
+PASS: deselect is private
+PASS: clicking blue replacement restores a payable plan
+PASS: replacement color assigned without color popup
+PASS: completed replacement still waits for activate
+PASS: button: 发动
+PASS: activate commits exactly the selected payment
+PASS: committed stack card has no gold border
+PASS: Ran discount is applied before recommendation
+PASS: after Ran only the green-blue palette can fill remaining green
+PASS: sole green source can be restored
+PASS: right click cancels entire private declaration
+PASS: settings no longer exposes payment modes
+PASS: targeted spell recommends payment while highlighting targets
+PASS: targeted spell cannot commit before target chosen
+PASS: battlefield target remains private
+PASS: targeted spell resource can be deselected
+PASS: button: 发动
+PASS: one activate commits target and costs
+PASS: target arrow remains after new payment flow
+PASS: activated effect recommends its cost immediately
+PASS: effect confirmation hides when its resource is removed
+PASS: effect reselection is also private
+PASS: button: 发动
+PASS: activated effect pays once and enters stack
+PASS: activated grave return resolves normally
+PASS: hybrid groups backtrack around fixed reservation
+PASS: same resource cannot pay twice
+PASS: tap-cost source exclusion respected
+PASS: stale tapped reservation rejected
+PASS: potato fills only missing color
+PASS: potato can be deselected and reselected
+PASS: potato remains before activate
+PASS: button: 发动
+PASS: potato disappears only after commit
+PASS: button: 不支付颜色使用
+PASS: free choice still waits for activate
+PASS: button: 发动
+PASS: free card commits on activate
+PASS: button: 支付颜色使用
+PASS: button: 确定
+PASS: effect-granted cast recommends resources before commit
+PASS: effect-granted reservation edits stay private
+PASS: button: 发动
+PASS: effect-granted paid cast commits selected resources
+PASS: counter recommends resources and highlights opposing stack target
+PASS: counter target remains uncommitted until activate
+PASS: button: 发动
+PASS: counter commits once and retains both stack arrows
+PASS: counter resolution clears stack arrows
+PASS: saved decks unchanged
+V017_PAYMENT: 58 checks; [] failures

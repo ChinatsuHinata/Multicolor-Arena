@@ -1,0 +1,189 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image1.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image5.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image6.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image11.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image14.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image15.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image18.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image21.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image23.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image28.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image29.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image30.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image33.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image35.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image38.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image39.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image41.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image48.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image49.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image61.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image64.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image71.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image75.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image78.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image79.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image87.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image94.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image106.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image110.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image118.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image120.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image130.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image131.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image139.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image141.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image143.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image147.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image162.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image163.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image166.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image168.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image169.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image174.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image176.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/image177.png'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)
+WARNING: Loaded resource as image file, this will not work on export: 'res://recourse/新增卡片/狼女__character-soi-004.jpg'. Instead, import the image file as an Image resource and load it normally as a resource.
+   at: load_from_file (core/io/image.cpp:2780)
+   GDScript backtrace (most recent call first):
+       [0] run (res://work/preview_new_cards.gd:17)

@@ -1,0 +1,47 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: new duel starts in default response mode
+PASS: fixture has expected legal response: false
+PASS: 开 without response prompt visibility
+PASS: 开 without response waits or passes correctly
+PASS: fixture has expected legal response: true
+PASS: 开 with response prompt visibility
+PASS: 开 with response waits or passes correctly
+PASS: fixture has expected legal response: false
+PASS: 默认 without response prompt visibility
+PASS: 默认 without response waits or passes correctly
+PASS: fixture has expected legal response: true
+PASS: 默认 with response prompt visibility
+PASS: 默认 with response waits or passes correctly
+PASS: fixture has expected legal response: false
+PASS: 关 without response prompt visibility
+PASS: 关 without response waits or passes correctly
+PASS: fixture has expected legal response: true
+PASS: 关 with response prompt visibility
+PASS: off mode blocks response input before automatic pass
+PASS: off mode does not advertise response cards as interactive
+PASS: 关 with response waits or passes correctly
+PASS: button exists: 响应：默认
+PASS: default cycles to on
+PASS: button exists: 响应：开
+PASS: on cycles to off
+PASS: button exists: 响应：关
+PASS: off cycles to default
+PASS: response payment has a private reservation
+PASS: switching off refunds uncommitted response without public mutation
+PASS: switching off resumes automatic passing
+PASS: default recognizes legal activated abilities without hand cards
+PASS: off mode suppresses activated response actions
+PASS: off mode never automatically ends player's main phase
+PASS: off mode allows normal main-phase casting
+PASS: off mode allows normal main-phase attacks
+PASS: off mode preserves mandatory blocker selection
+PASS: off mode allows selecting a legal blocker
+PASS: off mode preserves possession choice and card selection
+PASS: off mode preserves mulligan choice
+PASS: on asks even in an empty phase response window
+PASS: player deck file unchanged
+V082_TEST: 41 checks; 0 failures

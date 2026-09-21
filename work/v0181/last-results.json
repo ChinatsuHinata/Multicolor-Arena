@@ -1,0 +1,17 @@
+[
+  {
+    "test": "test_v0181_latency",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "test": "test_v0181_series",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "test": "test_v0181_ui",
+    "exit": 0,
+    "errors": []
+  }
+]

@@ -1,0 +1,45 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: explicit resolution spell-ucs-008
+PASS: Dawn gives each own unit a counter
+PASS: explicit resolution spell-ucs-029
+PASS: Present Slash destroys cost at most three
+PASS: explicit resolution spell-ucs-026
+PASS: Three-step destroys both entire palettes
+PASS: reset-four target cap
+PASS: explicit resolution spell-ucs-014
+PASS: only four selected palette cards reset
+PASS: explicit resolution spell-ucs-027
+PASS: color damage counts three unique field colors, not green palette
+PASS: explicit resolution spell-ucs-019
+PASS: perpetual anthem permits no-color-cost casts
+PASS: free alternative cost restricts X to zero
+PASS: France doll has zero toughness without Alice
+PASS: France counts itself and the other doll while Alice is present
+PASS: France loses static bonus immediately without Alice
+PASS: Parsee independently catches up on life and hand
+PASS: Sakuya can remove one leader timer on entry
+PASS: Orin optional discard during ETB resolution destroys selected ordinary enemy
+PASS: Kogasa scare buffs self and mills both players
+PASS: scared unit cannot block leader Kogasa
+PASS: Kanako cast creates four no-slot brave pillars
+PASS: Kanako leader boosts all ten units at end
+PASS: Miko discount counts units in pairs on both sides
+PASS: Miko X card is cast: 
+PASS: Miko ETB allocates each of three damage points
+PASS: Miko aggregates repeated choices to a 2/1 damage split
+PASS: coin roll publishes mandatory Rose damage with target choice
+PASS: coin anthem deals two to selected target
+PASS: backpack tax asks ability controller to pay
+PASS: declining tax counters the original ability
+PASS: paying any color preserves ability and resolves it
+PASS: mandatory trigger target completion invokes backpack exactly once
+PASS: supplied half-ghost image stays outside normal deck construction
+PASS: Heart permission survives a time spell entering field
+PASS: Heart time spell is exiled when its timer ends
+PASS: Gungnir response prohibition applies to opponent only
+PASS: unrespondable Gungnir still causes mandatory own cast triggers
+PASS: derived trigger captions use Chinese source ability text
+V011_UCS: 40 checks; 0 failures

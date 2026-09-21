@@ -1,0 +1,44 @@
+[
+  {
+    "actions": 585,
+    "result": "人机生命归零",
+    "seed": 71,
+    "turns": 24,
+    "winner": 0
+  },
+  {
+    "actions": 348,
+    "result": "「樱华ノ月」结算",
+    "seed": 72,
+    "turns": 17,
+    "winner": 0
+  },
+  {
+    "actions": 926,
+    "result": "人机生命归零",
+    "seed": 73,
+    "turns": 40,
+    "winner": 0
+  },
+  {
+    "actions": 831,
+    "result": "你生命归零",
+    "seed": 74,
+    "turns": 32,
+    "winner": 1
+  },
+  {
+    "actions": 450,
+    "result": "人机生命归零",
+    "seed": 75,
+    "turns": 18,
+    "winner": 0
+  },
+  {
+    "actions": 642,
+    "result": "你生命归零",
+    "seed": 76,
+    "turns": 26,
+    "winner": 1
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "algorithm": "SHA256",
+  "files": {
+    "Multicolour.exe": {
+      "bytes": 109168640,
+      "sha256": "55d0890717cfb0009a00a2dab25d2acae633cf237be05f617bac3c715b8a50ad"
+    },
+    "Multicolour.pck": {
+      "bytes": 587843096,
+      "sha256": "661ca7aa573820808f15f509ef606f1ddc09e0927f81b55d992567601677e6af"
+    }
+  }
+}

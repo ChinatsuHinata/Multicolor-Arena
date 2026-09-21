@@ -1,0 +1,780 @@
+--- before/project.godot
++++ project.godot
+@@ -10,7 +10,10 @@
+ 
+ [application]
+ 
+-config/name="极彩 Multicolour"
++config/name="multicolor:arena"
++config/version="1.0"
++config/use_custom_user_dir=true
++config/custom_user_dir_name="Godot/app_userdata/极彩 Multicolour"
+ run/main_scene="res://main.tscn"
+ config/features=PackedStringArray("4.7", "GL Compatibility")
+ config/icon="res://icon.svg"
+--- before/export_presets.cfg
++++ export_presets.cfg
+@@ -11,7 +11,7 @@
+ export_filter="all_resources"
+ include_filter="cards/*.json,data/*.json,net/*.json"
+ exclude_filter="work/*,tests/*,tools/*,docs/*,builds/*,saves/*,addons/*,scripts/export_verification/*,recourse/MulticolourOnline/*,recourse/新增卡片/*,recourse/新增卡片 编写/*"
+-export_path="builds/Windows-v0.18.2/Multicolour.exe"
++export_path="builds/Windows-v1.0/MulticolorArena.exe"
+ patches=PackedStringArray()
+ patch_delta_encoding=false
+ patch_delta_compression_level_zstd=19
+@@ -45,11 +45,11 @@
+ application/icon="uid://ddxmxgyyfy8mn"
+ application/console_wrapper_icon="uid://ddxmxgyyfy8mn"
+ application/icon_interpolation=4
+-application/file_version=""
+-application/product_version=""
++application/file_version="1.0.0.0"
++application/product_version="1.0.0.0"
+ application/company_name=""
+-application/product_name="multicolor arena"
+-application/file_description=""
++application/product_name="multicolor:arena"
++application/file_description="multicolor:arena 1.0"
+ application/copyright=""
+ application/trademarks=""
+ application/export_angle=0
+--- before/scripts/main.gd
++++ scripts/main.gd
+@@ -43,6 +43,12 @@
+ var add_amount = 1
+ var zone_buttons = {}
+ var settings_path = "res://saves/settings.json" if OS.has_feature("editor") else "user://settings.json"
++var sideboard_session
++var sideboard_original={}
++var sideboard_previous={}
++var sideboard_waiting=false
++var sideboard_status: Label
++var sideboard_done: Button
+ 
+ func _ready():
+  var f = SystemFont.new()
+@@ -74,6 +80,7 @@
+   draw_circle(Vector2(1150,400),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
+ 
+ func clear_page(next: String):
++ if page=="sideboard" and next!="sideboard":restore_editor_draft()
+  if is_instance_valid(screen):
+   remove_child(screen)
+   screen.queue_free()
+@@ -173,7 +180,7 @@
+  return p
+ 
+ func header(title: String, back: Callable):
+- label(screen,"极 彩  /  MULTICOLOUR",Rect2(42,22,500,34),20,GOLD)
++ label(screen,"multicolor:arena  /  1.0",Rect2(42,22,500,34),20,GOLD)
+  label(screen,title,Rect2(42,68,1100,48),32)
+  button(screen,"返回",Rect2(1430,32,126,46),back)
+  box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
+@@ -213,8 +220,8 @@
+ 
+ func menu():
+  clear_page("menu")
+- label(screen,"MULTICOLOUR  /  CARD BATTLE",Rect2(92,74,900,42),18,GOLD)
+- label(screen,"极 彩",Rect2(86,173,700,125),92)
++ label(screen,"VERSION 1.0",Rect2(92,74,900,42),18,GOLD)
++ label(screen,"multicolor:arena",Rect2(86,173,760,125),66)
+  label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(94,309,740,48),24,MUTED)
+  button(screen,"人机对战    →",Rect2(96,422,440,70),setup,true)
+  button(screen,"联网对战",Rect2(96,512,440,64),online)
+@@ -259,10 +266,10 @@
+  screen.add_child(cb)
+  
+ 
+-func editor():
+- clear_page("editor")
+- label(screen,"卡组编辑器",Rect2(24,12,270,46),28,GOLD)
+- button(screen,"返回",Rect2(1480,14,100,40),func(): guard(menu))
++func editor(sideboarding: bool=false):
++ clear_page("sideboard" if sideboarding else "editor")
++ label(screen,"换备牌" if sideboarding else "卡组编辑器",Rect2(24,12,270,46),28,GOLD)
++ button(screen,"返回",Rect2(1480,14,100,40),online if sideboarding else func(): guard(menu))
+  button(screen,"排序卡组",Rect2(1300,14,156,40),sort_current_deck)
+  box(screen,Rect2(18,72,286,810))
+  preview=Control.new()
+@@ -275,6 +282,12 @@
+  deck_canvas.position=Vector2(334,126)
+  deck_canvas.size=Vector2(874,680)
+  screen.add_child(deck_canvas)
++ if sideboarding:
++  sideboard_status=label(screen,"",Rect2(1252,270,314,320),20,GOLD)
++  sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
++  sideboard_done=button(screen,"更换完成",Rect2(1252,756,314,64),complete_sideboard,true)
++  update_preview();update_deck_rows();sideboard_changed()
++  return
+  box(screen,Rect2(1238,72,344,810))
+  var search=LineEdit.new()
+  search.placeholder_text="搜索卡牌"
+@@ -380,7 +393,7 @@
+   text.add_theme_font_size_override("font_size",20 if value==info.name else 17)
+   text.add_theme_color_override("font_color",GOLD if value==info.name else WHITE)
+   column.add_child(text)
+- button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
++ if sideboard_session==null:button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
+ 
+ func update_library():
+  free_children(library)
+@@ -416,6 +429,7 @@
+ func valid_drag_source(data: Variant) -> bool:
+  if not data is Dictionary or not Store.CARDS.has(data.get("card_id","")): return false
+  var source=data.get("source_zone","")
++ if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"]):return false
+  if source=="library": return true
+  if source=="leader": return draft.leader==data.card_id
+  if source in ["main","side"]:
+@@ -439,6 +453,9 @@
+ func update_deck_rows():
+  name_label.text=draft.name+(" *" if dirty else "")
+  counts.text="主卡组 %d / 70     副卡组 %d / 10     自机 %d / 1" % [draft.main.size(),draft.side.size(),0 if draft.leader.is_empty() else 1]
++ if sideboard_session!=null:
++  counts.text="主卡组 %d / %d     副卡组 %d / 10     自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
++  if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
+  var old_scroll=main_scroll.scroll_vertical if is_instance_valid(main_scroll) else 0
+  free_children(deck_canvas)
+  main_scroll=ScrollContainer.new()
+@@ -457,9 +474,15 @@
+  for i in range(draft.main.size()):
+   editor_card(draft.main[i],"main",i,main_card_rect(i),main_content)
+  main_scroll.set_deferred("scroll_vertical",old_scroll)
+- make_drop_zone("side",Rect2(0,553,872,124))
++ var side_parent=deck_canvas
++ var side_origin=Vector2(9,559)
++ if sideboard_session!=null:
++  var side_scroll=ScrollContainer.new();side_scroll.name="SideDeckScroll";side_scroll.position=Vector2(0,553);side_scroll.size=Vector2(872,124);side_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;deck_canvas.add_child(side_scroll)
++  side_parent=Control.new();side_parent.custom_minimum_size=Vector2(maxi(872,draft.side.size()*86+12),114);side_scroll.add_child(side_parent)
++  make_drop_zone("side",Rect2(Vector2.ZERO,side_parent.custom_minimum_size),side_parent);side_origin=Vector2(9,2)
++ else:make_drop_zone("side",Rect2(0,553,872,124))
+  for i in range(draft.side.size()):
+-  editor_card(draft.side[i],"side",i,Rect2(9+i*86,559,78,109))
++  editor_card(draft.side[i],"side",i,Rect2(side_origin+Vector2(i*86,0),Vector2(78,109)),side_parent)
+  label(deck_canvas,"副卡组",Rect2(5,519,130,32),18,GOLD)
+  var color_counts={"红":0,"蓝":0,"绿":0,"黄":0,"黑":0}
+  for id in draft.main:
+@@ -726,6 +749,10 @@
+  tile.clicked.connect(func(card_id,from,index_in_deck,right):
+   selected=card_id
+   zone=from
++  if sideboard_session!=null:
++   update_preview()
++   if not right and from in ["main","side"]:drop_editor_card({"card_id":card_id,"source_zone":from,"source_index":index_in_deck},"side" if from=="main" else "main")
++   return
+   if right:
+    if from=="leader": draft.leader=""
+    else: draft[from].remove_at(index_in_deck)
+@@ -737,9 +764,12 @@
+ func drop_editor_card(data: Dictionary, target: String):
+  if not valid_drag_source(data) or target not in ["main","side","leader"]: return
+  var source=data.get("source_zone","")
++ if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"] or target not in ["main","side"]):return
+  if source==target: return
+  var next=draft.duplicate(true)
+- var error=Store.add_card(next,data.card_id,target)
++ var error=""
++ if sideboard_session!=null:next[target].append(data.card_id)
++ else:error=Store.add_card(next,data.card_id,target)
+  if not error.is_empty(): alert(error); return
+  if source=="leader": next.leader="" if target!="leader" else next.leader
+  elif source in ["main","side"]:
+@@ -765,6 +795,8 @@
+  about_code=""
+  var title=label(screen,"关于",Rect2(100,210,1400,70),44,GOLD)
+  title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
++ var version=label(screen,"multicolor:arena  1.0",Rect2(100,295,1400,44),24,GOLD)
++ version.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  var body=label(screen,"这是测试文字",Rect2(100,365,1400,90),32)
+  body.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  if debug_mode:
+@@ -780,7 +812,49 @@
+  if about_code=="multicolor": debug_mode=true; about()
+ 
+ func sort_current_deck():
++ if sideboard_session!=null and sideboard_locked():return
+  var before=JSON.stringify([draft.main,draft.side])
+  Store.sort_deck(draft)
+  if JSON.stringify([draft.main,draft.side])!=before: dirty=true
+  update_deck_rows()
++
++func open_sideboard(session):
++ if session.room.get("status","")!="between" or not session.can_act() or session.room.ready[session.seat]:return
++ sideboard_previous={"draft":draft.duplicate(true),"dirty":dirty,"selected":selected,"zone":zone}
++ sideboard_session=session;sideboard_original=session.room.own_deck.duplicate(true)
++ draft=sideboard_original.duplicate(true);dirty=false;selected=draft.leader;zone="main";sideboard_waiting=false
++ if not session.changed.is_connected(sideboard_changed):session.changed.connect(sideboard_changed)
++ if not session.error_raised.is_connected(sideboard_error):session.error_raised.connect(sideboard_error)
++ editor(true)
++
++func sideboard_locked() -> bool:
++ return sideboard_session==null or sideboard_waiting or not sideboard_session.can_act()
++
++func complete_sideboard():
++ if sideboard_locked():return
++ var error=preload("res://net/series_controller.gd").sideboard_error(draft,sideboard_original,sideboard_session.room.strict)
++ if not error.is_empty():sideboard_status.text=error;return
++ sideboard_waiting=true;sideboard_done.disabled=true;sideboard_status.text="正在确认更换…"
++ sideboard_session.room_action({"name":"deck","deck":draft.duplicate(true)})
++
++func sideboard_changed():
++ if page!="sideboard" or sideboard_session==null:return
++ if sideboard_session.room.get("status","")!="between":
++  sideboard_waiting=false;sideboard_done.disabled=true;sideboard_status.text=sideboard_session.connection_status() if sideboard_session.ended() else "当前已不能换备牌";return
++ if sideboard_waiting and not sideboard_session.busy and sideboard_session.room.own_deck==draft:
++  online();return
++ sideboard_done.disabled=sideboard_locked()
++ if not sideboard_session.can_act():sideboard_status.text=sideboard_session.connection_status()
++ elif not sideboard_waiting:sideboard_status.text=""
++
++func sideboard_error(error: String):
++ if page!="sideboard":return
++ sideboard_waiting=false;sideboard_done.disabled=sideboard_locked();sideboard_status.text=error
++
++func restore_editor_draft():
++ if sideboard_session!=null:
++  if sideboard_session.changed.is_connected(sideboard_changed):sideboard_session.changed.disconnect(sideboard_changed)
++  if sideboard_session.error_raised.is_connected(sideboard_error):sideboard_session.error_raised.disconnect(sideboard_error)
++ if not sideboard_previous.is_empty():
++  draft=sideboard_previous.draft;dirty=sideboard_previous.dirty;selected=sideboard_previous.selected;zone=sideboard_previous.zone
++ sideboard_session=null;sideboard_previous={};sideboard_original={};sideboard_waiting=false
+--- before/scripts/duel_view.gd
++++ scripts/duel_view.gd
+@@ -41,6 +41,8 @@
+ var network_session
+ var network_status_label: Label
+ var network_latency_label: Label
++var was_network_locked=false
++var was_network_ended=false
+ var engine
+ var table
+ var stack_panel
+@@ -153,6 +155,8 @@
+   debug_button=btn("调试",Rect2(1460,57,116,34),debug_menu,false,debug_controls)
+   debug_button.toggle_mode=true
+  get_viewport().size_changed.connect(resize_world)
++ if session!=null:
++  was_network_locked=network_locked();was_network_ended=session.ended();session.changed.connect(network_changed)
+  render()
+ 
+ func resize_world():
+@@ -185,7 +189,7 @@
+   ResponseMode.OFF: return false
+  return engine.has_response(acting_player())
+ func response_disabled() -> bool:
+- return response_mode==ResponseMode.OFF and in_response_window()
++ return network_locked() or response_mode==ResponseMode.OFF and in_response_window()
+ func cycle_response_mode():
+  set_response_mode((response_mode+1)%RESPONSE_LABELS.size())
+ func set_response_mode(mode: int):
+@@ -206,7 +210,7 @@
+    if packet.get("recovery",false):reveal_player.reset()
+    engine.apply_snapshot(packet.projection);render()
+   if is_instance_valid(network_status_label):
+-   network_status_label.text=network_session.notice if not network_session.can_act(true) else ""
++   network_status_label.text=network_session.connection_status() if not network_session.can_act(true) else ""
+   if is_instance_valid(network_latency_label):network_latency_label.text=network_session.latency_text()
+  if not engine.presentation_events.is_empty() or revealing():
+   render();return
+@@ -243,11 +247,15 @@
+  return label
+ func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: Node=null):
+  if parent==null and rect.position.y>=90:rect=right_rect(rect)
+- var button=host.button(hud if parent==null else parent,text,rect,action,accent)
++ var inspection_action=text in ["设置","对局记录","继续游戏","返回联机房间","观察战场","返回选择"]
++ var button=host.button(hud if parent==null else parent,text,rect,func():
++  if not network_locked() or inspection_action:action.call(),accent)
++ if network_locked() and not inspection_action:button.disabled=true
+  if building_prompt and parent==null: button.set_meta("choice_widget",true)
+  return button
+ func highlights() -> Array:
+  var result=[]
++ if network_locked():return result
+  if engine.phase=="mulligan" and not engine.players[acting_player()].mulligan_done:
+   return engine.players[acting_player()].hand.map(func(c): return c.uid)
+  if not local.is_empty():
+@@ -298,7 +306,7 @@
+  table.presented_moves.clear()
+  rebuild_badges()
+  btn("响应："+RESPONSE_LABELS[response_mode],Rect2(1144,12,136,38),cycle_response_mode,response_mode==ResponseMode.ON)
+- txt("第 %d 回合  ·  %s  ·  %s" % [engine.turn,player_caption(engine.active),phase_names[engine.phase]],Rect2(310,12,790,42),23,host.GOLD)
++ txt("连接中断，对局结束" if network_session!=null and network_session.ended() else "第 %d 回合  ·  %s  ·  %s" % [engine.turn,player_caption(engine.active),phase_names[engine.phase]],Rect2(310,12,790,42),23,host.GOLD)
+  btn("设置",Rect2(1460,12,116,40),settings_menu)
+  btn("对局记录",Rect2(1310,99,266,40),open_history)
+  if network_session!=null:
+@@ -321,7 +329,8 @@
+   show_phase_banner()
+  last_phase=engine.phase; last_turn=engine.turn
+  previous_snapshot=table.card_snapshot()
+- if engine.winner!=-2 and not table.combat_animating: result_overlay()
++ if network_locked():pass
++ elif engine.winner!=-2 and not table.combat_animating: result_overlay()
+  elif engine.pending.get("kind","")=="damage_assignment" and engine.pending.owner==acting_player() and not table.combat_animating: damage_dialog()
+  elif engine.pending.get("kind","")=="trigger_order" and engine.pending.owner==acting_player() and not table.combat_animating: trigger_order_menu()
+  elif region_picker_needed() and not table.combat_animating: region_picker()
+@@ -541,7 +550,9 @@
+ 
+ func render_prompt():
+  if network_session!=null and not network_session.can_act(true):
+-  network_status_label=txt(network_session.notice if not network_session.notice.is_empty() else "同步中",Rect2(1330,738,237,70),18,host.GOLD)
++  network_status_label=txt(network_session.connection_status(),Rect2(1290,660,294,100),18,host.GOLD)
++  network_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
++  if network_session.ended():btn("返回联机房间",Rect2(1330,799,237,49),func():host.online(),true)
+   return
+  if table.combat_animating: return
+  var text=""
+@@ -614,6 +625,7 @@
+  txt(text,Rect2(310,605,1000,37),21,host.GOLD)
+ 
+ func begin_hand_drag(uid: int,at: Vector2):
++ if network_locked():return
+  if debug_open or observing or modal or table.combat_animating or not local.is_empty() or response_disabled(): return
+  if engine.find_card(uid).owner!=acting_player(): return
+  clear_attack_preview()
+@@ -703,6 +715,7 @@
+   else: selection=[]; render()
+  else: hand_clicked(uid)
+ func hand_clicked(uid: int):
++ if network_locked():return
+  if history_open or observing or response_disabled(): return
+  message=""
+  if picker_active():
+@@ -744,6 +757,10 @@
+  elif engine.pending.get("kind","")=="possession": selection=[]; render()
+  elif is_instance_valid(table.inspect_root): table.inspect_root.queue_free()
+ func object_clicked(uid: int):
++ if network_locked():
++  var object=engine.find_card(uid)
++  if not object.is_empty():inspect_card(object.card_id,uid)
++  return
+  if history_open or observing or table.combat_animating: return
+  message=""
+  if not local.is_empty():
+@@ -766,6 +783,7 @@
+  if c.owner==acting_player() and c.zone=="leader": request_cast(uid)
+  elif c.owner==acting_player() and c.zone=="field": open_actions(c)
+ func open_actions(c: Dictionary):
++ if network_locked():return
+  if response_disabled(): return
+  var actions=engine.available_actions(acting_player(),c.uid)
+  if actions.size()==1 and actions[0].type=="attack":
+@@ -896,6 +914,7 @@
+  refresh_observation()
+ 
+ func request_cast(uid: int):
++ if network_locked():return
+  if observing or table.combat_animating or response_disabled(): return
+  clear_attack_preview()
+  var error=engine.cast_error(acting_player(),uid)
+@@ -910,6 +929,7 @@
+  local.mode="target";local.target={};local.plan=[]
+  picker.reset();render()
+ func choose_target(target: Dictionary):
++ if network_locked():return
+  if observing or table.combat_animating or not picker_active(): return
+  sync_picker()
+  if picker.select_target(target):
+@@ -921,6 +941,7 @@
+  local.mode="payment";refresh_payment_plan();render()
+ 
+ func reserve_resource(uid: int):
++ if network_locked():return
+  if observing or local.is_empty() or local.mode not in ["target","payment"]:return
+  for reservation in local.plan:
+   if reservation.uid==uid:
+@@ -930,6 +951,7 @@
+    local.plan.append(source.reservation.duplicate(true));message="";render();return
+ 
+ func commit_local():
++ if network_locked():return
+  if local.is_empty() or local.mode!="payment" or response_disabled() or not payment_ready(): return
+  if local.get("action","")=="choice_payment":
+   var paid_target=local.target.duplicate(true);paid_target.payment=local.plan.duplicate(true)
+@@ -958,6 +980,17 @@
+ func network_error(error: String):
+  message=error
+  if is_instance_valid(table):render()
++func network_locked() -> bool:
++ return network_session!=null and (not network_session.connected or network_session.paused or network_session.ended())
++func network_changed():
++ var locked=network_locked()
++ var ended=network_session.ended()
++ if locked==was_network_locked and ended==was_network_ended:return
++ was_network_locked=locked;was_network_ended=ended
++ if locked:
++  local={};selection=[];picker.reset();attack_preview_uid=0;engine.paid_cast_uid=-1
++  close_overlay()
++ render()
+ func settings_menu():
+  var panel=overlay("对战设置")
+  panel.position=Vector2(475,285)
+@@ -1205,6 +1238,7 @@
+   style.set_border_width_all(4 if selected or legal else 1); art.add_theme_stylebox_override("panel",style)
+ func browse_card_action(c: Dictionary):
+  inspect_card(c.card_id,c.uid)
++ if network_locked():return
+  if picker_active(): choose_target(engine.ref_target(c)); return
+  if c.owner!=acting_player() and not engine.Pack.cast_from(engine,c,acting_player()) or response_disabled(): return
+  if not local.is_empty(): return
+@@ -1280,6 +1314,7 @@
+  if debug_drag_browser: browse_zone(browser_owner,browser_zone,scroll_position)
+ 
+ func picker_active() -> bool:
++ if network_locked():return false
+  if not local.is_empty(): return local.mode=="target"
+  return engine.pending.get("owner",-1)==acting_player() and engine.pending.get("kind","") in ["trigger","effect_choice"]
+ func sync_picker():
+@@ -1301,6 +1336,7 @@
+  if not payment_ready():return
+  local.mode="payment";commit_local()
+ func confirm_trigger():
++ if network_locked():return
+  if observing or not local.is_empty() or not picker_active(): return
+  sync_picker()
+  if not picker.ready(): return
+@@ -1520,6 +1556,7 @@
+ 
+ 
+ func can_use_region_card(c: Dictionary) -> bool:
++ if network_locked():return false
+  if c.owner!=acting_player() and not engine.Pack.cast_from(engine,c,acting_player()) or response_disabled(): return false
+  return engine.cast_error(acting_player(),c.uid).is_empty() or not engine.extra_action(c).is_empty() and engine.extension_activation_error(c.owner,c).is_empty()
+ 
+--- before/net/lan_session.gd
++++ net/lan_session.gd
+@@ -12,7 +12,8 @@
+ const Transport=preload("res://net/lan_transport.gd")
+ const Discovery=preload("res://net/lan_discovery.gd")
+ const Metrics=preload("res://net/connection_metrics.gd")
+-const VERSION="0.18.2-lan3"
++const VERSION="1.0"
++const RECONNECT_LIMIT_MS=30000
+ var transport
+ var discovery
+ var identity={}
+@@ -45,6 +46,7 @@
+ var inflight={}
+ var remote_last_seen=0
+ var disconnected_at=0
++var disconnect_deadline_unix=0.0
+ var last_heartbeat=0
+ var retry_at=0
+ var joining=false
+@@ -55,6 +57,14 @@
+ var metrics=Metrics.new()
+ func latency_text() -> String:
+  return metrics.caption(Time.get_ticks_msec()) if connected else "已断开" if not room_id.is_empty() else "未连接"
++func ended() -> bool:return room.get("status","")=="aborted"
++func connection_status() -> String:
++ if ended():return "连接中断，对局结束 · 不计胜负"
++ if disconnected_at>0:
++  var remaining=float(RECONNECT_LIMIT_MS-(Time.get_ticks_msec()-disconnected_at))/1000.0
++  if disconnect_deadline_unix>0:remaining=minf(remaining,disconnect_deadline_unix-Time.get_unix_time_from_system())
++  return "连接中断\n等待重连：%d 秒\n可查看战场" % maxi(0,ceili(remaining))
++ return notice if not notice.is_empty() else "同步中"
+ func initialize(directory: String=""):
+  storage=directory if not directory.is_empty() else ("res://saves/lan" if OS.has_feature("editor") else "user://lan")
+  identity=Identity.load_identity(storage+"/identity.bin")
+@@ -94,12 +104,19 @@
+ func resume_guest(new_address: String="") -> String:
+  var saved=identity.get("resume",{})
+  if saved.is_empty():return "没有可恢复的客机连接"
++ if saved.get("room_id","") in identity.get("ended_rooms",[]):return "该对局已结束，不能重连"
++ if float(saved.get("deadline",0.0))>0 and Time.get_unix_time_from_system()>=float(saved.deadline):
++  room_id=saved.room_id;end_disconnected_match();return "重连超时，该对局已结束"
+  room_id=saved.room_id
++ if disconnected_at==0 and float(saved.get("deadline",0.0))>0:
++  disconnect_deadline_unix=float(saved.deadline)
++  disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
+  return join_room(saved.address if new_address.is_empty() else new_address,int(saved.port),true)
+ func restore_host() -> String:
+  var data=Journal.load_from(storage+"/host.bin")
+  if data.is_empty():return "没有保存的房主对局"
+  if data.get("fingerprint","")!=fingerprint:return "保存对局的规则版本与当前版本不一致"
++ if data.series.get("status","")=="aborted" or data.room_id in identity.get("ended_rooms",[]):return "该对局已结束，不能恢复"
+  leave(false);is_host=true;seat=0
+  room_id=data.room_id;port=data.port;bind_address=data.get("bind_address","*");guest=data.guest
+  series=Series.new();series.state=data.series;sequence=data.sequence;command_results=data.command_results;receipts=data.get("receipts",["",""])
+@@ -107,12 +124,17 @@
+  var err=transport.host_room(port,bind_address)
+  if err!=OK:return "无法恢复监听："+error_string(err)
+  paused=true;connected=false;notice="已恢复对局，等待原玩家重连";room=series.public_state(0)
+- disconnected_at=Time.get_ticks_msec();discovery.start(true,metadata(),bind_address)
++ disconnect_deadline_unix=float(data.get("disconnect_deadline_unix",0.0))
++ if disconnect_deadline_unix<=0:disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
++ disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
++ discovery.start(true,metadata(),bind_address)
++ if series.state.status!="complete" and Time.get_unix_time_from_system()>=disconnect_deadline_unix:
++  end_disconnected_match();return "重连超时，该对局已结束"
+  if authority!=null:enqueue_snapshot(make_snapshot(0,[],true))
+  changed.emit();return ""
+ func persist() -> bool:
+  if not is_host:return true
+- var data={"fingerprint":fingerprint,"room_id":room_id,"port":port,"bind_address":bind_address,"guest":guest,"series":series.state,"sequence":sequence,"command_results":command_results,"receipts":receipts,"engine":Codec.capture(authority) if authority!=null else {}}
++ var data={"fingerprint":fingerprint,"room_id":room_id,"port":port,"bind_address":bind_address,"guest":guest,"series":series.state,"sequence":sequence,"command_results":command_results,"receipts":receipts,"disconnect_deadline_unix":disconnect_deadline_unix,"engine":Codec.capture(authority) if authority!=null else {}}
+  var err=Journal.save_to(storage+"/host.bin",data)
+  if err!=OK:paused=true;notice="无法保存对局，已暂停："+error_string(err);error_raised.emit(notice);return false
+  return true
+@@ -121,7 +143,7 @@
+  if transport and connected:transport.send_to(remote_peer,{"type":"leave"})
+  if transport:transport.close()
+  if discovery:discovery.start()
+- connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;rejected=false
++ connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;rejected=false
+  if forget:identity.resume={};save_identity()
+ func on_connect(id: int):
+  remote_last_seen=Time.get_ticks_msec()
+@@ -138,7 +160,7 @@
+  welcome(id)
+ func welcome(id: int):
+  metrics.reset();last_heartbeat=0
+- remote_peer=id;connected=true;paused=true;joining=false;remote_last_seen=Time.get_ticks_msec();disconnected_at=0;notice="同步中";retry_at=0
++ remote_peer=id;connected=true;paused=true;joining=false;remote_last_seen=Time.get_ticks_msec();notice="同步中";retry_at=0
+  transport.send_to(id,{"type":"welcome","room_id":room_id,"token":guest.token,"match_id":series.state.match_id,"room":series.public_state(1),"sequence":sequence,"ack_id":receipts[1]})
+  if authority!=null:transport.send_to(id,make_snapshot(1,[],true))
+  else:transport.send_to(id,{"type":"room","room":series.public_state(1),"sequence":sequence,"ack_id":receipts[1]})
+@@ -147,7 +169,9 @@
+ func receive(id: int,m: Dictionary):
+  var type=m.get("type","")
+  if not type is String:return
++ if check_reconnect_timeout(Time.get_ticks_msec()):return
+  if is_host and type=="hello":
++  if ended():transport.send_to(id,{"type":"rejected","message":"该对局已结束，不能重连"});transport.drop(id);return
+   if m.get("version","")!=fingerprint:transport.send_to(id,{"type":"rejected","message":"游戏或卡牌规则版本不一致，请使用同一个发行包"});transport.drop(id);return
+   if not m.get("installation") is String or not m.get("name") is String or not m.get("resume",{}) is Dictionary:return
+   if connected and id!=remote_peer:transport.drop(id);return
+@@ -173,7 +197,7 @@
+   "welcome":
+    metrics.reset();last_heartbeat=0
+    connected=true;joining=false;paused=true;busy=false;inflight={};room_id=m.room_id;room=m.room;sequence=m.sequence;notice="同步中"
+-   identity.resume={"room_id":room_id,"token":m.token,"match_id":m.match_id,"address":address,"port":port,"sequence":sequence};save_identity();changed.emit()
++   identity.resume={"room_id":room_id,"token":m.token,"match_id":m.match_id,"address":address,"port":port,"sequence":sequence,"deadline":disconnect_deadline_unix};save_identity();changed.emit()
+   "room":
+    if is_host:return
+    room=m.room;sequence=m.sequence;view_sequence=sequence;finish_receipt(m);remember_sequence();transport.send_to(1,{"type":"ack","sequence":sequence});changed.emit()
+@@ -185,9 +209,12 @@
+   "ack":
+    if not is_host:return
+    if int(m.get("sequence",-1))==sequence:
+-    acknowledged=sequence;paused=false;notice="";transport.send_to(id,{"type":"ready_state","sequence":sequence});changed.emit()
++    var recovered=disconnected_at>0
++    acknowledged=sequence;paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0
++    if recovered and not persist():return
++    transport.send_to(id,{"type":"ready_state","sequence":sequence});changed.emit()
+   "ready_state":
+-   if not is_host:paused=false;notice="";disconnected_at=0;changed.emit()
++   if not is_host:paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;identity.resume.erase("deadline");save_identity();changed.emit()
+   "command":
+    if is_host:handle_command(1,m)
+   "room_action":
+@@ -197,18 +224,41 @@
+    error_raised.emit(str(m.get("message","操作被拒绝")))
+   "leave":on_disconnect(id);transport.drop(id)
+ func on_disconnect(id: int):
+- if id!=remote_peer:return
++ if id!=remote_peer or ended():return
+  metrics.reset()
+  connected=false;paused=true;busy=false;joining=false
+- if disconnected_at==0:disconnected_at=Time.get_ticks_msec()
++ start_disconnect_wait()
+  notice="连接中断，已暂停，等待原玩家重连";changed.emit()
+ func on_failure(message: String):
+- if rejected:return
++ if rejected or ended():return
+  metrics.reset()
+  connected=false;paused=true;busy=false;joining=false
+- if disconnected_at==0 and not room_id.is_empty():disconnected_at=Time.get_ticks_msec()
++ start_disconnect_wait()
+  notice=message+"，对局已暂停";changed.emit()
+-func can_act(in_match: bool=false) -> bool:return connected and not paused and not busy and (not in_match or sequence==view_sequence)
++func start_disconnect_wait():
++ if disconnected_at>0 or room_id.is_empty() or room.get("status","")=="complete":return
++ disconnected_at=maxi(1,Time.get_ticks_msec());disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
++ if is_host:persist()
++ elif not identity.get("resume",{}).is_empty():identity.resume.deadline=disconnect_deadline_unix;save_identity()
++func check_reconnect_timeout(now: int) -> bool:
++ if ended():return true
++ if disconnected_at>0 and room.get("status","")!="complete" and (now-disconnected_at>=RECONNECT_LIMIT_MS or disconnect_deadline_unix>0 and Time.get_unix_time_from_system()>=disconnect_deadline_unix):
++  end_disconnected_match();return true
++ return false
++func end_disconnected_match():
++ if ended() or room.get("status","")=="complete":return
++ if room.is_empty():room=Series.new().public_state(seat)
++ connected=false;paused=true;busy=false;joining=false;inflight={};rejected=true;metrics.reset()
++ if is_host:
++  series.abort();room=series.public_state(0);persist()
++ else:
++  room.status="aborted";room.winner=-2;room.ready=[false,false];room.end_reason="连接中断，对局结束"
++ var ended_rooms=identity.get("ended_rooms",[])
++ if room_id not in ended_rooms:ended_rooms.append(room_id)
++ identity.ended_rooms=ended_rooms.slice(maxi(0,ended_rooms.size()-64));identity.resume={};save_identity()
++ transport.close();discovery.start();snapshots.clear()
++ notice="连接中断，对局结束 · 不计胜负";changed.emit()
++func can_act(in_match: bool=false) -> bool:return not ended() and connected and not paused and not busy and (not in_match or sequence==view_sequence)
+ func submit(command: Dictionary) -> String:
+  if not can_act(true):return "等待连接或同步完成"
+  command_number+=1
+@@ -258,6 +308,9 @@
+    if not action.get("deck") is Dictionary:return
+    error=series.set_deck(actor,action.deck)
+   "ready":error=series.ready(actor)
++  "unready":
++   if series.state.status in ["lobby","between"]:series.state.ready[actor]=false
++   else:error="当前不能取消准备"
+   "first":error="先后手由每局开始时的硬币决定"
+   "concede_series":error="投降只结束当前单局，请从战场设置操作"
+   _:error="未知房间操作"
+@@ -299,10 +352,10 @@
+ func _process(_delta):
+  if transport==null:return
+  var now=Time.get_ticks_msec()
++ if check_reconnect_timeout(now):return
+  if connected:
+   if now-last_heartbeat>2000:last_heartbeat=now;transport.send_to(remote_peer,metrics.make_ping(now),true)
+   if now-remote_last_seen>6500:on_disconnect(remote_peer);transport.drop(remote_peer)
+- elif not is_host and not rejected and not identity.get("resume",{}).is_empty() and disconnected_at>0 and now-disconnected_at<120000 and now-retry_at>3000:
++ elif not is_host and not rejected and not identity.get("resume",{}).is_empty() and disconnected_at>0 and now-disconnected_at<RECONNECT_LIMIT_MS and now-retry_at>3000:
+   retry_at=now;resume_guest()
+- if not connected and disconnected_at>0 and now-disconnected_at>=120000 and notice!="重连等待超时，可手动恢复连接或离开":notice="重连等待超时，可手动恢复连接或离开";changed.emit()
+  if is_host and not applicant.is_empty() and now-applicant.at>30000:accept_applicant(false)
+--- before/net/lan_lobby.gd
++++ net/lan_lobby.gd
+@@ -12,7 +12,6 @@
+ var strict_input: CheckButton
+ var rooms_list: VBoxContainer
+ var signature=""
+-var side_draft={}
+ var deck_index=0
+ func build(parent,net):
+  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+@@ -23,6 +22,7 @@
+ func show_error(message: String):status_label.text=message
+ func _process(_delta):
+  if is_instance_valid(latency_label):latency_label.text="网络延迟 · "+session.latency_text()
++ if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
+ func refresh(force: bool=false):
+  status_label.text=session.notice if not session.notice.is_empty() else session.discovery.error
+  var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused])
+@@ -103,6 +103,9 @@
+   app.button(body,"拒绝",Rect2(1205,365,235,48),func():session.accept_applicant(false))
+  elif room.status=="complete":
+   app.label(body,"整场结束 · "+room.names[room.winner]+"获胜",Rect2(100,382,1180,70),31,app.GOLD)
++ elif room.status=="aborted":
++  app.label(body,"连接中断，对局结束 · 不计胜负",Rect2(100,382,1180,70),31,app.GOLD)
++  if not session.latest_snapshot.is_empty():app.button(body,"查看战场",Rect2(1070,485,355,60),func():app.return_network_battle())
+  elif room.status=="playing":
+   app.label(body,"第 %d 局正在进行" % room.round,Rect2(105,370,1000,45),25)
+   app.button(body,"回到战场",Rect2(1070,415,355,60),func():app.return_network_battle(),true)
+@@ -116,36 +119,18 @@
+    app.button(body,"选择此卡组",Rect2(800,395,270,51),func():
+     if not app.decks.is_empty():session.room_action({"name":"deck","deck":app.decks[deck_index]}))
+   else:
+-   app.button(body,"调整主副卡组",Rect2(105,395,665,51),open_sideboard)
++   var sideboard=app.button(body,"调整主副卡组",Rect2(105,395,665,51),open_sideboard)
++   sideboard.disabled=room.ready[own] or not session.can_act()
+    app.label(body,"第 %d 局准备" % (room.round+1),Rect2(800,395,500,51),25,app.GOLD)
+   if not room.own_deck.is_empty():
+    app.label(body,room.own_deck.name+" · 主卡组 %d / 副卡组 %d" % [room.own_deck.main.size(),room.own_deck.side.size()],Rect2(105,468,1030,46),22,app.GOLD)
+   app.label(body,"双方准备后投硬币决定先后手",Rect2(105,552,900,45),22)
+-  var ready=app.button(body,"已准备" if room.ready[own] else "准备",Rect2(1070,550,355,60),func():session.room_action({"name":"ready"}),true)
+-  ready.disabled=room.ready[own] or room.own_deck.is_empty() or not session.can_act()
+- if not session.connected and not session.is_host:
++  var ready=app.button(body,"取消准备" if room.ready[own] else "准备",Rect2(1070,550,355,60),func():session.room_action({"name":"unready" if room.ready[own] else "ready"}),true)
++  ready.disabled=room.own_deck.is_empty() or not session.can_act()
++ if not session.connected and not session.is_host and not session.ended():
+   app.button(body,"重连",Rect2(1070,650,355,52),func():
+    var error=session.resume_guest()
+    if not error.is_empty():show_error(error),true)
+  app.button(body,"离开房间",Rect2(1070,714,355,48),func():session.leave(false);refresh(true))
+ func open_sideboard():
+- side_draft=session.room.own_deck.duplicate(true);draw_sideboard()
+-func draw_sideboard():
+- for child in body.get_children():body.remove_child(child);child.queue_free()
+- var pool=side_draft.main+side_draft.side;var ids=[]
+- for id in pool:
+-  if id not in ids:ids.append(id)
+- ids.sort_custom(func(a,b):return app.Store.CARDS[a].name<app.Store.CARDS[b].name)
+- app.box(body,Rect2(70,190,1460,610))
+- app.label(body,"换备牌 · 主卡组 %d / 副卡组 %d" % [side_draft.main.size(),side_draft.side.size()],Rect2(105,207,1250,48),26,app.GOLD)
+- var scroll=ScrollContainer.new();scroll.position=Vector2(102,280);scroll.size=Vector2(1365,410);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(scroll)
+- var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+- for id in ids:
+-  var row=HBoxContainer.new();row.custom_minimum_size=Vector2(1300,48);rows.add_child(row)
+-  var title=Label.new();title.text=app.Store.CARDS[id].name;title.custom_minimum_size=Vector2(770,45);row.add_child(title)
+-  for zone in ["main","side"]:
+-   var button=Button.new();button.text=("主 → 副 " if zone=="main" else "副 → 主 ")+str(side_draft[zone].count(id));button.custom_minimum_size=Vector2(240,45);row.add_child(button)
+-   button.disabled=side_draft[zone].count(id)==0
+-   button.pressed.connect(func():side_draft[zone].erase(id);side_draft["side" if zone=="main" else "main"].append(id);draw_sideboard())
+- app.button(body,"保存换牌",Rect2(1140,719,315,51),func():session.room_action({"name":"deck","deck":side_draft});refresh(true),true)
+- app.button(body,"取消",Rect2(805,719,315,51),func():refresh(true))
++ app.open_sideboard(session)
+--- before/net/series_controller.gd
++++ net/series_controller.gd
+@@ -6,15 +6,22 @@
+  state.match_id=Identity.token();state.format=3 if format_value==3 else 1;state.strict=strict
+ func set_deck(seat: int,deck: Dictionary) -> String:
+  if state.status not in ["lobby","between"]:return "当前不能换牌"
+- var error=Store.validate(deck,state.strict)
++ var error=sideboard_error(deck,state.registered[seat],state.strict) if state.status=="between" else Store.validate(deck,state.strict)
+  if not error.is_empty():return error
+- if state.status=="between":
+-  var original=state.registered[seat]
+-  var pool=original.main+original.side;var next=deck.main+deck.side;pool.sort();next.sort()
+-  if original.leader!=deck.leader or pool!=next:return "换备牌必须保持自机及登记总牌池不变"
+-  if deck.main.size()!=original.main.size():return "换备牌后主卡组张数应与登记时一致"
+  state.decks[seat]=deck.duplicate(true);state.ready[seat]=false
+  return ""
++static func sideboard_error(deck: Dictionary,original: Dictionary,strict: bool) -> String:
++ var error=Store.validate(deck,strict)
++ if not error.is_empty():return error
++ if original.is_empty():return "缺少登记卡组"
++ var pool=original.main+original.side;var next=deck.main+deck.side;pool.sort();next.sort()
++ if original.leader!=deck.leader or pool!=next:return "换备牌必须保持自机及登记总牌池不变"
++ if deck.main.size()!=original.main.size():return "换备牌后主卡组张数应与登记时一致"
++ return ""
++func abort():
++ if state.status in ["aborted","complete"]:return
++ state.status="aborted";state.winner=-2;state.ready=[false,false]
++ state.end_reason="连接中断，对局结束"
+ func ready(seat: int) -> String:
+  if state.status not in ["lobby","between"]:return "当前不能准备"
+  var error=Store.validate(state.decks[seat],state.strict)
+--- before/cards/spell-fdf-042.json
++++ cards/spell-fdf-042.json
+@@ -8,7 +8,7 @@
+     "黑"
+   ],
+   "费用": {
+-    "蓝": 1,
++    "蓝": 2,
+     "黑": 1
+   },
+   "图片": "res://recourse/数据库/spell-fdf-042.jpg",
+@@ -37,5 +37,6 @@
+   "高速": false,
+   "角色约束": "",
+   "符卡类型": "符卡·乐章",
+-  "计时": 0
++  "计时": 0,
++  "修订记录": "1.0：按用户修订，费用改为2蓝1黑。"
+ }
+--- before/cards/spell-fdf-068.json
++++ cards/spell-fdf-068.json
+@@ -8,7 +8,7 @@
+     "绿"
+   ],
+   "费用": {
+-    "蓝": 1,
++    "蓝": 2,
+     "绿": 1
+   },
+   "图片": "res://recourse/数据库/spell-fdf-068.jpg",
+@@ -37,5 +37,6 @@
+   "高速": false,
+   "角色约束": "摩多罗·隐岐奈",
+   "符卡类型": "符卡·角色",
+-  "计时": 0
++  "计时": 0,
++  "修订记录": "1.0：按用户修订，费用改为2蓝1绿。"
+ }

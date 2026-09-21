@@ -1,0 +1,171 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: Nue has shared RGB cost and four palette colors
+PASS: hybrid payment accepts ["165", "165", "165"]
+PASS: hybrid payment accepts ["167", "167", "167"]
+PASS: hybrid payment accepts ["166", "166", "166"]
+PASS: hybrid payment accepts ["165", "167", "166"]
+PASS: hybrid payment accepts ["165", "165", "166"]
+PASS: yellow cannot pay RGB cost
+PASS: overpayment and duplicate resources rejected
+PASS: manual selection shares RGB pool and caps black
+PASS: three flexible points do not replace the required black
+PASS: Nue palette produces 红
+PASS: Nue palette produces 蓝
+PASS: Nue palette produces 绿
+PASS: Nue palette produces 黑
+PASS: Nue does not produce yellow
+PASS: first-strike multi-block opens assignment
+PASS: first strike removes every lethal blocker before retaliation
+PASS: damage snapshot includes all simultaneous casualties
+PASS: duplicate damage submit cannot repeat first strike
+PASS: surviving normal blocker deals damage only in second batch
+PASS: first-strike combat fully completes
+PASS: defensive first strike preserves negative lethal health snapshot
+PASS: dead attacker never retaliates
+PASS: two first strikers deal simultaneous lethal damage
+PASS: Okuu unlocks its role spell in deck
+PASS: deck spell resolves normally with Okuu present
+PASS: Okuu does not prevent ending main phase
+PASS: Okuu death sweep finishes and does not trap priority
+PASS: hand-to-deck debug move places card on top
+PASS: deck-to-deck debug move reorders to top
+PASS: field-to-deck silent move stays on top
+PASS: ordinary card cannot enter leader zone
+PASS: current moved image linked: 50
+PASS: current moved image linked: 53
+PASS: current moved image linked: 54
+PASS: current moved image linked: 56
+PASS: current moved image linked: 57
+PASS: current moved image linked: 68
+PASS: current moved image linked: 70
+PASS: current moved image linked: 96
+PASS: current moved image linked: 99
+PASS: current moved image linked: 100
+PASS: current moved image linked: 112
+PASS: current moved image linked: 164
+PASS: current moved image linked: 165
+PASS: current moved image linked: 167
+PASS: current moved image linked: 170
+PASS: current moved image linked: 1
+PASS: current moved image linked: 5
+PASS: current moved image linked: 6
+PASS: current moved image linked: 11
+PASS: current moved image linked: 14
+PASS: current moved image linked: 15
+PASS: current moved image linked: 18
+PASS: current moved image linked: 21
+PASS: current moved image linked: 23
+PASS: current moved image linked: 28
+PASS: current moved image linked: 29
+PASS: current moved image linked: 30
+PASS: current moved image linked: 33
+PASS: current moved image linked: 35
+PASS: current moved image linked: 38
+PASS: current moved image linked: 39
+PASS: current moved image linked: 41
+PASS: current moved image linked: 48
+PASS: current moved image linked: 49
+PASS: current moved image linked: 61
+PASS: current moved image linked: 64
+PASS: current moved image linked: 71
+PASS: current moved image linked: 75
+PASS: current moved image linked: 78
+PASS: current moved image linked: 79
+PASS: current moved image linked: 87
+PASS: current moved image linked: soi_unit_004
+PASS: current moved image linked: 94
+PASS: current moved image linked: 106
+PASS: current moved image linked: 110
+PASS: current moved image linked: 118
+PASS: current moved image linked: 120
+PASS: current moved image linked: 130
+PASS: current moved image linked: 131
+PASS: current moved image linked: 139
+PASS: current moved image linked: 141
+PASS: current moved image linked: 143
+PASS: current moved image linked: 147
+PASS: current moved image linked: 162
+PASS: current moved image linked: 163
+PASS: current moved image linked: 176
+PASS: current moved image linked: 177
+PASS: current moved image linked: 166
+PASS: current moved image linked: 168
+PASS: current moved image linked: 169
+PASS: current moved image linked: 174
+PASS: current moved image linked: 91
+PASS: current moved image linked: 133
+PASS: current moved image linked: rec_unit_097
+PASS: current moved image linked: soi_unit_086
+PASS: current moved image linked: character-soi-018
+PASS: current moved image linked: character-soi-006
+PASS: current moved image linked: spell-soi-098
+PASS: current moved image linked: spell-fdf-054
+PASS: current moved image linked: spell-rei-015
+PASS: current moved image linked: spell-mar-007
+PASS: current moved image linked: field-fdn-016
+PASS: current moved image linked: spell-fdf-ex05
+PASS: current moved image linked: spell-rei-006
+PASS: current moved image linked: spell-mar-005
+PASS: current moved image linked: character-fdf-ex05
+PASS: current moved image linked: token-fdf-133
+PASS: current moved image linked: character-rei-ex01
+PASS: current moved image linked: character-fdf-ex04
+PASS: current moved image linked: character-rei-001
+PASS: current moved image linked: spell-rei-010
+PASS: current moved image linked: character-mar-020
+PASS: current moved image linked: token-smm-025
+PASS: current moved image linked: character-rei-017
+PASS: current moved image linked: character-rei-007
+PASS: current moved image linked: field-rei-004
+PASS: current moved image linked: character-rec-096
+PASS: current moved image linked: character-fdf-070
+PASS: current moved image linked: token-fdn-085
+PASS: current moved image linked: spell-mar-002
+PASS: current moved image linked: spell-mar-003
+PASS: current moved image linked: character-fdf-ex01
+PASS: current moved image linked: field-fdf-108
+PASS: current moved image linked: spell-fdf-019
+PASS: current moved image linked: spell-fdf-023
+PASS: current moved image linked: character-fdf-116
+PASS: current moved image linked: token-fdf-132
+PASS: current moved image linked: spell-fdf-011
+PASS: current moved image linked: character-rei-022
+PASS: current moved image linked: spell-rei-011
+PASS: current moved image linked: spell-rei-012
+PASS: current moved image linked: character-fdf-099
+PASS: current moved image linked: spell-fdf-007
+PASS: current moved image linked: character-fdf-ex02
+PASS: current moved image linked: character-rei-026
+PASS: current moved image linked: field-rei-005
+PASS: current moved image linked: spell-rei-002
+PASS: current moved image linked: character-mar-ex
+PASS: current moved image linked: token-kmo-027
+PASS: current moved image linked: field-rei-003
+PASS: current moved image linked: character-rec-104
+PASS: current moved image linked: field-smm-004
+PASS: current moved image linked: spell-mar-004
+PASS: current moved image linked: field-mar-006
+PASS: current moved image linked: character-ucs-060
+PASS: current moved image linked: token-fdf-130
+PASS: current moved image linked: character-fdf-ex03
+PASS: current moved image linked: spell-fdf-036
+PASS: current moved image linked: character-fdf-095
+PASS: current moved image linked: character-rei-023
+PASS: current moved image linked: spell-mar-012
+PASS: current moved image linked: spell-mar-013
+PASS: current moved image linked: spell-mar-014
+PASS: current moved image linked: item-mar-017
+PASS: current moved image linked: character-mar-021
+PASS: current moved image linked: character-mar-022
+PASS: current moved image linked: character-mar-023
+PASS: current moved image linked: character-mar-024
+PASS: current moved image linked: character-mar-025
+PASS: current moved image linked: character-mar-ex01
+PASS: current moved image linked: token-fdf-128
+PASS: current moved image linked: token-ucs-093
+PASS: saved decks unchanged
+V096_RULES: 165 checks; 0 failures
+

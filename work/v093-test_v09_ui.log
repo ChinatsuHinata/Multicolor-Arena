@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: button exists: 关于
+PASS: about page opens without debug
+PASS: about text is exact and centered
+PASS: partial secret does not unlock
+PASS: typing multicolor unlocks debug
+PASS: button exists: 返回
+PASS: debug is passed to new match
+PASS: every opposing hand card is face up
+PASS: human controls own mulligan first
+PASS: human then controls opponent mulligan
+PASS: AI does not auto mulligan in debug
+PASS: button exists: 保留
+PASS: opponent mulligan GUI submits for player 1
+PASS: opponent main turn is player controlled
+PASS: debug AI never plays or ends main automatically
+PASS: opponent hand selectable
+PASS: opponent hand casts using opponent resources
+PASS: opponent payment never taps player's palette
+PASS: new debug stack remains border neutral
+PASS: button exists: 你的牌库
+PASS: deck inspector opens during required choice
+PASS: deck inspector preserves interrupted choice
+PASS: button exists: 人机牌库
+PASS: opposing entire deck inspector opens
+PASS: inspector supports observe battlefield
+PASS: return from observing restores inspector
+PASS: button exists: 调试
+PASS: debug panel opens
+PASS: debug move preserves ownership
+PASS: opponent hand has correct drag release area
+PASS: low-resolution art normalized to same display resolution
+PASS: button exists: 排序卡组
+PASS: sort button groups every copy and marks unsaved
+PASS: button exists: 退出调试模式
+PASS: debug can be disabled for next match
+PASS: normal match restores hidden information and removes debug controls
+PASS: all UI tests preserve saved decks
+V09_UI: 37 checks; 0 failures

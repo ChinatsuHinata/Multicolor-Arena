@@ -1,0 +1,131 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 新史2红2蓝
+PASS: 魂魄2绿2黑1黄
+PASS: 小町4攻击2血3灵力
+PASS: 隐岐奈归并为单一卡名
+PASS: 百万先移除再伤判：目标自身死亡后不放回指示物
+PASS: 百万收集特殊111并转为普通111
+PASS: 百万转移不继承醉醺醺狂气
+PASS: 蜜桃翻倍所有指示物且保留种类
+PASS: 屠自古累加贫乏指示物
+PASS: 结束阶段慧音不能选择牺牲受保护半灵
+PASS: 结束阶段直接牺牲也受半灵保护
+PASS: 主要阶段仍能牺牲半灵
+PASS: 境界先询问自机去向
+PASS: 境界尊重自机去向 false
+PASS: 境界先询问自机去向
+PASS: 境界尊重自机去向 true
+PASS: 紫延迟回场进入对抗
+PASS: 自机延迟回场被反制后重新询问回自机区
+PASS: 延迟回场失败后可回自机区
+PASS: 椛离场后不再执行监视效果
+PASS: 真实巡礼牌改写对抗 120
+PASS: 真实巡礼改写后留场并造妖精 120
+PASS: 巡礼时符恢复计时 120
+PASS: 真实巡礼牌改写对抗 spell-fdf-ex05
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-ex05
+PASS: 真实巡礼牌改写对抗 spell-mar-003
+PASS: 真实巡礼改写后留场并造妖精 spell-mar-003
+PASS: 巡礼时符恢复计时 spell-mar-003
+PASS: 真实巡礼牌改写对抗 spell-mar-014
+PASS: 真实巡礼改写后留场并造妖精 spell-mar-014
+PASS: 巡礼时符恢复计时 spell-mar-014
+PASS: 真实巡礼牌改写对抗 102
+PASS: 真实巡礼改写后留场并造妖精 102
+PASS: 巡礼时符恢复计时 102
+PASS: 真实巡礼牌改写对抗 113
+PASS: 真实巡礼改写后留场并造妖精 113
+PASS: 巡礼时符恢复计时 113
+PASS: 真实巡礼牌改写对抗 121
+PASS: 真实巡礼改写后留场并造妖精 121
+PASS: 巡礼时符恢复计时 121
+PASS: 真实巡礼牌改写对抗 spell-kmo-005
+PASS: 真实巡礼改写后留场并造妖精 spell-kmo-005
+PASS: 巡礼时符恢复计时 spell-kmo-005
+PASS: 真实巡礼牌改写对抗 spell-ucs-011
+PASS: 真实巡礼改写后留场并造妖精 spell-ucs-011
+PASS: 真实巡礼牌改写对抗 spell-ucs-019
+PASS: 真实巡礼改写后留场并造妖精 spell-ucs-019
+PASS: 真实巡礼牌改写对抗 spell-htk-018
+PASS: 真实巡礼改写后留场并造妖精 spell-htk-018
+PASS: 巡礼时符恢复计时 spell-htk-018
+PASS: 真实巡礼牌改写对抗 spell-fdn-005
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-005
+PASS: 真实巡礼牌改写对抗 spell-fdf-042
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-042
+PASS: 真实巡礼牌改写对抗 spell-lof-006
+PASS: 真实巡礼改写后留场并造妖精 spell-lof-006
+PASS: 真实巡礼牌改写对抗 spell-fdf-044
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-044
+PASS: 真实巡礼牌改写对抗 spell-htk-004
+PASS: 真实巡礼改写后留场并造妖精 spell-htk-004
+PASS: 真实巡礼牌改写对抗 spell-fdn-032
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-032
+PASS: 真实巡礼牌改写对抗 spell-fdn-010
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-010
+PASS: 真实巡礼牌改写对抗 spell-ucs-059
+PASS: 真实巡礼改写后留场并造妖精 spell-ucs-059
+PASS: 真实巡礼牌改写对抗 spell-ucs-033
+PASS: 真实巡礼改写后留场并造妖精 spell-ucs-033
+PASS: 真实巡礼牌改写对抗 spell-fdn-001
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-001
+PASS: 真实巡礼牌改写对抗 spell-fdf-018
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-018
+PASS: 巡礼时符恢复计时 spell-fdf-018
+PASS: 真实巡礼牌改写对抗 spell-fdn-033
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-033
+PASS: 巡礼时符恢复计时 spell-fdn-033
+PASS: 真实巡礼牌改写对抗 spell-fdf-017
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-017
+PASS: 巡礼时符恢复计时 spell-fdf-017
+PASS: 真实巡礼牌改写对抗 spell-fdf-040
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-040
+PASS: 巡礼时符恢复计时 spell-fdf-040
+PASS: 真实巡礼牌改写对抗 spell-ucs-031
+PASS: 真实巡礼改写后留场并造妖精 spell-ucs-031
+PASS: 巡礼时符恢复计时 spell-ucs-031
+PASS: 真实巡礼牌改写对抗 spell-fdf-024
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-024
+PASS: 巡礼时符恢复计时 spell-fdf-024
+PASS: 真实巡礼牌改写对抗 spell-fdn-019
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-019
+PASS: 巡礼时符恢复计时 spell-fdn-019
+PASS: 真实巡礼牌改写对抗 spell-fdn-002
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-002
+PASS: 巡礼时符恢复计时 spell-fdn-002
+PASS: 真实巡礼牌改写对抗 spell-fdf-001
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-001
+PASS: 巡礼时符恢复计时 spell-fdf-001
+PASS: 真实巡礼牌改写对抗 spell-fdf-123
+PASS: 真实巡礼改写后留场并造妖精 spell-fdf-123
+PASS: 巡礼时符恢复计时 spell-fdf-123
+PASS: 真实巡礼牌改写对抗 spell-fdn-015
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-015
+PASS: 巡礼时符恢复计时 spell-fdn-015
+PASS: 真实巡礼牌改写对抗 spell-fdn-012
+PASS: 真实巡礼改写后留场并造妖精 spell-fdn-012
+PASS: 巡礼时符恢复计时 spell-fdn-012
+PASS: 真实巡礼牌改写对抗 new-loc-003
+PASS: 真实巡礼改写后留场并造妖精 new-loc-003
+PASS: 巡礼时符恢复计时 new-loc-003
+PASS: 真实巡礼牌改写对抗 new-eto-006
+PASS: 真实巡礼改写后留场并造妖精 new-eto-006
+PASS: 巡礼时符恢复计时 new-eto-006
+PASS: 真实巡礼牌改写对抗 new-eto-012
+PASS: 真实巡礼改写后留场并造妖精 new-eto-012
+PASS: 巡礼时符恢复计时 new-eto-012
+PASS: 古代史本体结算移除后不能再次使用
+PASS: 禁弹消灭后打开复制菜单
+PASS: 复制菜单有停止
+PASS: 翻倍后进入复制目标选择
+PASS: 目标选择返回翻倍减半菜单
+PASS: 停止解除选择且不创建复制
+PASS: 禁弹仍能实际复制并把X翻倍
+PASS: 复制结算消灭目标并可继续复制
+PASS: 反制后的自机选择可序列化恢复
+PASS: 拒绝回自机区保持原除外对象及指示物
+PASS: AI没有复制目标时停止，不会卡住
+V11 BUGS 126 checks; failures=[]

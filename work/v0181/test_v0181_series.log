@@ -1,0 +1,48 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS host listens
+PASS guest connects
+PASS approval requested
+PASS both seats connected
+PASS both peers report measured latency
+PASS latency probes do not mutate match sequence
+PASS host cannot choose first player
+PASS guest cannot choose first player
+PASS coin is not tossed before preparation
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS opening coin identical for both players
+PASS coin face determines first player
+PASS second player receives potato
+PASS opening coin recorded exactly once
+PASS coin has public presentation
+PASS extra ready cannot reroll coin
+PASS disconnect replaces latency with disconnected status
+PASS reconnect completes
+PASS reconnect keeps coin and complete game state
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS first surrender advances to next-game preparation
+PASS whole-series surrender command disabled
+PASS between-game sideboard pool remains locked
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS second game gets exactly one new coin
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS one surrender each leads to deciding game
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS deciding game coin synchronized
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS only second victory ends BO3
+PASS host restart keeps all coin results and score
+PASS BO1 still ends after single game
+PASS draw advances without a win
+V0181 SERIES 43 checks; failures=[]

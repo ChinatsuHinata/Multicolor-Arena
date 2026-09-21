@@ -1,0 +1,509 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: Star enters stack before optional prompt with no item
+PASS: accepting targetless optional ability resolves without fabricated target
+PASS: declining removes announced optional ability
+PASS: Kyouko still announces with fewer than three grave cards
+PASS: Kyouko gains no life when required three targets do not exist
+PASS: Kyouko announces with three legal grave targets
+PASS: Kyouko shuffles three selected cards and gains one life
+PASS: mandatory Eirin no-target trigger goes onto stack without a selection prompt
+PASS: mandatory no-target trigger completes safely
+PASS: Marisa effect-entry also creates ETB trigger
+PASS: Marisa ETB target damage resolves
+PASS: Momiji naming uses stack
+PASS: declaration recorded and applied
+PASS: declaration queued for visible result
+PASS: coin outcome visible and recorded exactly once
+PASS: new non-haste unit cannot pay tap cost
+PASS: gained haste permits tap activation on opponent turn
+PASS: opponent-turn haste activation commits
+PASS: opponent-turn activation actually resolves
+PASS: time spell gets counters without self adjustment
+PASS: unsolicited time adjustment is rejected
+PASS: explicit Sakuya replacement retains its source
+PASS: legal Sakuya replacement adjusts a placement
+PASS: zero placement cannot create arbitrary adjustment
+PASS: eligible optional free use detected
+PASS: paid choice restores normal cost
+PASS: paid choice actually pays and publishes card
+PASS: Seiran exile permission offers payment choice
+PASS: free base colors retain extra casting taxes
+PASS: normal payment also works for Seiran exile grant
+PASS: effect-granted free casting creates choice
+PASS: effect-granted cast paid option keeps permission but restores price
+PASS: all debug zone changes create motion snapshots
+PASS: motion retains original and destination zones
+PASS: Sakuya observes other players entering units
+PASS: explicit resolution spell-fdf-014
+PASS: lasting ETB curse waits on trigger stack
+PASS: lasting ETB curse resolves after priority
+PASS: cross-owner reanimation keeps correct source and destination in motion
+PASS: ETB event registered 68 普通的魔法使「雾雨魔理沙」
+PASS: empty-board ETB finishes 68
+PASS: ETB event registered 1 日之光「桑尼·米尔克」
+PASS: empty-board ETB finishes 1
+PASS: ETB event registered 14 「小恶魔」
+PASS: empty-board ETB finishes 14
+PASS: ETB event registered 18 天狗记者「射命丸文」
+PASS: empty-board ETB finishes 18
+PASS: ETB event registered 28 提琴手「露娜萨·普莉兹姆利巴」
+PASS: empty-board ETB finishes 28
+PASS: ETB event registered 29 键盘手「莉莉卡·普莉兹姆利巴」
+PASS: empty-board ETB finishes 29
+PASS: ETB event registered 30 小号手「梅露兰·普莉兹姆利巴」
+PASS: empty-board ETB finishes 30
+PASS: ETB event registered 39 苍天的庭师「魂魄妖梦」
+PASS: empty-board ETB finishes 39
+PASS: ETB event registered 49 星降的风水师「物部布都」
+PASS: empty-board ETB finishes 49
+PASS: ETB event registered 75 红魔馆的女仆「十六夜咲夜」
+PASS: empty-board ETB finishes 75
+PASS: ETB event registered 87 二百由旬之一闪「魂魄妖梦」
+PASS: empty-board ETB finishes 87
+PASS: ETB event registered soi_unit_086 未确认幻想飞行物「封兽ぬえ」
+PASS: empty-board ETB finishes soi_unit_086
+PASS: ETB event registered character-soi-018 阳花的妖怪「风见幽香」
+PASS: empty-board ETB finishes character-soi-018
+PASS: ETB event registered character-rei-007 「山童探险家」
+PASS: empty-board ETB finishes character-rei-007
+PASS: ETB event registered character-rec-096 幸运的白兔「因幡帝」
+PASS: empty-board ETB finishes character-rec-096
+PASS: ETB event registered character-fdf-116 月之头脑「八意永琳」
+PASS: empty-board ETB finishes character-fdf-116
+PASS: ETB event registered character-fdf-099 生意兴隆的吉祥物「豪德寺三花」
+PASS: empty-board ETB finishes character-fdf-099
+PASS: ETB event registered character-fdf-ex02 神隐的主犯「八云紫」
+PASS: empty-board ETB finishes character-fdf-ex02
+PASS: ETB event registered field-rei-005 系缚阵
+PASS: empty-board ETB finishes field-rei-005
+PASS: ETB event registered character-mar-ex 胆大心细的魔法使「雾雨魔理沙」
+PASS: empty-board ETB finishes character-mar-ex
+PASS: ETB event registered character-rec-104 识文解意的爱书「本居小铃」
+PASS: empty-board ETB finishes character-rec-104
+PASS: ETB event registered field-smm-004 辉光之城
+PASS: empty-board ETB finishes field-smm-004
+PASS: ETB event registered character-fdf-ex03 魔神复诵「圣白莲」
+PASS: empty-board ETB finishes character-fdf-ex03
+PASS: ETB event registered character-mar-022 月之都的射手「清兰」
+PASS: empty-board ETB finishes character-mar-022
+PASS: ETB event registered character-mar-023 勤奋的图书管理员「小恶魔」
+PASS: empty-board ETB finishes character-mar-023
+PASS: ETB event registered character-mar-025 无名的读书妖怪「朱鹭子」
+PASS: empty-board ETB finishes character-mar-025
+PASS: ETB event registered character-mar-ex01 七曜魔法使「帕秋莉·诺蕾姬」
+PASS: empty-board ETB finishes character-mar-ex01
+PASS: ETB event registered 12 冬之妖怪「蕾蒂·霍瓦特洛克」
+PASS: empty-board ETB finishes 12
+PASS: ETB event registered 13 湖畔的住人「大妖精」
+PASS: empty-board ETB finishes 13
+PASS: ETB event registered 2 月之光「露娜·切露德」
+PASS: empty-board ETB finishes 2
+PASS: ETB event registered 26 三途川之引渡人「小野冢小町」
+PASS: empty-board ETB finishes 26
+PASS: ETB event registered 3 三月精「斯塔·萨菲雅」
+PASS: empty-board ETB finishes 3
+PASS: ETB event registered 45 孤援的造型神「埴安神袿姬」
+PASS: empty-board ETB finishes 45
+PASS: ETB event registered 46 「橙」
+PASS: empty-board ETB finishes 46
+PASS: ETB event registered 63 探宝队员「纳兹琳」
+PASS: empty-board ETB finishes 63
+PASS: ETB event registered 66 回声山彦「幽谷响子」
+PASS: empty-board ETB finishes 66
+PASS: ETB event registered 7 「蓬莱人偶」
+PASS: empty-board ETB finishes 7
+PASS: ETB event registered 76 第三只眼「古明地觉」
+PASS: empty-board ETB finishes 76
+PASS: ETB event registered 86 四季鲜花之主「风见幽香」
+PASS: empty-board ETB finishes 86
+PASS: ETB event registered 93 土著神之顶「洩矢诹访子」
+PASS: empty-board ETB finishes 93
+PASS: ETB event registered character-ucs-032 小夜岚的女仆「十六夜咲夜」
+PASS: empty-board ETB finishes character-ucs-032
+PASS: ETB event registered character-ucs-038 旧地狱的宠物妖怪「火焰猫燐」
+PASS: empty-board ETB finishes character-ucs-038
+PASS: ETB event registered character-ucs-069 星降之处的道士「丰聪耳神子」
+PASS: empty-board ETB finishes character-ucs-069
+PASS: ETB event registered character-ucs-042 绿眼的无间妒嫉「水桥帕露西」
+PASS: empty-board ETB finishes character-ucs-042
+PASS: ETB event registered character-lof-017 仲夏的妖精「爱塔妮缇拉尔瓦」
+PASS: empty-board ETB finishes character-lof-017
+PASS: ETB event registered character-lof-004 「花田的妖精」
+PASS: empty-board ETB finishes character-lof-004
+PASS: ETB event registered character-fdn-024 「地灵殿的妖精」
+PASS: empty-board ETB finishes character-fdn-024
+PASS: ETB event registered character-fdf-106 天才的造型神「埴安神袿姬」
+PASS: empty-board ETB finishes character-fdf-106
+PASS: ETB event registered character-ucs-036 孤影悄然的妖怪「古明地觉」
+PASS: empty-board ETB finishes character-ucs-036
+PASS: ETB event registered character-fdf-092 小小的贤将「纳兹琳」
+PASS: empty-board ETB finishes character-fdf-092
+PASS: ETB event registered character-ucs-020 少女秘封俱乐部「宇佐见莲子」
+PASS: empty-board ETB finishes character-ucs-020
+PASS: ETB event registered spell-fdf-024 月符「静寂ノ月神」
+PASS: empty-board ETB finishes spell-fdf-024
+PASS: ETB event registered character-ucs-023 柳树下的首级「赤蛮奇」
+PASS: empty-board ETB finishes character-ucs-023
+PASS: ETB event registered character-fdf-065 污秽的有机怪物「天火人血枪」
+PASS: empty-board ETB finishes character-fdf-065
+PASS: ETB event registered character-fdf-046 禁止通行「云居一轮&云山」
+PASS: empty-board ETB finishes character-fdf-046
+PASS: ETB event registered character-ucs-034 空想人格的保持者「古明地恋」
+PASS: empty-board ETB finishes character-ucs-034
+PASS: ETB event registered character-ucs-003 繁星的引导者「饭纲丸龙」
+PASS: empty-board ETB finishes character-ucs-003
+PASS: ETB event registered character-ucs-067 绯红的宵暗「蕾米莉亚·斯卡蕾特」
+PASS: empty-board ETB finishes character-ucs-067
+PASS: ETB event registered character-fdn-048 绯红的霄暗「蕾米莉亚·斯卡雷特」
+PASS: empty-board ETB finishes character-fdn-048
+PASS: ETB event registered character-fdf-114 耳边低语的邪恶白狐「菅牧典」
+PASS: empty-board ETB finishes character-fdf-114
+PASS: ETB event registered field-rei-013 辉光ノ城
+PASS: empty-board ETB finishes field-rei-013
+PASS: ETB event registered character-fdn-034 辘轳首的怪奇「赤蛮奇」
+PASS: empty-board ETB finishes character-fdn-034
+PASS: ETB event registered character-fdf-101 雪中的天狗「犬走椛」
+PASS: empty-board ETB finishes character-fdf-101
+PASS: ETB event registered spell-fdn-012 魂魄「幽冥求闻持聪ノ法」
+PASS: empty-board ETB finishes spell-fdn-012
+PASS: legal activation fixture 21 grave_return 
+PASS: opponent-turn activation timing 21 grave_return
+PASS: priority-window activation 21 grave_return prepare
+PASS: priority-window activation 21 grave_return draw
+PASS: priority-window activation 21 grave_return end
+PASS: combat/stack response activation 21 grave_return
+PASS: legal activation fixture 35 exile_grave 
+PASS: opponent-turn activation timing 35 exile_grave
+PASS: priority-window activation 35 exile_grave prepare
+PASS: priority-window activation 35 exile_grave draw
+PASS: priority-window activation 35 exile_grave end
+PASS: combat/stack response activation 35 exile_grave
+PASS: legal activation fixture 61 grave_reanimate 
+PASS: opponent-turn activation timing 61 grave_reanimate
+PASS: priority-window activation 61 grave_reanimate prepare
+PASS: priority-window activation 61 grave_reanimate draw
+PASS: priority-window activation 61 grave_reanimate end
+PASS: combat/stack response activation 61 grave_reanimate
+PASS: legal activation fixture 71 sacrifice_buff 
+PASS: opponent-turn activation timing 71 sacrifice_buff
+PASS: priority-window activation 71 sacrifice_buff prepare
+PASS: priority-window activation 71 sacrifice_buff draw
+PASS: priority-window activation 71 sacrifice_buff end
+PASS: combat/stack response activation 71 sacrifice_buff
+PASS: legal activation fixture 79 leader_bounce 
+PASS: opponent-turn activation timing 79 leader_bounce
+PASS: priority-window activation 79 leader_bounce prepare
+PASS: priority-window activation 79 leader_bounce draw
+PASS: priority-window activation 79 leader_bounce end
+PASS: combat/stack response activation 79 leader_bounce
+PASS: legal activation fixture rec_unit_097 grave_return 
+PASS: opponent-turn activation timing rec_unit_097 grave_return
+PASS: priority-window activation rec_unit_097 grave_return prepare
+PASS: priority-window activation rec_unit_097 grave_return draw
+PASS: priority-window activation rec_unit_097 grave_return end
+PASS: combat/stack response activation rec_unit_097 grave_return
+PASS: legal activation fixture character-fdf-ex05 keine_devour 
+PASS: opponent-turn activation timing character-fdf-ex05 keine_devour
+PASS: priority-window activation character-fdf-ex05 keine_devour prepare
+PASS: priority-window activation character-fdf-ex05 keine_devour draw
+PASS: priority-window activation character-fdf-ex05 keine_devour end
+PASS: combat/stack response activation character-fdf-ex05 keine_devour
+PASS: legal activation fixture field-rei-004 standing_blast 
+PASS: opponent-turn activation timing field-rei-004 standing_blast
+PASS: priority-window activation field-rei-004 standing_blast prepare
+PASS: priority-window activation field-rei-004 standing_blast draw
+PASS: priority-window activation field-rei-004 standing_blast end
+PASS: combat/stack response activation field-rei-004 standing_blast
+PASS: legal activation fixture character-fdf-070 letty_shield 
+PASS: opponent-turn activation timing character-fdf-070 letty_shield
+PASS: priority-window activation character-fdf-070 letty_shield prepare
+PASS: priority-window activation character-fdf-070 letty_shield draw
+PASS: priority-window activation character-fdf-070 letty_shield end
+PASS: combat/stack response activation character-fdf-070 letty_shield
+PASS: legal activation fixture spell-mar-003 laser 
+PASS: opponent-turn activation timing spell-mar-003 laser
+PASS: priority-window activation spell-mar-003 laser prepare
+PASS: priority-window activation spell-mar-003 laser draw
+PASS: priority-window activation spell-mar-003 laser end
+PASS: combat/stack response activation spell-mar-003 laser
+PASS: legal activation fixture character-fdf-ex02 yukari_active 
+PASS: opponent-turn activation timing character-fdf-ex02 yukari_active
+PASS: priority-window activation character-fdf-ex02 yukari_active prepare
+PASS: priority-window activation character-fdf-ex02 yukari_active draw
+PASS: priority-window activation character-fdf-ex02 yukari_active end
+PASS: combat/stack response activation character-fdf-ex02 yukari_active
+PASS: legal activation fixture character-rei-026 sanae_search 
+PASS: opponent-turn activation timing character-rei-026 sanae_search
+PASS: priority-window activation character-rei-026 sanae_search prepare
+PASS: priority-window activation character-rei-026 sanae_search draw
+PASS: priority-window activation character-rei-026 sanae_search end
+PASS: combat/stack response activation character-rei-026 sanae_search
+PASS: legal activation fixture character-mar-ex marisa_recover 
+PASS: opponent-turn activation timing character-mar-ex marisa_recover
+PASS: priority-window activation character-mar-ex marisa_recover prepare
+PASS: priority-window activation character-mar-ex marisa_recover draw
+PASS: priority-window activation character-mar-ex marisa_recover end
+PASS: combat/stack response activation character-mar-ex marisa_recover
+PASS: legal activation fixture field-rei-003 watch_counter 
+PASS: opponent-turn activation timing field-rei-003 watch_counter
+PASS: priority-window activation field-rei-003 watch_counter prepare
+PASS: priority-window activation field-rei-003 watch_counter draw
+PASS: priority-window activation field-rei-003 watch_counter end
+PASS: combat/stack response activation field-rei-003 watch_counter
+PASS: legal activation fixture character-rei-023 minoriko_untap 
+PASS: opponent-turn activation timing character-rei-023 minoriko_untap
+PASS: priority-window activation character-rei-023 minoriko_untap prepare
+PASS: priority-window activation character-rei-023 minoriko_untap draw
+PASS: priority-window activation character-rei-023 minoriko_untap end
+PASS: combat/stack response activation character-rei-023 minoriko_untap
+PASS: legal activation fixture token-fdf-128 wine_discount 
+PASS: opponent-turn activation timing token-fdf-128 wine_discount
+PASS: priority-window activation token-fdf-128 wine_discount prepare
+PASS: priority-window activation token-fdf-128 wine_discount draw
+PASS: priority-window activation token-fdf-128 wine_discount end
+PASS: combat/stack response activation token-fdf-128 wine_discount
+PASS: legal activation fixture token-ucs-093 medicine_return 
+PASS: opponent-turn activation timing token-ucs-093 medicine_return
+PASS: priority-window activation token-ucs-093 medicine_return prepare
+PASS: priority-window activation token-ucs-093 medicine_return draw
+PASS: priority-window activation token-ucs-093 medicine_return end
+PASS: combat/stack response activation token-ucs-093 medicine_return
+PASS: legal activation fixture 25 hatate_return 
+PASS: opponent-turn activation timing 25 hatate_return
+PASS: priority-window activation 25 hatate_return prepare
+PASS: priority-window activation 25 hatate_return draw
+PASS: priority-window activation 25 hatate_return end
+PASS: combat/stack response activation 25 hatate_return
+PASS: legal activation fixture 32 hina_redirect 
+PASS: opponent-turn activation timing 32 hina_redirect
+PASS: priority-window activation 32 hina_redirect prepare
+PASS: priority-window activation 32 hina_redirect draw
+PASS: priority-window activation 32 hina_redirect end
+PASS: combat/stack response activation 32 hina_redirect
+PASS: legal activation fixture 34 clown_sweep 
+PASS: opponent-turn activation timing 34 clown_sweep
+PASS: priority-window activation 34 clown_sweep prepare
+PASS: priority-window activation 34 clown_sweep draw
+PASS: priority-window activation 34 clown_sweep end
+PASS: combat/stack response activation 34 clown_sweep
+PASS: legal activation fixture 76 satori_discard 
+PASS: opponent-turn activation timing 76 satori_discard
+PASS: priority-window activation 76 satori_discard prepare
+PASS: priority-window activation 76 satori_discard draw
+PASS: priority-window activation 76 satori_discard end
+PASS: combat/stack response activation 76 satori_discard
+PASS: legal activation fixture 77 alice_search 
+PASS: opponent-turn activation timing 77 alice_search
+PASS: priority-window activation 77 alice_search prepare
+PASS: priority-window activation 77 alice_search draw
+PASS: priority-window activation 77 alice_search end
+PASS: combat/stack response activation 77 alice_search
+PASS: legal activation fixture 77 alice_recycle 
+PASS: opponent-turn activation timing 77 alice_recycle
+PASS: priority-window activation 77 alice_recycle prepare
+PASS: priority-window activation 77 alice_recycle draw
+PASS: priority-window activation 77 alice_recycle end
+PASS: combat/stack response activation 77 alice_recycle
+PASS: legal activation fixture 82 kanako_blast 
+PASS: opponent-turn activation timing 82 kanako_blast
+PASS: priority-window activation 82 kanako_blast prepare
+PASS: priority-window activation 82 kanako_blast draw
+PASS: priority-window activation 82 kanako_blast end
+PASS: combat/stack response activation 82 kanako_blast
+PASS: legal activation fixture 85 kaguya_end 
+PASS: opponent-turn activation timing 85 kaguya_end
+PASS: legal activation fixture 90 suika_counter 
+PASS: opponent-turn activation timing 90 suika_counter
+PASS: priority-window activation 90 suika_counter prepare
+PASS: priority-window activation 90 suika_counter draw
+PASS: priority-window activation 90 suika_counter end
+PASS: combat/stack response activation 90 suika_counter
+PASS: legal activation fixture character-smm07 sanae_search 
+PASS: opponent-turn activation timing character-smm07 sanae_search
+PASS: priority-window activation character-smm07 sanae_search prepare
+PASS: priority-window activation character-smm07 sanae_search draw
+PASS: priority-window activation character-smm07 sanae_search end
+PASS: combat/stack response activation character-smm07 sanae_search
+PASS: legal activation fixture character-lof-001 courage_ping 
+PASS: opponent-turn activation timing character-lof-001 courage_ping
+PASS: priority-window activation character-lof-001 courage_ping prepare
+PASS: priority-window activation character-lof-001 courage_ping draw
+PASS: priority-window activation character-lof-001 courage_ping end
+PASS: combat/stack response activation character-lof-001 courage_ping
+PASS: legal activation fixture character-lof-001 courage_die 
+PASS: opponent-turn activation timing character-lof-001 courage_die
+PASS: priority-window activation character-lof-001 courage_die prepare
+PASS: priority-window activation character-lof-001 courage_die draw
+PASS: priority-window activation character-lof-001 courage_die end
+PASS: combat/stack response activation character-lof-001 courage_die
+PASS: legal activation fixture character-htk-002 tokiko_copy 
+PASS: opponent-turn activation timing character-htk-002 tokiko_copy
+PASS: priority-window activation character-htk-002 tokiko_copy prepare
+PASS: priority-window activation character-htk-002 tokiko_copy draw
+PASS: priority-window activation character-htk-002 tokiko_copy end
+PASS: combat/stack response activation character-htk-002 tokiko_copy
+PASS: legal activation fixture token-htk-033 mask_sorrow 
+PASS: opponent-turn activation timing token-htk-033 mask_sorrow
+PASS: priority-window activation token-htk-033 mask_sorrow prepare
+PASS: priority-window activation token-htk-033 mask_sorrow draw
+PASS: priority-window activation token-htk-033 mask_sorrow end
+PASS: combat/stack response activation token-htk-033 mask_sorrow
+PASS: legal activation fixture token-htk-031 mask_joy 
+PASS: opponent-turn activation timing token-htk-031 mask_joy
+PASS: priority-window activation token-htk-031 mask_joy prepare
+PASS: priority-window activation token-htk-031 mask_joy draw
+PASS: priority-window activation token-htk-031 mask_joy end
+PASS: combat/stack response activation token-htk-031 mask_joy
+PASS: legal activation fixture token-htk-032 mask_anger 
+PASS: opponent-turn activation timing token-htk-032 mask_anger
+PASS: priority-window activation token-htk-032 mask_anger prepare
+PASS: priority-window activation token-htk-032 mask_anger draw
+PASS: priority-window activation token-htk-032 mask_anger end
+PASS: combat/stack response activation token-htk-032 mask_anger
+PASS: legal activation fixture item-fdn-044 item-fdn-044 
+PASS: opponent-turn activation timing item-fdn-044 item-fdn-044
+PASS: priority-window activation item-fdn-044 item-fdn-044 prepare
+PASS: priority-window activation item-fdn-044 item-fdn-044 draw
+PASS: priority-window activation item-fdn-044 item-fdn-044 end
+PASS: combat/stack response activation item-fdn-044 item-fdn-044
+PASS: legal activation fixture item-lof-009 item-lof-009 
+PASS: opponent-turn activation timing item-lof-009 item-lof-009
+PASS: priority-window activation item-lof-009 item-lof-009 prepare
+PASS: priority-window activation item-lof-009 item-lof-009 draw
+PASS: priority-window activation item-lof-009 item-lof-009 end
+PASS: combat/stack response activation item-lof-009 item-lof-009
+PASS: legal activation fixture spell-fdn-032 spell-fdn-032 
+PASS: opponent-turn activation timing spell-fdn-032 spell-fdn-032
+PASS: priority-window activation spell-fdn-032 spell-fdn-032 prepare
+PASS: priority-window activation spell-fdn-032 spell-fdn-032 draw
+PASS: priority-window activation spell-fdn-032 spell-fdn-032 end
+PASS: combat/stack response activation spell-fdn-032 spell-fdn-032
+PASS: legal activation fixture item-ucs-017 item-ucs-017 
+PASS: opponent-turn activation timing item-ucs-017 item-ucs-017
+PASS: priority-window activation item-ucs-017 item-ucs-017 prepare
+PASS: priority-window activation item-ucs-017 item-ucs-017 draw
+PASS: priority-window activation item-ucs-017 item-ucs-017 end
+PASS: combat/stack response activation item-ucs-017 item-ucs-017
+PASS: legal activation fixture item-fdf-096 item-fdf-096 
+PASS: opponent-turn activation timing item-fdf-096 item-fdf-096
+PASS: legal activation fixture item-ucs-013 item-ucs-013 
+PASS: opponent-turn activation timing item-ucs-013 item-ucs-013
+PASS: priority-window activation item-ucs-013 item-ucs-013 prepare
+PASS: priority-window activation item-ucs-013 item-ucs-013 draw
+PASS: priority-window activation item-ucs-013 item-ucs-013 end
+PASS: combat/stack response activation item-ucs-013 item-ucs-013
+PASS: legal activation fixture item-htk-008 item-htk-008 
+PASS: opponent-turn activation timing item-htk-008 item-htk-008
+PASS: priority-window activation item-htk-008 item-htk-008 prepare
+PASS: priority-window activation item-htk-008 item-htk-008 draw
+PASS: priority-window activation item-htk-008 item-htk-008 end
+PASS: combat/stack response activation item-htk-008 item-htk-008
+PASS: legal activation fixture character-fdn-036 character-fdn-036:self 
+PASS: opponent-turn activation timing character-fdn-036 character-fdn-036:self
+PASS: priority-window activation character-fdn-036 character-fdn-036:self prepare
+PASS: priority-window activation character-fdn-036 character-fdn-036:self draw
+PASS: priority-window activation character-fdn-036 character-fdn-036:self end
+PASS: combat/stack response activation character-fdn-036 character-fdn-036:self
+PASS: legal activation fixture character-fdn-038 character-fdn-038 
+PASS: opponent-turn activation timing character-fdn-038 character-fdn-038
+PASS: priority-window activation character-fdn-038 character-fdn-038 prepare
+PASS: priority-window activation character-fdn-038 character-fdn-038 draw
+PASS: priority-window activation character-fdn-038 character-fdn-038 end
+PASS: combat/stack response activation character-fdn-038 character-fdn-038
+PASS: legal activation fixture spell-fdf-059 spell-fdf-059 
+PASS: opponent-turn activation timing spell-fdf-059 spell-fdf-059
+PASS: priority-window activation spell-fdf-059 spell-fdf-059 prepare
+PASS: priority-window activation spell-fdf-059 spell-fdf-059 draw
+PASS: priority-window activation spell-fdf-059 spell-fdf-059 end
+PASS: combat/stack response activation spell-fdf-059 spell-fdf-059
+PASS: legal activation fixture character-fdn-006 character-fdn-006 
+PASS: opponent-turn activation timing character-fdn-006 character-fdn-006
+PASS: legal activation fixture character-fdn-043 character-fdn-043 
+PASS: opponent-turn activation timing character-fdn-043 character-fdn-043
+PASS: priority-window activation character-fdn-043 character-fdn-043 prepare
+PASS: priority-window activation character-fdn-043 character-fdn-043 draw
+PASS: priority-window activation character-fdn-043 character-fdn-043 end
+PASS: combat/stack response activation character-fdn-043 character-fdn-043
+PASS: legal activation fixture character-smm05 character-smm05 
+PASS: opponent-turn activation timing character-smm05 character-smm05
+PASS: priority-window activation character-smm05 character-smm05 prepare
+PASS: priority-window activation character-smm05 character-smm05 draw
+PASS: priority-window activation character-smm05 character-smm05 end
+PASS: combat/stack response activation character-smm05 character-smm05
+PASS: legal activation fixture character-fdf-098 character-fdf-098 
+PASS: opponent-turn activation timing character-fdf-098 character-fdf-098
+PASS: priority-window activation character-fdf-098 character-fdf-098 prepare
+PASS: priority-window activation character-fdf-098 character-fdf-098 draw
+PASS: priority-window activation character-fdf-098 character-fdf-098 end
+PASS: combat/stack response activation character-fdf-098 character-fdf-098
+PASS: legal activation fixture character-fdf-112 character-fdf-112 
+PASS: opponent-turn activation timing character-fdf-112 character-fdf-112
+PASS: priority-window activation character-fdf-112 character-fdf-112 prepare
+PASS: priority-window activation character-fdf-112 character-fdf-112 draw
+PASS: priority-window activation character-fdf-112 character-fdf-112 end
+PASS: combat/stack response activation character-fdf-112 character-fdf-112
+PASS: legal activation fixture character-fdf-102 character-fdf-102 
+PASS: opponent-turn activation timing character-fdf-102 character-fdf-102
+PASS: priority-window activation character-fdf-102 character-fdf-102 prepare
+PASS: priority-window activation character-fdf-102 character-fdf-102 draw
+PASS: priority-window activation character-fdf-102 character-fdf-102 end
+PASS: combat/stack response activation character-fdf-102 character-fdf-102
+PASS: legal activation fixture character-fdn-027 character-fdn-027 
+PASS: opponent-turn activation timing character-fdn-027 character-fdn-027
+PASS: priority-window activation character-fdn-027 character-fdn-027 prepare
+PASS: priority-window activation character-fdn-027 character-fdn-027 draw
+PASS: priority-window activation character-fdn-027 character-fdn-027 end
+PASS: combat/stack response activation character-fdn-027 character-fdn-027
+PASS: legal activation fixture spell-fdn-019 spell-fdn-019 
+PASS: opponent-turn activation timing spell-fdn-019 spell-fdn-019
+PASS: priority-window activation spell-fdn-019 spell-fdn-019 prepare
+PASS: priority-window activation spell-fdn-019 spell-fdn-019 draw
+PASS: priority-window activation spell-fdn-019 spell-fdn-019 end
+PASS: combat/stack response activation spell-fdn-019 spell-fdn-019
+PASS: legal activation fixture token-fdf-127 token-fdf-127 
+PASS: opponent-turn activation timing token-fdf-127 token-fdf-127
+PASS: priority-window activation token-fdf-127 token-fdf-127 prepare
+PASS: priority-window activation token-fdf-127 token-fdf-127 draw
+PASS: priority-window activation token-fdf-127 token-fdf-127 end
+PASS: combat/stack response activation token-fdf-127 token-fdf-127
+PASS: legal activation fixture character-fdf-113 character-fdf-113 
+PASS: opponent-turn activation timing character-fdf-113 character-fdf-113
+PASS: priority-window activation character-fdf-113 character-fdf-113 prepare
+PASS: priority-window activation character-fdf-113 character-fdf-113 draw
+PASS: priority-window activation character-fdf-113 character-fdf-113 end
+PASS: combat/stack response activation character-fdf-113 character-fdf-113
+PASS: legal activation fixture character-fdf-111 character-fdf-111 
+PASS: opponent-turn activation timing character-fdf-111 character-fdf-111
+PASS: priority-window activation character-fdf-111 character-fdf-111 prepare
+PASS: priority-window activation character-fdf-111 character-fdf-111 draw
+PASS: priority-window activation character-fdf-111 character-fdf-111 end
+PASS: combat/stack response activation character-fdf-111 character-fdf-111
+PASS: legal activation fixture character-fdn-041 character-fdn-041 
+PASS: opponent-turn activation timing character-fdn-041 character-fdn-041
+PASS: priority-window activation character-fdn-041 character-fdn-041 prepare
+PASS: priority-window activation character-fdn-041 character-fdn-041 draw
+PASS: priority-window activation character-fdn-041 character-fdn-041 end
+PASS: combat/stack response activation character-fdn-041 character-fdn-041
+PASS: legal activation fixture token-fdf-129 token-fdf-129 
+PASS: opponent-turn activation timing token-fdf-129 token-fdf-129
+PASS: priority-window activation token-fdf-129 token-fdf-129 prepare
+PASS: priority-window activation token-fdf-129 token-fdf-129 draw
+PASS: priority-window activation token-fdf-129 token-fdf-129 end
+PASS: combat/stack response activation token-fdf-129 token-fdf-129
+PASS: legal activation fixture character-ucs-065 character-ucs-065:health 
+PASS: opponent-turn activation timing character-ucs-065 character-ucs-065:health
+PASS: priority-window activation character-ucs-065 character-ucs-065:health prepare
+PASS: priority-window activation character-ucs-065 character-ucs-065:health draw
+PASS: priority-window activation character-ucs-065 character-ucs-065:health end
+PASS: combat/stack response activation character-ucs-065 character-ucs-065:health
+PASS: legal activation fixture character-ucs-065 character-ucs-065:spirit 
+PASS: opponent-turn activation timing character-ucs-065 character-ucs-065:spirit
+PASS: priority-window activation character-ucs-065 character-ucs-065:spirit prepare
+PASS: priority-window activation character-ucs-065 character-ucs-065:spirit draw
+PASS: priority-window activation character-ucs-065 character-ucs-065:spirit end
+PASS: combat/stack response activation character-ucs-065 character-ucs-065:spirit
+PASS: saved decks preserved
+V015_RULES: 504 checks; [] failures

@@ -1,0 +1,125 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: Murasa +X modifies spirit only, counts opposing spells
+PASS: trigger contract character-fdf-100
+PASS: Murasa end step shrinks enemies at 20 cards
+PASS: forest fairy counts another fairy
+PASS: Nue boosts intimidating units
+PASS: Nue transformed unit loses self ability
+PASS: transformation resets on leaving battlefield
+PASS: designated habitat permits fairy at full field even while exiled
+PASS: Wriggle token can enter a full six slot battlefield
+PASS: habitat inherits fairy activated abilities
+PASS: habitat stops inheriting after fairy leaves
+PASS: habitat leaves as original card
+PASS: activate character-fdf-098 
+PASS: Tewi generates yellow and green without stacking
+PASS: floating mana is usable by solver
+PASS: payment consumes exactly selected floating mana
+PASS: Private Square prevents unpaid attack
+PASS: attack becomes available with tax mana
+PASS: attack commits tax before declaration
+PASS: fog taxes spells targeting opposing Oni by three
+PASS: fog taxes activated abilities too
+PASS: Nitori removes both players from spell targets
+PASS: Tenshi protects allied units from high speed spell targets
+PASS: Tenshi permits regular spell targets
+PASS: Goliath cannot attack without Alice
+PASS: Goliath doesn't trigger without Alice
+PASS: Alice enables Goliath attack
+PASS: Alice enables Goliath end trigger
+PASS: law fire blocks counterless units
+PASS: law fire allows units carrying counters
+PASS: Reisen creates mandatory block decision
+PASS: empty block rejected when a blocker exists
+PASS: price of life doubles own death trigger
+PASS: doubled death draw resolves twice
+PASS: Yachie suppresses death abilities
+PASS: Sakuya doubles friendly time spell trigger
+PASS: both duplicated time effects resolve
+PASS: Patchouli once per turn role spell damage
+PASS: catalogue trigger has readable caption
+PASS: Doremy coalesces several sacrifices in same action
+PASS: Mokou returns to hand after death
+PASS: Utsuho remembers noncombat damage before death
+PASS: Utsuho returns next prepare
+PASS: Utsuho no return when not hit by noncombat damage
+PASS: Kyouko death uses last battlefield power
+PASS: trigger contract field-rei-013
+PASS: castle temporarily exiles unit
+PASS: castle leaving returns captured unit
+PASS: trigger contract character-ucs-021
+PASS: Merry searches and places dream counter
+PASS: trigger contract character-ucs-020
+PASS: Renko recovers dream marked exile
+PASS: Okina enables top unit cast
+PASS: Okina doesn't grant deeper library access
+PASS: Youmu casts role spell free from palette
+PASS: palette cast commits
+PASS: palette self ability limited to once per own turn
+PASS: grave Komachi supplies character constraint
+PASS: Ichirin optional green additional cost
+PASS: Ichirin additional payment commits
+PASS: Ichirin starts actual battle with block window
+PASS: alternate doll pitch choices exist
+PASS: Remilia recovery once per turn even with multiple life gains
+PASS: tengu bounce triggers own and Aya abilities
+PASS: Aya creates news token
+PASS: activate token-fdf-127 
+PASS: grilled lamprey sacrifices for one life
+PASS: activate token-fdf-129 
+PASS: keystone token disappears after sacrifice
+PASS: keystone shields one damage to player
+PASS: ordinary self card starts without self ability
+PASS: activate item-ucs-013 
+PASS: headpiece grants self abilities this turn
+PASS: activate item-fdn-044 
+PASS: carrot recycles chosen grave card and heals
+PASS: activate character-ucs-065:spirit 
+PASS: Seija discards and swaps power/spirit
+PASS: activate character-fdf-111 
+PASS: Tojiko removes three poverty counters and resurrects
+PASS: Volcano prevents life gain
+PASS: Volcano floors life at one with a unit
+PASS: explicit resolution spell-fdf-013
+PASS: sky keystones creates three and draws three
+PASS: explicit resolution spell-fdf-084
+PASS: guardian keystones creates two and ramps tapped
+PASS: explicit resolution spell-fdf-062
+PASS: Imp Swarm tokens gain two counters on attack
+PASS: explicit resolution spell-fdn-040
+PASS: possession creates halfghost then enters tapped palette
+PASS: halfghost song cancels end sacrifice and field slot
+PASS: explicit resolution spell-fdn-003
+PASS: Phoenix allocates five damage then sets life ten
+PASS: explicit resolution spell-fdf-049
+PASS: Future slash deals six and draws two
+PASS: explicit resolution spell-fdf-038
+PASS: rainbow underworld optional extra draw pays four life each
+PASS: Mooned Insect finds corresponding role pair
+PASS: explicit resolution spell-fdf-064
+PASS: Mooned Insect recovers both and exiles itself
+PASS: explicit resolution spell-ucs-057
+PASS: first doll copies stats but preserves name
+PASS: copied doll restores identity on zone change
+PASS: explicit resolution spell-fdn-039
+PASS: tengu flow bounces one and buffs another
+PASS: explicit resolution spell-fdf-055
+PASS: Clock Corpse adds two time counters
+PASS: explicit resolution spell-fdn-008
+PASS: Night King buffs vampire and locks opponent for turn
+PASS: Night King prevents opposing triggers after resolving
+PASS: Goliath experiment three distinct dolls form valid cost
+PASS: Goliath experiment pays additional cost 
+PASS: Goliath experiment searches paid doll back into battlefield
+PASS: explicit resolution spell-fdf-063
+PASS: Kuji Kiri damage and counters
+PASS: explicit resolution spell-fdf-031
+PASS: Flower Land damage and untap
+PASS: explicit resolution spell-ucs-022
+PASS: outside game spell adds dream units which remain nonconstructible
+PASS: Momiji declared name locks matching mana ability
+PASS: saved decks unchanged
+V013_RULES: 120 checks; [] failures

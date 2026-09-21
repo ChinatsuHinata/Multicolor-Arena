@@ -1,0 +1,60 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: all thirteen registered melodies included
+PASS: melody enters spell-fdf-ex05
+PASS: opposing melody replaced into owner's grave spell-fdf-ex05
+PASS: replacement is immediate recorded rule action spell-fdf-ex05
+PASS: melody enters spell-ucs-011
+PASS: opposing melody replaced into owner's grave spell-ucs-011
+PASS: replacement is immediate recorded rule action spell-ucs-011
+PASS: melody enters spell-ucs-019
+PASS: opposing melody replaced into owner's grave spell-ucs-019
+PASS: replacement is immediate recorded rule action spell-ucs-019
+PASS: melody enters spell-fdn-005
+PASS: opposing melody replaced into owner's grave spell-fdn-005
+PASS: replacement is immediate recorded rule action spell-fdn-005
+PASS: melody enters spell-fdf-042
+PASS: opposing melody replaced into owner's grave spell-fdf-042
+PASS: replacement is immediate recorded rule action spell-fdf-042
+PASS: melody enters spell-lof-006
+PASS: opposing melody replaced into owner's grave spell-lof-006
+PASS: replacement is immediate recorded rule action spell-lof-006
+PASS: melody enters spell-fdf-044
+PASS: opposing melody replaced into owner's grave spell-fdf-044
+PASS: replacement is immediate recorded rule action spell-fdf-044
+PASS: melody enters spell-htk-004
+PASS: opposing melody replaced into owner's grave spell-htk-004
+PASS: replacement is immediate recorded rule action spell-htk-004
+PASS: melody enters spell-fdn-032
+PASS: opposing melody replaced into owner's grave spell-fdn-032
+PASS: replacement is immediate recorded rule action spell-fdn-032
+PASS: melody enters spell-fdn-010
+PASS: opposing melody replaced into owner's grave spell-fdn-010
+PASS: replacement is immediate recorded rule action spell-fdn-010
+PASS: melody enters spell-ucs-059
+PASS: opposing melody replaced into owner's grave spell-ucs-059
+PASS: replacement is immediate recorded rule action spell-ucs-059
+PASS: melody enters spell-ucs-033
+PASS: opposing melody replaced into owner's grave spell-ucs-033
+PASS: replacement is immediate recorded rule action spell-ucs-033
+PASS: melody enters spell-fdn-001
+PASS: opposing melody replaced into owner's grave spell-fdn-001
+PASS: replacement is immediate recorded rule action spell-fdn-001
+PASS: stolen melody returns to original owner
+PASS: countered melody never replaces existing melody
+PASS: effect entry uses same global melody rule
+PASS: debug entry preserves legal single melody
+PASS: debug melody replacement has no effect triggers
+PASS: repeated reveals each create a presentation
+PASS: reveal does not mutate card or grant permanent visibility
+PASS: presentation retains source zone after immediate movement
+PASS: top reveal keeps element trigger and animation
+PASS: bottom reveal does not grant top-only trigger
+PASS: trigger contract character-fdf-092
+PASS: bottom-three ability queues each card
+PASS: bottom reveal starts with actual bottom card
+PASS: older top-three ability queues reveals before selection
+PASS: saved decks unchanged
+V014_RULES: 55 checks; [] failures

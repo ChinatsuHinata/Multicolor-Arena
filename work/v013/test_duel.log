@@ -1,0 +1,24 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: opening hands are four
+PASS: second player bonus outside palette count
+PASS: reset grows palette before first turn
+PASS: first turn skips draw and retains possession
+PASS: multicolor assignment is feasible and exact
+PASS: only legal colored sources produce unique payment
+PASS: optimizer preserves one-use potato
+PASS: spell waits on stack without applying damage
+PASS: fast spell can respond on opponent turn
+PASS: counter resolves first and prevents original damage
+PASS: unanswered spell uses actual five damage
+PASS: attack opens blocker choice after response window
+PASS: blockers exchange simultaneous attack damage
+PASS: unblocked attack uses spirit
+PASS: potato pays once, disappears, is not a palette card
+PASS: invalid payment cannot mutate public state
+PASS: eight complete deterministic matches terminate
+PASS: full matches include combat, block, spells and counters
+PASS: a single complete match includes all four requested interactions
+DUEL_TEST: 19 checks; 0 failures

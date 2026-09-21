@@ -1,0 +1,120 @@
+{
+  "date": "2026-09-21",
+  "product_version": "1.0",
+  "rule_revision": "1.0-update0921",
+  "export_performed": false,
+  "registered_definitions": 511,
+  "new_definitions": 25,
+  "manifest_files": 32,
+  "tests": [
+    {
+      "test": "test_update0921_cards",
+      "log": "work/v1/test_update0921_cards.log",
+      "project_errors": [],
+      "summary": "UPDATE0921 CARDS 70 checks; failures=[]"
+    },
+    {
+      "test": "test_update0921_more",
+      "log": "work/v1/test_update0921_more.log",
+      "project_errors": [],
+      "summary": "UPDATE0921 MORE 33 checks; failures=[]"
+    },
+    {
+      "test": "test_update0921_undo",
+      "log": "work/v1/test_update0921_undo.log",
+      "project_errors": [],
+      "summary": "UPDATE0921 UNDO 58 checks; failures=[]"
+    },
+    {
+      "test": "test_update0921_ui-visual",
+      "log": "work/v1/test_update0921_ui-visual.log",
+      "project_errors": [],
+      "summary": "UPDATE0921 UI 17 checks; failures=[]"
+    },
+    {
+      "test": "test_update0921_network_ui-visual",
+      "log": "work/v1/test_update0921_network_ui-visual.log",
+      "project_errors": [],
+      "summary": "UPDATE0921 NETWORK UI 17 checks; failures=[]"
+    },
+    {
+      "test": "test_bugs0921_rules",
+      "log": "work/v1/test_bugs0921_rules.log",
+      "project_errors": [],
+      "summary": "BUGS0921 RULES 73 checks; failures=[]"
+    },
+    {
+      "test": "test_bugs0921_network",
+      "log": "work/v1/test_bugs0921_network.log",
+      "project_errors": [],
+      "summary": "BUGS0921 NETWORK 22 checks; [] failures"
+    },
+    {
+      "test": "test_bugs0921_ui-visual",
+      "log": "work/v1/test_bugs0921_ui-visual.log",
+      "project_errors": [],
+      "summary": "BUGS0921 UI 18 checks; failures=[]"
+    },
+    {
+      "test": "test_portable",
+      "log": "work/v1/test_portable.log",
+      "project_errors": [],
+      "summary": "PORTABLE: 85 checks; 0 failures"
+    },
+    {
+      "test": "test_v018_core",
+      "log": "work/v1/test_v018_core.log",
+      "project_errors": [],
+      "summary": "V018 core codec/projection PASS"
+    },
+    {
+      "test": "test_v018_boundaries",
+      "log": "work/v1/test_v018_boundaries.log",
+      "project_errors": [],
+      "summary": "V018 BOUNDARIES 25 checks; failures=[]"
+    },
+    {
+      "test": "test_v018_session",
+      "log": "work/v1/test_v018_session.log",
+      "project_errors": [],
+      "summary": "V018 SESSION 27 checks; failures=[]"
+    },
+    {
+      "test": "test_v0181_series",
+      "log": "work/v1/test_v0181_series.log",
+      "project_errors": [],
+      "summary": "V0181 SERIES 43 checks; failures=[]"
+    },
+    {
+      "test": "test_v013_rules",
+      "log": "work/v1/test_v013_rules.log",
+      "project_errors": [],
+      "summary": "V013_RULES: 120 checks; [] failures"
+    },
+    {
+      "test": "test_v013_units",
+      "log": "work/v1/test_v013_units.log",
+      "project_errors": [],
+      "summary": "V013_UNITS: 45 checks; [] failures"
+    },
+    {
+      "test": "test_v013_edges",
+      "log": "work/v1/test_v013_edges.log",
+      "project_errors": [],
+      "summary": "V013_EDGES: 138 checks; [] failures"
+    },
+    {
+      "test": "test_v014_rules",
+      "log": "work/v1/test_v014_rules.log",
+      "project_errors": [],
+      "summary": "V014_RULES: 55 checks; [] failures"
+    },
+    {
+      "test": "test_v015_rules",
+      "log": "work/v1/test_v015_rules.log",
+      "project_errors": [],
+      "summary": "V015_RULES: 542 checks; [] failures"
+    }
+  ],
+  "limits": "Real ENet sessions on one machine; physical two-device or remote-network validation not performed. Windows root-certificate diagnostic filtered from project errors."
+}

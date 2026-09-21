@@ -1,0 +1,231 @@
+--- before/scripts/duel_view.gd
++++ scripts/duel_view.gd
+@@ -1,5 +1,6 @@
+ extends Control
+ const Duel=preload("res://scripts/rules/duel_engine.gd")
++const PaymentDraft=preload("res://scripts/payment_draft.gd")
+ const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
+ const STAGE=Rect2(246,163,1108,495)
+ const HAND=Rect2(246,663,1108,232)
+@@ -56,7 +57,6 @@
+ var arrow_layer: Control
+ var local: Dictionary={}
+ var selection: Array=[]
+-var auto_pay=true
+ enum ResponseMode { DEFAULT, ON, OFF }
+ const RESPONSE_LABELS=["默认","开","关"]
+ var response_mode=ResponseMode.DEFAULT
+@@ -229,9 +229,9 @@
+  if engine.phase=="mulligan" and not engine.players[acting_player()].mulligan_done:
+   return engine.players[acting_player()].hand.map(func(c): return c.uid)
+  if not local.is_empty():
+-  if local.mode=="payment":
++  if local.mode in ["target","payment"]:
+    for resource in payment_sources(): result.append(resource.uid)
+-  elif local.mode=="target":
++  if local.mode=="target":
+    for target in picker.available_refs():
+     if target.has("uid"): result.append(target.uid)
+   return result
+@@ -266,6 +266,7 @@
+  clear_children(hud)
+  last_revision=engine.revision
+  sync_picker()
++ refresh_payment_plan()
+  var available=highlights()
+  table.targetable_stacks=picker.available_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id) if picker_active() else []
+  table.selected_stacks=picker.selected_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id)
+@@ -521,19 +522,10 @@
+    btn("不支付颜色使用",Rect2(1330,690,237,49),func(): choose_cast_payment(false),true)
+    btn("支付颜色使用",Rect2(1330,752,237,49),func(): choose_cast_payment(true))
+   elif local.mode=="target": render_inline_picker(confirm_declaration)
+-  elif local.mode=="payment_offer":
+-   btn("自动支付",Rect2(1330,690,237,49),pay_automatically,true)
+-   btn("手动支付",Rect2(1330,752,237,49),func(): local.mode="payment"; render())
+-  elif local.mode=="payment_color":
+-   for i in range(local.colors.size()):
+-    var color=local.colors[i]
+-    btn(color,Rect2(1330+(i%2)*120,676+(i/2)*49,112,43),func(): local.plan.append({"uid":local.resource,"color":color}); local.mode="payment"; render(),true)
+-  if local.mode!="target": btn("取消使用",Rect2(1330,833,237,43),cancel_cast)
+-  if local.mode=="payment":
+-   var valid=engine.payment_valid(acting_player(),local_cost(),local.plan)
+-   var b=btn("确认支付",Rect2(1330,689,237,50),commit_local,true); b.disabled=not valid
+-   btn("重选费用",Rect2(1330,761,237,43),func(): local.plan=[]; render())
+-   render_floating_resources()
++  elif local.mode=="payment":
++   if payment_ready():btn("发动",Rect2(1330,799,237,49),commit_local,true)
++  if local.mode!="target":btn("取消使用",Rect2(1330,853,237,36),cancel_cast)
++  if local.mode in ["target","payment"]:render_floating_resources()
+  elif engine.phase=="mulligan" and not engine.players[acting_player()].mulligan_done:
+   text="选择要调度的手牌"
+   btn("保留" if selection.is_empty() else "调度 %d 张" % selection.size(),Rect2(1330,770,237,55),func(): engine.mulligan(acting_player(),selection); selection=[]; render(),true)
+@@ -726,7 +718,7 @@
+  if history_open or observing or table.combat_animating: return
+  message=""
+  if not local.is_empty():
+-  if local.mode=="payment": reserve_resource(uid)
++  if local.mode in ["target","payment"] and payment_sources().any(func(r):return r.uid==uid): reserve_resource(uid)
+   elif local.mode=="target":
+    var target=engine.find_card(uid)
+    if not target.is_empty(): choose_target(engine.ref_target(target))
+@@ -831,14 +823,10 @@
+ 
+ func local_prompt() -> String:
+  if local.mode=="free_offer":return "是否支付颜色使用？"
+- if local.mode=="target": return engine.cards[engine.find_card(local.uid).card_id].name
+- if local.mode=="payment_offer": return "自动选择费用？"
+- if local.mode=="payment_color": return "选择颜色"
+- var cost=local_cost(); var result=engine.ColorCost.remaining(cost,local.get("plan",[])); var pieces=[]
+- for group in cost:
+-  var paid=int(cost[group])-int(result.remaining.get(group,cost[group]))
+-  pieces.append("%s %d / %d" % [group,paid,cost[group]])
+- return "手动支付  ·  "+"    ".join(pieces)
++ if not payment_ready():return "选择支付费用"
++ var c=engine.find_card(local.uid)
++ if local.mode=="target" and not picker.ready():return engine.cards[c.card_id].name
++ return "是否发动%s？" % (engine.cards[c.card_id].name if not c.is_empty() else engine.pending.get("trigger",{}).get("name","该效果"))
+ 
+ func local_cost() -> Dictionary:
+  if local.get("action","")=="choice_payment": return local.choice_cost
+@@ -851,14 +839,24 @@
+  if local.get("action","")=="extension": return engine.Extra.activation_options(engine,engine.find_card(local.uid),local.key)
+  if local.get("action","")=="ability": return engine.ability_targets()
+  return engine.targets_for(engine.find_card(local.uid).card_id,acting_player(),local.uid)
++func payment_excluded() -> Array:
++ return [local.uid] if local.get("action","")=="ability" and engine.ability_parameters(local.uid,local.index).get("横置",false) else []
++func refresh_payment_plan():
++ if local.is_empty() or local.mode not in ["target","payment"]:return
++ if local.mode=="target":local.target=picker.option() if picker.ready() else {}
++ var cost=local_cost();var excluded=payment_excluded()
++ var signature=JSON.stringify([cost,excluded,engine.source_resources(acting_player())])
++ if local.get("payment_signature","")!=signature:
++  local.payment_signature=signature
++  local.plan=PaymentDraft.solve(engine,acting_player(),cost,[],excluded).plan
++ var key=signature+JSON.stringify(local.plan)
++ if local.get("options_signature","")!=key:
++  local.options_signature=key
++  local.payment_options=PaymentDraft.options(engine,acting_player(),cost,local.plan,excluded)
++func payment_ready() -> bool:
++ return not local.is_empty() and engine.payment_valid(acting_player(),local_cost(),local.get("plan",[]))
+ func payment_sources() -> Array:
+- var sources=engine.source_resources(acting_player())
+- if local.get("action","")=="ability" and engine.ability_parameters(local.uid,local.index).get("横置",false):
+-  sources=sources.filter(func(r): return r.uid!=local.uid)
+- var cost=local_cost()
+- return sources.filter(func(r):
+-  if local.plan.any(func(p): return p.uid==r.uid): return true
+-  return r.colors.any(func(color): return engine.ColorCost.allows(cost,local.plan,color)))
++ return local.get("payment_options",[]) if not local.is_empty() else []
+ func close_overlay():
+  modal=false; action_menu_open=false; observing=false
+  for child in hud.get_children():
+@@ -890,35 +888,20 @@
+   message=""; render()
+ 
+ func start_payment():
+- if local.is_empty(): return
+- var c=engine.find_card(local.uid)
+- var excluded=[local.uid] if local.get("action","")=="ability" and engine.ability_parameters(local.uid,local.index).get("横置",false) else []
+- var solution=engine.payment(acting_player(),local_cost(),excluded)
+- if solution.ways==0: message="可用颜色费用不足"; render(); return
+- local.mode="payment"
+- if local_cost().values().all(func(n): return n==0) or (auto_pay and (solution.ways==1 or (local.get("action","")=="" and engine.cards[c.card_id].kind!="符卡"))):
+-  local.plan=solution.plan; commit_local(); return
+- if auto_pay: local.mode="payment_offer"
+- render()
++ if local.is_empty():return
++ local.mode="payment";refresh_payment_plan();render()
+ 
+ func reserve_resource(uid: int):
+- var sources=payment_sources()
+- var source={}
+- for s in sources:
+-  if s.uid==uid: source=s
+- if source.is_empty(): return
++ if observing or local.is_empty() or local.mode not in ["target","payment"]:return
+  for reservation in local.plan:
+-  if reservation.uid==uid: local.plan.erase(reservation); render(); return
+- var cost=local_cost()
+- var colors=[]
+- for color in source.colors:
+-  if engine.ColorCost.allows(cost,local.plan,color): colors.append(color)
+- if colors.is_empty(): message="不需要这张牌的颜色"; render(); return
+- if colors.size()==1: local.plan.append({"uid":uid,"color":colors[0]}); render(); return
+- local.mode="payment_color"; local.resource=uid; local.colors=colors; render()
++  if reservation.uid==uid:
++   local.plan.erase(reservation);message="";render();return
++ for source in payment_sources():
++  if source.uid==uid and source.has("reservation"):
++   local.plan.append(source.reservation.duplicate(true));message="";render();return
+ 
+ func commit_local():
+- if local.is_empty() or local.mode!="payment" or response_disabled(): return
++ if local.is_empty() or local.mode!="payment" or response_disabled() or not payment_ready(): return
+  if local.get("action","")=="choice_payment":
+   var paid_target=local.target.duplicate(true);paid_target.payment=local.plan.duplicate(true)
+   if not engine.payment_valid(acting_player(),local.choice_cost,local.plan):message="支付方案已失效";render();return
+@@ -946,8 +929,6 @@
+ func settings_menu():
+  var panel=overlay("对战设置")
+  panel.position=Vector2(475,285)
+- var cb=CheckButton.new(); cb.text="自动支付"; cb.position=Vector2(30,86); cb.size=Vector2(280,46); cb.button_pressed=auto_pay; panel.add_child(cb)
+- cb.toggled.connect(func(value): auto_pay=value)
+  btn("继续游戏",Rect2(30,180,260,48),func(): modal=false; render(),true,panel)
+  btn("投降",Rect2(330,180,260,48),func():
+   var confirm=overlay("确认投降")
+@@ -1276,7 +1257,9 @@
+  sync_picker()
+  if not picker.ready(): return
+  local.target=picker.option()
+- start_payment()
++ refresh_payment_plan()
++ if not payment_ready():return
++ local.mode="payment";commit_local()
+ func confirm_trigger():
+  if observing or not local.is_empty() or not picker_active(): return
+  sync_picker()
+@@ -1295,12 +1278,6 @@
+  if engine.pending.kind=="trigger": engine.choose_trigger({})
+  elif engine.pending.trigger.optional: engine.choose_effect({})
+  picker.reset(); selection=[]; render()
+-func pay_automatically():
+- if observing or local.is_empty() or local.mode!="payment_offer" or response_disabled(): return
+- local.mode="payment"
+- var excluded=[local.uid] if local.get("action","")=="ability" and engine.ability_parameters(local.uid,local.index).get("横置",false) else []
+- local.plan=engine.payment(acting_player(),local_cost(),excluded).plan
+- commit_local()
+ func inline_pick(atom: Dictionary):
+  if observing or not picker_active(): return
+  if picker.select(atom):
+@@ -1337,8 +1314,9 @@
+      if not c.is_empty(): inspect_card(c.card_id,c.uid))
+  if picker.available().any(func(atom): return atom.get("role","")=="sacrifice"):
+   txt("选择牺牲的单位",Rect2(1330,620,237,32),18,host.GOLD)
+- var button=btn("确定",Rect2(1330,799,237,49),confirm,true)
+- button.disabled=not picker.ready()
++ if local.is_empty() or payment_ready():
++  var button=btn("确定" if local.is_empty() else "发动",Rect2(1330,799,237,49),confirm,true)
++  button.disabled=not picker.ready()
+  if optional: btn("不使用",Rect2(1330,853,115,36),decline_trigger)
+  if not picker.path.is_empty(): btn("重选",Rect2(1452,853,115,36),func(): picker.path=[]; picker.normalize(); render())
+ func render_life(who: int,rect: Rect2):
+@@ -1544,12 +1522,16 @@
+ 
+ func begin_attack_payment(uid: int):
+  local={"uid":uid,"action":"attack","mode":"payment","target":{},"plan":[]}
+- selection=[];picker.reset();start_payment()
++ selection=[];picker.reset();refresh_payment_plan()
++ if local_cost().values().all(func(n):return n==0):commit_local()
++ else:render()
+ func render_floating_resources():
+  var pool=payment_sources().filter(func(r):return r.get("kind","")=="floating")
+  if pool.is_empty():return
+- var scroll=ScrollContainer.new();scroll.position=Vector2(1330,480);scroll.size=Vector2(237,118);hud.add_child(scroll)
++ var scroll=ScrollContainer.new();var rect=right_rect(Rect2(1330,480,237,118));scroll.position=rect.position;scroll.size=rect.size;hud.add_child(scroll)
+  var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+  for resource in pool:
+   var button=Button.new();button.text="%s 1%s" % [resource.colors[0]," ✓" if local.plan.any(func(p):return p.uid==resource.uid) else ""]
+-  button.custom_minimum_size=Vector2(215,34);rows.add_child(button);button.pressed.connect(func():reserve_resource(resource.uid))
++  button.custom_minimum_size=Vector2(165,34);rows.add_child(button);button.pressed.connect(func():reserve_resource(resource.uid))
++  var ink=Color("#ffd65c") if local.plan.any(func(p):return p.uid==resource.uid) else Color("#359bff")
++  button.add_theme_stylebox_override("normal",host.style(Color("#172936"),ink))

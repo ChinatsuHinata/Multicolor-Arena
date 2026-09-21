@@ -1,0 +1,17 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: mouse drag from library adds exactly one card
+PASS: mouse drag back over library row removes card
+PASS: mouse drag from library adds to side deck
+PASS: returning side card removes it
+PASS: leader may be dragged out
+PASS: library drag fills leader slot
+PASS: cancelled drag neither adds nor removes
+PASS: remove exact dragged duplicate
+PASS: stale source cannot remove another card
+PASS: preview shows abilities without stats or metadata
+PASS: rules retain meaningful effect numbers
+PASS: saved player decks unchanged
+V04_TEST: 12 checks, 0 failures

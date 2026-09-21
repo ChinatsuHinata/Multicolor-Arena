@@ -1,0 +1,10 @@
+v094-final-test_v094.log : V094_TEST: 47 checks; 0 failures
+v094-rules.log : V09_RULES: 144 checks; 0 failures
+v094-matches.log : V09_MATCHES: 17 checks; 0 failures
+v094-test_v093.log : V093_TEST: 71 checks; 0 failures
+v094-test_v092.log : V092_TEST: 61 checks; 0 failures
+v094-final-test_v08.log : V08_TEST: 59 checks; 0 failures
+v094-test_v082.log : V082_TEST: 41 checks; 0 failures
+v094-test_v081.log : V081_TEST: 20 checks; 0 failures
+v094-test_v09_ui.log : V09_UI: 37 checks; 0 failures
+v094-test_v06.log : V06_TEST: 38 checks; 0 failures; 463 actions; 23 turns

@@ -1,0 +1,121 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: drag opens bottom-right confirmation without a modal
+PASS: unique auto-payment waits for explicit confirmation
+PASS: right click outside cancels before automatic payment
+PASS: button: 确定
+PASS: confirmed unique payment commits the unit once
+PASS: untargeted unit creates no target arrow
+PASS: life above 20 shows the true number with a full bar
+PASS: health bar remains inside its player object
+PASS: life below 20 uses proportional fill
+PASS: targeted card uses battlefield blue outlines instead of a popup
+PASS: both players are highlighted when legal targets
+PASS: selecting target turns it gold without payment or a public action
+PASS: player can replace the preselected unit as target
+PASS: right click cancels the entire targeted card declaration
+PASS: button: 确定
+PASS: confirmation preserves the declared battlefield target
+PASS: stack arrow points to the selected unit
+PASS: committed source has no yellow border
+PASS: resolved stack entry removes its arrow
+PASS: button: 确定
+PASS: manual payment follows confirmed target inline
+PASS: manual payment reserves resources privately
+PASS: right click during payment refunds every reservation
+PASS: button: 确定
+PASS: ambiguous payment asks inline instead of opening a modal
+PASS: cancelling auto-payment offer is also private
+PASS: button: 确定
+PASS: button: 自动支付
+PASS: damage spell arrow points at opponent's life object
+PASS: legal stack counter-target is blue
+PASS: selected stack counter-target is gold
+PASS: button: 确定
+PASS: counter adds an arrow to its stack target alongside the original arrow
+PASS: countered and resolved entries leave no dangling arrows
+PASS: Yuyuko sacrifice ability targets directly on battlefield
+PASS: sacrifice is not paid before confirmation
+PASS: button: 确定
+PASS: confirmed sacrifice offers the separate death trigger
+PASS: database binds one damage and two uses per turn
+PASS: death trigger target selection does not fire immediately
+PASS: button: 确定
+ERROR: first use enters stack and counts exactly once
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:91)
+       [2] press (res://tests/test_v092.gd:25)
+       [3] click (res://tests/test_v092.gd:22)
+ERROR: first Yuyuko trigger deals exactly one damage
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:94)
+       [2] settle (res://tests/test_v092.gd:45)
+ERROR: same death cannot enqueue duplicate Yuyuko triggers
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:98)
+       [2] settle (res://tests/test_v092.gd:45)
+PASS: second death starts with no target inherited from the first
+PASS: button: 确定
+ERROR: second activation chooses a separate target and deals one damage
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:101)
+       [2] settle (res://tests/test_v092.gd:45)
+ERROR: third death cannot activate a third time in the same turn
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:103)
+       [2] settle (res://tests/test_v092.gd:45)
+PASS: use limit resets on the next turn
+PASS: button: 不使用
+ERROR: declining optional trigger does not consume a use
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:107)
+       [2] press (res://tests/test_v092.gd:25)
+       [3] click (res://tests/test_v092.gd:22)
+PASS: button: 确定
+PASS: multicolor payment uses inline color buttons
+PASS: button: 红
+PASS: inline color choice only reserves the selected color
+PASS: cancelling multicolor payment restores the original private state
+PASS: after grave selection, the next compound target is highlighted on the battlefield
+PASS: button: 确定
+PASS: compound trigger has arrows to both actual targets
+PASS: compound grave-return trigger resolves with the selected player target
+ERROR: hand card is highlighted for additional discard cost
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:134)
+       [2] settle (res://tests/test_v092.gd:45)
+ERROR: hand target can be selected without discarding yet
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:136)
+       [2] click (res://tests/test_v092.gd:22)
+PASS: button: 确定
+ERROR: confirmed hand-cost ability discards then reanimates normally
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v092.gd:12)
+       [1] run (res://tests/test_v093.gd:140)
+       [2] settle (res://tests/test_v092.gd:45)
+PASS: compound mode choices retain both independently selected targets
+PASS: additional sacrifice selection still requires the spell target
+PASS: additional costs preserve the complete legal engine option
+PASS: unordered two-target choice accepts either click order and submits canonical legal option
+PASS: real saved decks remain unchanged
+V093_TEST: 69 checks; 9 failures

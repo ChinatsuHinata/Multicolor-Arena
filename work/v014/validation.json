@@ -1,0 +1,105 @@
+{
+  "version": "v0.14",
+  "date": "2026-09-19",
+  "checks": 1063,
+  "failures": 0,
+  "tests": [
+    {
+      "log": "test_v010_rules.log",
+      "checks": 146,
+      "failures": 0
+    },
+    {
+      "log": "test_v010_ui-visual.log",
+      "checks": 43,
+      "failures": 0
+    },
+    {
+      "log": "test_v011_rules.log",
+      "checks": 188,
+      "failures": 0
+    },
+    {
+      "log": "test_v012_rules.log",
+      "checks": 110,
+      "failures": 0
+    },
+    {
+      "log": "test_v012_ui-visual.log",
+      "checks": 23,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_edges.log",
+      "checks": 138,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_rules.log",
+      "checks": 120,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_ui-visual.log",
+      "checks": 37,
+      "failures": 0
+    },
+    {
+      "log": "test_v014_rules.log",
+      "checks": 55,
+      "failures": 0
+    },
+    {
+      "log": "test_v014_ui-visual.log",
+      "checks": 49,
+      "failures": 0
+    },
+    {
+      "log": "test_v095_edges-visual.log",
+      "checks": 30,
+      "failures": 0
+    },
+    {
+      "log": "test_v096-visual.log",
+      "checks": 57,
+      "failures": 0
+    },
+    {
+      "log": "test_v098-visual.log",
+      "checks": 67,
+      "failures": 0
+    }
+  ],
+  "matches": [
+    {
+      "log": "test_v012_matches.log",
+      "completed": 8,
+      "unfinished": 0
+    },
+    {
+      "log": "test_v013_matches.log",
+      "completed": 12,
+      "unfinished": 0
+    }
+  ],
+  "complete_matches": 20,
+  "saved_files_unchanged": {
+    "saves/decks.json": "374fb08997041795b63a4298fb89d4f9da96f80ce21314764d9c23a7bd0d9e90",
+    "data/test_precons.json": "7f196445d5afe12724878a738483bf282556b2ceb245ef438c99035ddf2ada74"
+  },
+  "database_cards": 486,
+  "new_card_definitions": 0,
+  "presentation_hold_seconds": 1.0,
+  "melodies_covered": 13,
+  "screenshots_reviewed": [
+    "battlefield-layout.png",
+    "settings-center.png",
+    "hand-reveal.png",
+    "top-reveal.png",
+    "bottom-reveal.png"
+  ],
+  "project_errors": [],
+  "environment_diagnostics": [
+    "Windows root certificate store read warning"
+  ]
+}

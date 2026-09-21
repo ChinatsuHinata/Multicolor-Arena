@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "real_two_computers_tested": false,
+  "usb_tested": false,
+  "tests": [
+    {
+      "name": "test_portable",
+      "checks": 85
+    },
+    {
+      "name": "test_portable_ui-visual",
+      "checks": 22
+    },
+    {
+      "name": "test_v0182_rules",
+      "checks": 38
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43
+    },
+    {
+      "name": "test_v0181_ui-visual",
+      "checks": 28
+    },
+    {
+      "name": "test_v1_network",
+      "checks": 45
+    },
+    {
+      "name": "test_v1_ui-visual",
+      "checks": 40
+    }
+  ],
+  "checks": 301,
+  "release_first_checks": 522,
+  "archive_crc_validated": true,
+  "extracted_bytes_identical": true,
+  "checksum_tools_positive_and_negative_passed": true,
+  "final_extracted_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-portable/MulticolorArena.exe",
+      "bytes": 109168640,
+      "sha256": "19e8275e1471d4ca86ef423fe54bc790b1568e8680d83a333bb7c5a77b6a0e34"
+    },
+    {
+      "path": "builds/Windows-portable/MulticolorArena.pck",
+      "bytes": 587881884,
+      "sha256": "95cd53ac538f6744910efd727905ad5edb281642b732f6fd9aec4276100d6252"
+    },
+    {
+      "path": "builds/MulticolorArena-1.0-portable-win64.zip",
+      "bytes": 623619698,
+      "sha256": "fca4cab1798a86607ceddc08e28291fffd592a38ca91a741f986c4e0c2c87e14"
+    },
+    {
+      "path": "builds/CheckTransfer-portable.cmd",
+      "bytes": 981,
+      "sha256": "5408df9ac956df418f2a37b79f2a61c4cd3049d5775fc4bf9b3ef335485be70d"
+    }
+  ]
+}

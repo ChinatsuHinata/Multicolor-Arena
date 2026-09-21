@@ -1,0 +1,78 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 费用勘误 character-mar-023
+PASS: 颜色与筛选勘误 character-mar-023
+PASS: 费用勘误 character-fdn-026
+PASS: 颜色与筛选勘误 character-fdn-026
+PASS: 费用勘误 spell-fdf-021
+PASS: 颜色与筛选勘误 spell-fdf-021
+PASS: 费用勘误 spell-fdf-036
+PASS: 颜色与筛选勘误 spell-fdf-036
+PASS: 费用勘误 spell-fdn-010
+PASS: 颜色与筛选勘误 spell-fdn-010
+PASS: 百鬼夜行灵力2
+PASS: 照国旧ID兼容且归为同一张牌
+PASS: 射命丸文可在对手准备阶段使用 79
+PASS: 文启动式自机能力可在对手回合使用 79
+PASS: 文提交异能 79
+PASS: 文异能正确结算 79
+PASS: 射命丸文可在对手准备阶段使用 character-fdn-036
+PASS: 传统记者非自机仍遵守使用时机
+PASS: 文启动式自机能力可在对手回合使用 character-fdn-036
+PASS: 文提交异能 character-fdn-036
+PASS: 文异能正确结算 character-fdn-036
+PASS: 鵺黑+单一混色可使用 soi_unit_086红
+PASS: 鵺黑+单一混色可使用 soi_unit_086蓝
+PASS: 鵺黑+单一混色可使用 soi_unit_086绿
+PASS: 鵺仍要求至少一种红蓝绿 soi_unit_086
+PASS: 鵺黑+单一混色可使用 character-fdf-117红
+PASS: 鵺黑+单一混色可使用 character-fdf-117蓝
+PASS: 鵺黑+单一混色可使用 character-fdf-117绿
+PASS: 鵺仍要求至少一种红蓝绿 character-fdf-117
+PASS: 平安鵺1黑+4点红蓝绿混合支付
+PASS: 平安鵺实际混合付费提交
+PASS: 两个自机进場产生独立阶梯触发
+PASS: 阶梯触发写明进场自机
+PASS: 早苗同一单位每局一次
+PASS: 另一实例早苗仍能使用每局一次能力
+PASS: 受控单位死亡进入拥有者墓地
+PASS: 审视中的敌方自机由拥有者选择
+PASS: 审视自机选择后的区域/拥有者正确
+PASS: 审视中的敌方自机由拥有者选择
+PASS: 审视自机选择后的区域/拥有者正确
+PASS: 1/1加3指示物受伤仍存活
+PASS: 实际使用 137 
+PASS: 百万鬼夜行移除指示物后立即死亡且转移完整
+PASS: 选择/付费边界执行状态动作，不等下一次伤害
+PASS: 玉枝进场并登记结束牺牲
+PASS: 辉夜跳过结束时消费玉枝牺牲，不延期
+PASS: 下个结束阶段不补触发玉枝
+PASS: 一条归桥付款前不选重置对象
+PASS: 一条归桥提交
+PASS: 一条归桥在结算时开启选择
+PASS: 可重置刚用于支付一条归桥的资源
+PASS: 八云紫回场作为延迟触发进入堆叠
+PASS: 天狗防御能够选择回场触发
+PASS: 实际使用 123 
+PASS: 反制紫回场触发后单位留在除外
+PASS: 巡礼改写后时符进场并造妖精
+PASS: 巡礼改写后乐章进场并造妖精
+PASS: 实际使用 109 
+PASS: 冈格尼尔锁住对手使用牌与启动能力
+PASS: 冈格尼尔实际使用不让在场的测谎仪响应进入堆叠
+PASS: 仅宣攻时已有英勇才重置 false
+PASS: 英勇重置不使用堆叠
+PASS: 仅宣攻时已有英勇才重置 true
+PASS: 英勇重置不使用堆叠
+PASS: 奇迹使用彼岸神想触发新早苗自机效果
+PASS: 妖怪山妖精复制保留111指示物
+PASS: 其他复制效果没有擅自新增复制指示物规则
+PASS: 50+1自组卡组严格检查 1.0红u
+PASS: 50+1自组卡组严格检查 1.0四色妖梦
+PASS: 50+1自组卡组严格检查 预组-灵梦
+PASS: 50+1自组卡组严格检查 预组-魔理沙
+PASS: 49+1不能当作50主牌
+PASS: 保留自机同名禁入主牌规则
+BUGS0921 RULES 73 checks; failures=[]

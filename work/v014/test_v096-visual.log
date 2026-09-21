@@ -1,0 +1,64 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: preview and region browser start closed
+PASS: no region tabs without usable off-hand cards
+PASS: empty exile zones are hidden
+PASS: surface pile opens a two-column grid
+PASS: grid has all cards without duplicate descriptions
+PASS: four full rows of two cards fit in sidebar
+PASS: opponent deck pile switches sidebar and hides identities
+PASS: nonempty opposing exile pile can be inspected
+PASS: exile occupies the space below leader
+PASS: outside right click closes region grid
+PASS: region tab: deck
+PASS: deck tab reveals only the usable deck spell
+PASS: deck-tab card starts normal private declaration
+PASS: deck spell can be cancelled without trapping the turn
+PASS: region tab: hand
+PASS: button: 结束主要阶段
+PASS: an open deck inspection does not prevent Okuu turn progression: prepare
+PASS: region tab: deck
+PASS: button: 确定
+PASS: Okuu deck spell resolves and exhausted tab disappears
+PASS: missing region action automatically restores hand
+PASS: region tab: grave
+PASS: grave tab can activate a grave ability by clicking its face
+PASS: button: 确定
+PASS: grave ability completes and tab disappears
+PASS: button: 确定
+PASS: hybrid unit starts manual payment
+PASS: four-color palette card offers every legal payment color
+PASS: button: 绿
+PASS: manual RGB pool counts mixed payments together
+PASS: cancelling hybrid payment restores all private reservations
+PASS: multi-action panel centered
+PASS: region card selector centered
+PASS: simultaneous trigger choices centered
+PASS: multi-block damage allocation centered
+PASS: end-of-game panel centered
+PASS: direct hand drag puts card on deck top
+PASS: deck browser drag adds card to actual hand
+PASS: direct hand-to-field debug drag is silent
+PASS: world permanent can be dragged directly to deck top
+PASS: debug destination hint is above the moving card
+PASS: dragging into empty exile creates its visible zone
+PASS: exile zone disappears after its final card leaves
+PASS: lethal attacker remains visible for damage presentation
+PASS: collision publishes damage numbers before departures
+PASS: lethal negative health is displayed without clamping
+PASS: damage hold blocks passing and clicks even in fast mode
+PASS: damage remains visible after 0.6 seconds
+PASS: dead attacker leaves after one second and first striker remains
+PASS: dead attacker cannot perform a normal strike
+PASS: collision publishes damage numbers before departures
+PASS: all simultaneous first-strike casualties stay visible during hold
+PASS: all first-strike casualties leave together
+PASS: collision publishes damage numbers before departures
+PASS: surviving normal blocker creates a separate second damage animation
+PASS: both first-strike and normal windows fully finish
+PASS: live saved decks unchanged
+V096_UI: 57 checks; 0 failures
+

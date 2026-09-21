@@ -1,0 +1,98 @@
+[
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "你生命归零",
+    "seed": 1,
+    "turns": 21,
+    "winner": 1
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "人机生命归零",
+    "seed": 2,
+    "turns": 23,
+    "winner": 0
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "你生命归零",
+    "seed": 3,
+    "turns": 33,
+    "winner": 1
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "你生命归零",
+    "seed": 4,
+    "turns": 22,
+    "winner": 1
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "恋符「极限火花」结算",
+    "seed": 5,
+    "turns": 21,
+    "winner": 1
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "你生命归零",
+    "seed": 6,
+    "turns": 24,
+    "winner": 1
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": false
+    },
+    "result": "人机生命归零",
+    "seed": 7,
+    "turns": 28,
+    "winner": 0
+  },
+  {
+    "coverage": {
+      "attack": true,
+      "block": true,
+      "counter": true,
+      "spell": true
+    },
+    "result": "你生命归零",
+    "seed": 8,
+    "turns": 24,
+    "winner": 1
+  }
+]

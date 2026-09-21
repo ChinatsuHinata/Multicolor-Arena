@@ -1,0 +1,28 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: emotion first mode available before choosing target
+PASS: button: 移回手牌
+PASS: emotion recovery opens grave art selection
+PASS: dynamic group can be finished
+PASS: button: 下一项（1）
+PASS: button: 造成1点伤害
+PASS: dynamic group can be finished
+PASS: button: 完成选择（1）
+PASS: emotion second mode is independently chosen
+PASS: button: 确定
+PASS: button: 自动支付
+PASS: mode spell enters stack after confirmation
+PASS: UI resolves recovery and player damage
+PASS: counter amount visible in inspection
+PASS: Cirno exposes two separate abilities
+PASS: Youmu creates actual runtime halfghost
+PASS: runtime halfghost uses replaced canonical artwork
+PASS: button: 确定
+PASS: Kokoro leader allows player mood choice
+PASS: button: 怒
+PASS: button: 确定
+PASS: mood UI creates supplied mask token
+PASS: UI keeps saved decks unchanged
+V012_UI: 23 checks; 0 failures

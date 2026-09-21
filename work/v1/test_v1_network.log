@@ -1,0 +1,50 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS failed recovery checkpoint cannot unlock guest
+PASS project name and version updated
+PASS renaming preserves legacy save directory
+PASS Last Utopia costs two blue one green
+PASS Winter costs two blue one black
+PASS one blue plus 绿 is insufficient
+PASS two blue plus 绿 pays exactly three resources
+PASS one blue plus 黑 is insufficient
+PASS two blue plus 黑 pays exactly three resources
+PASS create 1.0 BO3
+PASS new guest requests room
+PASS both synchronized
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS host locks immediately when guest disconnects
+PASS locked host cannot surrender or advance rules
+PASS 30 second reconnect countdown
+PASS 29.999 seconds stays recoverable
+PASS normal automatic reconnect succeeds in grace period
+PASS successful sync clears both reconnect deadlines
+PASS reconnection preserves full state without new moves
+PASS repeated disconnects and failed attempts do not reset timer
+PASS guest also freezes when host is missing
+PASS host terminates at exactly 30 seconds
+PASS guest terminates at exactly 30 seconds
+PASS both terminate entire series
+PASS disconnect forfeits entire match while preserving played scores
+PASS timeout leaves final battlefield intact for viewing
+PASS expired sessions cannot accept gameplay
+PASS expired host and guest cannot manually resume old match
+PASS ended-room tombstone also rejects stale pre-timeout backup
+PASS termination is idempotent
+PASS create 1.0 BO3
+PASS new guest requests room
+PASS both synchronized
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS host checkpoint cannot reopen after persisted deadline
+PASS fresh guest process refuses expired resume record
+PASS create 1.0 BO3
+PASS new guest requests room
+PASS both synchronized
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS new room after timeout is playable
+V1 NETWORK 45 checks; failures=[]

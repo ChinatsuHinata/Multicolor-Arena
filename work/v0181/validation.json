@@ -1,0 +1,47 @@
+{
+  "version": "0.18.1",
+  "real_two_computers_tested": false,
+  "virtual_network_tested": false,
+  "tests": [
+    {
+      "name": "test_v0181_latency",
+      "checks": 9,
+      "errors": []
+    },
+    {
+      "name": "test_v0181_series",
+      "checks": 43,
+      "errors": []
+    },
+    {
+      "name": "test_v0181_ui-visual",
+      "checks": 28,
+      "errors": []
+    }
+  ],
+  "checks": 80,
+  "release_first_checks": 518,
+  "final_startup": {
+    "exit": 0,
+    "errors": [],
+    "bundled_decks": 4
+  },
+  "artifacts": [
+    {
+      "path": "builds/Windows-v0.18.1/Multicolour.exe",
+      "bytes": 109168640,
+      "sha256": "55d0890717cfb0009a00a2dab25d2acae633cf237be05f617bac3c715b8a50ad"
+    },
+    {
+      "path": "builds/Windows-v0.18.1/Multicolour.pck",
+      "bytes": 587842904,
+      "sha256": "ae6a5f2898d486bff7d924cda25d50c915f0159c14605cc19b775dab50b9d3e3"
+    },
+    {
+      "path": "builds/极彩Multicolour-Windows-v0.18.1-LAN.zip",
+      "bytes": 623573572,
+      "sha256": "4519ce3393470bfc2cfdadd5a886162f216d1d9234e8c242254f168930fa1e01"
+    }
+  ],
+  "archive_validated": true
+}

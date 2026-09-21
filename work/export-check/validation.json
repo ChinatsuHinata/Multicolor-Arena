@@ -1,0 +1,29 @@
+{
+  "registered_cards": 486,
+  "bundled_decks": 4,
+  "release_verification_checks": 1510,
+  "deck_regression_checks": 22,
+  "release_startup_exit": 0,
+  "errors": [],
+  "original_saves_unchanged": true,
+  "package": "C:\\Users\\tzx20\\Documents\\test\\builds\\极彩Multicolour-Windows-v0.15.3.zip",
+  "package_bytes": 527125992,
+  "sha256": "700a46d74b59741eb98bb38d5685c361f47958675962b1e670a7a569256f5b20",
+  "release_checks": [
+    {
+      "mode": "first",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "mode": "restart",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "mode": "empty",
+      "exit": 0,
+      "errors": []
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+DROP 0 deck (1273.035, 449.1201) -> deck
+DROP 0 grave (1310.685, 563.7727) -> 
+DROP 0 exile (1240.416, 349.7899) -> exile
+DROP 0 leader (493.906, 449.1201) -> leader
+DROP 1 deck (536.1468, 270.7099) -> deck
+DROP 1 grave (552.156, 194.1341) -> hand
+DROP 1 exile (517.8371, 358.2891) -> exile
+DROP 1 leader (1218.777, 270.7099) -> leader
+AFTER DROP [{ "uid": 103, "epoch": 0, "card_id": "164", "owner": 0, "zone": "field", "leader": false, "tapped": false, "damage": 0, "timer": 0, "entered": 0, "attacked": false }, { "uid": 104, "epoch": 0, "card_id": "1", "owner": 0, "zone": "field", "leader": false, "tapped": false, "damage": 0, "timer": 0, "entered": 0, "attacked": false }] / 

@@ -1,0 +1,25 @@
+v0.10 final validation — 2026-09-19
+
+v010-regression-test_v010_rules.log: 146 checks; 0 failures
+v010-regression-test_v098_rules.log: 33 checks; 0 failures
+v010-regression-test_v095_rules.log: 49 checks; 0 failures
+v010-regression-test_v096_rules.log: 165 checks; 0 failures
+v010-regression-test_v09_rules.log: 144 checks; 0 failures
+v010-regression-test_duel_rules.log: 36 checks; 0 failures
+v010-regression-test_v097_database.log: 274 checks; 0 failures
+v010-regression-test_v098.log: 67 checks; 0 failures
+v010-ui.log: 43 checks; 0 failures
+
+Total: 957 checks; 0 failures.
+8 full precon matches finished (both first-player assignments, seeds 1–8).
+No project script/texture/shader error in selected logs. Existing Windows root certificate diagnostic only.
+All 132 database images imported and decoded in Godot; index hashes match.
+57 supplied image moves and 13 supplementary art entries verified against the archive plan.
+Original 65 card definitions unchanged; original 4 saved decks preserved.
+Two saved precons exactly match templates: 50 main + 1 leader, 0 side, 0 tokens.
+Fresh graphical launch selects saved precons; 43 UI checks passed.
+New later queue: 30 images not in initial backup, left unchanged pending batch decision.
+Visual QA: precon editors, opening table, multi-target stack, region search, direct unit attack.
+Missing source art: token-ucs-093 uses an SVG medicine placeholder. Effect implemented.
+Backup: work/v010-backup. Saved-deck .bak retains the pre-install list.
+All outputs and project changes remain under C:/Users/tzx20/Documents/test.

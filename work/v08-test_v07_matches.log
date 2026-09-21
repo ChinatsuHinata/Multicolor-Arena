@@ -1,0 +1,19 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: expanded pool builds a legal 50-card deck with at most four copies
+PASS: new-card match seed 1 completes without stalled command
+PASS: new-card match seed 2 completes without stalled command
+PASS: new-card match seed 3 completes without stalled command
+PASS: new-card match seed 4 completes without stalled command
+PASS: new-card match seed 5 completes without stalled command
+PASS: new-card match seed 6 completes without stalled command
+PASS: AI actually uses new card 「鬼神长」
+PASS: AI actually uses new card 「山童士兵」
+PASS: AI actually uses new card 「埴轮泰坦」
+PASS: AI actually uses new card 「龙宫使者」
+PASS: AI actually uses new card 「玩耍的妖精」
+PASS: AI actually uses new card 「樱华ノ月」
+PASS: AI actually uses new card 「甜蜜时刻」
+V07_MATCHES: 14 checks; 0 failures

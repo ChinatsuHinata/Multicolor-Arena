@@ -1,0 +1,74 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 15 cards load with source metadata and valid art
+PASS: oni stats match supplied image and sheet
+PASS: vanilla units preserve low cost and zero power
+PASS: generic two-color damage spell is fast
+PASS: sweet moment is fast non-character spell
+PASS: new pool accepted by deck save validation
+PASS: ordinary unit cannot become a leader
+PASS: ordinary unit has no leader color constraint
+PASS: ordinary unit enters with summoning sickness
+PASS: ordinary names without titles can coexist
+PASS: two copies of ordinary soldier coexist
+PASS: dragon can respond in opponent turn
+PASS: flash unit resolves normally, not haste
+PASS: buff cannot target a player
+PASS: buff does not apply before stack resolution
+PASS: sweet moment grants correct temporary stats
+PASS: haste permits this-turn attack
+PASS: attack offers block selection
+PASS: unblocked attack uses temporary spirit
+PASS: temporary stats and haste expire at turn end
+PASS: buff fizzles when target leaves battlefield
+PASS: attack offers block selection
+PASS: annihilate deals spirit when blocker dies
+PASS: attack offers block selection
+PASS: annihilate happens once despite multiple kills and simultaneous death
+PASS: attack offers block selection
+PASS: annihilate does not trigger without killing a blocker
+PASS: attack offers block selection
+PASS: annihilate does not trigger while defending
+PASS: titan brave creates end-phase trigger
+PASS: titan brave untaps on resolution
+PASS: generic fast spell deals actual two damage
+PASS: AI uses new fast damage for lethal response
+PASS: new AI response can complete match
+PASS: AI passes unusable buff instead of stalling
+PASS: untapped palette shows blue possession border
+PASS: tapped palette cannot be possessed
+PASS: phase banner contains text only
+PASS: confirm disabled before both selections
+PASS: clicked palette becomes gold
+PASS: clicking selected palette cancels to blue
+PASS: hand card can be selected after palette
+PASS: selected hand gold border is visibly thick
+PASS: selecting both cards does not exchange or reveal action
+PASS: both selections enable confirmation
+PASS: selected hand can be toggled off
+PASS: only confirm exchanges cards
+PASS: confirmation clears both local selections
+PASS: no separate hand color or cost chips
+PASS: no extra battlefield color elements
+PASS: deck and grave match printed mat centers
+PASS: pile footprint fits printed slot
+PASS: leader footprint matches printed slot scale
+PASS: piles stay proportional while resting closer to mat
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: six units remain in battlefield rather than palette
+PASS: editor shares expanded card database
+PASS: user deck save unchanged
+V07_TEST: 68 checks; 0 failures

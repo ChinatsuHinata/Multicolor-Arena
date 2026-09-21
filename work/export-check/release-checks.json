@@ -1,0 +1,17 @@
+[
+  {
+    "mode": "first",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "mode": "restart",
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "mode": "empty",
+    "exit": 0,
+    "errors": []
+  }
+]

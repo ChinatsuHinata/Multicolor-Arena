@@ -1,0 +1,18 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: third row fills space beneath leader
+PASS: all 70 main cards have distinct unobscured positions
+PASS: last card scrolls fully into view
+PASS: red and yellow stay selected together
+PASS: multiple selected colors require an exact color set
+PASS: unchecking one color preserves the other
+PASS: all resets color selection
+PASS: three requested multicolor identities
+PASS: library labels preserve entire titles and names
+PASS: full character title is searchable
+PASS: complete workbook ability text in preview
+PASS: preview footer remains reachable by scrolling
+PASS: player saved decks unchanged
+V03_TEST: 13 checks, 0 failures

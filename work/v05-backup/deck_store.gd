@@ -1,0 +1,167 @@
+extends RefCounted
+const SAVE_PATH = "res://saves/decks.json"
+# Card text transcribed from the supplied workbook; source rows retained per card.
+const CARDS = {
+ "68": {
+  "name": "普通的魔法使「雾雨魔理沙」",
+  "kind": "自机",
+  "color": "蓝 / 黄",
+  "colors": [
+   "蓝",
+   "黄"
+  ],
+  "file": "image68.png",
+  "description": "费用：蓝2  黄2  /  颜色值 4\n\n种族：人类\n\n攻击 3  /  生命 3  /  灵力 2\n\n主动能力：该单位进战场时，该牌可以对目标单位造成3点伤害。\n\n自机能力：当你使用符卡时，该牌可以对目标单位造成1点伤害。\n\n极色之景  SOI-070  SR\n\n画师：Munchem",
+  "source": "CHARACTER (单位)!行71"
+ },
+ "70": {
+  "name": "乐园的可爱巫女「博丽灵梦」",
+  "kind": "自机",
+  "color": "红 / 黄",
+  "colors": [
+   "红",
+   "黄"
+  ],
+  "file": "image70.png",
+  "description": "费用：红2  黄1  /  颜色值 3\n\n种族：人类\n\n攻击 3  /  生命 4  /  灵力 2\n\n主动能力：英勇。\n\n自机能力：退治。\n\n极色之景  SOI-071  SR\n\n画师：Munchem",
+  "source": "CHARACTER (单位)!行72"
+ },
+ "99": {
+  "name": "恋符「极限火花」",
+  "kind": "符卡",
+  "color": "黄",
+  "colors": [
+   "黄"
+  ],
+  "file": "image99.png",
+  "description": "费用：黄3  /  颜色值 3\n\n符卡·角色\n\n角色：雾雨魔理沙\n\n能力：该牌对目标造成5点伤害。\n\n极色之景  SOI-102  SR\n\n画师：Munchem",
+  "source": "SPELL （符卡）!行7"
+ },
+ "100": {
+  "name": "灵符「梦想封印-瞬-」",
+  "kind": "符卡",
+  "color": "黄",
+  "colors": [
+   "黄"
+  ],
+  "file": "image100.png",
+  "description": "费用：黄2  /  颜色值 2\n\n符卡·角色·高速\n\n角色：博丽灵梦\n\n能力：反制一张牌的使用。\n\n极色之景  SOI-103  SR\n\n画师：Munchem",
+  "source": "SPELL （符卡）!行8"
+ },
+ "164": {
+  "name": "「妖魔书」",
+  "kind": "道具",
+  "color": "黄",
+  "colors": [
+   "黄"
+  ],
+  "file": "image164.png",
+  "description": "费用：黄2  /  颜色值 2\n\n能力：横置该道具：视为支付了1黄。\n\n极色之景  SOI-097  C\n\n画师：A-XII",
+  "source": "ITEM {道具}!行2"
+ },
+ "165": {
+  "name": "「蕾米莉亚的烛台」",
+  "kind": "道具",
+  "color": "红",
+  "colors": [
+   "红"
+  ],
+  "file": "image165.png",
+  "description": "费用：红2  /  颜色值 2\n\n能力：横置该道具：视为支付了1红。\n\n极色之景  SOI-098  C\n\n画师：A-XII",
+  "source": "ITEM {道具}!行3"
+ },
+ "167": {
+  "name": "「魔理沙的元素瓶」",
+  "kind": "道具",
+  "color": "蓝",
+  "colors": [
+   "蓝"
+  ],
+  "file": "image167.png",
+  "description": "费用：蓝2  /  颜色值 2\n\n能力：横置该道具：视为支付了1蓝。\n\n极色之景  SOI-100  C\n\n画师：矢田丰",
+  "source": "ITEM {道具}!行5"
+ },
+ "170": {
+  "name": "博丽神社",
+  "kind": "结界",
+  "color": "红 / 黄",
+  "colors": [
+   "红",
+   "黄"
+  ],
+  "file": "image170.png",
+  "description": "费用：红2  黄1  /  颜色值 3\n\n能力：你操控的所有自机单位获得其自机能力。\n\n极色之景  SOI-103  R\n\n画师：Noa",
+  "source": "FIELD(结界)!行3"
+ }
+}
+static func blank(title: String = "未命名卡组") -> Dictionary:
+ return {"id":str(Time.get_unix_time_from_system()) + "_" + str(randi()), "name":title, "main":[], "side":[], "leader":""}
+static func validate(d: Variant, strict: bool = false) -> String:
+ if not d is Dictionary: return "卡组数据必须是有效对象。"
+ if not d.get("name") is String or d.get("name", "").strip_edges().is_empty(): return "请输入卡组名称。"
+ if d.name.length() > 40: return "卡组名称不能超过 40 个字符。"
+ if not d.get("main") is Array or not d.get("side") is Array: return "主卡组或副卡组格式错误。"
+ if d.main.size() > 70: return "主卡组最多 70 张。"
+ if d.side.size() > 10: return "副卡组最多 10 张。"
+ if not d.get("leader") is String or not CARDS.has(d.leader) or CARDS[d.leader].kind != "自机": return "自机位必须放置一张自机，才可以保存或对战。"
+ for id in d.main + d.side:
+  if not id is String or not CARDS.has(id): return "卡组包含未知卡牌。"
+ if strict and d.main.size() != 50: return "主卡组需要 50 张，当前 %d 张。" % d.main.size()
+ return ""
+static func add_card(d: Dictionary, id: String, zone: String) -> String:
+ if not CARDS.has(id): return "未知卡牌。"
+ if zone == "leader":
+  if CARDS[id].kind != "自机": return "自机位只能放置自机卡。"
+  d.leader = id
+  return ""
+ if not zone in ["main", "side"]: return "无效的卡组区域。"
+ var limit = 70 if zone == "main" else 10
+ if d[zone].size() >= limit: return "该区域已达到 %d 张的上限。" % limit
+ d[zone].append(id)
+ return ""
+static func decode(code: String) -> Dictionary:
+ if code.length() > 100000: return {"error":"卡组代码过长。"}
+ var parser = JSON.new()
+ if parser.parse(code) != OK: return {"error":"卡组代码不是有效 JSON。"}
+ var d = parser.data
+ var error = validate(d)
+ if not error.is_empty(): return {"error":error}
+ var clean = blank(d.name + "（副本）" if d.name.length() < 35 else d.name)
+ clean.main = d.main.duplicate()
+ clean.side = d.side.duplicate()
+ clean.leader = d.leader
+ return {"deck":clean}
+static func load_decks(path: String = SAVE_PATH) -> Dictionary:
+ if not FileAccess.file_exists(path): return {"decks":[]}
+ var f = FileAccess.open(path, FileAccess.READ)
+ if f == null: return {"error":"无法读取卡组文件。", "decks":[]}
+ var data = JSON.parse_string(f.get_as_text())
+ if not data is Dictionary or data.get("version") != 1 or not data.get("decks") is Array:
+  return {"error":"卡组文件损坏，原文件已保留。", "decks":[]}
+ var ids = {}
+ for d in data.decks:
+  var error = validate(d)
+  if not error.is_empty() or not d.get("id") is String or ids.has(d.id):
+   return {"error":"卡组文件包含无效数据，原文件已保留。", "decks":[]}
+  ids[d.id] = true
+ return {"decks":data.decks}
+static func persist(decks: Array, path: String = SAVE_PATH) -> String:
+ for d in decks:
+  var error = validate(d)
+  if not error.is_empty(): return error
+ var temp = path + ".tmp"
+ var f = FileAccess.open(temp, FileAccess.WRITE)
+ if f == null: return "保存失败：无法写入卡组文件。"
+ f.store_string(JSON.stringify({"version":1,"decks":decks}, "  "))
+ f.flush()
+ var write_error = f.get_error()
+ f.close()
+ if write_error != OK: return "保存失败：写入未完成。"
+ if FileAccess.file_exists(path):
+  var copy_error = DirAccess.copy_absolute(path, path + ".bak")
+  if copy_error != OK: return "保存失败：无法备份原卡组。"
+ if DirAccess.rename_absolute(temp, path) != OK: return "保存失败：无法替换卡组文件。"
+ return ""
+
+
+

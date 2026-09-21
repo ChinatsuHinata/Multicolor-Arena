@@ -1,0 +1,144 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: all 46 new images registered: 61 constructible cards
+PASS: import complete: 日之光「桑尼·米尔克」
+PASS: import complete: 「大妖精」
+PASS: import complete: 可怕的波动「芙兰朵露·斯卡蕾特」
+PASS: import complete: 巡秋而来「秋静叶」
+PASS: import complete: 「小恶魔」
+PASS: import complete: 宵暗的妖怪「露米娅」
+PASS: import complete: 天狗记者「射命丸文」
+PASS: import complete: 蓬莱的人之形「藤原妹红」
+PASS: import complete: 地壳下的嫉妒心「水桥帕露西」
+PASS: import complete: 提琴手「露娜萨·普莉兹姆利巴」
+PASS: import complete: 键盘手「莉莉卡·普莉兹姆利巴」
+PASS: import complete: 小号手「梅露兰·普莉兹姆利巴」
+PASS: import complete: 狂气月兔「铃仙·优昙华院·因幡」
+PASS: import complete: 地狱的最高裁判长「四季映姬」
+PASS: import complete: 引雷的亡灵「苏我屠自古」
+PASS: import complete: 苍天的庭师「魂魄妖梦」
+PASS: import complete: 刚欲同盟盟主「饕餮尤魔」
+PASS: import complete: 雪之亡灵「西行寺幽幽子」
+PASS: import complete: 星降的风水师「物部布都」
+PASS: import complete: 忠诚的死体「宫古芳香」
+PASS: import complete: 未知力量X「封兽ぬえ」
+PASS: import complete: 华胥的亡灵「西行寺幽幽子」
+PASS: import complete: 红魔馆的女仆「十六夜咲夜」
+PASS: import complete: 地底的太阳「灵乌路空」
+PASS: import complete: 飞散红叶的天狗「射命丸文」
+PASS: import complete: 二百由旬之一闪「魂魄妖梦」
+PASS: import complete: 「狼女」
+PASS: import complete: 「秋意ノ溪」
+PASS: import complete: 「彼岸ノ神想」
+PASS: import complete: 「背德ノ吸血鬼」
+PASS: import complete: 空观剑「六根清净斩」
+PASS: import complete: 「反魂蝶」
+PASS: import complete: 「永夜蛰居」
+PASS: import complete: 「神游」
+PASS: import complete: 「不明ノ正体」
+PASS: import complete: 「出鞘」
+PASS: import complete: 「极光」
+PASS: import complete: 「无意识ノ雨」
+PASS: import complete: 「Hell's Tokamak」
+PASS: import complete: 「萤燈ノ森」
+PASS: import complete: 「异星弹幕ノ空」
+PASS: import complete: 「正义宝塔ノ光」
+PASS: import complete: 「早苗的御币」
+PASS: import complete: 「幽幽子的折扇」
+PASS: import complete: 红魔馆
+PASS: import complete: 有顶ノ天
+PASS: sort keeps every copy and groups identities
+PASS: sort is idempotent
+PASS: debug disabled rejects mutation
+PASS: debug moves existing instance to field
+PASS: debug rejects ordinary spell remaining on field
+PASS: debug rejects ordinary unit in leader slot
+PASS: debug move to exile
+PASS: debug move to grave
+PASS: debug move to deck
+PASS: debug move to palette
+PASS: debug move to hand
+PASS: debug chosen leader can return to leader zone
+PASS: Sunny enters and grants haste
+PASS: crystal exchanges dead unit with tapped palette
+PASS: Daiyousei death draw and life
+PASS: autumn enters from hand and Koakuma drains
+PASS: Rumia cannot possess
+PASS: Rumia death enters tapped palette
+PASS: Aya returns grave unit and deals its spirit to declared target
+PASS: Mokou grave activation
+PASS: Parsee death drains
+PASS: Lunasa sweeps opposing units
+PASS: Lyrica color evasion
+PASS: Merlin blink leaves in exile
+PASS: Merlin returns next own end start
+PASS: Reisen death damage
+PASS: Eiki exiles grave unit and drains
+PASS: Tojiko puts poverty on two palette cards
+PASS: Youmu entry creates proper combat response window
+PASS: Yuuma devours and receives lasting counter
+PASS: Yuyuko returns with counter once
+PASS: undying does not recur with counter
+PASS: Futo replaces palette with impoverished deck top
+PASS: Yoshika pays colors and discards then reanimates tapped
+PASS: Nue leave creates UFO token
+PASS: token ceases after next end sacrifice
+PASS: leader Yuyuko sacrifice buff and death trigger
+PASS: Yuyuko leader trigger capped twice per turn
+PASS: Sakuya cannot be blocked on entry turn
+PASS: Sakuya offers timer replacement
+PASS: Sakuya decreases timer placement
+PASS: Utsuho spell death schedules rebirth
+PASS: Utsuho returns at next prepare
+PASS: Aya leader bounce once per turn
+PASS: Youmu creates hasty first-strike halfghost
+PASS: wolf native haste
+PASS: first strike kills before retaliation and opens response window
+PASS: cast 94 
+PASS: sacrifice cost and five damage
+PASS: cast 106 
+PASS: draw two
+PASS: first draw miracle offers choice
+PASS: miracle casts without paying colors
+PASS: cast 110 
+PASS: choose first strike mode
+PASS: cast 118 
+PASS: Youmu zero-cost counter also triggers six damage
+PASS: cast 120 
+PASS: timed butterfly prevents life loss defeat
+PASS: butterfly zero timer loses
+PASS: cast 130 
+PASS: destroy high-spirit unit and lose two life
+PASS: cast 131 
+PASS: indestructible prevents lethal damage destruction
+PASS: cast 139 
+PASS: draw then damage equal to remaining hand size
+PASS: cast 141 
+PASS: exile all permanents
+PASS: cast 143 
+PASS: Aurora reanimation mode
+PASS: cast 147 
+ERROR: signed stat modifiers
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v09_rules.gd:11)
+       [1] run (res://tests/test_v09_rules.gd:118)
+PASS: cast 162 
+PASS: Hell Tokamak casts legally from deck
+PASS: cast 163 
+PASS: sacrifice reanimate uses sacrificed mana value
+PASS: Scarlet mansion spirit aura
+PASS: aura ends when enchantment leaves
+PASS: unit count reduces colored cost
+PASS: cast 176 
+PASS: two modes may repeat
+PASS: cast 177 
+ERROR: protection buff prevents damage and changes stats
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v09_rules.gd:11)
+       [1] run (res://tests/test_v09_rules.gd:124)
+PASS: user decks unchanged
+V09_RULES: 131 checks; 2 failures

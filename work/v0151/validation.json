@@ -1,0 +1,28 @@
+{
+  "version": "0.15.1",
+  "date": "2026-09-20",
+  "card_back": "res://recourse/卡背.png",
+  "card_back_sha256": "fd2080447d878f9e5ac968d739c8e3c720a87a6a8533796eadc3479007010aed",
+  "ui_checks": 28,
+  "failures": 0,
+  "screenshots": [
+    "card-back-and-hand.png",
+    "hand-highlights.png"
+  ],
+  "runs": [
+    {
+      "test": "res://work/v0151/preview.gd",
+      "exit": 0,
+      "errors": []
+    },
+    {
+      "test": "res://work/v0151/ui_check.gd",
+      "exit": 0,
+      "errors": []
+    }
+  ],
+  "notes": [
+    "指定图片为横向多卡拼图，原样使用。",
+    "保留交互蓝边和选中黄边。"
+  ]
+}

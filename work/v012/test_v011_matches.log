@@ -1,0 +1,13 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+EXCEL_MATCH seed=1 steps=612 turns=18 winner=0 life=12/-1
+EXCEL_MATCH seed=2 steps=496 turns=17 winner=0 life=18/-3
+EXCEL_MATCH seed=3 steps=280 turns=12 winner=0 life=20/0
+EXCEL_MATCH seed=4 steps=844 turns=23 winner=0 life=22/0
+EXCEL_MATCH seed=5 steps=574 turns=18 winner=0 life=20/-1
+EXCEL_MATCH seed=6 steps=931 turns=27 winner=0 life=16/0
+EXCEL_MATCH seed=7 steps=488 turns=20 winner=0 life=16/-1
+EXCEL_MATCH seed=8 steps=764 turns=23 winner=0 life=23/0
+V011_MATCHES: 8 mixed-new-card matches; 0 unfinished

@@ -1,0 +1,26 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+ERROR: third row fills space beneath leader
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v03.gd:8)
+       [1] run (res://tests/test_v03.gd:21)
+ERROR: all 70 main cards have distinct unobscured positions
+   at: push_error (core/variant/variant_utility.cpp:1023)
+   GDScript backtrace (most recent call first):
+       [0] expect (res://tests/test_v03.gd:8)
+       [1] run (res://tests/test_v03.gd:28)
+PASS: last card scrolls fully into view
+PASS: red and yellow stay selected together
+PASS: multiple selected colors require an exact color set
+PASS: unchecking one color preserves the other
+PASS: all resets color selection
+PASS: three requested multicolor identities
+PASS: library labels preserve entire titles and names
+PASS: full character title is searchable
+PASS: complete workbook ability text in preview
+PASS: preview footer remains reachable by scrolling
+PASS: player saved decks unchanged
+V03_TEST: 13 checks, 2 failures

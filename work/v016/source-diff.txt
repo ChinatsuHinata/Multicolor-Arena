@@ -1,0 +1,121 @@
+--- before/scripts/duel_view.gd
++++ scripts/duel_view.gd
+@@ -38,6 +38,7 @@
+ var host
+ var engine
+ var table
++var stack_panel
+ var viewport: SubViewport
+ var stage: TextureRect
+ var ui: Control
+@@ -108,6 +109,7 @@
+  stage.stretch_mode=TextureRect.STRETCH_SCALE; add_child(stage)
+  stage.gui_input.connect(stage_input)
+  table=preload("res://scripts/duel_table.gd").new(); viewport.add_child(table)
++ table.external_stack=true
+  table.build(engine,host.texture,host.battlefield_background)
+  table.object_selected.connect(object_clicked)
+  table.combat_animation_finished.connect(render)
+@@ -130,6 +132,7 @@
+  ui.move_child(arrow_layer,-1)
+  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
+  effects=layer(ui)
++ stack_panel=preload("res://scripts/duel_stack.gd").new(); ui.add_child(stack_panel); stack_panel.build(self)
+  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
+  banner=layer(ui)
+  observe_button=btn("观察战场",Rect2(1290,12,152,40),toggle_observation,false,ui)
+@@ -268,6 +271,7 @@
+  table.selected_stacks=picker.selected_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id)
+  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
+  render_hands(available)
++ stack_panel.sync()
+  table.presented_moves.clear()
+  rebuild_badges()
+  btn("响应："+RESPONSE_LABELS[response_mode],Rect2(1144,12,136,38),cycle_response_mode,response_mode==ResponseMode.ON)
+@@ -280,8 +284,6 @@
+  render_life(1,Rect2(18,18,218,61))
+  render_life(0,Rect2(18,793,218,70))
+  txt("手牌 %d" % engine.players[1].hand.size(),Rect2(1070,78,170,30),18,host.WHITE)
+- if not engine.stack.is_empty():
+-  txt("堆叠  %d" % engine.stack.size(),Rect2(1330,552,255,34),22,host.GOLD)
+  building_prompt=true
+  if not table.combat_animating: render_prompt()
+  building_prompt=false
+@@ -625,6 +627,9 @@
+     var card=engine.find_card(uid)
+     if not card.is_empty(): inspect_card(card.card_id,uid)
+     get_viewport().set_input_as_handled(); return
++ if not modal and not debug_open and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:
++  if stack_panel.inspect_at(make_input_local(event).position):
++   get_viewport().set_input_as_handled();return
+  if attack_preview_uid!=0 and not observing and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:
+   clear_attack_preview(); render()
+  if observing and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+@@ -1353,12 +1358,11 @@
+  life_widgets[who]={"button":button,"bar":bar,"legal":legal,"selected":selected}
+ func target_rect(target: Dictionary) -> Rect2:
+  if target.has("player") and life_widgets.has(int(target.player)): return life_widgets[int(target.player)].button.get_global_rect()
+- if target.has("stack_id"):
+-  for key in table.descriptors:
+-   if table.descriptors[key].get("stack_id",-1)==target.stack_id: return projected_card_rect(table.visuals[key])
++ if target.has("stack_id"): return stack_panel.entry_rect(int(target.stack_id))
+  if target.has("uid"):
+   var c=engine.find_card(target.uid)
+   if c.is_empty() or c.epoch!=target.get("epoch",-1): return Rect2()
++  if c.zone=="stack": return stack_panel.card_rect(c.uid)
+   var key="card_"+str(c.uid)
+   if table.visuals.has(key): return projected_card_rect(table.visuals[key])
+   var nodes=hand_nodes if c.owner==0 else enemy_nodes
+@@ -1387,9 +1391,8 @@
+  var result=[]
+  if not is_instance_valid(table): return result
+  for entry in engine.stack:
+-  var key="card_"+str(entry.card.uid) if entry.kind=="card" else "ability_"+str(entry.id)
+-  if not table.visuals.has(key): continue
+-  var origin=projected_card_rect(table.visuals[key])
++  var origin=stack_panel.entry_rect(entry.id)
++  if not origin.has_area(): continue
+   var seen=[]
+   for target in arrow_targets(entry.target):
+    if target in seen: continue
+--- before/scripts/duel_table.gd
++++ scripts/duel_table.gd
+@@ -21,6 +21,7 @@
+ var board: MeshInstance3D
+ var camera_distance=NEAREST_CAMERA
+ var duel
++var external_stack=false
+ var texture_provider: Callable
+ var materials={}
+ var visuals={}
+@@ -153,6 +154,7 @@
+   if p.potato:
+    var c={"uid":-100-who,"card_id":"potato","owner":who,"zone":"palette","tapped":false}
+    var d=description(c,Vector3(-7.95*side,0.035,6.8*side),0.52);result[d.key]=d
++ if external_stack: return result
+  for i in range(duel.stack.size()):
+   var entry=duel.stack[i]
+   var c=entry.card if entry.kind=="card" else entry.source
+--- before/scripts/duel_reveal.gd
++++ scripts/duel_reveal.gd
+@@ -100,6 +100,9 @@
+ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
+  var key="card_"+str(uid)
+  if source and move_ends.has(uid):return move_ends[uid]
++ if zone=="stack":
++  var stack_rect=view.stack_panel.card_rect(uid) if source else Rect2()
++  return stack_rect if stack_rect.has_area() else view.stack_panel.arrival_rect()
+  if source and zone=="hand":
+   var nodes=view.hand_nodes if owner==0 else view.enemy_nodes
+   if nodes.has(uid):return nodes[uid].get_global_rect()
+@@ -122,6 +125,10 @@
+  var hidden=current.from in ["hand","deck"] and current.to in ["hand","deck"] and (c.owner!=0 or current.from=="deck" and current.to=="deck") and not view.debug_mode
+  var texture=view.host.texture("back") if hidden else view.host.texture(c.card_id)
+  create_face(from.size,from.get_center(),texture)
++ var stack_rect=view.stack_panel.card_rect(c.uid)
++ if current.from=="stack" and stack_rect.has_area():
++  for id in view.stack_panel.tiles:
++   if view.stack_panel.tiles[id].tile.get_meta("uid")==c.uid:view.stack_panel.tiles[id].tile.modulate.a=0
+  var key="card_"+str(c.uid)
+  if view.table.visuals.has(key):view.table.stop_tween(key);view.table.visuals[key].hide()
+  for nodes in [view.hand_nodes,view.enemy_nodes]:

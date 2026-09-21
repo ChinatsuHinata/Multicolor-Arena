@@ -1,0 +1,26 @@
+[
+  {
+    "id": "91",
+    "name": "地狱的轮祸「火焰猫燐」",
+    "source": "CHARACTER (单位)!行96 · SOI-093",
+    "image": "image91.png"
+  },
+  {
+    "id": "133",
+    "name": "「未应ノ爱」",
+    "source": "SPELL （符卡）!行43 · SOI-139",
+    "image": "image133.png"
+  },
+  {
+    "id": "rec_unit_097",
+    "name": "蓬莱的人之形「藤原妹红」",
+    "source": "CHARACTER (单位)!行247 · REC-097",
+    "image": "蓬莱的人之形「藤原妹红」__character-rec-097.jpg"
+  },
+  {
+    "id": "soi_unit_086",
+    "name": "未确认幻想飞行物「封兽ぬえ」",
+    "source": "CHARACTER (单位)!行87 · SOI-086",
+    "image": "未确认幻想飞行物「封兽ぬえ」__character-soi-086.jpg"
+  }
+]

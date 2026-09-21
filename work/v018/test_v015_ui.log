@@ -1,0 +1,35 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: click eligible card asks paid/free before declaration
+PASS: button: 支付颜色使用
+PASS: paid mode retains target confirmation
+PASS: right click cancels paid mode privately
+PASS: button: 不支付颜色使用
+PASS: free choice enters stack without spending colors
+PASS: hand to stack movement presented
+PASS: stack to field restores visible object
+PASS: button: 支付颜色使用
+PASS: effect-granted ordinary unit retains confirm target after payment choice
+PASS: button: 确定
+PASS: effect grant enters private paid selection
+PASS: cancel effect payment restores paid/free prompt
+PASS: button: 不支付颜色使用
+PASS: button: 确定
+PASS: button: 发动
+PASS: effect-granted ordinary unit free choice commits without colors
+PASS: targetless optional ETB remains on visible stack
+PASS: targetless optional confirmation returns to playable state
+PASS: new non-haste unit initially shows mist
+PASS: gaining haste immediately removes mist
+PASS: opponent-turn activated ability remains interactive
+PASS: all intermediate moves animate and hidden deck/hand paths stay private
+PASS: opposing hand stays private after public recovery
+PASS: half-second flip completes
+REVEAL_WALL_SECONDS: 0.54
+PASS: temporary hand reveal reconceals
+PASS: coin result stays visible
+PASS: result playback completes and history remains
+PASS: UI leaves saved decks unchanged
+V015_UI: 29 checks; [] failures

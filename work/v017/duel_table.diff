@@ -1,0 +1,11 @@
+--- before/scripts/duel_table.gd
++++ scripts/duel_table.gd
+@@ -125,7 +125,7 @@
+  return result
+ 
+ func description(c: Dictionary, at: Vector3, scale_value: float=1.0) -> Dictionary:
+- var tapping=c.tapped or reserved.any(func(r): return r.uid==c.uid)
++ var tapping=c.tapped
+  return {"key":"card_"+str(c.uid),"card_id":c.card_id,"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid)}
+ 
+ func layout() -> Dictionary:

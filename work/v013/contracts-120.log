@@ -1,0 +1,33 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+CONTRACT spell-fdf-123
+PASS: valid choice spell-fdf-123
+PASS: contract resolves spell-fdf-123
+PASS: continuations complete spell-fdf-123
+CONTRACT spell-fdn-015
+PASS: valid choice spell-fdn-015
+PASS: contract resolves spell-fdn-015
+PASS: continuations complete spell-fdn-015
+CONTRACT spell-fdf-062
+PASS: valid choice spell-fdf-062
+PASS: contract resolves spell-fdf-062
+PASS: continuations complete spell-fdf-062
+CONTRACT spell-fdf-045
+PASS: valid choice spell-fdf-045
+PASS: contract resolves spell-fdf-045
+PASS: continuations complete spell-fdf-045
+CONTRACT spell-fdn-012
+PASS: valid choice spell-fdn-012
+PASS: contract resolves spell-fdn-012
+PASS: continuations complete spell-fdn-012
+CONTRACT spell-fdf-053
+PASS: valid choice spell-fdf-053
+PASS: contract resolves spell-fdf-053
+PASS: continuations complete spell-fdf-053
+CONTRACT spell-fdf-008
+PASS: valid choice spell-fdf-008
+PASS: contract resolves spell-fdf-008
+PASS: continuations complete spell-fdf-008
+V013_CONTRACTS: 21 checks; [] failures; resolved 7

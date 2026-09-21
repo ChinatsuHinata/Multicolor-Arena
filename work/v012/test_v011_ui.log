@@ -1,0 +1,27 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: additional discard shows other hand card, excludes source copy
+PASS: cancel additional cost leaves all cards and payment private
+PASS: button: X = 2
+PASS: button: 确定
+PASS: UI confirms X two using one green and four yellow
+PASS: UI X spell resolves with two counters
+PASS: dynamic group can be finished
+PASS: button: 下一项（1）
+PASS: second Alice ability opens grave selection after sacrifice choice
+PASS: dynamic group can be finished
+PASS: button: 完成选择（1）
+PASS: button: 确定
+PASS: UI commits chosen second ability and its sacrifice cost
+PASS: second ability resolves selected grave card to deck bottom
+PASS: button: 确定
+PASS: Satori shows opponent hand art only for authorized hand inspection
+PASS: dynamic group can be finished
+PASS: button: 完成选择（1）
+PASS: button: 确定
+PASS: Satori UI completes chosen discard
+PASS: copied token preserves art and inspectable abilities
+PASS: UI verification preserves saved decks
+V011_UI: 22 checks; 0 failures

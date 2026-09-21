@@ -1,0 +1,184 @@
+{
+  "version": "v0.13",
+  "date": "2026-09-19",
+  "data": {
+    "images": 395,
+    "new_definitions": 217,
+    "total_definitions": 486,
+    "constructible": 468,
+    "tokens": 16,
+    "dream_units": 2,
+    "excel_records_checked": 391,
+    "archived_reprints": 178,
+    "image_hashes_verified": 395,
+    "saved_decks_unchanged": true,
+    "precons_unchanged": true,
+    "halfghost_unchanged": true,
+    "errors": []
+  },
+  "checks": 3227,
+  "failures": 0,
+  "tests": [
+    {
+      "log": "contracts-0.log",
+      "checks": 120,
+      "failures": 0
+    },
+    {
+      "log": "contracts-120.log",
+      "checks": 21,
+      "failures": 0
+    },
+    {
+      "log": "contracts-40.log",
+      "checks": 120,
+      "failures": 0
+    },
+    {
+      "log": "contracts-80.log",
+      "checks": 120,
+      "failures": 0
+    },
+    {
+      "log": "test_duel.log",
+      "checks": 19,
+      "failures": 0
+    },
+    {
+      "log": "test_duel_rules.log",
+      "checks": 36,
+      "failures": 0
+    },
+    {
+      "log": "test_v010_rules.log",
+      "checks": 146,
+      "failures": 0
+    },
+    {
+      "log": "test_v010_ui-visual.log",
+      "checks": 43,
+      "failures": 0
+    },
+    {
+      "log": "test_v011_edges.log",
+      "checks": 81,
+      "failures": 0
+    },
+    {
+      "log": "test_v011_rules.log",
+      "checks": 188,
+      "failures": 0
+    },
+    {
+      "log": "test_v011_ucs.log",
+      "checks": 40,
+      "failures": 0
+    },
+    {
+      "log": "test_v011_ui-visual.log",
+      "checks": 22,
+      "failures": 0
+    },
+    {
+      "log": "test_v012_rules.log",
+      "checks": 110,
+      "failures": 0
+    },
+    {
+      "log": "test_v012_ui-visual.log",
+      "checks": 23,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_edges.log",
+      "checks": 138,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_rules.log",
+      "checks": 120,
+      "failures": 0
+    },
+    {
+      "log": "test_v013_ui-visual.log",
+      "checks": 37,
+      "failures": 0
+    },
+    {
+      "log": "test_v091.log",
+      "checks": 26,
+      "failures": 0
+    },
+    {
+      "log": "test_v095_rules.log",
+      "checks": 49,
+      "failures": 0
+    },
+    {
+      "log": "test_v096_rules.log",
+      "checks": 519,
+      "failures": 0
+    },
+    {
+      "log": "test_v097_database.log",
+      "checks": 982,
+      "failures": 0
+    },
+    {
+      "log": "test_v098_rules.log",
+      "checks": 33,
+      "failures": 0
+    },
+    {
+      "log": "test_v09_rules.log",
+      "checks": 144,
+      "failures": 0
+    },
+    {
+      "log": "units-0.log",
+      "checks": 45,
+      "failures": 0
+    },
+    {
+      "log": "units-45.log",
+      "checks": 45,
+      "failures": 0
+    }
+  ],
+  "matches": [
+    {
+      "log": "test_v010_matches.log",
+      "completed": 8,
+      "unfinished": 0
+    },
+    {
+      "log": "test_v011_matches.log",
+      "completed": 8,
+      "unfinished": 0
+    },
+    {
+      "log": "test_v012_matches.log",
+      "completed": 8,
+      "unfinished": 0
+    },
+    {
+      "log": "test_v013_matches.log",
+      "completed": 12,
+      "unfinished": 0
+    }
+  ],
+  "complete_matches": 36,
+  "new_spells_exercised": 127,
+  "new_nonspells_exercised": 90,
+  "new_activation_keys_exercised": 25,
+  "visual_screenshots_reviewed": [
+    "declare-name.png",
+    "library-top.png",
+    "floating-mana.png"
+  ],
+  "project_errors": [],
+  "environment_diagnostics": [
+    "Windows root certificate store read warning"
+  ],
+  "scope": "All 217 newly registered definitions have explicit effect bindings. Tests cover all spell dispatches and nonspell lifecycles plus targeted rule/UI regressions; they do not enumerate all possible card combinations or establish AI balance."
+}

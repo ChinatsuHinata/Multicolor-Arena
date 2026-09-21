@@ -1,0 +1,63 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS host listens
+PASS guest requests join
+PASS connected
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS spectator joins before branch
+PASS initial state cannot rewind
+PASS command accepted mulligan
+PASS command synchronized
+PASS spectator sees operation before undo
+PASS request reaches both seats
+PASS both players locked during agreement
+PASS requester cannot self approve
+PASS approved undo synchronized
+PASS spectator receives approved rewind
+PASS observer drops discarded branch and stale animations
+PASS undo does not expose either hand to spectator
+PASS full graph and RNG restored
+PASS abandoned operation and undo absent from both replays
+PASS no cross initial checkpoint
+PASS command accepted mulligan
+PASS command synchronized
+PASS request reaches both seats
+PASS both players locked during agreement
+PASS decline unlocks both sides
+PASS decline preserves action
+PASS command accepted mulligan
+PASS command synchronized
+PASS command accepted commit_cast
+PASS command synchronized
+PASS cannot rewind during stack
+PASS command accepted pass_priority
+PASS command synchronized
+PASS command accepted pass_priority
+PASS command synchronized
+PASS whole stack recorded as one operation
+PASS request reaches both seats
+PASS both players locked during agreement
+PASS approved undo synchronized
+PASS whole stack and costs restored
+PASS same authoritative public state after recovery
+PASS unresolved effect choice cannot split an empty-stack checkpoint
+PASS completed continuation creates one checkpoint
+PASS reconnect after undo completes
+PASS reconnect restores accepted branch without stale request
+PASS capture recovery keeps only retained replay branch
+PASS replay contains no rollback metadata
+PASS replay contains no rollback metadata
+PASS replay contains no rollback metadata
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS new BO3 game resets undo boundary
+PASS rewound replay saved
+PASS rewound replay loads and validates
+PASS shared replay contains no rewind bookkeeping
+UPDATE0921 UNDO 58 checks; failures=[]

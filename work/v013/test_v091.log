@@ -1,0 +1,31 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: bottom-right control replaced by delete deck
+PASS: delete confirms the current deck by name
+PASS: cancel preserves saved list and unsaved draft
+PASS: black selects mono-black and rejects red-black
+PASS: visible library contains only mono-black
+PASS: red-black accepts exact pair regardless of click order
+PASS: red-black excludes both monochrome colors
+PASS: red-black excludes tricolor and other color pairs
+PASS: visible library follows strict pair match
+PASS: unchecking black leaves strict mono-red
+PASS: unchecking final color restores all
+PASS: all button clears strict filters
+PASS: test fixture saved independently
+PASS: saved deck deletion succeeds
+PASS: deletion persists only remaining decks
+PASS: editor and battle selections retain remaining deck identities
+PASS: existing persistence backup retains pre-delete decks
+PASS: deleting an unsaved draft resets it without requiring a leader
+PASS: unsaved deletion does not write or remove stored decks
+PASS: failed disk write is reported
+PASS: failed deletion leaves all in-memory state unchanged
+PASS: existing load error prevents overwriting saved data
+PASS: deleting first deck keeps the other
+PASS: deleting last deck persists empty list
+PASS: empty state is usable and has valid selection indices
+PASS: real player saved decks unchanged
+V091_TEST: 26 checks; 0 failures

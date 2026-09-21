@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: single hand click opens a gold private declaration without dragging
+PASS: single click does not pay or publish
+PASS: right click cancels click declaration without spending resources
+PASS: button: 确定
+PASS: confirmed click declaration pays and enters stack
+PASS: ordinary copy of leader card has grey leader ability
+PASS: shrine enables the preview's leader ability color
+PASS: removing shrine greys the ability again
+PASS: leader counter enables rules and preview together
+PASS: field permanent has one hex per printed color
+PASS: palette multicolor card shows both colors
+PASS: battlefield fits between compressed preview and dedicated sidebar
+PASS: adjacent unit stat labels do not overlap in compressed battlefield
+PASS: settings dialog is centered
+PASS: button: 继续游戏
+PASS: grave pile opens the compact side panel
+PASS: sidebar presents several cards and text in one screen
+PASS: clicking a different pile switches the same sidebar
+PASS: right click outside dismisses sidebar
+PASS: history is above all other UI
+PASS: clicking outside the log cannot advance the duel
+PASS: outside right click closes log without changing duel
+PASS: grave target automatically opens a card-image region window
+PASS: region selector includes each legal physical card
+PASS: region card selection is private and does not resolve effect
+PASS: region confirm advances to the on-field target step
+PASS: button: 确定
+PASS: compound grave recovery keeps correct selected card and player damage
+PASS: clicking a legal grave card opens ability declaration
+PASS: clicked grave ability source stays visibly selected in gold
+PASS: button: 确定
+PASS: new Mokou grave ability returns itself to hand
+PASS: normal history hides opponent draw identities
+PASS: full history is retained separately from the short status log
+PASS: player deck file unchanged
+V095_TEST: 35 checks; 0 failures
+

@@ -1,0 +1,73 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: debug button exists and starts unpressed
+PASS: button: 调试
+PASS: debug click opens and highlights toggle
+PASS: button: 调试
+PASS: second click returns to duel
+PASS: button: 调试
+PASS: debug click opens and highlights toggle
+PASS: button: 调试
+PASS: second click returns to duel
+PASS: button: 调试
+PASS: debug click opens and highlights toggle
+PASS: button: 调试
+PASS: second click returns to duel
+PASS: repeated debug toggles never mutate duel state
+PASS: button: 调试
+PASS: button: ×
+PASS: explicit close returns to duel
+PASS: button: 调试
+PASS: Escape returns to duel
+PASS: button: 调试
+PASS: button: 观察战场
+PASS: debug browser can be temporarily observed
+PASS: button: 调试
+PASS: debug button remains clickable during observation
+PASS: observation toggle does not advance priority
+PASS: button: 确定
+PASS: normal click still starts manual payment in debug mode
+PASS: button: 调试
+PASS: button: 观察战场
+PASS: button: 调试
+PASS: close from observation restores payment controls
+PASS: reserved payment survives closing debug and remains private
+PASS: payment confirm is visible after returning
+PASS: button: 确认支付
+PASS: normal payment completes after debug exit
+PASS: normal card resolves after debug exit
+PASS: button: 调试
+PASS: button: 观察战场
+PASS: button: 调试
+PASS: close debug restores mandatory targeting
+PASS: mandatory effect and pending target are preserved
+PASS: button: 确定
+PASS: mandatory target can complete after debug exit
+PASS: multi-action dialog is open
+PASS: button: 调试
+PASS: button: 观察战场
+PASS: button: 调试
+PASS: close debug restores modal actions
+PASS: modal choice is visible and not silently cancelled
+PASS: button: 调试
+PASS: button: 调试
+PASS: button: 结束主要阶段
+PASS: player can end main phase after closing debug
+PASS: next player's debug turn remains playable
+PASS: button: 调试
+PASS: button: 调试
+PASS: opposing turn debug browser also toggles closed
+PASS: closing browser preserves manual control of both players
+PASS: Youmu first strike starts its own damage presentation
+PASS: combat presentation completes
+PASS: surviving defender remains visible while exile is on the stack
+PASS: resolved exile removes defender and ends combat without retaliation
+PASS: lethal hit is judged before the death presentation finishes
+PASS: combat presentation completes
+PASS: dead defender leaves visually with its death trigger queued
+PASS: death ability resolves and graveyard victim is never exiled
+PASS: live saved decks unchanged
+V098_UI: 67 checks; 0 failures
+

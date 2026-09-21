@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cockatrice_deck version="1">
+    <deckname>【比赛卡组】文烧</deckname>
+    <comments></comments>
+    <zone name="main">
+        <card number="4" name="[KMO-003]塞符「天上天下ノ照国」"/>
+        <card number="4" name="[KMO-005]竹林中的狼人「今泉影狼」"/>
+        <card number="4" name="[SOI-168]「萤灯ノ森」"/>
+        <card number="1" name="[SOI-171]「早苗的御币」"/>
+        <card number="1" name="[SOI-170]「蕾米莉亚的烛台」"/>
+        <card number="2" name="[SOI-174]「红魔馆」"/>
+        <card number="4" name="[SOI-097]「秋意ノ溪」"/>
+        <card number="4" name="[SOI-035]狂气月兔「铃仙·优昙华院·因幡」"/>
+        <card number="4" name="[SOI-149]「极光」"/>
+        <card number="4" name="[SOI-018]阳花的妖怪「风见幽香」"/>
+        <card number="4" name="[SOI-063]忠诚的死体「宫古芳香」"/>
+        <card number="3" name="[SOI-139]「未应ノ爱」"/>
+        <card number="3" name="[SOI-109]「彼岸ノ神想」"/>
+        <card number="4" name="[SOI-025]地壳下的嫉妒心「水桥帕露西」"/>
+        <card number="4" name="[SOI-020]天狗记者「射命丸文」"/>
+    </zone>
+    <zone name="side">
+        <card number="1" name="[SOI-081]飞散红叶的天狗「射命丸文」"/>
+        <card number="2" name="[SOI-008]可怕的波动「芙兰朵露·斯卡蕾特」"/>
+        <card number="2" name="[SOI-153]「无意识ノ雨」"/>
+        <card number="2" name="[SOI-136]「永夜蛰居」"/>
+        <card number="2" name="[SOI-038]识文解意的爱书「本居小铃」"/>
+        <card number="2" name="[SOI-154]「今夕ノ花」"/>
+    </zone>
+    <zone name="tokens">
+        <card number="1" name="「秋穰子的红薯」"/>
+    </zone>
+</cockatrice_deck>

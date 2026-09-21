@@ -1,0 +1,193 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 486 validated definitions load
+PASS: new definition/art 101
+PASS: new definition/art 102
+PASS: new definition/art 103
+PASS: new definition/art 104
+PASS: new definition/art 105
+PASS: new definition/art 107
+PASS: new definition/art 109
+PASS: new definition/art 111
+PASS: new definition/art 113
+PASS: new definition/art 114
+PASS: new definition/art 116
+PASS: new definition/art 119
+PASS: new definition/art 12
+PASS: new definition/art 121
+PASS: new definition/art 122
+PASS: new definition/art 123
+PASS: new definition/art 124
+PASS: new definition/art 125
+PASS: new definition/art 126
+PASS: new definition/art 127
+PASS: new definition/art 128
+PASS: new definition/art 129
+PASS: new definition/art 13
+PASS: new definition/art 132
+PASS: new definition/art 134
+PASS: new definition/art 135
+PASS: new definition/art 136
+PASS: new definition/art 137
+PASS: new definition/art 138
+PASS: new definition/art 140
+PASS: new definition/art 142
+PASS: new definition/art 144
+PASS: new definition/art 145
+PASS: new definition/art 146
+PASS: new definition/art 148
+PASS: new definition/art 149
+PASS: new definition/art 150
+PASS: new definition/art 151
+PASS: new definition/art 152
+PASS: new definition/art 153
+PASS: new definition/art 154
+PASS: new definition/art 155
+PASS: new definition/art 156
+PASS: new definition/art 157
+PASS: new definition/art 158
+PASS: new definition/art 159
+PASS: new definition/art 160
+PASS: new definition/art 161
+PASS: new definition/art 17
+PASS: new definition/art 171
+PASS: new definition/art 172
+PASS: new definition/art 173
+PASS: new definition/art 175
+PASS: new definition/art 178
+PASS: new definition/art 19
+PASS: new definition/art 2
+PASS: new definition/art 22
+PASS: new definition/art 24
+PASS: new definition/art 25
+PASS: new definition/art 26
+PASS: new definition/art 27
+PASS: new definition/art 3
+PASS: new definition/art 31
+PASS: new definition/art 32
+PASS: new definition/art 34
+PASS: new definition/art 42
+PASS: new definition/art 43
+PASS: new definition/art 44
+PASS: new definition/art 45
+PASS: new definition/art 46
+PASS: new definition/art 47
+PASS: new definition/art 51
+PASS: new definition/art 52
+PASS: new definition/art 55
+PASS: new definition/art 58
+PASS: new definition/art 59
+PASS: new definition/art 60
+PASS: new definition/art 62
+PASS: new definition/art 63
+PASS: new definition/art 66
+PASS: new definition/art 67
+PASS: new definition/art 7
+PASS: new definition/art 73
+PASS: new definition/art 74
+PASS: new definition/art 76
+PASS: new definition/art 77
+PASS: new definition/art 8
+PASS: new definition/art 80
+PASS: new definition/art 82
+PASS: new definition/art 85
+PASS: new definition/art 86
+PASS: new definition/art 9
+PASS: new definition/art 90
+PASS: new definition/art 93
+PASS: new definition/art 97
+PASS: new definition/art 98
+PASS: new definition/art spell-smm-006
+PASS: new definition/art spell-kmo-005
+PASS: new definition/art spell-kmo-004
+PASS: new definition/art character-smm01
+PASS: new definition/art character-kmo-001
+PASS: new definition/art spell-kmo-002
+PASS: new definition/art character-smm07
+PASS: lifesteal 3 heals three once per damage batch
+PASS: Momoyo deals minus counters instead of marked damage
+PASS: Kasen twelve palette continuous stats and annihilate
+PASS: Remilia leader black aura
+PASS: aura ends when source leaves
+PASS: Cirno increases fairy power/spirit only
+PASS: Murasa shrinks opposing units
+PASS: Ran discounts blue component
+PASS: 2X costs six for X three: { "绿": 1.0, "黄": 6 }
+PASS: Nitori cannot be targeted by enemy spells
+PASS: Nitori can be targeted by own spell
+PASS: Akyuu triggers once per turn for counter placement
+PASS: Akyuu grants one counter to another unit
+PASS: Keiki copies printed characteristics, changes identity, excludes counters
+PASS: Luna counts both fairies
+PASS: Letty locks next reset
+PASS: Letty lock expires
+PASS: Komachi exiles up to two from both graves, heals once
+PASS: Medicine damage destruction trigger
+PASS: Komachi minus-three trigger performs state checks
+PASS: three Komachi coins lose the game
+PASS: Mystia gains life on own unit death
+PASS: Nether field creates no-slot 1/1/0 ghost
+PASS: Kanako creates brave 2/2/1 pillar
+PASS: Alice exposes both ordinary and leader activation
+PASS: activate alice_recycle 
+PASS: Alice pays other unit sacrifice and bottoms chosen grave card
+PASS: activate clown_sweep 
+PASS: Clown taps to damage all units
+PASS: activate suika_counter 
+PASS: Suika moves one plus counter
+PASS: activate sanae_search 
+PASS: Sanae search pays green discard and is once per player per game
+PASS: activate satori_discard 
+PASS: Satori exile cost and chosen opposing hand discard
+PASS: activate kaguya_end 
+PASS: Kaguya draws and immediately ends own turn
+PASS: explicit resolution 101
+PASS: leader counter placed
+PASS: explicit resolution 103
+PASS: grave card placed at deck top
+PASS: explicit resolution 124
+PASS: X counters plus temporary brave
+PASS: explicit resolution 125
+PASS: untap and unblockable
+PASS: explicit resolution 129
+PASS: create two 1/1/1 bats
+PASS: explicit resolution 132
+PASS: Ghost spell creates cost-sized haste imp sacrificed at own end
+PASS: explicit resolution 137
+PASS: gather all plus counters
+PASS: explicit resolution 140
+PASS: temporary control grants haste
+PASS: temporary control returns at cleanup
+PASS: explicit resolution 146
+PASS: grave to tapped palette
+PASS: explicit resolution 148
+PASS: Flower damage upgrades from two to five
+PASS: explicit resolution spell-smm-006
+PASS: Rest heals eight at low life
+PASS: explicit resolution 150
+PASS: Grace resets life, transfers entire grave to tapped palette, exiles itself
+PASS: explicit resolution 151
+PASS: X three frogs are 3/3/3 no-slot with annihilate
+PASS: explicit resolution 156
+PASS: Perfect Freeze prevents reset
+PASS: next same-name spell releases old freeze
+PASS: explicit resolution 160
+PASS: shroud blocks both players targeting own permanents
+PASS: explicit resolution spell-kmo-004
+PASS: both players choose one survivor
+PASS: death return sees only units that died this turn
+PASS: explicit resolution spell-kmo-002
+PASS: death return enters under caster control
+PASS: Heart permits own grave small spell once
+PASS: grave spell exiles on resolution and consumes turn use
+PASS: additional discard is paid before drawing three
+PASS: Gungnir cannot be responded to
+PASS: Gungnir deals four
+PASS: explicit resolution 157
+PASS: memory casts opposing grave spell for free and returns to owner grave
+PASS: extra turn inserts caster's next turn
+PASS: annihilate field aura
+PASS: player saved decks remain byte-for-byte unchanged
+V011_RULES: 188 checks; 0 failures

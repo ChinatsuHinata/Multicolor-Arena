@@ -1,0 +1,3 @@
+from pathlib import Path
+p=Path('scripts/rules/catalogue_abilities.gd');s=p.read_text(encoding='utf-8').replace('t.get("ability_text",t.get("name",e.cards[t.source.card_id].name))','t.get("ability_text",t.get("name",e.cards[t.get("source",t.get("card",{})).get("card_id",e.DB.IDS[0])].name))');p.write_text(s,encoding='utf-8')
+p=Path('tests/test_v013_rules.gd');s=p.read_text(encoding='utf-8').replace('not e.has_leader_ability(a)','e.cards[a.card_id].kind=="单位" and e.cards[a.card_id].abilities.is_empty()').replace('t=choose_groups(o,[[Pack.ref(e,a),Pack.ref(e,b),Pack.ref(e,c)]])','t=choose_groups(o,[o[0].selection[0].pool])');p.write_text(s,encoding='utf-8')

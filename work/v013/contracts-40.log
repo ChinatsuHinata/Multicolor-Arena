@@ -1,0 +1,165 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+CONTRACT spell-ucs-018
+PASS: valid choice spell-ucs-018
+PASS: contract resolves spell-ucs-018
+PASS: continuations complete spell-ucs-018
+CONTRACT spell-fdn-003
+PASS: valid choice spell-fdn-003
+PASS: contract resolves spell-fdn-003
+PASS: continuations complete spell-fdn-003
+CONTRACT spell-fdf-047
+PASS: valid choice spell-fdf-047
+PASS: contract resolves spell-fdf-047
+PASS: continuations complete spell-fdf-047
+CONTRACT spell-fdf-049
+PASS: valid choice spell-fdf-049
+PASS: contract resolves spell-fdf-049
+PASS: continuations complete spell-fdf-049
+CONTRACT spell-fdf-122
+PASS: valid choice spell-fdf-122
+PASS: contract resolves spell-fdf-122
+PASS: continuations complete spell-fdf-122
+CONTRACT spell-ucs-057
+PASS: valid choice spell-ucs-057
+PASS: contract resolves spell-ucs-057
+PASS: continuations complete spell-ucs-057
+CONTRACT spell-fdf-038
+PASS: valid choice spell-fdf-038
+PASS: contract resolves spell-fdf-038
+PASS: continuations complete spell-fdf-038
+CONTRACT spell-fdf-018
+PASS: valid choice spell-fdf-018
+PASS: contract resolves spell-fdf-018
+PASS: continuations complete spell-fdf-018
+CONTRACT spell-fdf-002
+PASS: valid choice spell-fdf-002
+PASS: contract resolves spell-fdf-002
+PASS: continuations complete spell-fdf-002
+CONTRACT spell-ucs-043
+PASS: valid choice spell-ucs-043
+PASS: contract resolves spell-ucs-043
+PASS: continuations complete spell-ucs-043
+CONTRACT spell-fdn-033
+PASS: valid choice spell-fdn-033
+PASS: contract resolves spell-fdn-033
+PASS: continuations complete spell-fdn-033
+CONTRACT spell-fdf-076
+PASS: valid choice spell-fdf-076
+PASS: contract resolves spell-fdf-076
+PASS: continuations complete spell-fdf-076
+CONTRACT spell-rec-056
+PASS: valid choice spell-rec-056
+PASS: contract resolves spell-rec-056
+PASS: continuations complete spell-rec-056
+CONTRACT spell-kmo-003
+PASS: valid choice spell-kmo-003
+PASS: contract resolves spell-kmo-003
+PASS: continuations complete spell-kmo-003
+CONTRACT spell-fdn-008
+PASS: valid choice spell-fdn-008
+PASS: contract resolves spell-fdn-008
+PASS: continuations complete spell-fdn-008
+CONTRACT spell-fdf-037
+PASS: valid choice spell-fdf-037
+PASS: contract resolves spell-fdf-037
+PASS: continuations complete spell-fdf-037
+CONTRACT spell-fdn-031
+PASS: valid choice spell-fdn-031
+PASS: contract resolves spell-fdn-031
+PASS: continuations complete spell-fdn-031
+CONTRACT spell-fdf-017
+PASS: valid choice spell-fdf-017
+PASS: contract resolves spell-fdf-017
+PASS: continuations complete spell-fdf-017
+CONTRACT spell-fdf-059
+PASS: valid choice spell-fdf-059
+PASS: contract resolves spell-fdf-059
+PASS: continuations complete spell-fdf-059
+CONTRACT spell-fdn-046
+PASS: valid choice spell-fdn-046
+PASS: contract resolves spell-fdn-046
+PASS: continuations complete spell-fdn-046
+CONTRACT spell-fdn-023
+PASS: valid choice spell-fdn-023
+PASS: contract resolves spell-fdn-023
+PASS: continuations complete spell-fdn-023
+CONTRACT spell-rec-054
+PASS: valid choice spell-rec-054
+PASS: contract resolves spell-rec-054
+PASS: continuations complete spell-rec-054
+CONTRACT spell-smm-002
+PASS: valid choice spell-smm-002
+PASS: contract resolves spell-smm-002
+PASS: continuations complete spell-smm-002
+CONTRACT spell-fdf-055
+PASS: valid choice spell-fdf-055
+PASS: contract resolves spell-fdf-055
+PASS: continuations complete spell-fdf-055
+CONTRACT spell-soi-119
+PASS: valid choice spell-soi-119
+PASS: contract resolves spell-soi-119
+PASS: continuations complete spell-soi-119
+CONTRACT spell-fdf-052
+PASS: valid choice spell-fdf-052
+PASS: contract resolves spell-fdf-052
+PASS: continuations complete spell-fdf-052
+CONTRACT spell-fdf-040
+PASS: valid choice spell-fdf-040
+PASS: contract resolves spell-fdf-040
+PASS: continuations complete spell-fdf-040
+CONTRACT spell-smm-003
+PASS: valid choice spell-smm-003
+PASS: contract resolves spell-smm-003
+PASS: continuations complete spell-smm-003
+CONTRACT spell-rec-055
+PASS: valid choice spell-rec-055
+PASS: contract resolves spell-rec-055
+PASS: continuations complete spell-rec-055
+CONTRACT spell-fdf-033
+PASS: valid choice spell-fdf-033
+PASS: contract resolves spell-fdf-033
+PASS: continuations complete spell-fdf-033
+CONTRACT spell-fdf-073
+PASS: valid choice spell-fdf-073
+PASS: contract resolves spell-fdf-073
+PASS: continuations complete spell-fdf-073
+CONTRACT spell-fdf-056
+PASS: valid choice spell-fdf-056
+PASS: contract resolves spell-fdf-056
+PASS: continuations complete spell-fdf-056
+CONTRACT spell-fdf-016
+PASS: valid choice spell-fdf-016
+PASS: contract resolves spell-fdf-016
+PASS: continuations complete spell-fdf-016
+CONTRACT spell-fdf-030
+PASS: valid choice spell-fdf-030
+PASS: contract resolves spell-fdf-030
+PASS: continuations complete spell-fdf-030
+CONTRACT spell-fdf-050
+PASS: valid choice spell-fdf-050
+PASS: contract resolves spell-fdf-050
+PASS: continuations complete spell-fdf-050
+CONTRACT spell-fdf-009
+PASS: valid choice spell-fdf-009
+PASS: contract resolves spell-fdf-009
+PASS: continuations complete spell-fdf-009
+CONTRACT spell-ucs-041
+PASS: valid choice spell-ucs-041
+PASS: contract resolves spell-ucs-041
+PASS: continuations complete spell-ucs-041
+CONTRACT spell-ucs-031
+PASS: valid choice spell-ucs-031
+PASS: contract resolves spell-ucs-031
+PASS: continuations complete spell-ucs-031
+CONTRACT spell-fdf-024
+PASS: valid choice spell-fdf-024
+PASS: contract resolves spell-fdf-024
+PASS: continuations complete spell-fdf-024
+CONTRACT spell-fdf-079
+PASS: valid choice spell-fdf-079
+PASS: contract resolves spell-fdf-079
+PASS: continuations complete spell-fdf-079
+V013_CONTRACTS: 120 checks; [] failures; resolved 40

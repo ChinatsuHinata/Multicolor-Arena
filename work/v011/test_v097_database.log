@@ -1,0 +1,518 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: registered database loads with no missing-art error
+PASS: all 65 previously registered IDs remain available
+PASS: canonical database image: 50
+PASS: Godot can decode actual imported texture: 50
+PASS: canonical database image: 53
+PASS: Godot can decode actual imported texture: 53
+PASS: canonical database image: 54
+PASS: Godot can decode actual imported texture: 54
+PASS: canonical database image: 56
+PASS: Godot can decode actual imported texture: 56
+PASS: canonical database image: 57
+PASS: Godot can decode actual imported texture: 57
+PASS: canonical database image: 68
+PASS: Godot can decode actual imported texture: 68
+PASS: canonical database image: 70
+PASS: Godot can decode actual imported texture: 70
+PASS: canonical database image: 96
+PASS: Godot can decode actual imported texture: 96
+PASS: canonical database image: 99
+PASS: Godot can decode actual imported texture: 99
+PASS: canonical database image: 100
+PASS: Godot can decode actual imported texture: 100
+PASS: canonical database image: 112
+PASS: Godot can decode actual imported texture: 112
+PASS: canonical database image: 164
+PASS: Godot can decode actual imported texture: 164
+PASS: canonical database image: 165
+PASS: Godot can decode actual imported texture: 165
+PASS: canonical database image: 167
+PASS: Godot can decode actual imported texture: 167
+PASS: canonical database image: 170
+PASS: Godot can decode actual imported texture: 170
+PASS: canonical database image: 1
+PASS: Godot can decode actual imported texture: 1
+PASS: canonical database image: 5
+PASS: Godot can decode actual imported texture: 5
+PASS: canonical database image: 6
+PASS: Godot can decode actual imported texture: 6
+PASS: canonical database image: 11
+PASS: Godot can decode actual imported texture: 11
+PASS: canonical database image: 14
+PASS: Godot can decode actual imported texture: 14
+PASS: canonical database image: 15
+PASS: Godot can decode actual imported texture: 15
+PASS: canonical database image: 18
+PASS: Godot can decode actual imported texture: 18
+PASS: canonical database image: 21
+PASS: Godot can decode actual imported texture: 21
+PASS: canonical database image: 23
+PASS: Godot can decode actual imported texture: 23
+PASS: canonical database image: 28
+PASS: Godot can decode actual imported texture: 28
+PASS: canonical database image: 29
+PASS: Godot can decode actual imported texture: 29
+PASS: canonical database image: 30
+PASS: Godot can decode actual imported texture: 30
+PASS: canonical database image: 33
+PASS: Godot can decode actual imported texture: 33
+PASS: canonical database image: 35
+PASS: Godot can decode actual imported texture: 35
+PASS: canonical database image: 38
+PASS: Godot can decode actual imported texture: 38
+PASS: canonical database image: 39
+PASS: Godot can decode actual imported texture: 39
+PASS: canonical database image: 41
+PASS: Godot can decode actual imported texture: 41
+PASS: canonical database image: 48
+PASS: Godot can decode actual imported texture: 48
+PASS: canonical database image: 49
+PASS: Godot can decode actual imported texture: 49
+PASS: canonical database image: 61
+PASS: Godot can decode actual imported texture: 61
+PASS: canonical database image: 64
+PASS: Godot can decode actual imported texture: 64
+PASS: canonical database image: 71
+PASS: Godot can decode actual imported texture: 71
+PASS: canonical database image: 75
+PASS: Godot can decode actual imported texture: 75
+PASS: canonical database image: 78
+PASS: Godot can decode actual imported texture: 78
+PASS: canonical database image: 79
+PASS: Godot can decode actual imported texture: 79
+PASS: canonical database image: 87
+PASS: Godot can decode actual imported texture: 87
+PASS: canonical database image: soi_unit_004
+PASS: Godot can decode actual imported texture: soi_unit_004
+PASS: canonical database image: 94
+PASS: Godot can decode actual imported texture: 94
+PASS: canonical database image: 106
+PASS: Godot can decode actual imported texture: 106
+PASS: canonical database image: 110
+PASS: Godot can decode actual imported texture: 110
+PASS: canonical database image: 118
+PASS: Godot can decode actual imported texture: 118
+PASS: canonical database image: 120
+PASS: Godot can decode actual imported texture: 120
+PASS: canonical database image: 130
+PASS: Godot can decode actual imported texture: 130
+PASS: canonical database image: 131
+PASS: Godot can decode actual imported texture: 131
+PASS: canonical database image: 139
+PASS: Godot can decode actual imported texture: 139
+PASS: canonical database image: 141
+PASS: Godot can decode actual imported texture: 141
+PASS: canonical database image: 143
+PASS: Godot can decode actual imported texture: 143
+PASS: canonical database image: 147
+PASS: Godot can decode actual imported texture: 147
+PASS: canonical database image: 162
+PASS: Godot can decode actual imported texture: 162
+PASS: canonical database image: 163
+PASS: Godot can decode actual imported texture: 163
+PASS: canonical database image: 176
+PASS: Godot can decode actual imported texture: 176
+PASS: canonical database image: 177
+PASS: Godot can decode actual imported texture: 177
+PASS: canonical database image: 166
+PASS: Godot can decode actual imported texture: 166
+PASS: canonical database image: 168
+PASS: Godot can decode actual imported texture: 168
+PASS: canonical database image: 169
+PASS: Godot can decode actual imported texture: 169
+PASS: canonical database image: 174
+PASS: Godot can decode actual imported texture: 174
+PASS: canonical database image: 91
+PASS: Godot can decode actual imported texture: 91
+PASS: canonical database image: 133
+PASS: Godot can decode actual imported texture: 133
+PASS: canonical database image: rec_unit_097
+PASS: Godot can decode actual imported texture: rec_unit_097
+PASS: canonical database image: soi_unit_086
+PASS: Godot can decode actual imported texture: soi_unit_086
+PASS: canonical database image: character-soi-018
+PASS: Godot can decode actual imported texture: character-soi-018
+PASS: canonical database image: character-soi-006
+PASS: Godot can decode actual imported texture: character-soi-006
+PASS: canonical database image: spell-soi-098
+PASS: Godot can decode actual imported texture: spell-soi-098
+PASS: canonical database image: spell-fdf-054
+PASS: Godot can decode actual imported texture: spell-fdf-054
+PASS: canonical database image: spell-rei-015
+PASS: Godot can decode actual imported texture: spell-rei-015
+PASS: canonical database image: spell-mar-007
+PASS: Godot can decode actual imported texture: spell-mar-007
+PASS: canonical database image: field-fdn-016
+PASS: Godot can decode actual imported texture: field-fdn-016
+PASS: canonical database image: spell-fdf-ex05
+PASS: Godot can decode actual imported texture: spell-fdf-ex05
+PASS: canonical database image: spell-rei-006
+PASS: Godot can decode actual imported texture: spell-rei-006
+PASS: canonical database image: spell-mar-005
+PASS: Godot can decode actual imported texture: spell-mar-005
+PASS: canonical database image: character-fdf-ex05
+PASS: Godot can decode actual imported texture: character-fdf-ex05
+PASS: canonical database image: token-fdf-133
+PASS: Godot can decode actual imported texture: token-fdf-133
+PASS: canonical database image: character-rei-ex01
+PASS: Godot can decode actual imported texture: character-rei-ex01
+PASS: canonical database image: character-fdf-ex04
+PASS: Godot can decode actual imported texture: character-fdf-ex04
+PASS: canonical database image: character-rei-001
+PASS: Godot can decode actual imported texture: character-rei-001
+PASS: canonical database image: spell-rei-010
+PASS: Godot can decode actual imported texture: spell-rei-010
+PASS: canonical database image: character-mar-020
+PASS: Godot can decode actual imported texture: character-mar-020
+PASS: canonical database image: token-smm-025
+PASS: Godot can decode actual imported texture: token-smm-025
+PASS: canonical database image: character-rei-017
+PASS: Godot can decode actual imported texture: character-rei-017
+PASS: canonical database image: character-rei-007
+PASS: Godot can decode actual imported texture: character-rei-007
+PASS: canonical database image: field-rei-004
+PASS: Godot can decode actual imported texture: field-rei-004
+PASS: canonical database image: character-rec-096
+PASS: Godot can decode actual imported texture: character-rec-096
+PASS: canonical database image: character-fdf-070
+PASS: Godot can decode actual imported texture: character-fdf-070
+PASS: canonical database image: token-fdn-085
+PASS: Godot can decode actual imported texture: token-fdn-085
+PASS: canonical database image: spell-mar-002
+PASS: Godot can decode actual imported texture: spell-mar-002
+PASS: canonical database image: spell-mar-003
+PASS: Godot can decode actual imported texture: spell-mar-003
+PASS: canonical database image: character-fdf-ex01
+PASS: Godot can decode actual imported texture: character-fdf-ex01
+PASS: canonical database image: field-fdf-108
+PASS: Godot can decode actual imported texture: field-fdf-108
+PASS: canonical database image: spell-fdf-019
+PASS: Godot can decode actual imported texture: spell-fdf-019
+PASS: canonical database image: spell-fdf-023
+PASS: Godot can decode actual imported texture: spell-fdf-023
+PASS: canonical database image: character-fdf-116
+PASS: Godot can decode actual imported texture: character-fdf-116
+PASS: canonical database image: token-fdf-132
+PASS: Godot can decode actual imported texture: token-fdf-132
+PASS: canonical database image: spell-fdf-011
+PASS: Godot can decode actual imported texture: spell-fdf-011
+PASS: canonical database image: character-rei-022
+PASS: Godot can decode actual imported texture: character-rei-022
+PASS: canonical database image: spell-rei-011
+PASS: Godot can decode actual imported texture: spell-rei-011
+PASS: canonical database image: spell-rei-012
+PASS: Godot can decode actual imported texture: spell-rei-012
+PASS: canonical database image: character-fdf-099
+PASS: Godot can decode actual imported texture: character-fdf-099
+PASS: canonical database image: spell-fdf-007
+PASS: Godot can decode actual imported texture: spell-fdf-007
+PASS: canonical database image: character-fdf-ex02
+PASS: Godot can decode actual imported texture: character-fdf-ex02
+PASS: canonical database image: character-rei-026
+PASS: Godot can decode actual imported texture: character-rei-026
+PASS: canonical database image: field-rei-005
+PASS: Godot can decode actual imported texture: field-rei-005
+PASS: canonical database image: spell-rei-002
+PASS: Godot can decode actual imported texture: spell-rei-002
+PASS: canonical database image: character-mar-ex
+PASS: Godot can decode actual imported texture: character-mar-ex
+PASS: canonical database image: token-kmo-027
+PASS: Godot can decode actual imported texture: token-kmo-027
+PASS: canonical database image: field-rei-003
+PASS: Godot can decode actual imported texture: field-rei-003
+PASS: canonical database image: character-rec-104
+PASS: Godot can decode actual imported texture: character-rec-104
+PASS: canonical database image: field-smm-004
+PASS: Godot can decode actual imported texture: field-smm-004
+PASS: canonical database image: spell-mar-004
+PASS: Godot can decode actual imported texture: spell-mar-004
+PASS: canonical database image: field-mar-006
+PASS: Godot can decode actual imported texture: field-mar-006
+PASS: canonical database image: character-ucs-060
+PASS: Godot can decode actual imported texture: character-ucs-060
+PASS: canonical database image: token-fdf-130
+PASS: Godot can decode actual imported texture: token-fdf-130
+PASS: canonical database image: character-fdf-ex03
+PASS: Godot can decode actual imported texture: character-fdf-ex03
+PASS: canonical database image: spell-fdf-036
+PASS: Godot can decode actual imported texture: spell-fdf-036
+PASS: canonical database image: character-fdf-095
+PASS: Godot can decode actual imported texture: character-fdf-095
+PASS: canonical database image: character-rei-023
+PASS: Godot can decode actual imported texture: character-rei-023
+PASS: canonical database image: spell-mar-012
+PASS: Godot can decode actual imported texture: spell-mar-012
+PASS: canonical database image: spell-mar-013
+PASS: Godot can decode actual imported texture: spell-mar-013
+PASS: canonical database image: spell-mar-014
+PASS: Godot can decode actual imported texture: spell-mar-014
+PASS: canonical database image: item-mar-017
+PASS: Godot can decode actual imported texture: item-mar-017
+PASS: canonical database image: character-mar-021
+PASS: Godot can decode actual imported texture: character-mar-021
+PASS: canonical database image: character-mar-022
+PASS: Godot can decode actual imported texture: character-mar-022
+PASS: canonical database image: character-mar-023
+PASS: Godot can decode actual imported texture: character-mar-023
+PASS: canonical database image: character-mar-024
+PASS: Godot can decode actual imported texture: character-mar-024
+PASS: canonical database image: character-mar-025
+PASS: Godot can decode actual imported texture: character-mar-025
+PASS: canonical database image: character-mar-ex01
+PASS: Godot can decode actual imported texture: character-mar-ex01
+PASS: canonical database image: token-fdf-128
+PASS: Godot can decode actual imported texture: token-fdf-128
+PASS: canonical database image: token-ucs-093
+PASS: Godot can decode actual imported texture: token-ucs-093
+PASS: canonical database image: 101
+PASS: Godot can decode actual imported texture: 101
+PASS: canonical database image: 102
+PASS: Godot can decode actual imported texture: 102
+PASS: canonical database image: 103
+PASS: Godot can decode actual imported texture: 103
+PASS: canonical database image: 104
+PASS: Godot can decode actual imported texture: 104
+PASS: canonical database image: 105
+PASS: Godot can decode actual imported texture: 105
+PASS: canonical database image: 107
+PASS: Godot can decode actual imported texture: 107
+PASS: canonical database image: 109
+PASS: Godot can decode actual imported texture: 109
+PASS: canonical database image: 111
+PASS: Godot can decode actual imported texture: 111
+PASS: canonical database image: 113
+PASS: Godot can decode actual imported texture: 113
+PASS: canonical database image: 114
+PASS: Godot can decode actual imported texture: 114
+PASS: canonical database image: 116
+PASS: Godot can decode actual imported texture: 116
+PASS: canonical database image: 119
+PASS: Godot can decode actual imported texture: 119
+PASS: canonical database image: 12
+PASS: Godot can decode actual imported texture: 12
+PASS: canonical database image: 121
+PASS: Godot can decode actual imported texture: 121
+PASS: canonical database image: 122
+PASS: Godot can decode actual imported texture: 122
+PASS: canonical database image: 123
+PASS: Godot can decode actual imported texture: 123
+PASS: canonical database image: 124
+PASS: Godot can decode actual imported texture: 124
+PASS: canonical database image: 125
+PASS: Godot can decode actual imported texture: 125
+PASS: canonical database image: 126
+PASS: Godot can decode actual imported texture: 126
+PASS: canonical database image: 127
+PASS: Godot can decode actual imported texture: 127
+PASS: canonical database image: 128
+PASS: Godot can decode actual imported texture: 128
+PASS: canonical database image: 129
+PASS: Godot can decode actual imported texture: 129
+PASS: canonical database image: 13
+PASS: Godot can decode actual imported texture: 13
+PASS: canonical database image: 132
+PASS: Godot can decode actual imported texture: 132
+PASS: canonical database image: 134
+PASS: Godot can decode actual imported texture: 134
+PASS: canonical database image: 135
+PASS: Godot can decode actual imported texture: 135
+PASS: canonical database image: 136
+PASS: Godot can decode actual imported texture: 136
+PASS: canonical database image: 137
+PASS: Godot can decode actual imported texture: 137
+PASS: canonical database image: 138
+PASS: Godot can decode actual imported texture: 138
+PASS: canonical database image: 140
+PASS: Godot can decode actual imported texture: 140
+PASS: canonical database image: 142
+PASS: Godot can decode actual imported texture: 142
+PASS: canonical database image: 144
+PASS: Godot can decode actual imported texture: 144
+PASS: canonical database image: 145
+PASS: Godot can decode actual imported texture: 145
+PASS: canonical database image: 146
+PASS: Godot can decode actual imported texture: 146
+PASS: canonical database image: 148
+PASS: Godot can decode actual imported texture: 148
+PASS: canonical database image: 149
+PASS: Godot can decode actual imported texture: 149
+PASS: canonical database image: 150
+PASS: Godot can decode actual imported texture: 150
+PASS: canonical database image: 151
+PASS: Godot can decode actual imported texture: 151
+PASS: canonical database image: 152
+PASS: Godot can decode actual imported texture: 152
+PASS: canonical database image: 153
+PASS: Godot can decode actual imported texture: 153
+PASS: canonical database image: 154
+PASS: Godot can decode actual imported texture: 154
+PASS: canonical database image: 155
+PASS: Godot can decode actual imported texture: 155
+PASS: canonical database image: 156
+PASS: Godot can decode actual imported texture: 156
+PASS: canonical database image: 157
+PASS: Godot can decode actual imported texture: 157
+PASS: canonical database image: 158
+PASS: Godot can decode actual imported texture: 158
+PASS: canonical database image: 159
+PASS: Godot can decode actual imported texture: 159
+PASS: canonical database image: 160
+PASS: Godot can decode actual imported texture: 160
+PASS: canonical database image: 161
+PASS: Godot can decode actual imported texture: 161
+PASS: canonical database image: 17
+PASS: Godot can decode actual imported texture: 17
+PASS: canonical database image: 171
+PASS: Godot can decode actual imported texture: 171
+PASS: canonical database image: 172
+PASS: Godot can decode actual imported texture: 172
+PASS: canonical database image: 173
+PASS: Godot can decode actual imported texture: 173
+PASS: canonical database image: 175
+PASS: Godot can decode actual imported texture: 175
+PASS: canonical database image: 178
+PASS: Godot can decode actual imported texture: 178
+PASS: canonical database image: 19
+PASS: Godot can decode actual imported texture: 19
+PASS: canonical database image: 2
+PASS: Godot can decode actual imported texture: 2
+PASS: canonical database image: 22
+PASS: Godot can decode actual imported texture: 22
+PASS: canonical database image: 24
+PASS: Godot can decode actual imported texture: 24
+PASS: canonical database image: 25
+PASS: Godot can decode actual imported texture: 25
+PASS: canonical database image: 26
+PASS: Godot can decode actual imported texture: 26
+PASS: canonical database image: 27
+PASS: Godot can decode actual imported texture: 27
+PASS: canonical database image: 3
+PASS: Godot can decode actual imported texture: 3
+PASS: canonical database image: 31
+PASS: Godot can decode actual imported texture: 31
+PASS: canonical database image: 32
+PASS: Godot can decode actual imported texture: 32
+PASS: canonical database image: 34
+PASS: Godot can decode actual imported texture: 34
+PASS: canonical database image: 42
+PASS: Godot can decode actual imported texture: 42
+PASS: canonical database image: 43
+PASS: Godot can decode actual imported texture: 43
+PASS: canonical database image: 44
+PASS: Godot can decode actual imported texture: 44
+PASS: canonical database image: 45
+PASS: Godot can decode actual imported texture: 45
+PASS: canonical database image: 46
+PASS: Godot can decode actual imported texture: 46
+PASS: canonical database image: 47
+PASS: Godot can decode actual imported texture: 47
+PASS: canonical database image: 51
+PASS: Godot can decode actual imported texture: 51
+PASS: canonical database image: 52
+PASS: Godot can decode actual imported texture: 52
+PASS: canonical database image: 55
+PASS: Godot can decode actual imported texture: 55
+PASS: canonical database image: 58
+PASS: Godot can decode actual imported texture: 58
+PASS: canonical database image: 59
+PASS: Godot can decode actual imported texture: 59
+PASS: canonical database image: 60
+PASS: Godot can decode actual imported texture: 60
+PASS: canonical database image: 62
+PASS: Godot can decode actual imported texture: 62
+PASS: canonical database image: 63
+PASS: Godot can decode actual imported texture: 63
+PASS: canonical database image: 66
+PASS: Godot can decode actual imported texture: 66
+PASS: canonical database image: 67
+PASS: Godot can decode actual imported texture: 67
+PASS: canonical database image: 7
+PASS: Godot can decode actual imported texture: 7
+PASS: canonical database image: 73
+PASS: Godot can decode actual imported texture: 73
+PASS: canonical database image: 74
+PASS: Godot can decode actual imported texture: 74
+PASS: canonical database image: 76
+PASS: Godot can decode actual imported texture: 76
+PASS: canonical database image: 77
+PASS: Godot can decode actual imported texture: 77
+PASS: canonical database image: 8
+PASS: Godot can decode actual imported texture: 8
+PASS: canonical database image: 80
+PASS: Godot can decode actual imported texture: 80
+PASS: canonical database image: 82
+PASS: Godot can decode actual imported texture: 82
+PASS: canonical database image: 85
+PASS: Godot can decode actual imported texture: 85
+PASS: canonical database image: 86
+PASS: Godot can decode actual imported texture: 86
+PASS: canonical database image: 9
+PASS: Godot can decode actual imported texture: 9
+PASS: canonical database image: 90
+PASS: Godot can decode actual imported texture: 90
+PASS: canonical database image: 93
+PASS: Godot can decode actual imported texture: 93
+PASS: canonical database image: 97
+PASS: Godot can decode actual imported texture: 97
+PASS: canonical database image: 98
+PASS: Godot can decode actual imported texture: 98
+PASS: canonical database image: spell-smm-006
+PASS: Godot can decode actual imported texture: spell-smm-006
+PASS: canonical database image: spell-kmo-005
+PASS: Godot can decode actual imported texture: spell-kmo-005
+PASS: canonical database image: spell-kmo-004
+PASS: Godot can decode actual imported texture: spell-kmo-004
+PASS: canonical database image: character-smm01
+PASS: Godot can decode actual imported texture: character-smm01
+PASS: canonical database image: character-kmo-001
+PASS: Godot can decode actual imported texture: character-kmo-001
+PASS: canonical database image: spell-kmo-002
+PASS: Godot can decode actual imported texture: spell-kmo-002
+PASS: canonical database image: character-smm07
+PASS: Godot can decode actual imported texture: character-smm07
+PASS: canonical database image: spell-ucs-011
+PASS: Godot can decode actual imported texture: spell-ucs-011
+PASS: canonical database image: spell-ucs-008
+PASS: Godot can decode actual imported texture: spell-ucs-008
+PASS: canonical database image: item-ucs-012
+PASS: Godot can decode actual imported texture: item-ucs-012
+PASS: canonical database image: spell-ucs-029
+PASS: Godot can decode actual imported texture: spell-ucs-029
+PASS: canonical database image: spell-ucs-026
+PASS: Godot can decode actual imported texture: spell-ucs-026
+PASS: canonical database image: character-ucs-032
+PASS: Godot can decode actual imported texture: character-ucs-032
+PASS: canonical database image: character-ucs-072
+PASS: Godot can decode actual imported texture: character-ucs-072
+PASS: canonical database image: spell-ucs-019
+PASS: Godot can decode actual imported texture: spell-ucs-019
+PASS: canonical database image: character-ucs-071
+PASS: Godot can decode actual imported texture: character-ucs-071
+PASS: canonical database image: character-ucs-038
+PASS: Godot can decode actual imported texture: character-ucs-038
+PASS: canonical database image: character-ucs-069
+PASS: Godot can decode actual imported texture: character-ucs-069
+PASS: canonical database image: character-ucs-048
+PASS: Godot can decode actual imported texture: character-ucs-048
+PASS: canonical database image: character-ucs-042
+PASS: Godot can decode actual imported texture: character-ucs-042
+PASS: canonical database image: spell-ucs-014
+PASS: Godot can decode actual imported texture: spell-ucs-014
+PASS: canonical database image: spell-ucs-027
+PASS: Godot can decode actual imported texture: spell-ucs-027
+PASS: canonical database image: token-ucs-099
+PASS: Godot can decode actual imported texture: token-ucs-099
+PASS: pending folder cannot be used as runtime art directory
+PASS: missing-art diagnostic includes exact image path
+PASS: main menu does not show the reported database error
+PASS: card 177 previews at normalized resolution in deck editor
+PASS: button: 确定
+PASS: relocated spell can be cast through battle interface
+PASS: card 177 resolves its existing effect without changing rules
+PASS: saved decks remain unchanged
+V097_DATABASE: 512 checks; 0 failures
+

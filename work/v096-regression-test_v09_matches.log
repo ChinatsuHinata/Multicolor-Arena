@@ -1,0 +1,22 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: new pool forms legal 50 card deck 0
+PASS: expanded match completes 0
+PASS: new pool forms legal 50 card deck 1
+PASS: expanded match completes 1
+PASS: new pool forms legal 50 card deck 2
+PASS: expanded match completes 2
+PASS: new pool forms legal 50 card deck 3
+PASS: expanded match completes 3
+PASS: new pool forms legal 50 card deck 4
+PASS: expanded match completes 4
+PASS: new pool forms legal 50 card deck 5
+PASS: expanded match completes 5
+PASS: new pool forms legal 50 card deck 6
+PASS: expanded match completes 6
+PASS: new pool forms legal 50 card deck 7
+PASS: expanded match completes 7
+PASS: AI actually used at least 20 new card types: 47
+V09_MATCHES: 17 checks; 0 failures

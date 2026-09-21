@@ -1,0 +1,95 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+UNIT CONTRACT character-ucs-023
+PASS: entry/phase/death continuations complete character-ucs-023
+UNIT CONTRACT character-fdn-027
+PASS: entry/phase/death continuations complete character-fdn-027
+UNIT CONTRACT character-ucs-046
+PASS: entry/phase/death continuations complete character-ucs-046
+UNIT CONTRACT character-fdf-100
+PASS: entry/phase/death continuations complete character-fdf-100
+UNIT CONTRACT character-fdf-065
+PASS: entry/phase/death continuations complete character-fdf-065
+UNIT CONTRACT character-fdn-035
+PASS: entry/phase/death continuations complete character-fdn-035
+UNIT CONTRACT character-ucs-010
+PASS: entry/phase/death continuations complete character-ucs-010
+UNIT CONTRACT character-fdf-094
+PASS: entry/phase/death continuations complete character-fdf-094
+UNIT CONTRACT character-ucs-044
+PASS: entry/phase/death continuations complete character-ucs-044
+UNIT CONTRACT character-ucs-063
+PASS: entry/phase/death continuations complete character-ucs-063
+UNIT CONTRACT token-fdf-127
+PASS: entry/phase/death continuations complete token-fdf-127
+UNIT CONTRACT character-fdf-113
+PASS: entry/phase/death continuations complete character-fdf-113
+UNIT CONTRACT character-ucs-066
+PASS: entry/phase/death continuations complete character-ucs-066
+UNIT CONTRACT field-ucs-064
+PASS: entry/phase/death continuations complete field-ucs-064
+UNIT CONTRACT character-fdf-111
+PASS: entry/phase/death continuations complete character-fdf-111
+UNIT CONTRACT character-fdf-046
+PASS: entry/phase/death continuations complete character-fdf-046
+UNIT CONTRACT character-ucs-068
+PASS: entry/phase/death continuations complete character-ucs-068
+UNIT CONTRACT character-fdn-071
+PASS: entry/phase/death continuations complete character-fdn-071
+UNIT CONTRACT character-ucs-034
+PASS: entry/phase/death continuations complete character-ucs-034
+UNIT CONTRACT character-kmo-005
+PASS: entry/phase/death continuations complete character-kmo-005
+UNIT CONTRACT character-ucs-003
+PASS: entry/phase/death continuations complete character-ucs-003
+UNIT CONTRACT character-fdn-041
+PASS: entry/phase/death continuations complete character-fdn-041
+UNIT CONTRACT character-fdn-014
+PASS: entry/phase/death continuations complete character-fdn-014
+UNIT CONTRACT character-ucs-067
+PASS: entry/phase/death continuations complete character-ucs-067
+UNIT CONTRACT character-fdn-048
+PASS: entry/phase/death continuations complete character-fdn-048
+UNIT CONTRACT character-fdf-114
+PASS: entry/phase/death continuations complete character-fdf-114
+UNIT CONTRACT character-fdf-103
+PASS: entry/phase/death continuations complete character-fdf-103
+UNIT CONTRACT character-fdn-025
+PASS: entry/phase/death continuations complete character-fdn-025
+UNIT CONTRACT character-ucs-016
+PASS: entry/phase/death continuations complete character-ucs-016
+UNIT CONTRACT character-fdf-115
+PASS: entry/phase/death continuations complete character-fdf-115
+UNIT CONTRACT character-fdf-109
+PASS: entry/phase/death continuations complete character-fdf-109
+UNIT CONTRACT character-fdf-104
+PASS: entry/phase/death continuations complete character-fdf-104
+UNIT CONTRACT character-fdn-037
+PASS: entry/phase/death continuations complete character-fdn-037
+UNIT CONTRACT token-fdf-129
+PASS: entry/phase/death continuations complete token-fdf-129
+UNIT CONTRACT character-fdn-045
+PASS: entry/phase/death continuations complete character-fdn-045
+UNIT CONTRACT character-fdf-069
+PASS: entry/phase/death continuations complete character-fdf-069
+UNIT CONTRACT character-ucs-025
+PASS: entry/phase/death continuations complete character-ucs-025
+UNIT CONTRACT field-rei-013
+PASS: entry/phase/death continuations complete field-rei-013
+UNIT CONTRACT character-fdn-034
+PASS: entry/phase/death continuations complete character-fdn-034
+UNIT CONTRACT character-ucs-065
+PASS: entry/phase/death continuations complete character-ucs-065
+UNIT CONTRACT character-fdn-042
+PASS: entry/phase/death continuations complete character-fdn-042
+UNIT CONTRACT character-fdf-101
+PASS: entry/phase/death continuations complete character-fdf-101
+UNIT CONTRACT character-lof-002
+PASS: entry/phase/death continuations complete character-lof-002
+UNIT CONTRACT character-fdn-013
+PASS: entry/phase/death continuations complete character-fdn-013
+UNIT CONTRACT character-fdf-091
+PASS: entry/phase/death continuations complete character-fdf-091
+V013_UNITS: 45 checks; [] failures

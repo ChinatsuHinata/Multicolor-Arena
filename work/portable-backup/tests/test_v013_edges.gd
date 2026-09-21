@@ -1,0 +1,68 @@
+extends "res://tests/test_v013_rules.gd"
+func activation_board(k:String):
+ fresh();mana()
+ for id in ["2","7","character-fdn-038","character-fdf-029"]:put(id)
+ put("50","field",1);put("70","field",1)
+ for id in ["50","spell-fdf-049","7"]:put(id,"hand")
+ for id in ["51","96","8"]:put(id,"grave")
+ e.players[0].palette[0].poverty=3
+ if k=="spell-fdf-059":put("character-fdf-103")
+ var id=k.trim_suffix(":self").trim_suffix(":health").trim_suffix(":spirit")
+ var c=put(id,"grave" if id in ["spell-fdf-059","character-fdf-111"] else "field")
+ c.leader_counters=1;return c
+func run():
+ for k in Roster.Cat.ACTIVATIONS:
+  var actor=activation_board(k);var options=e.Extra.activation_options(e,actor,k);var target=Pack.ai_target(e,0,options,k)
+  expect(not target.is_empty(),"activation has legal selection "+k)
+  expect(e.extension_activation_error(0,actor,k).is_empty(),"activation allowed "+k)
+  var result=e.commit_extension(0,actor.uid,target,e.payment(0,e.extension_cost(0,actor,k,target)).plan,k)
+  expect(result.is_empty(),"activation commits "+k+" "+result);settle();expect(e.pending.is_empty(),"activation completes "+k)
+ fresh();var a=put("character-ucs-066");var b=put("character-fdn-042");e.damage_context={"source":a,"combat":false};e.damage_target(e.ref_target(b),1);e.move_to(b,"grave",false);settle();expect(e.delayed.is_empty(),"Yachie also suppresses Utsuho delayed return trigger")
+ fresh();a=put("character-htk-005");b=e.Cat.token(e,0,"test",1,1,1,["黄"]);e.move_to(b,"exile");expect(e.triggers.any(func(t):return t.effect=="character-htk-005"),"exiled tokens trigger Doremy before ceasing")
+ fresh();a=put("spell-fdf-123");a.timer=3;e.Cat.mill(e,1,4);expect(e.triggers.size()==1 and e.triggers[0].data.amount==4,"rain ghost tale coalesces four milled cards once")
+ fresh();a=put("spell-fdf-123");a.timer=3;b=e.players[1].deck[0];e.move_to(b,"grave");expect(e.triggers.size()==1 and e.triggers[0].data.amount==1,"old engine top to grave paths notify rain ghost tale")
+ fresh();a=put("50");a.plus_counters=8;var s=stacked("spell-fdf-061",0,{"player":1,"mode":"本回合不能使用单位"});var options=e.Cat.retarget_options(e,s)
+ expect(options.all(func(o):return o.mode=="本回合不能使用单位"),"retarget preserves chosen spell mode")
+ fresh();a=put("50");var spell=e.make_card("spell-fdf-051",0,"stack");var old={"selection_id":"spell-fdf-051:2","x":2,"picks":[[e.ref_target(a)]]}
+ var entry={"card":spell,"kind":"card","owner":0,"target":old,"name":e.cards[spell.card_id].name};e.catalogue_x_override=4;options=e.Cat.retarget_options(e,entry,4);e.catalogue_x_override=0
+ expect(options.all(func(o):return o.get("x",-1)==4),"Catadioptric copy uses new X without paying")
+ fresh();mana();put("character-fdf-112");a=put("7");b=put("8","grave");var c=put("character-fdn-045","grave");spell=put("spell-fdn-046","hand")
+ options=e.targets_for(spell.card_id,0,spell.uid);var t=choose_groups(options,[options[0].selection[0].pool]);expect(e.commit_cast(0,spell.uid,t,e.payment(0,e.cast_cost(0,spell,t)).plan).is_empty(),"additional cost spell put on stack")
+ entry=e.stack.back();options=e.Cat.retarget_options(e,entry);expect(options.size()==1 and options[0].selection.is_empty(),"retarget does not ask to repay doll cost")
+ t=choose_groups(options,[]);expect(e.Cat.retarget_result(t).picks[0].size()==3,"retarget preserves already paid dolls")
+ fresh();a=put("character-fdf-112");b=put("7","hand");spell=put("spell-fdf-030","hand");options=e.targets_for(spell.card_id,0,spell.uid);t=choose_groups(options,[[Pack.ref(e,b)]])
+ expect(e.cast_error(0,spell.uid).is_empty() and e.cast_cost(0,spell,t).values().all(func(v):return v==0),"doll pitch works without palette mana")
+ expect(e.commit_cast(0,spell.uid,t,[]).is_empty() and b.zone=="grave","doll discarded only at committed cast");settle();expect(e.Extra.keyword(e,a,"不会被消灭"),"Otome Bunraku protects Alice")
+ fresh();a=put("character-fdf-117");a.leader_counters=1;b=put("character-fdf-115");spell=put("spell-fdf-072","hand");mana();options=e.targets_for(spell.card_id,0,spell.uid);t=choose_groups(options.filter(func(o):return o.has("selection")),[[e.ref_target(b)]])
+ expect(t.mode=="牺牲并放入封兽鵺" and Pack.choice_valid(e,options,t),"Nue deployment mode preserves selection metadata")
+ expect(e.commit_cast(0,spell.uid,t,e.payment(0,e.cast_cost(0,spell,t)).plan).is_empty(),"unknown object additional sacrifice commits")
+ expect(b.zone=="grave","unknown object sacrificed before spell resolves")
+ fresh();a=put("character-fdf-102");a.leader_counters=1;spell=put("spell-fdf-049","hand");mana();e.players[0].hand.append(e.make_card("50",0,"hand"));var cherry=put("spell-fdf-048","hand")
+ options=e.targets_for(cherry.card_id,0,cherry.uid);expect(options[0].selection[1].pool.all(func(r):return r.uid!=cherry.uid),"Cherry cannot exile the very spell being cast")
+ fresh();a=put("character-fdf-119");spell=put("spell-fdf-078","deck");e.Roster.to_top(e,spell);put("165","palette");e.Cat.reveal(e,[spell]);settle();expect(spell.zone=="grave" and e.players[0].palette[0].tapped,"revealed Agni may cast for one red and resolves")
+ fresh();spell=put("spell-fdf-078","deck");e.Roster.to_top(e,spell);put("165","palette");e.Cat.reveal(e,[spell]);settle();expect(spell.zone=="exile" and not e.players[0].palette[0].tapped,"free timing permission does not bypass Patchouli role constraint")
+ fresh();a=put("spell-fdf-028","grave");put("165","palette");put("168","palette");cat_trigger(a,"cat:nuclear_return");var pending=e.pending.duplicate(true)
+ t={"none":true,"mode":"支付费用","pay":true,"payment":[]};e.choose_effect(t);expect(e.pending==pending and a.zone=="grave","invalid private trigger payment rejected without mutation")
+ t.payment=e.payment(0,pending.trigger.data.cost).plan;e.choose_effect(t);expect(a.zone=="hand" and e.players[0].palette.all(func(u):return u.tapped),"manual trigger payment applies exactly once")
+ fresh();a=put("character-fdf-091");a.leader_counters=1;e.combat_hit(a,{"player":1},1);expect(e.players[0].life==22,"new lifesteal two parsed and functional")
+ for id in ["character-ucs-067","character-fdn-048"]:
+  fresh();a=put(id);e.combat_hit(a,{"player":1},1);expect(e.players[0].life==24,"new lifesteal four parsed "+id)
+ fresh();a=put("character-fdn-007");b=put("character-fdf-090","field",1);b.leader_counters=1;var pwr=e.stat(b,"power");var target=put("50","field",1)
+ # Direct copy uses printed characteristics; counters do not travel and leaves reset.
+ b.plus_counters=5;var clone=e.Cat.copy_token(e,0,b);expect(e.stat(clone,"power")==pwr and clone.plus_counters==0,"copied unit ignores noncopiable counters")
+ e.move_to(clone,"grave",false);expect(clone.zone=="void","unit copy token ceases off battlefield")
+ fresh();a=put("character-ucs-065");a.madness=1;e.priority=0;e.pass_priority(0);e.pass_priority(1);expect(e.phase=="main" and e.priority==0,"madness prevents ending main before legal attack")
+ fresh();a=put("spell-fdf-040");a.timer=2;put("character-fdf-041");e.Cat.events(e,a,"spell-fdf-040");expect(e.triggers.size()==2,"timed ability duplication independent of timer amount")
+ fresh();a=put("spell-fdn-032");a.timer=3;b=put("50");var base=e.stat(b,"power");mana();act(a,a.card_id,e.ref_target(b))
+ expect(e.Cat.counter_total(e,[b])==1 and b.get("madness",0)==1 and e.stat(b,"power")==base+1,"madness is one named stat counter, not two counters")
+ e.Cat.remove_counters(e,e.Cat.counter_refs(e,[b]));expect(e.stat(b,"power")==base and not b.get("madness",0)>0,"removing madness counter removes stat bonus and attack obligation")
+ fresh();a=put("spell-fdf-123");a.timer=3;put("character-fdf-041");e.Cat.mill(e,1,4)
+ expect(e.triggers.size()==2 and e.triggers.all(func(t):return t.data.amount==4),"Sakuya duplicated mill triggers both retain the full batch count")
+ fresh();var aftermath=resolve_spell("spell-fdn-040");expect(not e.resolving_spell,"palette-return spell restores damage classification")
+ fresh();a=put("character-fdn-042");a.plus_counters=5;resolve_spell("spell-fdn-003");e.damage_context={}
+ t=choose_groups(e.pending.options,[[e.ref_target(a)],[e.ref_target(a)],[e.ref_target(a)],[e.ref_target(a)],[e.ref_target(a)]]);e.choose_effect(t)
+ expect(a.get("noncombat_damage_turn",-1)==e.turn and a.spell_damage,"damage distribution retains original spell source after selection")
+ fresh();a=put("50");entry={"kind":"ability","generic_activation":true,"source":a,"owner":0,"target":{"player":1},"amount":1};e.priority=1
+ options=e.Cat.retarget_options(e,entry);expect(options.has({"player":0}) and options.has({"player":1}) and options.has(e.ref_target(a)),"retargeted generic damage ability keeps both players and units legal")
+ expect(e.priority==1,"retarget lookup preserves actual priority owner")
+ print("V013_EDGES: ",checks," checks; ",failures," failures");quit(1 if failures else 0)

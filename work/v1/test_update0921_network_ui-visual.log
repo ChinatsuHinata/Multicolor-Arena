@@ -1,0 +1,23 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: UI host opens
+PASS: initial UI undo disabled
+PASS: button: 保留
+PASS: guest completes operation
+PASS: undo enabled after operation
+PASS: button: 悔棋
+PASS: UI requests agreement
+PASS: request locks actions and offers cancellation
+PASS: button: 取消请求
+PASS: UI cancels request
+PASS: opponent sees agreement buttons
+PASS: agreement buttons work while match locked
+PASS: card inspection remains available during agreement
+PASS: button: 同意悔棋
+PASS: UI approval restores prior operation
+PASS: restored game is interactable
+PASS: UI requests and discarded operation absent from replay
+UPDATE0921 NETWORK UI 17 checks; failures=[]

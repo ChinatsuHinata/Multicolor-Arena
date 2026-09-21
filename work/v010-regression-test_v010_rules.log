@@ -1,0 +1,151 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: 132 definitions load, including eight unconstructible tokens
+PASS: 预组-灵梦 passes strict 50+1 validation
+PASS: 预组-灵梦 excludes all tokens
+PASS: 预组-魔理沙 passes strict 50+1 validation
+PASS: 预组-魔理沙 excludes all tokens
+PASS: photo's three Dream Orbs and one Hakurei Shrine preserved
+PASS: limited spells reject a third copy
+PASS: Reimu leader ability restored from supplied art
+PASS: vampire token uses actual supplied 2/2 art and lifesteal
+PASS: spread targets use a linear selection descriptor
+PASS: dynamic picker starts private and can choose player
+PASS: duplicate target forbidden
+PASS: early finish produces a valid selected target list
+PASS: Lily provides all five colors in palette
+PASS: chromatic Spring accepts any one color
+PASS: active Patchouli leader grants chromatic spell costs
+PASS: ordinary Patchouli copy has no leader aura
+PASS: Meteor support works with Marisa still in leader zone
+PASS: ordinary non-symbol spell is not fast
+PASS: Iku grants fast timing without ignoring costs
+PASS: Reimu self ability grants exterminate and conditional haste
+PASS: small-path Reimu has unconditional exterminate and flash
+PASS: cast spell-soi-098 
+PASS: Human/God ramp enters tapped
+PASS: cast spell-rei-015 
+PASS: Mountain River ramps two
+PASS: Promise discounts exactly two differently named leader units
+PASS: Promise draws three
+PASS: shop applies Master Spark alias reduction
+PASS: Double Spark declares two targets
+PASS: Double Spark deals six to each distinct target
+PASS: cast spell-rei-002 
+PASS: Spread damage follows chosen order 1 then 2
+PASS: cast spell-fdf-011 
+PASS: barrier replaces base stats before applying counters
+PASS: cast spell-rei-010 
+PASS: Yin Yang adds four spirit and heals Reimu's resulting spirit
+PASS: cast spell-rei-011 
+PASS: Dream Orbs counts role spells in both palettes
+PASS: cast spell-fdf-054 
+PASS: Cloud mode damage plus draw
+PASS: cast spell-mar-012 
+PASS: Shoot Moon counts prior grave copies only
+PASS: cast spell-mar-013 
+PASS: Spring adds persistent color counter and draws
+PASS: cast spell-fdf-036 
+PASS: Stardust distinguishes costs below, above, and exactly four
+PASS: cast spell-fdf-007 
+PASS: Eight-way circle removes exactly three selected palette cards
+PASS: cast spell-rei-012 
+PASS: Scatter seal counters only cost three or less
+PASS: cast spell-mar-007 
+PASS: Spirit Strike reveals a matching role spell without discarding it
+PASS: silent spark is cast normally
+PASS: silent spell prevents responses while on stack
+PASS: silent spark disables prevention for the turn
+PASS: cast spell-fdf-019 
+PASS: new Escape Velocity art grants two independent prevent-three shields
+PASS: small damage consumes only first shield
+PASS: next damage consumes remaining shield
+PASS: activate letty_shield 
+PASS: Letty sacrifices for five independent prevention instances
+PASS: three damage consumes three prevent-one abilities
+PASS: furnace increases a unit's single-target noncombat damage
+PASS: furnace does not increase a multiple-target damage effect
+PASS: furnace never increases combat damage
+PASS: cast spell-mar-014 
+PASS: Paranoid Lost prevents noncombat damage to self-unit category
+PASS: Paranoid does not prevent combat damage
+PASS: Yuuka enter ramps tapped
+PASS: explorer checks eight palette cards and gains two counters
+PASS: Tewi can enhance herself and other own units
+PASS: Kosuzu can destroy opposing fields
+PASS: Shou's opponent-turn enter offers next damage prevention
+PASS: Shou has no enter shield on own turn
+PASS: Eirin enters and returns a grave spell
+PASS: Marisa search resolves through region selection without extra priority
+PASS: Tokiko searches a cost-two artifact
+PASS: binding field prevents reset while source remains
+PASS: binding reset lock ends when its source leaves
+PASS: Shining Castle temporarily exiles a non-self unit
+PASS: Castle returns its linked card under original owner
+PASS: Yukari enter may target opponent units
+PASS: Yukari returns at controller's next prepare
+PASS: activate yukari_active 
+PASS: Yukari active blink is limited to once per turn
+PASS: Larva draws twice on death alongside crystal
+PASS: activate minoriko_untap 
+PASS: Minoriko taps to reset palette
+PASS: Sanae adds a counter at end phase
+PASS: experimental Marisa untaps up to two permanents
+PASS: Patchouli swaps hand and palette during end resolution
+PASS: Seiran stores a small blue spell for free future use
+PASS: Seiran spell can be cast from exile
+PASS: free exiled spell resolves and loses its permission
+PASS: Koakuma replaces selected palette with untapped top card
+PASS: Mike puts in two, returns two, and draws for role spell
+PASS: Seven-day Patchouli reveals top three and randomizes unchosen bottom cards
+PASS: Miyoi creates a real temporary artifact instance during prepare
+PASS: activate wine_discount 
+PASS: wine vanishes after sacrifice and discounts next role spell
+PASS: cast spell-mar-003 
+PASS: Laser resolves as time spell with four counters
+PASS: activate laser 
+PASS: last Laser timer sends source to grave while ability still resolves
+PASS: cast spell-mar-003 
+PASS: activate laser 
+PASS: Laser prevention mode pays yellow and a timer
+PASS: activate watch_counter 
+PASS: Watch circle sacrifices, counters active ability and optionally draws
+PASS: activate standing_blast 
+PASS: Standing circle remembers earlier tap even after untap
+PASS: activate marisa_recover 
+PASS: Marisa exiles three different names as a cost and recovers Spark
+PASS: activate keine_devour 
+PASS: Keine sacrifice exiles opposing top card with her permission
+PASS: Keine can use opponent-owned exiled card
+PASS: stolen permanent is controlled by caster, retains original ownership
+PASS: stolen permanent returns to owner's grave
+PASS: cast character-fdf-ex03 
+PASS: Byakuren X is paid, enters with counters, and gains X life
+PASS: Tenshi leader triggers once when opponent unit becomes tapped
+PASS: pursuit resets after first own-turn combat damage
+PASS: pursuit does not reset twice in one turn
+PASS: Oni attack trigger adds two counters before combat
+PASS: vampire token lifesteal and no battlefield slot
+PASS: illusion token vanishes without a Reisen-named unit
+PASS: Flandre can declare direct unit attack
+PASS: direct attack never asks for other blockers
+PASS: direct attack skips exactly next own reset
+PASS: rain field grants stats and brave dynamically
+PASS: rain benefits end when source leaves
+PASS: Eirin cast succeeds with leader color constraint
+PASS: Eirin creates medicine on cast
+PASS: activate medicine_return 
+PASS: medicine sacrifices and returns protected unit after death
+PASS: scarlet anthem returns a human when life is gained on own turn
+PASS: old city queues a coin flip after damage of at least three
+PASS: Spread commits two targets before a response removes a field
+PASS: Spread rechecks field count and never renumbers a vanished first target
+PASS: Spread commits before a response removes its final field
+PASS: Spread deals no damage if its last field is removed in response
+PASS: recovery choice does not hide the single damage target from furnace
+PASS: timer replacement reaching zero performs state-based removal immediately
+PASS: AI declines to counter its own spell
+PASS: rule tests do not modify saved decks
+V010_RULES: 146 checks; 0 failures

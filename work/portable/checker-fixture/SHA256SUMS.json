@@ -1,0 +1,13 @@
+{
+  "algorithm": "SHA256",
+  "files": {
+    "MulticolorArena.exe": {
+      "bytes": 109168640,
+      "sha256": "19e8275e1471d4ca86ef423fe54bc790b1568e8680d83a333bb7c5a77b6a0e34"
+    },
+    "MulticolorArena.pck": {
+      "bytes": 587881884,
+      "sha256": "95cd53ac538f6744910efd727905ad5edb281642b732f6fd9aec4276100d6252"
+    }
+  }
+}

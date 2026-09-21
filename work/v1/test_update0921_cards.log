@@ -1,0 +1,75 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS 511 validated definitions
+PASS cropped face ETO-001
+PASS cropped face ETO-002
+PASS cropped face ETO-003
+PASS cropped face ETO-004
+PASS cropped face ETO-005
+PASS cropped face ETO-006
+PASS cropped face ETO-007
+PASS cropped face ETO-008
+PASS cropped face ETO-009
+PASS cropped face ETO-010
+PASS cropped face ETO-011
+PASS cropped face ETO-012
+PASS cropped face ETO-S001
+PASS cropped face LOC-001
+PASS cropped face LOC-002
+PASS cropped face LOC-003
+PASS cropped face LOC-004
+PASS cropped face LOC-005
+PASS cropped face SPX-001
+PASS cropped face SPX-002
+PASS cropped face SPX-003
+PASS cropped face SPX-004
+PASS cropped face SPX-005
+PASS cropped face SPX-006
+PASS cropped face SPX-007
+PASS Suwako corrected cost
+PASS missing TXT values read from card image
+PASS both leaders generated at game start
+PASS second leader registered
+PASS second leader included in network queries
+PASS additional leader survives snapshot restore
+PASS cast generates two occult balls
+PASS choose number to shuffle from outside
+PASS road sees self-unit entering once
+PASS road limit applies to this permanent
+PASS road shield mode
+PASS Cirno all-counter power and spirit bonus
+PASS counter placement triggers leader ability
+PASS Cirno attack trigger
+PASS Suika enters with X plus one counters
+PASS Suika leader retains return-home choice
+PASS Suika creates ghosts then exiles
+PASS Suika returns when no ghost remains
+PASS Suwako blue-green frog token
+PASS Suwako activation pays sacrifice
+PASS frog tap resolves
+PASS gourd tap activation
+PASS drunk counter applies all stats
+PASS drunk unit placed at library bottom
+PASS Blizzard sees effect tapping opponent
+PASS Blizzard trigger limited once per turn
+PASS freeze ray damages and locks next reset
+PASS opponent next-turn entrants enter tapped
+PASS train excess damage reaches controller
+PASS train leave trigger
+PASS unlimited train deck accepted
+PASS occult ball swaps palette entry for deck top
+PASS Psychokinesis upkeep life loss
+PASS Child Festival reanimates opponent-owned unit
+PASS dream spell grave replacement leaves game
+PASS railway generates sky spell and gains life
+PASS night walk generates copy spell and draws two before discard
+PASS science century generates Festival and checks lethal debuff immediately
+PASS spell resolution context cleared before later abilities
+PASS dream generates two separately retargeted spell copies once
+PASS multimode sky resolves selected effects in order
+PASS dream discount removes any two colored points
+PASS Kokoro single triggered ability fires twice without event
+PASS static brave does not enter stack
+UPDATE0921 CARDS 70 checks; failures=[]

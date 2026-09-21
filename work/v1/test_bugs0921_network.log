@@ -1,0 +1,27 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS 外部自组卡组独立保存
+PASS 导入卡组50主牌+独立自机通过严格检查
+PASS 严格BO3房间开启
+PASS 自组卡组客机申请加入
+PASS 客机明确显示等待房主接受
+PASS 两端连接完成
+PASS 房主牌组提交确认
+PASS 真实ENet传输客机自组卡组，不依赖房主本地ID
+PASS 两端主牌备牌自机内容一致
+PASS both ready starts game
+PASS ready commands acknowledged
+PASS 对局初始化主牌50不含自机
+PASS 自机在独立区域正确生成
+PASS 完整导入加入开局流程无错误
+PASS single-game surrender submitted
+PASS single result synchronized
+PASS duplicate surrender cannot award another win
+PASS 非法51主牌明确返回错误且客机不锁死
+PASS 错误内容明确区分主卡组和自机
+PASS 不同规则版本的入房拒绝送达客机
+PASS 拒绝说明两端完整发行包须相同
+PASS 初次连接超时明确提示地址及网络问题，不无限等待
+BUGS0921 NETWORK 22 checks; [] failures

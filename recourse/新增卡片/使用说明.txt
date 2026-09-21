@@ -1,0 +1,27 @@
+双击 start.bat 下载全部卡图。首次运行会通过 pip 安装 Pillow。
+需要 Python 3.10 或以上版本，并能访问 project-multicolor.com。
+
+程序及图片默认位于本程序所在文件夹。
+命令行运行：python crawl_cards.py
+指定目录：python crawl_cards.py --output "C:\Users\tzx20\Desktop\爬虫"
+优先尝试原图：python crawl_cards.py --prefer-original
+测试前3张：python crawl_cards.py --limit 3
+
+范围：网站公开 /data/cards.json 中的全部卡牌记录，包括异画、不同版本和衍生物。
+不应用示例链接中的“魔”字筛选，也不受页面分页或合并显示不同版本影响。
+角色卡按页面首行“称号「名字」”命名，其他卡按名字命名。
+同名卡附加 __卡牌ID，Windows文件名禁用字符替换为下划线。
+
+真实解码并转换为JPEG（质量95），保留来源尺寸，透明区域填白色。
+默认下载网页实际展示的卡图；部分索引中的 original 原图路径返回404。
+--prefer-original 会先尝试原图，不可用时自动回退到展示图。
+
+支持重试、最多8路并发（默认6路）和断点续传。
+重复运行会读取清单并验证已成功的JPG，跳过相同来源和版本的完整图片。
+不覆盖没有记录在下载清单里的同名文件。
+请保留 download_manifest.json，方便续传。
+
+cards_index.json：网站卡牌索引快照。
+download_manifest.json：续传记录和图片来源。
+download_report.csv：卡名、文件名、尺寸、来源及错误信息（可用Excel打开）。
+失败时重新运行即可；程序会以非零退出码报告失败。

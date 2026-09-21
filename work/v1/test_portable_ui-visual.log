@@ -1,0 +1,28 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: four presets visible on first launch
+PASS: editor re-entry refreshes copied files and selector
+PASS: editor save writes selected portable file
+PASS: editor delete removes file from active library
+PASS: offline game records initial and AI states
+PASS: offline finish prompts save once
+PASS: redraw cannot duplicate save prompt
+PASS: accept creates one mreply file
+PASS: replay file discovered in replay menu
+PASS: playback is read only
+PASS: initial replay state exactly matches recording
+PASS: seeking final frame restores recorded winner without play dialog
+PASS: manual seek pauses playback
+PASS: play advances through recorded states
+PASS: replay clicks cannot cast or choose mulligan
+PASS: replay preserves hidden library
+PASS: replay pile browser leaves playback controls clear
+PASS: history remains above replay controls
+PASS: closing history restores replay controls
+PASS: playback can return to list
+PASS: spectator UI hides both hands and disables interactions
+PASS: spectator has navigation without decision buttons
+PORTABLE UI: 22 checks; 0 failures

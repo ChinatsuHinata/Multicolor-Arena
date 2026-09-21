@@ -1,0 +1,46 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 616.64 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 5060 Laptop GPU
+
+ERROR: Failed to read the root certificate store.
+   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2582)
+PASS: UI guest handshake
+PASS: strict legal sideboard fixture
+PASS: strict legal sideboard fixture
+PASS: button exists: 调整主副卡组
+PASS: sideboarding opens the graphical editor and preview
+PASS: library and persistent editing controls are absent
+PASS: leader and all registered cards are shown
+PASS: sideboarding cannot move the designated leader
+PASS: sideboarding cannot introduce outside cards
+PASS: right click previews without deleting registered cards
+PASS: click moves main card to side even while rearranging a full sideboard
+PASS: button exists: 更换完成
+PASS: invalid counts cannot submit or leave editor
+PASS: drag moves a side card back to main
+PASS: editing clears obsolete validation message
+PASS: button exists: 排序卡组
+PASS: completed exchange preserves registered multiset and strict rules
+PASS: button exists: 更换完成
+PASS: successful authority acknowledgment returns to previous room
+PASS: host stores exactly the graphical sideboard result
+PASS: sideboarding preserves the player's unsaved normal editor draft
+PASS: sideboarding never overwrites saved decks
+PASS: button exists: 调整主副卡组
+PASS: button exists: 返回
+PASS: leaving unfinished sideboarding discards only its draft
+PASS: button exists: 准备
+PASS: ready player cannot silently alter registered cards
+PASS: button exists: 取消准备
+PASS: cancel ready restores sideboarding
+PASS: pre-disconnect mulligan selection works
+PASS: disconnect immediately clears private selections and locks interaction
+PASS: no actionable hand or turn controls remain while disconnected
+PASS: countdown leaves battlefield visible
+PASS: right click inspection remains available while paused
+PASS: paused player can inspect piles without revealing hidden cards
+PASS: timeout shows the entire-match forfeit on the battlefield
+PASS: ended game offers exit but no play controls
+PASS: button exists: 返回联机房间
+PASS: aborted room cannot start another BO3 game but permits viewing
+PASS: all UI checks preserve user's saved decks
+V1 UI 40 checks; [] failures
