@@ -26,7 +26,7 @@ func run():
  guarded.receive(7,{"type":"ack","sequence":3})
  check(guarded.paused and guarded.transport.sent.is_empty(),"failed recovery checkpoint cannot unlock guest")
  guarded.free()
- check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.0","project name and version updated")
+ check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.1.1-bugfixed","project name and version updated")
  check(OS.get_user_data_dir().replace("\\","/").ends_with("/Godot/app_userdata/极彩 Multicolour"),"renaming preserves legacy save directory")
  var utopia=Store.CARDS["spell-fdf-068"].cost;var winter=Store.CARDS["spell-fdf-042"].cost
  check(utopia.size()==2 and int(utopia.get("蓝",0))==2 and int(utopia.get("绿",0))==1,"Last Utopia costs two blue one green")

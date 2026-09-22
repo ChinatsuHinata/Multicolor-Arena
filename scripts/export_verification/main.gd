@@ -8,7 +8,7 @@ func check(ok: bool,text: String):
 func _ready():call_deferred("run")
 func run():
  check(not OS.has_feature("editor"),"must run with exported release template")
- check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.1","1.1 product identity")
+ check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.1.1-bugfixed","1.1.1-bugfixed product identity")
  check(OS.get_user_data_dir().replace("\\","/").ends_with("/Godot/app_userdata/极彩 Multicolour"),"preserve prior player save directory")
  check(int(Store.CARDS["spell-fdf-068"].cost["蓝"])==2 and int(Store.CARDS["spell-fdf-068"].cost["绿"])==1,"updated Last Utopia cost exported")
  check(int(Store.CARDS["spell-fdf-042"].cost["蓝"])==2 and int(Store.CARDS["spell-fdf-042"].cost["黑"])==1,"updated Winter cost exported")
