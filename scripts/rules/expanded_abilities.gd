@@ -201,7 +201,7 @@ static func resolve_trigger(e,t: Dictionary):
   "enter_blink":
    if valid(e,target):
     var u=e.find_card(target.uid); e.move_to(u,"exile")
-    e.delayed.append({"owner":who,"phase":"end","effect":"return_exile","ref":e.ref_target(u),"zone":"exile"})
+    e.delayed.append({"owner":who,"phase":"end","effect":"return_exile","ref":e.Pack.future_zone_ref(e,u,"exile"),"zone":"exile"})
   "enter_fight":
    if original and valid(e,target) and e.combat.is_empty():
     e.combat_queue.append({"attacker":e.ref_target(c),"owner":who,"blockers":[target],"blocked":true,"step":"block_window","forced":true})
