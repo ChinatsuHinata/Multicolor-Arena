@@ -34,6 +34,12 @@ func run():
   effect("114",{"picks":[[e.ref_target(leader)]]});e.pump_choices()
   expect(e.pending.get("kind")=="leader_return" and leader.zone=="return_pending","境界先询问自机去向")
   e.choose_return(home);expect(leader.zone==("leader" if home else "field"),"境界尊重自机去向 "+str(home))
+ for home in [false,true]:
+  fresh();var leader=e.players[0].leader;e.enter_field(leader,0);e.pending={};e.triggers=[]
+  var blinker=put("30");e.Extra.resolve_trigger(e,{"effect":"enter_blink","owner":0,"source":blinker.duplicate(true),"target":e.ref_target(leader),"data":{}})
+  e.pump_choices();expect(e.pending.get("kind")=="leader_return","梅露兰暂时除外自机时询问去向")
+  e.choose_return(home);e.phase="end";e.run_delayed("end");e.pump_choices();settle()
+  expect(leader.zone==("leader" if home else "field"),"梅露兰结束阶段尊重自机去向 "+str(home))
  fresh();var leader=e.players[0].leader;e.enter_field(leader,0);e.pending={};e.triggers=[];e.Pack.blink(e,leader,0);e.pump_choices();e.choose_return(false)
  e.phase="prepare";e.run_delayed("prepare");e.pump_choices()
  expect(e.stack.size()==1 and e.stack[0].effect=="delayed_return","紫延迟回场进入对抗")
