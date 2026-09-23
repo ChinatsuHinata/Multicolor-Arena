@@ -200,10 +200,8 @@ func layout() -> Dictionary:
    var bundles=[];var keys={}
    for c in groups[group]:
     var signature=""
-    if c.get("token",false) and duel.cards[c.card_id].name=="要石" and c.uid not in chosen and not reserved.any(func(r):return r.uid==c.uid):
-     var state=c.duplicate(true)
-     for field in ["uid","epoch","entered","entered_turns"]:state.erase(field)
-     signature=JSON.stringify(state)
+    if c.uid not in chosen and not reserved.any(func(r):return r.uid==c.uid):
+     signature=duel.stackable_signature(c)
     if not signature.is_empty() and keys.has(signature):bundles[keys[signature]].append(c)
     else:
      if not signature.is_empty():keys[signature]=bundles.size()

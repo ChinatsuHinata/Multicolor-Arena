@@ -3,3 +3,13 @@
 /android/
 /.godot-toolchain/
 /builds/
+
+# Installer packages and local packaging automation
+*-setup.exe
+/installer/
+/tools/build-installer.ps1
+/tools/installer-toolkit/
+/.vscode/
+
+# Local Git upload automation
+/tools/auto-commit-push.ps1

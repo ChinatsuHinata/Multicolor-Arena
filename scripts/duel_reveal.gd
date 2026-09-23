@@ -107,11 +107,19 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
   var nodes=view.hand_nodes if owner==view.local_seat else view.enemy_nodes
   if nodes.has(uid):return nodes[uid].get_global_rect()
  if source and view.table.visuals.has(key):return view.projected_card_rect(view.table.visuals[key])
+ if source and zone=="field":
+  for group_key in view.table.descriptors:
+   if uid in view.table.descriptors[group_key].get("members",[]) and view.table.visuals.has(group_key):
+    return view.projected_card_rect(view.table.visuals[group_key])
  if not source:
   var layout=view.table.layout()
-  if layout.has(key) and layout[key].zone==zone:
-   var d=layout[key];var dimensions=Vector2(80,112) if zone!="stack" else Vector2(180,252)
-   return Rect2(view.project(d.at)-dimensions/2,dimensions)
+  var destination=layout.get(key,{})
+  if destination.is_empty() and zone=="field":
+   for d in layout.values():
+    if uid in d.get("members",[]):destination=d;break
+  if not destination.is_empty() and destination.zone==zone:
+   var dimensions=Vector2(80,112) if zone!="stack" else Vector2(180,252)
+   return Rect2(view.project(destination.at)-dimensions/2,dimensions)
  if zone=="hand":
   var cards=view.engine.players[owner].hand;var index=cards.map(func(c):return c.uid).find(uid);index=maxi(0,index)
   var dimensions=Vector2(146,204) if owner==view.local_seat else Vector2(70,98) if view.debug_mode else Vector2(54,75)

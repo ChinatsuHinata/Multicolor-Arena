@@ -18,6 +18,7 @@ static func validate_definition(d: Variant,id: String) -> String:
   if not d.get(key) is String or d[key].is_empty(): return "缺少文字字段："+key
  if not d.get("能力文字") is String: return "能力文字必须是文字"
  if d["类别"] not in ["自机","单位","符卡","道具","结界"]: return "尚未支持的类别"
+ if d.get("关键词",[]).has("stackable") and d["类别"] not in ["道具","结界"]: return "stackable 仅支持道具或结界"
  if not d.get("颜色") is Array or d["颜色"].is_empty() and not d.get("衍生物",false): return "颜色必须是非空数组"
  var seen=[]
  for color in d["颜色"]:
@@ -88,7 +89,7 @@ static func load_cards() -> Dictionary:
   if not error.is_empty():
    last_error="卡牌数据库错误：%s · %s" % [path,error]
    push_error(last_error); return {}
-  cards[id]={"name":d["名称"],"kind":d["类别"],"color":" / ".join(d["颜色"]),"colors":d["颜色"],"cost":d["费用"],"file":d["图片"].get_file(),"image":d["图片"],"description":d["完整说明"],"rules_text":d["能力文字"],"source":d["来源"],"character":d.get("角色名",""),"title":d.get("称号",""),"race":d.get("种族",[]),"power":int(d.get("攻击力",0)),"health":int(d.get("血量",0)),"spirit":int(d.get("灵力",0)),"fast":d.get("高速",false) or d["能力绑定"].any(func(a): return a["实现"]=="flash"),"requires_character":d.get("角色约束",""),"abilities":d["能力绑定"],"constructible":d["构筑资格"]["允许常规构筑"],"keywords":d.get("关键词",[]),"spell_type":d.get("符卡类型",""),"time":int(d.get("计时",0)),"variable_multiplier":int(d.get("X费用倍率",1)),"variable_cost":d.get("可变费用",""),"canonical_id":d.get("同卡异版",id),"aliases":d.get("别名",[]),"token":d.get("衍生物",false),"landscape":d.get("横向卡图",d["类别"] in ["符卡","结界"]),"unlimited":d.get("同名数量无限制",false)}
+  cards[id]={"name":d["名称"],"kind":d["类别"],"color":" / ".join(d["颜色"]),"colors":d["颜色"],"cost":d["费用"],"file":d["图片"].get_file(),"image":d["图片"],"description":d["完整说明"],"rules_text":d["能力文字"],"source":d["来源"],"character":d.get("角色名",""),"title":d.get("称号",""),"race":d.get("种族",[]),"power":int(d.get("攻击力",0)),"health":int(d.get("血量",0)),"spirit":int(d.get("灵力",0)),"fast":d.get("高速",false) or d["能力绑定"].any(func(a): return a["实现"]=="flash"),"requires_character":d.get("角色约束",""),"abilities":d["能力绑定"],"constructible":d["构筑资格"]["允许常规构筑"],"keywords":d.get("关键词",[]),"stackable":"stackable" in d.get("关键词",[]),"spell_type":d.get("符卡类型",""),"time":int(d.get("计时",0)),"variable_multiplier":int(d.get("X费用倍率",1)),"variable_cost":d.get("可变费用",""),"canonical_id":d.get("同卡异版",id),"aliases":d.get("别名",[]),"token":d.get("衍生物",false),"landscape":d.get("横向卡图",d["类别"] in ["符卡","结界"]),"unlimited":d.get("同名数量无限制",false)}
  return cards
 static func ability(card: Dictionary, handler: String) -> Dictionary:
  for binding in card.abilities:
