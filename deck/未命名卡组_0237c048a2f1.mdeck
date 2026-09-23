@@ -1,0 +1,32 @@
+{
+  "deck": {
+    "id": "1790170991.596_2623531164",
+    "leader": "new-eto-001",
+    "main": [
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006",
+      "character-soi-006"
+    ],
+    "name": "未命名卡组",
+    "side": []
+  },
+  "format": "multicolor:arena/deck",
+  "version": 1
+}

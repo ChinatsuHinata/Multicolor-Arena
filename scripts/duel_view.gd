@@ -130,6 +130,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  table.build(engine,host.texture,host.battlefield_background)
  table.set_top_down_view(host.top_down_view)
  table.object_selected.connect(object_clicked)
+ table.avatar_selected.connect(leader_zone_clicked)
  table.combat_animation_finished.connect(render)
  table.combat_damage_shown.connect(rebuild_badges)
  table.combat_impact.connect(show_combat_impact)
@@ -230,6 +231,10 @@ func should_ask_response() -> bool:
   ResponseMode.ON: return true
   ResponseMode.OFF: return false
  return engine.has_response(acting_player())
+func pass_response():
+ engine.pass_priority(acting_player())
+ message=""
+ render()
 func response_disabled() -> bool:
  return network_locked() or response_mode==ResponseMode.OFF and in_response_window()
 func cycle_response_mode():
@@ -368,6 +373,8 @@ func render():
  life_widgets={}
  render_life(1-local_seat,Rect2(18,18,218,61))
  render_life(local_seat,Rect2(18,793,218,70))
+ txt("A  确认攻击",Rect2(18,865,218,17),14,host.MUTED)
+ txt("Q  不响应 / 继续",Rect2(18,882,218,17),14,host.MUTED)
  txt("手牌 %d" % engine.players[1-local_seat].hand.size(),Rect2(1070,78,170,30),18,host.WHITE)
  building_prompt=true
  if not table.combat_animating: render_prompt()
@@ -700,14 +707,45 @@ func render_prompt():
     text="分配战斗伤害"
  elif engine.priority==acting_player() and engine.winner==-2:
   if attack_preview_uid!=0:
-   btn("攻击",Rect2(1330,770,237,55),confirm_attack,true)
+   var attack_button=btn("攻击",Rect2(1330,770,237,55),confirm_attack,true)
+   attack_button.tooltip_text="快捷键：A"
   elif free_main():
    text=player_caption(acting_player())+"的行动"
    btn("结束主要阶段",Rect2(1330,770,237,55),func(): engine.pass_priority(acting_player()); message=""; render(),true)
   elif should_ask_response():
    text="响应窗口"
-   btn("不响应 / 继续",Rect2(1330,770,237,55),func(): engine.pass_priority(acting_player()); message=""; render(),true)
+   var response_button=btn("不响应 / 继续",Rect2(1330,770,237,55),pass_response,true)
+   response_button.tooltip_text="快捷键：Q"
  txt(text,Rect2(310,605,1000,37),21,host.GOLD)
+
+func shortcut_attack() -> bool:
+ if attack_preview_uid!=0:
+  if not engine.can_attack(acting_player(),attack_preview_uid):return false
+  confirm_attack()
+  return true
+ if not action_menu_open or not is_instance_valid(modal_root) or modal_root.get_child_count()==0:return false
+ var uid=int(modal_root.get_child(0).get_meta("action_card_uid",0))
+ if uid==0 or not engine.can_attack(acting_player(),uid):return false
+ execute_action({"type":"attack","uid":uid,"enabled":true})
+ return true
+
+func _unhandled_key_input(event: InputEvent):
+ if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A]:return
+ if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:return
+ if not is_visible_in_tree() or not is_instance_valid(table):return
+ if network_locked() or network_session!=null and not network_session.can_act(true):return
+ if revealing() or table.combat_animating or history_open or debug_open or observing:return
+ if drag_uid!=0 or debug_drag_uid!=0 or not local.is_empty():return
+ var focus=get_viewport().gui_get_focus_owner()
+ if focus is LineEdit or focus is TextEdit:return
+ if event.keycode==KEY_A:
+  if modal and not action_menu_open:return
+  if shortcut_attack():get_viewport().set_input_as_handled()
+  return
+ if modal or attack_preview_uid!=0:return
+ if not should_ask_response():return
+ get_viewport().set_input_as_handled()
+ pass_response()
 
 func begin_hand_drag(uid: int,at: Vector2):
  if network_locked():return
@@ -868,8 +906,37 @@ func object_clicked(uid: int):
     if not c.is_empty() and c.owner==acting_player() and c.zone=="palette" and not c.tapped and engine.can_possess(c): select_possession(uid,"palette")
   return
  if c.is_empty(): return
- if c.owner==acting_player() and c.zone=="leader": request_cast(uid)
+ if c.owner==acting_player() and c.zone=="leader": leader_zone_clicked(c.owner)
  elif c.owner==acting_player() and c.zone=="field": open_actions(c)
+func leader_zone_clicked(who: int):
+ if network_locked() or history_open or observing or table.combat_animating or modal or not local.is_empty():return
+ if who!=acting_player() or not engine.pending.is_empty():return
+ var leaders=engine.leaders(who).filter(func(c):return c.zone=="leader")
+ if leaders.is_empty():return
+ if leaders.size()==1:
+  request_cast(leaders[0].uid)
+  return
+ var panel=overlay("选择要使用的自机")
+ panel.size=Vector2(728,470);center_panel(panel)
+ var content=choice_card_content(panel,leaders.size(),Vector2(688,310))
+ for i in range(leaders.size()):
+  var leader=leaders[i]
+  var error=engine.cast_error(who,leader.uid)
+  var at=choice_card_position(i,leaders.size())
+  var choose_leader=func():
+   close_overlay()
+   request_cast(leader.uid)
+  var tile=host.card(content,leader.card_id,Rect2(at,Vector2(173,241)),choose_leader if error.is_empty() else Callable())
+  tile.gui_input.connect(func(event):
+   if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(leader.card_id,leader.uid))
+  tile.set_meta("leader_choice_uid",leader.uid)
+  if not error.is_empty():tile.modulate=Color(0.55,0.55,0.55);tile.tooltip_text=error
+  var label=txt(engine.cards[leader.card_id].name,Rect2(at+Vector2(-15,247),Vector2(195,38)),16,host.GOLD,content)
+  label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  if not error.is_empty():
+   var reason=txt(error,Rect2(at+Vector2(-15,283),Vector2(195,44)),14,host.MUTED,content)
+   reason.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;reason.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ btn("取消",Rect2(480,420,220,42),close_overlay,false,panel)
 func open_actions(c: Dictionary):
  if network_locked():return
  if response_disabled(): return
@@ -887,6 +954,7 @@ func open_actions(c: Dictionary):
   var action=actions[i]
   var at=choice_card_position(i,actions.size())
   var tile=host.card(content,c.card_id,Rect2(at,Vector2(173,241)),func(): execute_action(action))
+  if action.type=="attack":tile.tooltip_text="快捷键：A"
   if not action.enabled: tile.modulate=Color(0.55,0.55,0.55)
   var label=txt(action.label,Rect2(at+Vector2(-4,251),Vector2(185,74)),18,host.GOLD if action.enabled else host.MUTED,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER

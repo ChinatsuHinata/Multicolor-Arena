@@ -144,6 +144,10 @@ func reset_camera():
 func displayed_board_size() -> Vector2:
  return TOP_DOWN_BOARD_SIZE if top_down_view else BOARD_SIZE
 
+# Keep unit slots at the same printed horizontal positions on both mat sizes.
+func board_x(x: float) -> float:
+ return x*displayed_board_size().x/BOARD_SIZE.x
+
 func set_top_down_view(enabled: bool):
  var changed=top_down_view!=enabled
  top_down_view=enabled
@@ -181,10 +185,14 @@ func layout() -> Dictionary:
  for who in range(2):
   var p=duel.players[who]
   var side=1.0 if who==local_seat else -1.0
-  var leaders=([p.leader]+p.get("extra_leaders",[])).filter(func(c):return c.zone in ["leader","return_pending"])
-  for i in range(leaders.size()):
-   var offset=Vector3(0,0.06*i,-side*1.4*i)
-   var d=description(leaders[i],zone_position("leader",who)+offset,SLOT_SCALE);result[d.key]=d
+  var displayed_leader={}
+  if p.leader.zone=="leader":displayed_leader=p.leader
+  else:
+   for extra in p.get("extra_leaders",[]):
+    if extra.zone=="leader":displayed_leader=extra;break
+  if displayed_leader.is_empty() and p.leader.zone=="return_pending":displayed_leader=p.leader
+  if not displayed_leader.is_empty():
+   var d=description(displayed_leader,zone_position("leader",who),SLOT_SCALE);result[d.key]=d
   var groups={"unit":[],"item":[],"support":[],"melody":[]}
   for c in p.field:
    groups[field_group(c)].append(c)
@@ -234,11 +242,18 @@ func field_group(c: Dictionary) -> String:
 func field_position(group: String,index: int,count: int,who: int) -> Vector3:
  var side=1.0 if who==local_seat else -1.0
  var at=Vector3.ZERO
- match group:
-  "unit":at=Vector3(-6.4+index*minf(2.56,12.8/maxi(1,count-1)),0.035+index*0.002,1.55)
-  "item":at=Vector3(-6.35+(index%4)*1.76,0.035+(index/4)*0.025,4.3+(index/4)*0.22)
-  "support":at=Vector3(1.35+(index%3)*2.3,0.035+(index/3)*0.025,4.3+(index/3)*0.22)
-  "melody":at=Vector3(9.2,0.04,0)
+ if top_down_view:
+  match group:
+   "unit":at=Vector3(board_x(-6.4+index*minf(2.56,12.8/maxi(1,count-1))),0.035+index*0.002,0.9)
+   "item":at=Vector3(-4.5+(index%4)*1.6,0.035+(index/4)*0.025,3.0+(index/4)*0.22)
+   "support":at=Vector3(2.1+(index%2)*2.15,0.035+(index/2)*0.025,3.0+(index/2)*0.22)
+   "melody":at=Vector3(9.2,0.04,0)
+ else:
+  match group:
+   "unit":at=Vector3(-6.4+index*minf(2.56,12.8/maxi(1,count-1)),0.035+index*0.002,1.55)
+   "item":at=Vector3(-6.35+(index%4)*1.76,0.035+(index/4)*0.025,4.3+(index/4)*0.22)
+   "support":at=Vector3(1.35+(index%3)*2.3,0.035+(index/3)*0.025,4.3+(index/3)*0.22)
+   "melody":at=Vector3(9.2,0.04,0)
  at.x*=side;at.z*=side
  return at
 
@@ -433,6 +448,14 @@ func pointer(event: InputEvent):
  var result=get_world_3d().direct_space_state.intersect_ray(ray)
  if result.is_empty():
   if event.button_index==MOUSE_BUTTON_RIGHT: empty_right_clicked.emit()
+  elif event.button_index==MOUSE_BUTTON_LEFT:
+   var at=Plane(Vector3.UP,0).intersects_ray(from,camera.project_ray_normal(event.position))
+   if at!=null:
+    for who in range(2):
+     var center=zone_position("leader",who)
+     if absf(at.x-center.x)<1.05 and absf(at.z-center.z)<1.5:
+      avatar_selected.emit(who)
+      break
   return
  var hit=result.collider
  if event.button_index==MOUSE_BUTTON_RIGHT:
