@@ -3,3 +3,12 @@
 /android/
 /.godot-toolchain/
 /builds/
+
+# 编辑器本地设置
+.vscode/
+
+# 本地 Inno Setup 制作套件（98 个文件 / 约 50 MB，含 exe+dll，不入库）
+MulticolorArena-Installer-Tool/
+
+# 测试脚本：已跟踪的 tests/*.gd 不受影响（忽略规则不作用于已跟踪文件），此规则只忽略新增文件
+tests/

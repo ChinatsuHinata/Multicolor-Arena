@@ -31,7 +31,7 @@ func picks(spec,groups):
  var t=spec.duplicate(true);t.erase("selection");t.picks=groups;return t
 func run():
  fresh()
- var defs=e.DB.load_cards();check(defs.size()==511,"511 validated definitions")
+ var defs=e.DB.load_cards();check(defs.size()==e.DB.IDS.size(),"all registered definitions validate")
  for code in ["ETO-001","ETO-002","ETO-003","ETO-004","ETO-005","ETO-006","ETO-007","ETO-008","ETO-009","ETO-010","ETO-011","ETO-012","ETO-S001","LOC-001","LOC-002","LOC-003","LOC-004","LOC-005","SPX-001","SPX-002","SPX-003","SPX-004","SPX-005","SPX-006","SPX-007"]:
   var image=load(defs[N.id(code)].image).get_image()
   check(image.get_width()<900 and image.get_height()<900,"cropped face "+code)

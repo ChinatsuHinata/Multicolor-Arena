@@ -11,7 +11,11 @@ static func assign(cost: Dictionary,colors: Array,index: int=0) -> Dictionary:
   if result.ok: return result
  return {"ok":false,"remaining":{}}
 static func allows(cost: Dictionary,plan: Array,color: String) -> bool:
- var colors=plan.map(func(p): return p.color); colors.append(color)
+ var colors=[]
+ for p in plan:colors.append_array(str(p.color).split("/"))
+ colors.append_array(color.split("/"))
  return assign(cost,colors).ok
 static func remaining(cost: Dictionary,plan: Array) -> Dictionary:
- return assign(cost,plan.map(func(p): return p.color))
+ var colors=[]
+ for p in plan:colors.append_array(str(p.color).split("/"))
+ return assign(cost,colors)

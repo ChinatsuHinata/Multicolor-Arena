@@ -7,7 +7,9 @@ static func on_enter(e,c):
  if c.card_id in C.SPELLS and "时符" in e.cards[c.card_id].spell_type:e.add_timer(c,int(c.get("cast_x",0)) if c.card_id=="spell-fdf-024" else e.cards[c.card_id].time)
  if c.get("haste_on_enter",false):C.buff(e,c,0,0,0,["疾行"])
  for word in e.cards[c.card_id].get("keywords",[]):
-  if word.begins_with("防避"):c.wards=c.get("wards",[])+[{"amount":int(word.trim_prefix("防避")),"turn":-1}]
+  if word.begins_with("防避"):
+   e.next_buff_order+=1
+   c.wards=c.get("wards",[])+[{"amount":int(word.trim_prefix("防避")),"turn":-1,"order":e.next_buff_order}]
  for k in ENTER:
   if C.has(e,c,k):C.events(e,c,k,k in ["character-fdf-114","character-ucs-003"],{"event":"enter"})
  for k in ENTER_SELF:
@@ -398,7 +400,7 @@ static func resolve_activation(e,t):
   "character-smm05":
    for u in e.units(who):
     if u.get("token",false):C.buff(e,u,0,0,1,["英勇"])
-  "character-fdf-098":C.add_mana(e,who,["黄","绿"])
+  "character-fdf-098":C.add_paired_mana(e,who,["黄","绿"])
   "character-fdf-112":
    if a.has("picks"):
     var n=a.picks[0].size();C.Spells.search(e,t,p.deck.filter(func(u):return C.role(e,u,"爱丽丝") and "终言" not in e.cards[u.card_id].keywords and e.Extra.cost_value(e,u)==n),0,1,"hand")
@@ -425,5 +427,7 @@ static func resolve_activation(e,t):
   "spell-fdf-059":if same and c.zone=="grave":e.move_to(c,"hand")
   "token-fdf-127":e.gain_life(who,1)
   "token-fdf-129":
-   if a.has("player"):e.players[a.player].wards=e.players[a.player].get("wards",[])+[{"amount":1,"turn":e.turn}]
+   if a.has("player"):
+    e.next_buff_order+=1
+    e.players[a.player].wards=e.players[a.player].get("wards",[])+[{"amount":1,"turn":e.turn,"order":e.next_buff_order}]
    elif C.unit(e,a):C.buff(e,e.find_card(a.uid),0,0,0,["防避1"])

@@ -32,7 +32,7 @@ func close():
 func drop(id: int):
  outbound=outbound.filter(func(packet):return packet.peer!=id)
  if peer:peer.disconnect_peer(id)
-func send_to(id: int,message: Dictionary,heartbeat: bool=false):
+func send_to(id: int,message: Dictionary,heartbeat: bool=false,channel_override: int=-1):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  var data=var_to_bytes(message)
  if data.size()>MAX_BYTES:failed.emit("同步数据超过限制");return
@@ -40,11 +40,12 @@ func send_to(id: int,message: Dictionary,heartbeat: bool=false):
   data=var_to_bytes({"compressed":data.compress(FileAccess.COMPRESSION_ZSTD),"raw_size":data.size()})
  packet_serial+=1
  var hash_value=data.hex_encode().sha256_text()
+ var channel=channel_override if channel_override>=0 else 1 if heartbeat else 0
  for i in range(ceili(float(data.size())/CHUNK)):
   var frame={"id":packet_serial,"index":i,"count":ceili(float(data.size())/CHUNK),"hash":hash_value,"data":data.slice(i*CHUNK,mini((i+1)*CHUNK,data.size()))}
   if throttled:
-   if outbound.size()<2048:outbound.append({"peer":id,"channel":1 if heartbeat else 0,"bytes":var_to_bytes(frame)})
-  else:send_frame(id,1 if heartbeat else 0,var_to_bytes(frame))
+   if outbound.size()<2048:outbound.append({"peer":id,"channel":channel,"bytes":var_to_bytes(frame)})
+  else:send_frame(id,channel,var_to_bytes(frame))
 func send_frame(id: int,channel: int,bytes: PackedByteArray):
  if peer==null or id not in peers:return
  peer.set_target_peer(id);peer.transfer_channel=channel;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE

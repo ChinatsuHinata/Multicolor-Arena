@@ -5,6 +5,7 @@ var card_id=""
 var source_zone=""
 var source_index=-1
 var dragged=false
+var draggable=true
 var face_texture: Texture2D
 var texture_provider: Callable
 func _ready():
@@ -16,6 +17,7 @@ func _gui_input(event):
   elif not dragged and event.button_index in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]:
    clicked.emit(card_id,source_zone,source_index,event.button_index==MOUSE_BUTTON_RIGHT)
 func _get_drag_data(_at):
+ if not draggable:return null
  dragged=true
  var ghost=TextureRect.new()
  ghost.expand_mode=TextureRect.EXPAND_IGNORE_SIZE

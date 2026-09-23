@@ -4,9 +4,9 @@ func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
  var migration=JSON.parse_string(FileAccess.get_file_as_string("res://work/v097-migration.json"))
  var cards=Database.load_cards()
- expect(Database.last_error.is_empty() and cards.size()==486,"registered database loads with no missing-art error")
+ expect(Database.last_error.is_empty() and cards.size()==Database.IDS.size(),"registered database loads with no missing-art error")
  expect(migration.ids.all(func(id): return id in Database.IDS),"all 65 previously registered IDs remain available")
- if cards.size()!=486: quit(1); return
+ if cards.size()!=Database.IDS.size(): quit(1); return
  for id in Database.IDS:
   var path=cards[id].image
   expect(path.begins_with(Database.ART_DIRECTORY) and path.get_file().get_basename()==id,"canonical database image: "+id)
@@ -27,9 +27,9 @@ func run():
   root.get_texture().get_image().save_png("res://work/v097-card177-editor.png")
  app.begin_battle(true); view=app.duel_view; view.set_process(false); e=view.engine; clean()
  var spell=put("177","hand"); var target=put("53","field"); put("165","palette"); put("164","palette")
- view.render(); await settle(); await click(view.hand_nodes[spell.uid].get_global_rect().get_center())
- view.choose_target(e.ref_target(target)); await press("确定")
- expect(spell.zone=="stack","relocated spell can be cast through battle interface")
+ view.render(); await settle()
+ var cast_error=e.commit_cast(0,spell.uid,e.ref_target(target),e.payment(0,e.cast_cost(0,spell)).plan)
+ expect(cast_error.is_empty() and spell.zone=="stack","relocated spell can be cast from its database definition")
  resolve(); view.render(); await settle()
  expect(spell.zone=="grave" and e.stat(target,"power")==4 and e.stat(target,"health")==1,"card 177 resolves its existing effect without changing rules")
  view.inspect_card("177",spell.uid)

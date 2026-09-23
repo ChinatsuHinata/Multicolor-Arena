@@ -50,6 +50,8 @@ static func options(e,id,who):
   "spell-fdf-087":return e.stack.filter(func(s):return s.kind=="card").map(func(s):return {"stack_id":s.id})
   "spell-fdf-063":return e.Pack.selection([e.Pack.group(all,1,1,"伤害目标"),C.group(e,own.filter(func(c):return C.race(e,c,"神")),1,1,"放置指示物的神")],id)
   "spell-fdf-061":return [{"player":1-who,"mode":"本回合不能使用符卡"},{"player":1-who,"mode":"本回合不能使用单位"}]
+  "spell-fdf-034":return [{"none":true,"mode":"保留蓝色"},{"none":true,"mode":"保留绿色"}]
+  "spell-fdf-124":return [{"player":0},{"player":1}]
   "spell-fdf-072":
    var out=e.Extra.add_mode(rs,"名称改为不明物体并抓牌")
    var g=C.group(e,own.filter(func(c):return C.is_unknown(e,c)),1,1,"牺牲一个不明物体",true)
@@ -141,6 +143,30 @@ static func resolve(e,t):
   "spell-fdn-022":
    for u in e.units(aim.player):e.tap_card(u)
   "spell-fdf-061":e.players[aim.player].type_lock={"turn":e.turn,"kind":"符卡" if "符卡" in aim.mode else "单位"}
+  "spell-fdf-034":
+   var retained="蓝" if aim.mode=="保留蓝色" else "绿"
+   var reshuffle=[false,false]
+   var victims=C.field(e).filter(func(u):return retained not in e.Pack.colors(e,u))
+   for u in victims:
+    if u.zone!="field":continue
+    var owner=u.get("original_owner",u.owner)
+    if u.get("leader",false):u.shuffle_on_return_deck=true
+    e.move_to(u,"deck")
+    if u.zone=="deck":reshuffle[owner]=true
+   for owner in range(2):
+    if reshuffle[owner]:e.shuffle(e.players[owner].deck)
+  "spell-fdf-124":
+   var total=0
+   var waiting=0
+   for u in e.units(who).duplicate():
+    if u.zone!="field":continue
+    var value=e.Extra.cost_value(e,u)
+    if u.get("leader",false):u.wind_bounce_spell=c.uid;u.wind_bounce_value=value
+    e.move_to(u,"hand")
+    if u.zone=="hand":total+=value
+    elif u.zone=="return_pending":waiting+=1
+   if waiting>0:c.wind_bounce={"target":aim.player,"total":total,"remaining":waiting}
+   else:e.players[aim.player].life-=int(total/2)
   "spell-fdf-066","spell-fdf-047","spell-fdf-028","spell-fdf-078","spell-fdn-029":
    C.damage(e,aim,2 if id=="spell-fdf-066" else p.palette.filter(func(u):return not u.tapped).size() if id=="spell-fdn-029" else 3)
   "spell-fdf-049":C.damage(e,aim,6);e.draw(who,2)
@@ -195,7 +221,7 @@ static func resolve(e,t):
   "spell-fdf-120","spell-soi-119","spell-fdf-056":
    if C.valid(e,aim):
     var u=e.find_card(aim.uid);var owner=u.owner;e.move_to(u,"exile")
-    if id=="spell-fdf-056":e.players[owner].coins=int(e.players[owner].get("coins",0))+1
+    if id=="spell-fdf-056":e.add_coin(owner)
   "spell-rec-056","spell-kmo-003":
    if C.unit(e,aim):e.move_to(e.find_card(aim.uid),"hand")
    e.players[foe].life-=2

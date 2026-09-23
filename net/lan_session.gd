@@ -3,6 +3,7 @@ signal changed
 signal snapshot_ready
 signal error_raised(message: String)
 signal replay_finished(archive)
+signal chat_received
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const Codec=preload("res://net/state_codec.gd")
 const Journal=preload("res://net/journal_store.gd")
@@ -13,7 +14,7 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Transport=preload("res://net/lan_transport.gd")
 const Discovery=preload("res://net/lan_discovery.gd")
 const Metrics=preload("res://net/connection_metrics.gd")
-const VERSION="1.0"
+const VERSION="1.1.1-bugfixed"
 const RECONNECT_LIMIT_MS=30000
 var transport
 var discovery
@@ -62,6 +63,26 @@ var spectator_hub
 var recording=preload("res://scripts/replay_archive.gd").new()
 var undo_history=preload("res://net/undo_history.gd").new()
 var undo_request={}
+var chat_log: Array=[]
+var last_chat_send=0
+var last_remote_chat=0
+func receive_chat_entry(seat_index: int,content: String):
+ var name=str(room.get("names",["房主","客机"])[seat_index])
+ chat_log.append({"seat":seat_index,"name":name,"text":content,"at":Time.get_datetime_string_from_system()})
+ if chat_log.size()>80:chat_log.pop_front()
+ chat_received.emit()
+func send_chat(content: String) -> String:
+ if read_only or not connected or ended():return "当前无法发送聊天消息"
+ var message=content.strip_edges()
+ if message.is_empty() or message.length()>200:return "聊天内容须为 1 至 200 个字"
+ var now=Time.get_ticks_msec()
+ if now-last_chat_send<250:return "发送太快，请稍后重试"
+ last_chat_send=now
+ if is_host:
+  receive_chat_entry(0,message)
+  transport.send_to(remote_peer,{"type":"chat","room_id":room_id,"seat":0,"text":message},false,2)
+ else:transport.send_to(1,{"type":"chat","room_id":room_id,"text":message},false,2)
+ return ""
 var rewind_events: Array=[]
 func latency_text() -> String:
  return metrics.caption(Time.get_ticks_msec()) if connected else "已断开" if not room_id.is_empty() else "未连接"
@@ -172,6 +193,7 @@ func leave(forget: bool=true):
  if transport:transport.close()
  if discovery:discovery.start()
  connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;rejected=false
+ chat_log.clear();last_chat_send=0;last_remote_chat=0;chat_received.emit()
  if forget:identity.resume={};save_identity()
 func on_connect(id: int):
  remote_last_seen=Time.get_ticks_msec()
@@ -234,8 +256,8 @@ func receive(id: int,m: Dictionary):
    transport.send_to(id,{"type":"approval_pending"});changed.emit()
   return
  if not authorized(id):return
- if is_host and type not in ["ping","pong","ack","command","room_action","leave"]:return
- if not is_host and type not in ["ping","pong","welcome","room","state","ready_state","error","rejected","leave","approval_pending"]:return
+ if is_host and type not in ["ping","pong","ack","command","room_action","chat","leave"]:return
+ if not is_host and type not in ["ping","pong","welcome","room","state","ready_state","error","rejected","chat","leave","approval_pending"]:return
  remote_last_seen=Time.get_ticks_msec()
  match type:
   "approval_pending":
@@ -271,6 +293,15 @@ func receive(id: int,m: Dictionary):
    if is_host:handle_command(1,m)
   "room_action":
    if is_host and m.get("action") is Dictionary:handle_room_action(1,m.action)
+  "chat":
+   if m.get("room_id","")!=room_id or not m.get("text") is String or m.text.strip_edges().is_empty() or m.text.length()>200:return
+   if is_host:
+    var now=Time.get_ticks_msec()
+    if now-last_remote_chat<250:return
+    last_remote_chat=now
+    receive_chat_entry(1,m.text.strip_edges())
+    transport.send_to(remote_peer,{"type":"chat","room_id":room_id,"seat":1,"text":m.text.strip_edges()},false,2)
+   elif int(m.get("seat",-1)) in [0,1]:receive_chat_entry(int(m.seat),m.text.strip_edges())
   "error":
    if inflight.get("id","")==m.get("ack_id",""):busy=false;inflight={}
    error_raised.emit(str(m.get("message","操作被拒绝")))

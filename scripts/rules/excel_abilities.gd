@@ -356,7 +356,8 @@ static func resolve_trigger(e,t: Dictionary):
   "komachi_counters":
    if unit(e,data.ref):Batch.counter(e,e.find_card(data.ref.uid),"minus_counters",3,who)
   "komachi_coin":
-   var p=e.players[data.player];p.coins=int(p.get("coins",0))+1
+   e.add_coin(data.player)
+   var p=e.players[data.player]
    if p.coins>=3:e.lose(data.player,"获得三个铜钱指示物",true)
   "luna_life":e.gain_life(who,e.units(who).filter(func(c):return race(e,c,"妖精")).size())
   "star_destroy":

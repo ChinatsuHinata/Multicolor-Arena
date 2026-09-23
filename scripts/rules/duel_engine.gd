@@ -32,6 +32,7 @@ var rng=RandomNumberGenerator.new()
 var payment_memo={}
 var payment_groups=[]
 var next_damage_batch=1
+var next_buff_order=0
 var debug_enabled=false
 var delayed=[]
 var combat_queue=[]
@@ -108,6 +109,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  zone_replacements.clear(); damage_context={}; unpreventable_turn=-1
  recorded_life=[20,20]
  next_damage_batch=1
+ next_buff_order=0
  players.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); combat.clear(); log.clear(); history.clear()
  next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
  if seed_value==0: rng.randomize()
@@ -200,6 +202,9 @@ func source_resources(who: int) -> Array:
  for c in players[who].field:
   if not c.tapped and DB.has_ability(cards[c.card_id],"mana"):
    sources.append({"uid":c.uid,"colors":[DB.ability(cards[c.card_id],"mana")["颜色"]],"weight":8,"kind":"item"})
+  elif not c.tapped and c.card_id=="character-fdf-098" and not summoning_sick(c):
+   # This unit pays yellow and green together. It is one tap, never two separate sources.
+   sources.append({"uid":c.uid,"colors":["黄/绿"],"pair":["黄","绿"],"weight":18,"kind":"unit"})
  sources.append_array(players[who].get("mana",[]))
  if players[who].potato: sources.append({"uid":-100-who,"colors":COLORS,"weight":1000,"kind":"potato"})
  return sources
@@ -220,6 +225,20 @@ func payment_search(sources: Array,index: int,needs: Array) -> Dictionary:
    if score<best.score:
     best={"ways":ways,"score":score,"plan":[{"uid":sources[index].uid,"color":color}]+tail.plan}
    else: best.ways=ways
+ if sources[index].has("pair"):
+  var pair=sources[index].pair
+  for first_group in range(needs.size()):
+   if needs[first_group]<=0 or pair[0] not in payment_groups[first_group]:continue
+   var first_needs=needs.duplicate();first_needs[first_group]-=1
+   for second_group in range(needs.size()):
+    if first_needs[second_group]<=0 or pair[1] not in payment_groups[second_group]:continue
+    var remaining=first_needs.duplicate();remaining[second_group]-=1
+    var tail=payment_search(sources,index+1,remaining)
+    if tail.ways==0:continue
+    var ways=mini(2,best.ways+tail.ways)
+    var score=tail.score+sources[index].weight
+    if score<best.score:best={"ways":ways,"score":score,"plan":[{"uid":sources[index].uid,"color":"黄/绿"}]+tail.plan}
+    else:best.ways=ways
  payment_memo[key]=best
  return best
 func payment(who: int, cost: Dictionary, excluded: Array=[]) -> Dictionary:
@@ -273,7 +292,11 @@ func cast_error(who: int,uid: int) -> String:
    if Roster.character_matches(cards[u.card_id].character,info.requires_character): present=true
   if "支援" in info.get("keywords",[]) and leaders(who).any(func(leader):return leader.zone=="leader" and Roster.character_matches(cards[leader.card_id].character,info.requires_character)): present=true
   if not present: return "需要操控"+info.requires_character
- if payment(who,cast_cost(who,c)).ways==0 and not Cat.alternative_affordable(self,c,who): return "可用颜色费用不足"
+ var can_pay=payment(who,cast_cost(who,c)).ways>0
+ if not can_pay and c.card_id=="spell-fdf-082":
+  for ignored in ["蓝","黄"]:
+   if payment(who,cast_cost(who,c,{"ignore_color":ignored})).ways>0:can_pay=true;break
+ if not can_pay and not Cat.alternative_affordable(self,c,who): return "可用颜色费用不足"
  if info.kind=="符卡" and targets_for(c.card_id,who).is_empty(): return "没有合法目标"
  return ""
 func targets_for(id: String,acting: int=-1,source_uid: int=-1) -> Array:
@@ -419,6 +442,9 @@ func choose_return(yes: bool):
  var blink_owner=int(c.get("blink_return_owner",-1));c.erase("blink_return_owner")
  var suika_return=bool(c.get("n21_pending_suika_return",false));c.erase("n21_pending_suika_return")
  var stay_in_exile=bool(c.get("return_stay",false));c.erase("return_stay")
+ var shuffle_on_return_deck=bool(c.get("shuffle_on_return_deck",false));c.erase("shuffle_on_return_deck")
+ var wind_bounce_spell=int(c.get("wind_bounce_spell",-1));c.erase("wind_bounce_spell")
+ var wind_bounce_value=int(c.get("wind_bounce_value",0));c.erase("wind_bounce_value")
  pending={}
  if yes:
   if stay_in_exile:detach(c)
@@ -426,7 +452,18 @@ func choose_return(yes: bool):
   note("自机返回自机区 · 计时 2")
  elif not stay_in_exile:
   shift(c,destination); players[c.owner][destination].append(c)
+  if destination=="deck" and shuffle_on_return_deck:shuffle(players[c.owner].deck)
   if suika_return and destination=="exile":c.n21_suika_return=true
+ if wind_bounce_spell>=0:
+  var wind_spell=find_card(wind_bounce_spell)
+  if not wind_spell.is_empty() and wind_spell.has("wind_bounce"):
+   var wind=wind_spell.wind_bounce
+   if c.zone=="hand":wind.total+=wind_bounce_value
+   wind.remaining-=1
+   if wind.remaining<=0:
+    players[wind.target].life-=int(wind.total/2)
+    wind_spell.erase("wind_bounce")
+    judge()
  # Returning home after death does not erase the death event. Retain the
  # field observers from before the move, including simultaneous casualties.
  if destination=="grave" and before.zone=="field":
@@ -479,6 +516,12 @@ func tap_card(c: Dictionary):
 func gain_life(who: int,amount: int):
  if amount<=0 or not Cat.with_key(self,-1,"spell-fdn-002").is_empty(): return
  players[who].life+=amount; Pack.on_gain_life(self,who,amount);Cat.State.on_gain(self,who,amount)
+func add_coin(who: int,amount: int=1):
+ if amount<=0:return
+ var p=players[who]
+ if int(p.get("coins",0))<=0:
+  next_buff_order+=1;p.coin_order=next_buff_order
+ p.coins=int(p.get("coins",0))+amount
 func damage_target(target: Dictionary,amount: int) -> int:
  if amount<=0 or not target_valid(target): return 0
  amount=Pack.adjusted_damage(self,target,amount)
@@ -1267,7 +1310,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  if key=="sacrifice_buff": sacrifice(find_card(target.uid))
  if key=="leader_bounce": use_once(c.uid,key)
  if key=="character-fdf-098":
-  Cat.add_mana(self,who,["黄","绿"]);revision+=1;return ""
+  Cat.add_paired_mana(self,who,["黄","绿"]);revision+=1;return ""
  stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":target.duplicate(true),"name":cards[c.card_id].name})
  if key=="courage_die":
   stack.back().die=rng.randi_range(1,6);show_result("D6 · %d" % stack.back().die,c)

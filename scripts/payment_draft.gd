@@ -14,6 +14,17 @@ static func assign_fixed(engine,who:int,cost:Dictionary,fixed:Array,excluded:Arr
  var key=str(index)+JSON.stringify(cost)
  if memo.has(key):return memo[key]
  var best={"ways":0,"score":999999,"plan":[]}
+ if fixed[index].color=="黄/绿":
+  for yellow_group in cost:
+   if cost[yellow_group]<=0 or "黄" not in yellow_group.split("/"):continue
+   var after_yellow=cost.duplicate();after_yellow[yellow_group]-=1
+   for green_group in cost:
+    if after_yellow[green_group]<=0 or "绿" not in green_group.split("/"):continue
+    var next=after_yellow.duplicate();next[green_group]-=1
+    var candidate=assign_fixed(engine,who,next,fixed,excluded,index+1,memo)
+    if candidate.ways>0 and candidate.score<best.score:best=candidate
+  memo[key]=best
+  return best
  for group in cost:
   if cost[group]<=0 or fixed[index].color not in group.split("/"):continue
   var next=cost.duplicate();next[group]-=1

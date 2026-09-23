@@ -2,6 +2,8 @@ extends Control
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
+const CostDisplay=preload("res://scripts/card_cost_display.gd")
+const HexCost=preload("res://scripts/cost_hex_display.gd")
 const STAGE=Rect2(0,0,1600,900)
 const HAND=Rect2(246,663,1108,232)
 const SIDEBAR=Rect2(1366,100,218,660)
@@ -42,6 +44,7 @@ var replay_recording=preload("res://scripts/replay_archive.gd").new()
 var network_session
 var network_status_label: Label
 var network_latency_label: Label
+var chat_panel: Panel
 var was_network_locked=false
 var was_network_ended=false
 var engine
@@ -61,6 +64,9 @@ var card_badges={}
 var hand_tweens={}
 var picker=preload("res://scripts/target_picker.gd").new()
 var life_widgets={}
+var life_last={}
+var life_flashes={}
+var life_flash_tweens={}
 var arrow_layer: Control
 var local: Dictionary={}
 var selection: Array=[]
@@ -151,6 +157,9 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  stack_panel=preload("res://scripts/duel_stack.gd").new(); ui.add_child(stack_panel); stack_panel.build(self)
  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
  banner=layer(ui)
+ if session!=null and not session.read_only and not session.replay_mode:
+  chat_panel=preload("res://net/chat_panel.gd").new();ui.add_child(chat_panel)
+  chat_panel.build(session,Rect2(1168,194,402,432));chat_panel.visible=false
  observe_button=btn("观察战场",Rect2(1290,12,152,40),toggle_observation,false,ui)
  observe_button.visible=false
  reset_view_button=btn("视角复原",Rect2(1315,57,116,34),reset_camera_view,false,ui)
@@ -294,7 +303,7 @@ func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#e8edf0"),par
  return label
 func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: Node=null):
  if parent==null and rect.position.y>=90:rect=right_rect(rect)
- var inspection_action=text in ["设置","对局记录","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
+ var inspection_action=text in ["设置","对局记录","聊天","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
  var button=host.button(hud if parent==null else parent,text,rect,func():
   if not network_locked() or inspection_action:action.call(),accent)
  if network_locked() and not inspection_action:button.disabled=true
@@ -364,6 +373,7 @@ func render():
  btn("设置",Rect2(1460,12,116,40),settings_menu)
  btn("对局记录",Rect2(1310,99,266,40),open_history)
  if network_session!=null:
+  if is_instance_valid(chat_panel):btn("聊天",Rect2(1310,145,266,38),func():chat_panel.visible=not chat_panel.visible)
   network_latency_label=txt(network_session.latency_text(),Rect2(1000,58,303,31),16,host.MUTED)
   network_latency_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   network_latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新。"
@@ -434,7 +444,9 @@ func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array
   if node.card_id!=c.card_id:
    node.card_id=c.card_id
    if who==local_seat or debug_mode:
-    node.art.texture=host.texture(c.card_id); node.tooltip_text=engine.cards[c.card_id].name
+    var info=engine.cards[c.card_id]
+    node.art.texture=host.texture(c.card_id); node.tooltip_text=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X" if not info.variable_cost.is_empty() else "")
+    node.update_cost(info.cost,info.get("variable_cost",""))
   node.show()
   if table.presented_moves.has(c.uid):
    node.position=target;node.modulate.a=1;node.set_meta("target",target);fresh=false
@@ -588,8 +600,12 @@ func update_inspection():
  var name=inspect_caption if inspect_id=="back" else "红薯" if inspect_id=="potato" else info.name
  var title=txt(name,Rect2(10,164 if landscape else 296,198,74),18,host.GOLD,bg)
  title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; title.size=Vector2(198,74)
+ if info.has("cost"):
+  var cost_icons=HexCost.new();cost_icons.position=Vector2(10,239 if landscape else 372)
+  bg.add_child(cost_icons);cost_icons.configure(info.cost,false,198,31,info.get("variable_cost",""))
  inspection_text=RichTextLabel.new(); inspection_text.position=Vector2(10,378); inspection_text.size=Vector2(198,270)
- if landscape:inspection_text.position.y=246;inspection_text.size.y=402
+ if landscape:inspection_text.position.y=278;inspection_text.size.y=370
+ else:inspection_text.position.y=411;inspection_text.size.y=237
  inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.WHITE)
  inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
@@ -629,9 +645,7 @@ func counter_lines(c: Dictionary) -> Array:
  var colors=c.get("color_counters",[])
  for color in engine.COLORS:
   if colors.count(color)>0:lines.append(color+"色指示物："+str(colors.count(color)))
- var ward=0
- for w in c.get("wards",[]):ward+=maxi(0,int(w.get("amount",0)))
- if ward>0:lines.append("防避："+str(ward))
+ lines.append_array(ward_timeline(c.get("wards",[]),0,-1))
  for name in c.get("counters",{}):
   if c.counters[name]!=0:lines.append(str(name)+"："+str(c.counters[name]))
  return lines
@@ -1579,7 +1593,34 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
   button.disabled=not picker.ready()
  if optional: btn("不使用",Rect2(1330,853,115,36),decline_trigger)
  if not picker.path.is_empty(): btn("重选",Rect2(1452,853,115,36),func(): picker.path=[]; picker.normalize(); render())
+func ward_timeline(wards: Array,coins: int=0,coin_order: int=-1) -> Array:
+ var events=[]
+ for i in range(wards.size()):
+  var w=wards[i]
+  if int(w.get("turn",engine.turn)) not in [-1,engine.turn] or int(w.get("amount",0))<=0:continue
+  events.append({"order":int(w.get("order",i)),"amount":int(w.amount),"coin":false})
+ if coins>0:events.append({"order":coin_order,"amount":coins,"coin":true})
+ events.sort_custom(func(a,b):return a.order<b.order)
+ var lines=[];var last_amount=-1;var count=0
+ for event in events:
+  if event.coin:
+   if count>0:lines.append("防避%d×%d" % [last_amount,count]);count=0
+   lines.append("铜钱指示物"+("×%d" % event.amount if event.amount>1 else ""))
+  elif event.amount==last_amount and count>0:count+=1
+  else:
+   if count>0:lines.append("防避%d×%d" % [last_amount,count])
+   last_amount=event.amount;count=1
+ if count>0:lines.append("防避%d×%d" % [last_amount,count])
+ return lines
 func player_buffs(who: int) -> String:
+ var p=engine.players[who];var lines=[]
+ lines.append_array(ward_timeline(p.get("wards",[]),int(p.get("coins",0)),int(p.get("coin_order",-1))))
+ if p.get("shroud_turn",-1)==engine.turn:lines.append("不能成为目标")
+ if not p.get("wine",[]).is_empty():lines.append("减费："+"、".join(p.wine))
+ for key in p.get("counters",{}):
+  if int(p.counters[key])!=0:lines.append(str(key)+"指示物："+str(p.counters[key]))
+ return "\n".join(lines)
+func player_buffs_compact(who: int) -> String:
  var p=engine.players[who];var lines=[]
  if int(p.get("coins",0))>0:lines.append("铜钱：%d" % p.coins)
  var ward=0
@@ -1606,10 +1647,26 @@ func render_undo():
   btn("同意悔棋",Rect2(1366,694,218,42),func():network_session.room_action({"name":"undo_accept","ticket":request.id}),true)
   btn("拒绝悔棋",Rect2(1366,746,218,42),func():network_session.room_action({"name":"undo_decline","ticket":request.id}))
 func render_life(who: int,rect: Rect2):
+ var current_life=int(engine.players[who].life)
+ if life_last.has(who) and int(life_last[who])!=current_life:
+  var delta=current_life-int(life_last[who])
+  if life_flash_tweens.has(who) and life_flash_tweens[who].is_valid():life_flash_tweens[who].kill()
+  if life_flashes.has(who) and is_instance_valid(life_flashes[who]):life_flashes[who].queue_free()
+  var popup=txt(("+" if delta>0 else "")+str(delta),Rect2(rect.position+Vector2(100,8),Vector2(100,42)),29,Color("#45d889") if delta>0 else Color("#f36464"),effects)
+  popup.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  popup.add_theme_color_override("font_outline_color",Color("#081019"));popup.add_theme_constant_override("outline_size",5)
+  life_flashes[who]=popup
+  var tween=create_tween().set_parallel(true)
+  tween.tween_property(popup,"position:y",popup.position.y-28,1.0)
+  tween.tween_property(popup,"modulate:a",0.0,1.0)
+  tween.chain().tween_callback(popup.queue_free)
+  life_flash_tweens[who]=tween
+ life_last[who]=current_life
  var selected=picker.selected_refs().any(func(t): return t.get("player",-1)==who)
  var legal=picker_active() and picker.available_refs().any(func(t): return t.get("player",-1)==who)
  var color=Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#486376")
  var button=btn(player_caption(who)+"  %d" % engine.players[who].life,rect,func(): choose_target({"player":who}))
+ button.tooltip_text=player_buffs(who) if not player_buffs(who).is_empty() else "当前没有玩家指示物或增益"
  var panel=host.style(Color("#192a38"),color); panel.set_border_width_all(4 if selected or legal else 1)
  for state in ["normal","hover","pressed","focus"]: button.add_theme_stylebox_override(state,panel)
  var bar=ProgressBar.new(); bar.position=Vector2(10,rect.size.y-15)
@@ -1620,7 +1677,7 @@ func render_life(who: int,rect: Rect2):
  bar.add_theme_stylebox_override("background",background); bar.add_theme_stylebox_override("fill",fill); button.add_child(bar)
  bar.add_theme_font_size_override("font_size",1); bar.size=Vector2(rect.size.x-20,7)
  life_widgets[who]={"button":button,"bar":bar,"legal":legal,"selected":selected}
- var status=txt(player_buffs(who),Rect2(rect.end.x+8,rect.position.y,160,rect.size.y),16,host.GOLD)
+ var status=txt(player_buffs_compact(who),Rect2(rect.end.x+8,rect.position.y,160,rect.size.y),16,host.GOLD)
  status.mouse_filter=Control.MOUSE_FILTER_IGNORE;status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  life_widgets[who].buffs=status
 func target_rect(target: Dictionary) -> Rect2:

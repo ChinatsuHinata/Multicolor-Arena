@@ -30,13 +30,13 @@ static func validate(d: Variant, strict: bool = false) -> String:
  if strict:
   var names={}
   for id in d.main:
-   var name=CARDS[id].name
+   var name=CARDS[CARDS[id].get("canonical_id",id)].name
    names[name]=names.get(name,0)+1
    if "终言" in CARDS[id].get("keywords",[]) and names[name]>1: return "终言同名牌最多 1 张："+name
    if "限制级" in CARDS[id].get("keywords",[]) and names[name]>2: return "限制级同名牌最多 2 张："+name
    if names[name]>4 and not CARDS[id].get("unlimited",false): return "同名牌最多 4 张："+name
   for id in d.main+d.side:
-   if CARDS[id].name==CARDS[d.leader].name: return "主副卡组不能包含所选自机的同名牌。"
+   if CARDS[CARDS[id].get("canonical_id",id)].name==CARDS[CARDS[d.leader].get("canonical_id",d.leader)].name: return "主副卡组不能包含所选自机的同名牌。"
  return ""
 static func add_card(d: Dictionary, id: String, zone: String) -> String:
  if not CARDS.has(id): return "未知卡牌。"
@@ -207,15 +207,19 @@ static func delete_file(id: String) -> String:
 
 
 
-static func sort_deck(d: Dictionary):
+static func sort_deck(d: Dictionary, mode: String="类别"):
  var categories=["自机","单位","符卡","道具","结界"]
  for zone in ["main","side"]:
   d[zone].sort_custom(func(a,b):
    var x=CARDS[a]; var y=CARDS[b]
-   if x.kind!=y.kind: return categories.find(x.kind)<categories.find(y.kind)
+   var xn=CARDS[x.get("canonical_id",a)].name;var yn=CARDS[y.get("canonical_id",b)].name
    var cx=0; var cy=0
    for n in x.cost.values(): cx+=int(n)
    for n in y.cost.values(): cy+=int(n)
+   if mode=="名字":
+    if xn!=yn:return xn.naturalnocasecmp_to(yn)<0
+    return a.naturalnocasecmp_to(b)<0
+   if mode=="类别" and x.kind!=y.kind: return categories.find(x.kind)<categories.find(y.kind)
    if cx!=cy: return cx<cy
-   if x.name!=y.name: return x.name.naturalnocasecmp_to(y.name)<0
+   if xn!=yn: return xn.naturalnocasecmp_to(yn)<0
    return a.naturalnocasecmp_to(b)<0)

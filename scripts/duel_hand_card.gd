@@ -1,10 +1,13 @@
 extends Panel
+const CostDisplay=preload("res://scripts/card_cost_display.gd")
+const HexCost=preload("res://scripts/cost_hex_display.gd")
 ## Clicking begins a private declaration; payment still requires confirmation.
 var view
 var uid=0
 var card_id=""
 var hidden_card=false
 var art: TextureRect
+var cost_icons: Control
 func build(owner_view,instance: Dictionary,hidden: bool=false):
  view=owner_view; uid=instance.uid; card_id=instance.card_id; hidden_card=hidden
  mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
@@ -13,9 +16,14 @@ func build(owner_view,instance: Dictionary,hidden: bool=false):
  art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  art.texture=view.host.texture("back") if hidden else view.host.texture(card_id)
  add_child(art)
+ if not hidden:
+  cost_icons=HexCost.new();cost_icons.position=Vector2(3,5);cost_icons.z_index=2;add_child(cost_icons)
+  update_cost(view.engine.cards[card_id].cost,view.engine.cards[card_id].get("variable_cost",""))
  if hidden: tooltip_text="对手手牌 · 未公开"
- else: tooltip_text=view.engine.cards[card_id].name
+ else: tooltip_text=view.engine.cards[card_id].name+"\n"+CostDisplay.caption(view.engine.cards[card_id].cost)+( "  "+view.engine.cards[card_id].variable_cost+"X" if not view.engine.cards[card_id].variable_cost.is_empty() else "")
  gui_input.connect(input_card)
+func update_cost(cost: Dictionary,variable_color: String=""):
+ if is_instance_valid(cost_icons):cost_icons.configure(cost,true,size.x,minf(38.0,size.x*0.24),variable_color)
 func update_style(ready: bool,selected: bool):
  # Only gameplay highlights surround hand cards; idle cards have no frame.
  var style=StyleBoxFlat.new()

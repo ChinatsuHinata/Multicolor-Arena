@@ -503,7 +503,9 @@ static func resolve_activation(e,entry: Dictionary):
 static func shield(e,t: Dictionary,amounts: Array,next_damage: bool=false):
  if not e.target_valid(t): return
  var c=e.players[t.player] if t.has("player") else e.find_card(t.uid)
- for amount in amounts: c.wards=c.get("wards",[])+[{"amount":amount,"turn":e.turn,"next":next_damage}]
+ for amount in amounts:
+  e.next_buff_order+=1
+  c.wards=c.get("wards",[])+[{"amount":amount,"turn":e.turn,"next":next_damage,"order":e.next_buff_order}]
 static func adjusted_damage(e,t: Dictionary,amount: int) -> int:
  var context=e.damage_context; var source=context.get("source",{}); var combat=context.get("combat",false)
  if not combat and not source.is_empty() and context.get("single",false):

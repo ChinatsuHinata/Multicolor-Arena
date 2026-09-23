@@ -3,6 +3,8 @@ extends Control
 @export_file("*.png", "*.jpg", "*.webp") var battlefield_background: String = "res://recourse/垫子3.png"
 const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
+const CostDisplay=preload("res://scripts/card_cost_display.gd")
+const HexCost=preload("res://scripts/cost_hex_display.gd")
 const GOLD = Color("#d9b775")
 const INK = Color("#101c28")
 const MUTED = Color("#91a5b7")
@@ -19,10 +21,12 @@ var zone = "main"
 var query = ""
 var filter_kind = "全部"
 var selected_colors: Array = []
+var library_sort_mode="类别"
 var color_buttons = {}
 var main_scroll: ScrollContainer
 var main_content: Control
 var library: GridContainer
+var library_sort_choice: OptionButton
 var deck_rows: VBoxContainer
 var preview: Control
 var counts: Label
@@ -305,7 +309,7 @@ func editor(sideboarding: bool=false):
  clear_page("sideboard" if sideboarding else "editor")
  label(screen,"换备牌" if sideboarding else "卡组编辑器",Rect2(24,12,270,46),28,GOLD)
  button(screen,"返回",Rect2(1480,14,100,40),online if sideboarding else func(): guard(menu))
- button(screen,"排序卡组",Rect2(1300,14,156,40),sort_current_deck)
+ button(screen,"排序卡组",Rect2(1090,14,156,40),sort_current_deck)
  box(screen,Rect2(18,72,286,810))
  preview=Control.new()
  preview.position=Vector2(30,88)
@@ -350,9 +354,17 @@ func editor(sideboarding: bool=false):
  kind.select(["全部","自机","单位","符卡","道具","结界"].find(filter_kind))
  kind.item_selected.connect(func(i): filter_kind=kind.get_item_text(i); update_library())
  screen.add_child(kind)
+ library_sort_choice=OptionButton.new()
+ library_sort_choice.name="LibrarySortChoice"
+ library_sort_choice.position=Vector2(1252,236)
+ library_sort_choice.size=Vector2(314,38)
+ for mode in ["类别","颜色值","名字"]:library_sort_choice.add_item("卡库排序："+mode)
+ library_sort_choice.select(["类别","颜色值","名字"].find(library_sort_mode))
+ library_sort_choice.item_selected.connect(func(index):library_sort_mode=["类别","颜色值","名字"][index]; update_library())
+ screen.add_child(library_sort_choice)
  var scroll=ScrollContainer.new()
- scroll.position=Vector2(1252,242)
- scroll.size=Vector2(314,345)
+ scroll.position=Vector2(1252,286)
+ scroll.size=Vector2(314,301)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  screen.add_child(scroll)
  library=GridContainer.new()
@@ -422,7 +434,11 @@ func update_preview():
  column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  column.add_theme_constant_override("separation",12)
  scroll.add_child(column)
- for value in [info.name,card_description(selected)]:
+ var preview_lines=[info.name,card_description(selected)]
+ for index in range(preview_lines.size()):
+  if index==1:
+   var cost_icons=HexCost.new();column.add_child(cost_icons);cost_icons.configure(info.cost,false,252,34,info.get("variable_cost",""))
+  var value=preview_lines[index]
   var text=Label.new()
   text.text=value
   text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -430,35 +446,80 @@ func update_preview():
   text.add_theme_font_size_override("font_size",20 if value==info.name else 17)
   text.add_theme_color_override("font_color",GOLD if value==info.name else WHITE)
   column.add_child(text)
- if sideboard_session==null:button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
+ if sideboard_session==null:
+  if not info.constructible:
+   var notice=label(preview,"仅供查看 · 不可加入卡组",Rect2(0,715,260,43),17,MUTED)
+   notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  elif info.kind=="自机":button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
 
 func update_library():
  free_children(library)
- for id in Store.CARDS:
+ for id in library_ids():
   var info=Store.CARDS[id]
-  if not info.constructible or info.get("canonical_id",id)!=id: continue
-  if not query.is_empty() and not query.to_lower() in info.name.to_lower(): continue
-  if filter_kind!="全部" and info.kind!=filter_kind: continue
-  if not matches_colors(info): continue
   var row=preload("res://scripts/deck_card.gd").new()
   row.card_id=id
   row.source_zone="library"
+  row.draggable=info.constructible
   row.texture_provider=func(): return texture(id)
   row.set_meta("card_id",id)
   row.custom_minimum_size=Vector2(296,64)
-  row.add_theme_stylebox_override("panel",style(Color("#142737")))
+  row.add_theme_stylebox_override("panel",style(Color("#142737") if info.constructible else Color("#24303a"),Color("#3d5161") if info.constructible else MUTED))
   library.add_child(row)
-  var full_name=label(row,info.name,Rect2(10,4,276,54),17,WHITE)
+  var full_name=label(row,info.name,Rect2(10,4,276,54),17,WHITE if info.constructible else MUTED)
   full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  row.tooltip_text=info.name
+  row.tooltip_text=info.name if info.constructible else info.name+"\n仅供查看 · 不可加入卡组"
   row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
   row.clicked.connect(func(card_id,_from,_index,right):
    selected=card_id
    update_preview()
-   if not right: add_to("side" if zone=="side" else "main"))
+   if not right and Store.CARDS[card_id].constructible: add_to("side" if zone=="side" else "main"))
   row.set_drag_forwarding(row._get_drag_data,can_return_card,return_card_to_library)
+
+func library_ids() -> Array:
+ var ids=[]
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if info.get("canonical_id",id)!=id: continue
+  if not library_matches_query(id,info): continue
+  if filter_kind!="全部" and info.kind!=filter_kind: continue
+  if not matches_colors(info): continue
+  ids.append(id)
+ ids.sort_custom(func(a,b):return library_card_less(a,b))
+ return ids
+
+func library_matches_query(id: String,info: Dictionary) -> bool:
+ var term=query.strip_edges().to_lower()
+ if term.is_empty():return true
+ if term=="衍生物":return info.get("token",false)
+ if term=="梦违":
+  var is_dream=not info.constructible and not info.get("token",false)
+  var labeled_dream="梦违" in info.get("keywords",[]) or "梦违" in info.get("rules_text","")
+  return (is_dream and labeled_dream) or term in info.name.to_lower()
+ var searchable=[info.name,id,info.get("title",""),info.get("character","")]
+ searchable.append_array(info.get("keywords",[]))
+ if info.get("token",false):searchable.append("衍生物")
+ if not info.constructible:searchable.append("不可构筑")
+ return searchable.any(func(value):return term in str(value).to_lower())
+
+func library_card_color_value(id: String) -> int:
+ var value=0
+ for amount in Store.CARDS[id].cost.values():value+=int(amount)
+ return value
+
+func library_card_less(a: String,b: String) -> bool:
+ var x=Store.CARDS[a]
+ var y=Store.CARDS[b]
+ if library_sort_mode=="类别" and x.kind!=y.kind:
+  var categories=["自机","单位","符卡","道具","结界"]
+  return categories.find(x.kind)<categories.find(y.kind)
+ if library_sort_mode!="名字":
+  var a_value=library_card_color_value(a)
+  var b_value=library_card_color_value(b)
+  if a_value!=b_value:return a_value<b_value
+ if x.name!=y.name:return x.name.naturalnocasecmp_to(y.name)<0
+ return a.naturalnocasecmp_to(b)<0
 
 func can_return_card(_at: Vector2, data: Variant) -> bool:
  return valid_drag_source(data) and data.source_zone in ["main","side","leader"]
@@ -467,7 +528,7 @@ func valid_drag_source(data: Variant) -> bool:
  if not data is Dictionary or not Store.CARDS.has(data.get("card_id","")): return false
  var source=data.get("source_zone","")
  if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"]):return false
- if source=="library": return true
+ if source=="library": return Store.CARDS[data.card_id].constructible
  if source=="leader": return draft.leader==data.card_id
  if source in ["main","side"]:
   var index=int(data.get("source_index",-1))
@@ -833,7 +894,7 @@ func about():
  title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var version=label(screen,"multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
  version.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var body=label(screen,"这是测试文字",Rect2(100,365,1400,90),32)
+ var body=label(screen,"本作品基于开源游戏引擎godot和东方project的二次创作“极彩multicolor”，由chatgpt辅助代码\n所制成。所有卡图等知识产权均归属于社团“The 495th Complex”",Rect2(100,365,1400,90),32)
  body.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  if debug_mode:
   var state=label(screen,"调试模式已开启",Rect2(100,495,1400,44),22,GOLD)
@@ -850,7 +911,7 @@ func _unhandled_key_input(event: InputEvent):
 func sort_current_deck():
  if sideboard_session!=null and sideboard_locked():return
  var before=JSON.stringify([draft.main,draft.side])
- Store.sort_deck(draft)
+ Store.sort_deck(draft,"类别")
  if JSON.stringify([draft.main,draft.side])!=before: dirty=true
  update_deck_rows()
 

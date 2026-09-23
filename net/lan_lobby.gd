@@ -14,6 +14,7 @@ var rooms_list: VBoxContainer
 var signature=""
 var deck_index=0
 var last_error=""
+var chat_open=false
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  session.changed.connect(refresh);session.error_raised.connect(show_error)
@@ -98,6 +99,9 @@ func build_room():
  var room=session.room
  if room.is_empty():return
  latency_label=app.label(body,"网络延迟 · "+session.latency_text(),Rect2(103,642,890,45),20,app.MUTED)
+ if not session.read_only:
+  var chat=preload("res://net/chat_panel.gd").new();body.add_child(chat);chat.build(session,Rect2(1040,299,456,410));chat.visible=chat_open;chat.z_index=20
+  var chat_button=app.button(body,"聊天",Rect2(1320,254,165,38),func():chat_open=not chat_open;chat.visible=chat_open);chat_button.z_index=21
  latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新；不需要同步电脑时钟。"
  var own=session.seat;var other=1-own
  app.box(body,Rect2(70,195,1460,604))

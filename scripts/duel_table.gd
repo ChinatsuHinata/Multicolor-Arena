@@ -190,7 +190,8 @@ func layout() -> Dictionary:
   else:
    for extra in p.get("extra_leaders",[]):
     if extra.zone=="leader":displayed_leader=extra;break
-  if displayed_leader.is_empty() and p.leader.zone=="return_pending":displayed_leader=p.leader
+  # A leader waiting for its owner's destination choice has left the field but
+  # has not entered the leader zone yet. Do not show an inert ghost in that slot.
   if not displayed_leader.is_empty():
    var d=description(displayed_leader,zone_position("leader",who),SLOT_SCALE);result[d.key]=d
   var groups={"unit":[],"item":[],"support":[],"melody":[]}
