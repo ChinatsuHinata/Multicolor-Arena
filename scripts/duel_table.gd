@@ -14,13 +14,25 @@ const LAYER_HEIGHT=0.012
 const SLOT_SCALE=0.82
 const FIELD_SCALE=0.76
 const NEAREST_CAMERA=0.77
+const PERSPECTIVE_FOV=46.0
+const CAMERA_MIN_DISTANCE=0.58
+const CAMERA_MAX_DISTANCE=1.3
+const TOP_DOWN_CAMERA_SIZE=14.0
+const TOP_DOWN_CAMERA_MIN_SIZE=8.5
+const TOP_DOWN_CAMERA_MAX_SIZE=20.0
+const CAMERA_ZOOM_STEP=0.9
+const TOP_DOWN_PALETTE_Z=5.75
 const BOARD_SIZE=Vector2(23,16)
+const TOP_DOWN_BOARD_SIZE=Vector2(16,16)
 # Normalized centers measured from the printed zones on playmat 3.
 const MAT_SLOTS={"exile":Vector2(124.0/1200.0,1027.0/1200.0),"deck":Vector2(1070.0/1200.0,809.0/1200.0),"grave":Vector2(1070.0/1200.0,1027.0/1200.0),"leader":Vector2(124.0/1200.0,809.0/1200.0)}
 const CARD_SIZE=Vector2(1.95,2.72)
 var camera: Camera3D
 var board: MeshInstance3D
 var camera_distance=NEAREST_CAMERA
+var top_down_camera_size=TOP_DOWN_CAMERA_SIZE
+var top_down_view=false
+var camera_offset=Vector3.ZERO
 var duel
 var external_stack=false
 var texture_provider: Callable
@@ -86,11 +98,11 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
  duel=engine; texture_provider=provider
  var world=WorldEnvironment.new()
  var env=Environment.new(); env.background_mode=Environment.BG_COLOR
- env.background_color=Color("#09121d")
+ env.background_color=Color("#0a0b21")
  env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
  env.ambient_light_color=Color.WHITE; env.ambient_light_energy=0.7
  world.environment=env; add_child(world)
- camera=Camera3D.new(); camera.fov=35; camera.near=0.1; camera.far=90
+ camera=Camera3D.new(); camera.fov=PERSPECTIVE_FOV; camera.near=0.1; camera.far=90
  add_child(camera); set_camera()
  camera.current=true
  var mat=StandardMaterial3D.new()
@@ -100,19 +112,54 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
  sync(payment_reservations,selection,[],false)
 
 func set_camera():
+ if is_instance_valid(board) and board.mesh.size!=displayed_board_size():board.mesh.size=displayed_board_size()
+ if top_down_view:
+  camera.projection=Camera3D.PROJECTION_ORTHOGONAL
+  camera.size=top_down_camera_size
+  camera.position=Vector3(0,25,0)+camera_offset
+  camera.rotation=Vector3(-PI/2,0,0)
+ else:
+  camera.projection=Camera3D.PROJECTION_PERSPECTIVE
+  camera.fov=PERSPECTIVE_FOV
+  camera.position=Vector3(0,23.5,18)*camera_distance+camera_offset
+  camera.look_at(Vector3(0,0,1.05)+camera_offset)
+
+func pan_camera(from: Vector2,to: Vector2):
+ var ground=Plane(Vector3.UP,0)
+ var from_hit=ground.intersects_ray(camera.project_ray_origin(from),camera.project_ray_normal(from))
+ var to_hit=ground.intersects_ray(camera.project_ray_origin(to),camera.project_ray_normal(to))
+ if from_hit==null or to_hit==null:return
+ var displacement: Vector3=from_hit-to_hit
+ var limit=displayed_board_size()*0.5
+ camera_offset.x=clampf(camera_offset.x+displacement.x,-limit.x,limit.x)
+ camera_offset.z=clampf(camera_offset.z+displacement.z,-limit.y,limit.y)
+ set_camera()
+
+func reset_camera():
  camera_distance=NEAREST_CAMERA
- camera.position=Vector3(0,23.5,18)*camera_distance
- camera.look_at(Vector3(0,0,1.05))
+ top_down_camera_size=TOP_DOWN_CAMERA_SIZE
+ camera_offset=Vector3.ZERO
+ set_camera()
+
+func displayed_board_size() -> Vector2:
+ return TOP_DOWN_BOARD_SIZE if top_down_view else BOARD_SIZE
+
+func set_top_down_view(enabled: bool):
+ var changed=top_down_view!=enabled
+ top_down_view=enabled
+ set_camera()
+ if changed and duel!=null:sync(reserved,chosen,highlighted,false)
 
 func zone_position(zone: String, who: int) -> Vector3:
  var side=1.0 if who==local_seat else -1.0
  var slot="leader" if zone=="return_pending" else zone
  if MAT_SLOTS.has(slot):
   var uv=MAT_SLOTS[slot]
-  return Vector3((uv.x-0.5)*BOARD_SIZE.x*side,0.035,(uv.y-0.5)*BOARD_SIZE.y*side)
+  var size=displayed_board_size()
+  return Vector3((uv.x-0.5)*size.x*side,0.035,(uv.y-0.5)*size.y*side)
  match zone:
   "hand": return Vector3(0,1,10*side)
-  "palette": return Vector3(0,0.035,6.8*side)
+  "palette": return Vector3(0,0.035,(TOP_DOWN_PALETTE_Z if top_down_view else 6.8)*side)
  return Vector3.ZERO
 
 func card_snapshot() -> Dictionary:
@@ -163,11 +210,11 @@ func layout() -> Dictionary:
     result[d.key]=d
   for i in range(p.palette.size()):
    var stride=minf(1.86,13.02/maxi(1,p.palette.size()-1))
-   var d=description(p.palette[i],Vector3((-6.51+i*stride)*side,0.035+i*0.002,6.8*side),FIELD_SCALE)
+   var d=description(p.palette[i],Vector3((-6.51+i*stride)*side,0.035+i*0.002,zone_position("palette",who).z),FIELD_SCALE)
    result[d.key]=d
   if p.potato:
    var c={"uid":-100-who,"card_id":"potato","owner":who,"zone":"palette","tapped":false}
-   var d=description(c,Vector3(-7.95*side,0.035,6.8*side),0.52);result[d.key]=d
+   var d=description(c,Vector3(-7.95*side,0.035,zone_position("palette",who).z),0.52);result[d.key]=d
  if external_stack: return result
  for i in range(duel.stack.size()):
   var entry=duel.stack[i]
@@ -353,6 +400,7 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
   hit.set_meta("kind","pile"); hit.set_meta("zone",key)
   piles[key]=root
  var root=piles[key]
+ root.position=at
  root.set_meta("count",count)
  root.visible=not ("exile" in key and count==0)
  var mm=root.get_node("Layers").multimesh
@@ -372,6 +420,11 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
 func pointer(event: InputEvent):
  if not event is InputEventMouseButton or not event.pressed: return
  if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+  var amount=event.factor if event.factor>0 else 1.0
+  var scale=pow(CAMERA_ZOOM_STEP,amount if event.button_index==MOUSE_BUTTON_WHEEL_UP else -amount)
+  if top_down_view:top_down_camera_size=clampf(top_down_camera_size*scale,TOP_DOWN_CAMERA_MIN_SIZE,TOP_DOWN_CAMERA_MAX_SIZE)
+  else:camera_distance=clampf(camera_distance*scale,CAMERA_MIN_DISTANCE,CAMERA_MAX_DISTANCE)
+  set_camera()
   return
  if event.button_index not in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]: return
  var from=camera.project_ray_origin(event.position)

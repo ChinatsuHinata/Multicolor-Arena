@@ -2,7 +2,7 @@ extends Control
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
-const STAGE=Rect2(246,163,1108,495)
+const STAGE=Rect2(0,0,1600,900)
 const HAND=Rect2(246,663,1108,232)
 const SIDEBAR=Rect2(1366,100,218,660)
 const INSPECTION=Rect2(16,100,218,660)
@@ -92,6 +92,9 @@ var previous_snapshot={}
 var frame_count=0
 var observing=false
 var observe_button: Button
+var reset_view_button: Button
+var camera_dragging=false
+var camera_drag_last=Vector2.ZERO
 var building_prompt=false
 var effects: Control
 var damage_values={}
@@ -125,6 +128,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  table=preload("res://scripts/duel_table.gd").new(); viewport.add_child(table)
  table.external_stack=true;table.local_seat=local_seat
  table.build(engine,host.texture,host.battlefield_background)
+ table.set_top_down_view(host.top_down_view)
  table.object_selected.connect(object_clicked)
  table.combat_animation_finished.connect(render)
  table.combat_damage_shown.connect(rebuild_badges)
@@ -139,9 +143,6 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   elif zone in ["pdeck","adeck"]: browse_zone(0 if zone=="pdeck" else 1,"deck"))
  ui=layer(self); badges=layer(ui)
  arrow_layer=preload("res://scripts/stack_arrows.gd").new(); arrow_layer.view=self; arrow_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE; ui.add_child(arrow_layer)
- var hand_bg=Control.new(); hand_bg.name="HandArea"
- hand_bg.position=HAND.position; hand_bg.size=HAND.size
- hand_bg.mouse_filter=Control.MOUSE_FILTER_STOP; ui.add_child(hand_bg)
  hand_layer=layer(ui); opponent_layer=layer(ui); hud=layer(ui)
  ui.move_child(arrow_layer,-1)
  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
@@ -151,6 +152,8 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  banner=layer(ui)
  observe_button=btn("观察战场",Rect2(1290,12,152,40),toggle_observation,false,ui)
  observe_button.visible=false
+ reset_view_button=btn("视角复原",Rect2(1315,57,116,34),reset_camera_view,false,ui)
+ reset_view_button.tooltip_text="复原战场缩放和位置"
  if debug_mode:
   debug_controls=layer(ui)
   debug_button=btn("调试",Rect2(1460,57,116,34),debug_menu,false,debug_controls)
@@ -167,7 +170,45 @@ func resize_world():
  viewport.size=Vector2i(STAGE.size*scale_value)
 func project(at: Vector3) -> Vector2:
  return STAGE.position+table.camera.unproject_position(at)/Vector2(viewport.size)*STAGE.size
+func stage_point(at: Vector2) -> Vector2:
+ return (at-STAGE.position)/STAGE.size*Vector2(viewport.size)
+func camera_drag_input(event: InputEvent) -> bool:
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_MIDDLE:
+  if not event.pressed:
+   if not camera_dragging:return false
+   camera_dragging=false
+   get_viewport().set_input_as_handled()
+   return true
+  var point=make_input_local(event).position
+  if not STAGE.has_point(point) or history_open or (modal and not observing) or dragging or debug_drag_uid!=0:return false
+  camera_dragging=true
+  camera_drag_last=stage_point(point)
+  get_viewport().set_input_as_handled()
+  return true
+ if event is InputEventMouseMotion and camera_dragging:
+  if (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE)==0:
+   camera_dragging=false
+   return false
+  var point=make_input_local(event).position
+  var current=stage_point(STAGE.position+(point-STAGE.position).clamp(Vector2.ZERO,STAGE.size))
+  table.pan_camera(camera_drag_last,current)
+  camera_drag_last=current
+  update_badge_positions()
+  get_viewport().set_input_as_handled()
+  return true
+ return false
+func reset_camera_view():
+ camera_dragging=false
+ table.reset_camera()
+ update_badge_positions()
 func stage_input(event: InputEvent):
+ if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+  if history_open or (modal and not observing) or dragging or debug_drag_uid!=0:return
+  var wheel=event.duplicate()
+  wheel.position=event.position/STAGE.size*Vector2(viewport.size)
+  table.pointer(wheel)
+  update_badge_positions()
+  return
  if revealing():return
  if table.combat_animating: return
  if debug_mode and can_begin_debug_drag() and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
@@ -248,7 +289,7 @@ func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#e8edf0"),par
  return label
 func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: Node=null):
  if parent==null and rect.position.y>=90:rect=right_rect(rect)
- var inspection_action=text in ["设置","对局记录","继续游戏","返回联机房间","观察战场","返回选择","×","同意悔棋","拒绝悔棋","取消请求"]
+ var inspection_action=text in ["设置","对局记录","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
  var button=host.button(hud if parent==null else parent,text,rect,func():
   if not network_locked() or inspection_action:action.call(),accent)
  if network_locked() and not inspection_action:button.disabled=true
@@ -318,7 +359,7 @@ func render():
  btn("设置",Rect2(1460,12,116,40),settings_menu)
  btn("对局记录",Rect2(1310,99,266,40),open_history)
  if network_session!=null:
-  network_latency_label=txt(network_session.latency_text(),Rect2(1140,58,298,31),16,host.MUTED)
+  network_latency_label=txt(network_session.latency_text(),Rect2(1000,58,303,31),16,host.MUTED)
   network_latency_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   network_latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新。"
   render_undo()
@@ -529,7 +570,7 @@ func update_inspection():
  inspection_signature=signature
  clear_children(inspection)
  if inspect_id.is_empty(): return
- var bg=host.box(inspection,Rect2(0,0,218,660),Color("#101d2c"),Color("#52677e"))
+ var bg=Control.new(); bg.size=INSPECTION.size; bg.mouse_filter=Control.MOUSE_FILTER_IGNORE; inspection.add_child(bg)
  var image=TextureRect.new(); image.position=Vector2(10,10); image.size=Vector2(198,277)
  image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  image.texture=host.preview_texture(inspect_id)
@@ -543,6 +584,7 @@ func update_inspection():
  inspection_text=RichTextLabel.new(); inspection_text.position=Vector2(10,378); inspection_text.size=Vector2(198,270)
  if landscape:inspection_text.position.y=246;inspection_text.size.y=402
  inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.WHITE)
+ inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
  if info.get("fast",false): inspection_text.add_text("高速\n")
@@ -674,6 +716,7 @@ func begin_hand_drag(uid: int,at: Vector2):
  clear_attack_preview()
  drag_uid=uid; drag_origin=at; drag_pointer=at; dragging=false
 func _input(event: InputEvent):
+ if camera_drag_input(event):return
  if revealing():
   get_viewport().set_input_as_handled();return
  if is_instance_valid(table) and table.combat_animating:
@@ -754,7 +797,7 @@ func finish_drag(cancelled: bool):
  if cancelled:
   selection=[]; render(); return
  if moved:
-  if not hand_area(engine.find_card(uid).owner).has_point(at): request_cast(uid)
+  if not over_hand_card(at,engine.find_card(uid).owner): request_cast(uid)
   else: selection=[]; render()
  else: hand_clicked(uid)
 func hand_clicked(uid: int):
@@ -1041,15 +1084,24 @@ func network_changed():
 func settings_menu():
  var panel=overlay("对战设置")
  panel.position=Vector2(475,285)
+ txt("卡牌视角",Rect2(30,68,560,28),18,host.MUTED,panel).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ btn("3D 斜视",Rect2(30,100,260,48),func():set_card_view(false),not table.top_down_view,panel)
+ btn("2D 上方俯视",Rect2(330,100,260,48),func():set_card_view(true),table.top_down_view,panel)
  btn("继续游戏",Rect2(30,180,260,48),func(): modal=false; render(),true,panel)
  if network_session!=null and not network_session.replay_mode:
-  btn("返回联机房间",Rect2(330,112,260,48),func():host.online(),false,panel)
+  btn("返回联机房间",Rect2(195,250,260,48),func():host.online(),false,panel)
  if network_session!=null and network_session.read_only:return
  btn("本局投降",Rect2(330,180,260,48),func():
   var confirm=overlay("确认本局投降")
   confirm.position=Vector2(475,285)
   btn("本局投降",Rect2(35,155,260,50),func(): modal=false; local={}; engine.surrender(local_seat); render(),true,confirm)
   btn("返回",Rect2(330,155,260,50),func(): modal=false; render(); settings_menu(),false,confirm),false,panel)
+
+func set_card_view(top_down: bool):
+ if table.top_down_view==top_down:return
+ host.set_top_down_view(top_down)
+ table.set_top_down_view(top_down)
+ settings_menu()
 func result_overlay():
  var panel=overlay("本局平局" if engine.winner==-1 else "本局胜利" if engine.winner==local_seat else "本局结束")
  txt(engine.log.back(),Rect2(30,90,590,80),22,host.WHITE,panel)
@@ -1170,6 +1222,11 @@ func acting_player() -> int:
  return engine.priority
 func hand_area(who: int) -> Rect2:
  return HAND if who==local_seat else Rect2(320,60,1000,150)
+func over_hand_card(at: Vector2,who: int) -> bool:
+ var nodes=hand_nodes if who==local_seat else enemy_nodes
+ for node in nodes.values():
+  if is_instance_valid(node) and node.visible and node.get_global_rect().has_point(at):return true
+ return false
 func target_caption(t: Dictionary) -> String:
  if t.has("parts"): return " + ".join(t.parts.map(func(x): return target_caption(x)))
  var parts=[]
@@ -1235,8 +1292,10 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
  if history_open or table.combat_animating: return
  close_debug(); debug_open=true; browser_owner=who; browser_zone=zone
  debug_root=layer(ui)
- browser_panel=host.box(debug_root,SIDEBAR,Color("#101c28"),Color("#637a93")); browser_panel.name="PileBrowser"
+ browser_panel=host.box(debug_root,SIDEBAR,Color.TRANSPARENT,Color.TRANSPARENT); browser_panel.name="PileBrowser"
  if network_session!=null and network_session.replay_mode:browser_panel.size.y=530
+ var browser_header=host.box(browser_panel,Rect2(0,0,SIDEBAR.size.x,45),Color("#101c28"),Color("#637a93"))
+ browser_header.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var cards=zone_cards(who,zone)
  txt(player_caption(who)+" · "+ZONE_NAMES[zone]+" · %d" % cards.size(),Rect2(10,10,158,35),18,host.GOLD,browser_panel)
  var close=btn("×",Rect2(174,10,34,32),close_debug,false,browser_panel)

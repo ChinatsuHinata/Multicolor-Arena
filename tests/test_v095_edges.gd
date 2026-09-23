@@ -61,8 +61,11 @@ func run():
   expect(texture.get_width()==1200 and texture.get_height()==1676,"card art normalized: "+id)
  e.cards["170"].colors=original_colors
  var wheel=InputEventMouseButton.new(); wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN; wheel.pressed=true
- var distance=view.table.camera_distance; view.table.pointer(wheel)
- expect(view.table.camera_distance==distance,"fixed nearest camera ignores zoom wheel")
+ var zoom_before=view.table.top_down_camera_size if view.table.top_down_view else view.table.camera_distance
+ view.table.pointer(wheel)
+ var zoom_after=view.table.top_down_camera_size if view.table.top_down_view else view.table.camera_distance
+ expect(zoom_after>zoom_before,"wheel down zooms out from the battlefield")
+ wheel.button_index=MOUSE_BUTTON_WHEEL_UP; view.table.pointer(wheel)
  expect(FileAccess.get_file_as_string(Store.SAVE_PATH)==saved,"real saved decks unchanged")
  var report="%d checks; %d failures\n%s" % [checks,failures.size(),"\n".join(failures)]
  FileAccess.open("res://work/v095-edge-tests.txt",FileAccess.WRITE).store_string(report)

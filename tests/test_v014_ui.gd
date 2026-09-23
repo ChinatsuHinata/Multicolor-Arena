@@ -16,6 +16,7 @@ func finish_reveals():
 func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
  app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ app.top_down_view=false
  app.load_test_decks();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
  clean(true)
  var own=[];var support=[];var items=[];var palette=[]
@@ -35,9 +36,10 @@ func run():
  e.players[0].field.erase(melody);melody.owner=1;e.players[1].field.append(melody);view.render();await settle()
  expect(view.table.descriptors["card_"+str(melody.uid)].at.x< -8,"opposing melody uses left central slot")
  var camera=view.table.camera.position
+ var original_distance=view.table.camera_distance
  for button in [MOUSE_BUTTON_WHEEL_DOWN,MOUSE_BUTTON_WHEEL_UP]:
   var event=InputEventMouseButton.new();event.pressed=true;event.button_index=button;view.table.pointer(event)
- expect(view.table.camera_distance==0.77 and view.table.camera.position==camera,"camera locked at nearest distance")
+ expect(is_equal_approx(view.table.camera_distance,original_distance) and view.table.camera.position.distance_to(camera)<0.001,"opposite wheel turns restore 3D camera distance")
  for corner in [Vector3(-11.5,0,-8),Vector3(11.5,0,-8),Vector3(-11.5,0,8),Vector3(11.5,0,8)]:expect(view.STAGE.has_point(view.project(corner)),"entire mat within fixed camera viewport "+str(corner))
  for c in palette:
   expect(view.STAGE.encloses(view.projected_card_rect(view.table.visuals["card_"+str(c.uid)])),"palette card is fully visible "+str(c.uid))

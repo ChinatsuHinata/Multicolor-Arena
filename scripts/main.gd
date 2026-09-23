@@ -40,6 +40,7 @@ var status = ""
 var debug_mode=false
 var about_code=""
 var fullscreen = false
+var top_down_view = false
 var add_amount = 1
 var zone_buttons = {}
 var settings_path = "res://saves/settings.json" if OS.has_feature("editor") else "user://settings.json"
@@ -70,13 +71,14 @@ func _ready():
   var saved_settings = JSON.parse_string(FileAccess.get_file_as_string(settings_path))
   if saved_settings is Dictionary:
    fullscreen = saved_settings.get("fullscreen", false) == true
+   top_down_view = saved_settings.get("top_down_view", false) == true
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  menu()
  if not load_error.is_empty(): alert(load_error)
 
 func _draw():
- draw_rect(Rect2(0,0,1600,900), Color("#09121d"))
  if page=="battle": return
+ draw_rect(Rect2(0,0,1600,900), Color("#09121d"))
  for i in range(22):
   draw_circle(Vector2(1150,400),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
 
@@ -276,10 +278,26 @@ func settings():
  cb.toggled.connect(func(value):
   fullscreen = value
   DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if value else DisplayServer.WINDOW_MODE_WINDOWED)
-  var f = FileAccess.open(settings_path,FileAccess.WRITE)
-  if f: f.store_string(JSON.stringify({"fullscreen":value}))
-  else: alert("无法保存设置。"))
+  save_settings())
  screen.add_child(cb)
+ var view_cb = CheckButton.new()
+ view_cb.text = "游戏内卡牌使用 2D 上方俯视"
+ view_cb.position = Vector2(420,370)
+ view_cb.size = Vector2(700,60)
+ view_cb.button_pressed = top_down_view
+ view_cb.toggled.connect(set_top_down_view)
+ screen.add_child(view_cb)
+
+func save_settings():
+ var f = FileAccess.open(settings_path,FileAccess.WRITE)
+ if f:
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view}))
+  f.close()
+ else: alert("无法保存设置。")
+
+func set_top_down_view(value: bool):
+ top_down_view=value
+ save_settings()
  
 
 func editor(sideboarding: bool=false):
