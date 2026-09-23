@@ -8,6 +8,18 @@
 - 双击 `编译Windows.cmd` 执行资源导入并正式导出。生成 `builds/Windows-1.1.1-bugfixed/MulticolorArena.exe` 和同名 `.pck`；分享时两者必须放在一起。
 - 命令行也可运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-windows.ps1`。
 
+## 在 VS Code 创建安装包
+
+先安装 [Inno Setup 6 或 7](https://jrsoftware.org/isdl.php)。在 VS Code 打开本项目后，运行“终端 → 运行生成任务”，选择 **Windows: 创建安装包**，或按 `Ctrl+Shift+B`。任务会重新导入、导出 Windows 游戏，然后生成 `builds/installers/MulticolorArena-<版本>-win64-setup.exe`，并输出 SHA-256。命令行等价于：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-installer.ps1
+```
+
+仅调整安装脚本且已有同版本导出文件时，可以运行 **Windows: 仅重新打包安装包**。如果 Inno Setup 装在其他目录，可传 `-IsccPath 'C:\完整路径\ISCC.exe'`。
+
+安装程序按固定 AppId 检测此前由本安装包安装的版本，自动选用原安装目录并覆盖更新 EXE/PCK。默认安装在当前用户的 `%LOCALAPPDATA%\Programs\MulticolorArena`，无需管理员权限。更新不打包也不删除安装目录中的 `deck`、`replay`，用户目录中的设置与联机身份也不受影响。旧版 ZIP 便携包没有安装记录，无法自动定位；若要在原文件夹覆盖，请在首次运行安装程序时手动选中该文件夹，并确保该文件夹可写。
+
 编译脚本会检查 Godot 版本、Git LFS 图片是否仍为指针、导入错误、导出错误以及 EXE/PCK 是否生成。日志位于 `.godot-toolchain/logs/`。
 
 ## 素材说明

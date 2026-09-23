@@ -12,3 +12,12 @@ MulticolorArena-Installer-Tool/
 
 # 测试脚本：已跟踪的 tests/*.gd 不受影响（忽略规则不作用于已跟踪文件），此规则只忽略新增文件
 tests/
+
+# Installer packages and local packaging automation
+*-setup.exe
+/installer/
+/tools/build-installer.ps1
+/tools/installer-toolkit/
+
+# Local Git upload automation
+/tools/auto-commit-push.ps1

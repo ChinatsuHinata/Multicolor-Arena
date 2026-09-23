@@ -611,6 +611,7 @@ func update_inspection():
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
  if info.get("fast",false): inspection_text.add_text("高速\n")
+ if info.get("stackable",false):inspection_text.add_text("stackable\n")
  var at=rules.find("自机能力：")
  if at>=0:
   inspection_text.add_text(rules.left(at))
@@ -1010,6 +1011,21 @@ func optional_trigger_prompt():
  label.set_meta("optional_trigger_prompt",true)
 func execute_action(action: Dictionary):
  if response_disabled() or not action.enabled: return
+ if action.type in ["extension","ability"]:
+  var c=engine.find_card(action.uid)
+  if not c.is_empty() and engine.cards[c.card_id].get("stackable",false):
+   var count=engine.stackable_members(c).size()
+   if count>1:
+    var panel=overlay("选择一次启动的数量")
+    txt("%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
+    var spinner=SpinBox.new();spinner.position=Vector2(196,137);spinner.size=Vector2(260,48)
+    spinner.min_value=1;spinner.max_value=count;spinner.step=1;spinner.rounded=true;spinner.value=1
+    panel.add_child(spinner)
+    btn("确认",Rect2(120,225,180,48),func():begin_action(action,int(spinner.value)),true,panel)
+    btn("取消",Rect2(350,225,180,48),close_overlay,false,panel)
+    return
+ begin_action(action)
+func begin_action(action: Dictionary,count: int=1):
  close_overlay()
  clear_attack_preview()
  if action.type=="attack": begin_attack_payment(action.uid)
@@ -1017,10 +1033,10 @@ func execute_action(action: Dictionary):
   local={"uid":action.uid,"action":"direct_attack","mode":"target","target":{},"plan":[]}
   picker.reset(); render()
  elif action.type=="extension":
-  local={"uid":action.uid,"action":"extension","key":action.key,"mode":"target","target":{},"plan":[]}
+  local={"uid":action.uid,"action":"extension","key":action.key,"mode":"target","target":{},"plan":[],"stackable_count":count}
   picker.reset(); render()
  else:
-  local={"uid":action.uid,"action":"ability","index":action.index,"mode":"target","target":{},"plan":[]}
+  local={"uid":action.uid,"action":"ability","index":action.index,"mode":"target","target":{},"plan":[],"stackable_count":count}
   picker.reset(); render()
 func toggle_selection(uid: int):
  if uid in selection: selection.erase(uid)
@@ -1048,16 +1064,24 @@ func local_prompt() -> String:
 func local_cost() -> Dictionary:
  if local.get("action","")=="choice_payment": return local.choice_cost
  if local.get("action","") in ["attack","direct_attack"]: return engine.attack_cost(acting_player())
- if local.get("action","")=="extension": return engine.extension_cost(acting_player(),engine.find_card(local.uid),local.key,local.get("target",{}))
- if local.get("action","")=="ability": return engine.ability_cost(acting_player(),local.uid,local.index,local.get("target",{}))
+ if local.get("action","")=="extension": return engine.extension_cost(acting_player(),engine.find_card(local.uid),local.key,activation_target())
+ if local.get("action","")=="ability": return engine.ability_cost(acting_player(),local.uid,local.index,activation_target())
  return engine.cast_cost(acting_player(),engine.find_card(local.uid),local.get("target",{}))
+func activation_target() -> Dictionary:
+ var target=local.get("target",{}).duplicate(true)
+ if local.get("stackable_count",1)>1:target.stackable_count=local.stackable_count
+ return target
 func local_targets() -> Array:
  if local.get("action","")=="direct_attack": return engine.Pack.all_units(engine,1-acting_player()).filter(func(r):return engine.Pack.direct_attack(engine,engine.find_card(local.uid)) or engine.find_card(r.uid).has("rank_target"))
  if local.get("action","")=="extension": return engine.activation_options(engine.find_card(local.uid),local.key)
  if local.get("action","")=="ability": return engine.ability_targets()
  return engine.targets_for(engine.find_card(local.uid).card_id,acting_player(),local.uid)
 func payment_excluded() -> Array:
- return [local.uid] if local.get("action","")=="ability" and engine.ability_parameters(local.uid,local.index).get("横置",false) else []
+ if local.get("action","")!="ability" or not engine.ability_parameters(local.uid,local.index).get("横置",false):return []
+ var c=engine.find_card(local.uid)
+ var members=engine.stackable_members(c) if local.get("stackable_count",1)>1 else [c]
+ members.erase(c);members.push_front(c)
+ return members.slice(0,local.get("stackable_count",1)).map(func(member):return member.uid)
 func refresh_payment_plan():
  if local.is_empty() or local.mode not in ["target","payment"]:return
  if local.mode=="target":local.target=picker.option() if picker.ready() else {}
@@ -1130,7 +1154,7 @@ func commit_local():
   local={};engine.choose_effect(paid_target);engine.paid_cast_uid=-1;picker.reset();selection=[];render();return
  if local.get("action","") in ["attack","direct_attack"]:
   engine.attack(acting_player(),local.uid,local.target,local.plan); local={}; selection=[]; picker.reset(); render(); return
- var error=engine.commit_extension(acting_player(),local.uid,local.target,local.plan,local.get("key","")) if local.get("action","")=="extension" else engine.commit_ability(acting_player(),local.uid,local.index,local.target,local.plan) if local.get("action","")=="ability" else engine.commit_cast(acting_player(),local.uid,local.target,local.plan)
+ var error=engine.commit_extension(acting_player(),local.uid,activation_target(),local.plan,local.get("key","")) if local.get("action","")=="extension" else engine.commit_ability(acting_player(),local.uid,local.index,activation_target(),local.plan) if local.get("action","")=="ability" else engine.commit_cast(acting_player(),local.uid,local.target,local.plan)
  if error.is_empty(): engine.paid_cast_uid=-1;local={}; selection=[]; picker.reset(); message=""; close_debug()
  else: message=error
  modal=false; render()

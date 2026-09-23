@@ -185,6 +185,15 @@ func find_card(uid: int) -> Dictionary:
  for e in stack:
   if e.has("card") and e.card.uid==uid: return e.card
  return {}
+func stackable_signature(c: Dictionary) -> String:
+ if c.is_empty() or c.get("zone","")!="field" or not cards.get(c.card_id,{}).get("stackable",false):return ""
+ var state=c.duplicate(true)
+ for field in ["uid","epoch","entered","entered_turns"]:state.erase(field)
+ return JSON.stringify(state)
+func stackable_members(c: Dictionary) -> Array:
+ var signature=stackable_signature(c)
+ if signature.is_empty():return []
+ return players[c.owner].field.filter(func(u):return stackable_signature(u)==signature)
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
  if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
@@ -1067,19 +1076,33 @@ func ability_targets() -> Array:
 func commit_ability(who: int,uid: int,index: int,target: Dictionary,plan: Array) -> String:
  var error=activation_error(who,uid,index)
  if not error.is_empty(): return error
- if target not in ability_targets(): return "目标已失效"
+ var count=target.get("stackable_count",1)
+ if not count is int or count<1:return "启动数量无效"
+ var clean_target=target.duplicate(true);clean_target.erase("stackable_count")
+ if clean_target not in ability_targets(): return "目标已失效"
  var params=ability_parameters(uid,index)
+ var members=[find_card(uid)]
+ if count>1:
+  if not cards[members[0].card_id].get("stackable",false):return "该牌不能批量启动"
+  members=stackable_members(members[0])
+  if count>members.size():return "可启动数量不足"
+  var first=find_card(uid);members.erase(first);members.push_front(first)
+  members=members.slice(0,count)
+  for member in members:
+   if not activation_error(who,member.uid,index).is_empty():return "有对象不能启动"
  if not payment_valid(who,ability_cost(who,uid,index,target),plan): return "支付方案已失效"
- if params.get("横置",false) and plan.any(func(r): return r.uid==uid): return "不能重复横置同一来源"
- var c=find_card(uid)
+ if params.get("横置",false) and plan.any(func(r):return members.any(func(member):return r.uid==member.uid)):return "不能重复横置同一来源"
  Cat.pay(self,who,plan)
- if params.get("横置",false): tap_card(c)
- stack.append({"id":next_stack,"kind":"ability","source":c.duplicate(true),"owner":who,"amount":int(params["数值"]),"target":target.duplicate(),"name":cards[c.card_id].name+" · 启动异能"})
- stack.back().generic_activation=true
- stack.back().ability_text=cards[c.card_id].abilities[index].get("名称","对目标造成%d点伤害。" % int(params["数值"]))
- next_stack+=1; passes=0; priority=1-who
- note("发动 "+cards[c.card_id].name+"的异能")
- Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target);pump_choices()
+ for member in members:
+  if params.get("横置",false):tap_card(member)
+  stack.append({"id":next_stack,"kind":"ability","source":member.duplicate(true),"owner":who,"amount":int(params["数值"]),"target":clean_target.duplicate(true),"name":cards[member.card_id].name+" · 启动异能"})
+  stack.back().generic_activation=true
+  stack.back().ability_text=cards[member.card_id].abilities[index].get("名称","对目标造成%d点伤害。" % int(params["数值"]))
+  next_stack+=1
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target)
+ passes=0; priority=1-who
+ note("发动 "+cards[members[0].card_id].name+"的异能"+(" ×%d" % count if count>1 else ""))
+ pump_choices()
  return ""
 
 func field_slots(who: int) -> int:
@@ -1297,28 +1320,42 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  if key.is_empty():key=Extra.activation_kind(cards[c.card_id])
  var error=extension_activation_error(who,c,key)
  if not error.is_empty(): return error
- if not Pack.choice_valid(self,Extra.activation_options(self,c,key),target): return "选择已失效"
+ var count=target.get("stackable_count",1)
+ if not count is int or count<1:return "启动数量无效"
+ var clean_target=target.duplicate(true);clean_target.erase("stackable_count")
+ var members=[c]
+ if count>1:
+  if not cards[c.card_id].get("stackable",false):return "该牌不能批量启动"
+  members=stackable_members(c)
+  if count>members.size():return "可启动数量不足"
+  members.erase(c);members.push_front(c)
+  members=members.slice(0,count)
+  for member in members:
+   if not extension_activation_error(who,member,key).is_empty():return "有对象不能启动"
+ if not Pack.choice_valid(self,Extra.activation_options(self,c,key),clean_target): return "选择已失效"
  if not payment_valid(who,extension_cost(who,c,key,target),plan): return "支付方案已失效"
  Cat.pay(self,who,plan)
- record_declaration(who,target,c)
- catalogue_serial+=1
- var source=c.duplicate(true)
- if key in Roster.ACTIVATIONS:Roster.pay_activation(self,c,key,target)
- if key in Pack.ACTIVATIONS: Pack.pay_activation(self,c,key,target)
- if key=="exile_grave": tap_card(c)
- if key=="grave_reanimate": move_to(find_card(target.uid),"grave")
- if key=="sacrifice_buff": sacrifice(find_card(target.uid))
- if key=="leader_bounce": use_once(c.uid,key)
- if key=="character-fdf-098":
-  Cat.add_paired_mana(self,who,["黄","绿"]);revision+=1;return ""
- stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":target.duplicate(true),"name":cards[c.card_id].name})
- if key=="courage_die":
-  stack.back().die=rng.randi_range(1,6);show_result("D6 · %d" % stack.back().die,c)
- if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[c.card_id],key)
- if key in Pack.ACTIVATIONS: stack.back().ability_text=Pack.text(cards[c.card_id],key)
- if key=="laser": stack.back().ability_text="支付黄并移去一个计时指示物："+target.mode+"。"
- Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target)
- next_stack+=1; passes=0; priority=1-who; note("发动 "+cards[c.card_id].name); judge(); pump_choices()
+ for member in members:
+  record_declaration(who,clean_target,member)
+  catalogue_serial+=1
+  var source=member.duplicate(true)
+  if key in Roster.ACTIVATIONS:Roster.pay_activation(self,member,key,clean_target)
+  if key in Pack.ACTIVATIONS: Pack.pay_activation(self,member,key,clean_target)
+  if key=="exile_grave": tap_card(member)
+  if key=="grave_reanimate": move_to(find_card(clean_target.uid),"grave")
+  if key=="sacrifice_buff": sacrifice(find_card(clean_target.uid))
+  if key=="leader_bounce": use_once(member.uid,key)
+  if key=="character-fdf-098":
+   Cat.add_paired_mana(self,who,["黄","绿"]);revision+=1;return ""
+  stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":clean_target.duplicate(true),"name":cards[member.card_id].name})
+  if key=="courage_die":
+   stack.back().die=rng.randi_range(1,6);show_result("D6 · %d" % stack.back().die,member)
+  if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[member.card_id],key)
+  if key in Pack.ACTIVATIONS: stack.back().ability_text=Pack.text(cards[member.card_id],key)
+  if key=="laser": stack.back().ability_text="支付黄并移去一个计时指示物："+clean_target.mode+"。"
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target)
+  next_stack+=1
+ passes=0; priority=1-who; note("发动 "+cards[c.card_id].name+(" ×%d" % count if count>1 else "")); judge(); pump_choices()
  return ""
 func debug_move(uid: int,destination: String) -> String:
  if not debug_enabled: return "调试模式未开启"
@@ -1430,11 +1467,15 @@ func attack_cost(who: int) -> Dictionary:
 func extension_cost(who: int,c: Dictionary,key: String,target: Dictionary={}) -> Dictionary:
  var cost=Extra.activation_cost(key).duplicate();var tax=Cat.target_tax(self,who,target)
  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
+ var count=maxi(1,int(target.get("stackable_count",1)))
+ for color in cost:cost[color]=int(cost[color])*count
  return cost
 
 func ability_cost(who: int,uid: int,index: int,target: Dictionary={}) -> Dictionary:
  var cost=ability_parameters(uid,index).get("费用",{}).duplicate();var tax=Cat.target_tax(self,who,target)
  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
+ var count=maxi(1,int(target.get("stackable_count",1)))
+ for color in cost:cost[color]=int(cost[color])*count
  return cost
 func must_block() -> bool:
  if combat.is_empty():return false
