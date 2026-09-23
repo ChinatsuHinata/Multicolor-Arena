@@ -60,7 +60,8 @@ static func options(e,id,who):
    var out=[]
    for color in ["无","红","蓝","绿","黄","黑"]:
     if color!="无" and color not in e.cards[id].cost:continue
-    var groups=[C.group(e,units,0,2,"忽略%s · 移除单位" % color)] if color=="蓝" else [e.Pack.group([],0,0,"忽略"+color)]
+    var choice_title="不忽略颜色" if color=="无" else "忽略"+color+"色"
+    var groups=[C.group(e,units,0,2,choice_title+" · 移除至多两个目标单位")] if color!="蓝" else [e.Pack.group([],0,0,choice_title)]
     var spec=e.Pack.selection(groups,id+":"+color)[0];spec.ignore_color=color;out.append(spec)
    return out
   "spell-fdf-025","spell-fdn-046":
@@ -338,9 +339,9 @@ static func resolve_complex(e,t):
    e.draw(who)
    if e.flip_coin(who):C.copy_spell(e,t)
   "spell-fdf-082":
-   var ignored=a.get("ignore_color","无");var removed=[]
-   if ignored=="蓝":
-    for u in C.selected(e,a):e.move_to(u,"exile");removed.append(u)
+   var ignored=a.get("ignore_color","无")
+   if ignored!="蓝":
+    for u in C.selected(e,a):e.move_to(u,"exile")
    if ignored!="黄":C.choose(e,t,"cat:copy_exile",C.pick(e,(e.players[0].exile+e.players[1].exile).filter(func(u):return e.is_unit(u)),0,2,"复制至多两个除外单位"))
   "spell-fdn-011":
    var groups=[]
