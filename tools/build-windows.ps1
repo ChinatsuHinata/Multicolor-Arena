@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$OutputPath = 'builds/Windows-1.1.1-bugfixed/MulticolorArena.exe'
 )
 
