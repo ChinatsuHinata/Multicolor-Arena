@@ -6,6 +6,7 @@ const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const STAGE=Rect2(0,0,1600,900)
 const HAND=Rect2(246,663,1108,232)
+const OPPONENT_HAND_COUNT=Rect2(1070,78,170,30)
 const SIDEBAR=Rect2(1366,100,218,660)
 const INSPECTION=Rect2(16,100,218,660)
 var reveal_player
@@ -350,7 +351,10 @@ func render():
  if is_instance_valid(reveal_player):
   if not engine.presentation_events.is_empty():
    reveal_player.enqueue(engine.presentation_events);engine.presentation_events.clear()
-  if revealing():return
+  if revealing():
+   refresh_stackable_badges()
+   update_badge_positions()
+   return
  if attack_preview_uid!=0 and not engine.can_attack(acting_player(),attack_preview_uid):
   selection.erase(attack_preview_uid); attack_preview_uid=0
  close_overlay()
@@ -383,9 +387,11 @@ func render():
  life_widgets={}
  render_life(1-local_seat,Rect2(18,18,218,61))
  render_life(local_seat,Rect2(18,793,218,70))
- txt("A  确认攻击",Rect2(18,865,218,17),14,host.MUTED)
- txt("Q  不响应 / 继续",Rect2(18,882,218,17),14,host.MUTED)
- txt("手牌 %d" % engine.players[1-local_seat].hand.size(),Rect2(1070,78,170,30),18,host.WHITE)
+ txt("A  攻击",Rect2(18,865,103,17),13,host.MUTED)
+ txt("G  墓地",Rect2(126,865,110,17),13,host.MUTED)
+ txt("Q  不响应/继续",Rect2(18,882,103,17),13,host.MUTED)
+ txt("H  除外区",Rect2(126,882,110,17),13,host.MUTED)
+ txt("手牌 %d" % engine.players[1-local_seat].hand.size(),OPPONENT_HAND_COUNT,18,host.WHITE)
  building_prompt=true
  if not table.combat_animating: render_prompt()
  building_prompt=false
@@ -414,7 +420,7 @@ func render_hands(available: Array):
  sync_hand_nodes(local_seat,hand_nodes,hand_layer,available)
  sync_hand_nodes(1-local_seat,enemy_nodes,opponent_layer,available if debug_mode else [])
 func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array):
- var cards=displayed_hand_cards(who)
+ var cards=displayed_hand_cards(who) if who==local_seat or debug_mode else []
  var ids=cards.map(func(c): return c.uid)
  for uid in nodes.keys():
   if uid in ids: continue
@@ -509,9 +515,10 @@ func rebuild_badges():
    mark.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    mark.add_theme_color_override("font_outline_color",Color("#081019"));mark.add_theme_constant_override("outline_size",5)
    parts.counters=mark
-  if d.get("members",[]).size()>1:
+  if d.get("members",[]).size()>1 or d.zone=="field" and engine.cards[c.card_id].get("stackable",false):
    var count=txt("×%d" % d.members.size(),Rect2(0,0,80,32),26,host.GOLD,root)
    count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;count.add_theme_color_override("font_outline_color",Color("#081019"));count.add_theme_constant_override("outline_size",6)
+   count.visible=d.members.size()>1
    parts.token_count=count
   card_badges[key]=parts
  for key in table.piles:
@@ -524,6 +531,17 @@ func rebuild_badges():
   var label=txt({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),Rect2(-48,0,96,26),17,host.WHITE,root)
   label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  update_badge_positions()
+func refresh_stackable_badges():
+ for key in card_badges:
+  if not table.descriptors.has(key):continue
+  var parts=card_badges[key]
+  if parts.get("zone","")!="field" or not parts.has("token_count"):continue
+  var d=table.descriptors[key]
+  var c=engine.find_card(d.uid)
+  if c.is_empty() or c.zone!="field" or not engine.cards[c.card_id].get("stackable",false):continue
+  var count=engine.stackable_members(c).size()
+  parts.token_count.text="×%d" % count
+  parts.token_count.visible=count>1
 func projected_card_rect(node: Node3D) -> Rect2:
  var rect=Rect2(project(node.to_global(Vector3(-0.975,0,-1.36))),Vector2.ZERO)
  for corner in [Vector3(0.975,0,-1.36),Vector3(-0.975,0,1.36),Vector3(0.975,0,1.36)]: rect=rect.expand(project(node.to_global(corner)))
@@ -611,7 +629,6 @@ func update_inspection():
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
  if info.get("fast",false): inspection_text.add_text("高速\n")
- if info.get("stackable",false):inspection_text.add_text("stackable\n")
  var at=rules.find("自机能力：")
  if at>=0:
   inspection_text.add_text(rules.left(at))
@@ -745,14 +762,22 @@ func shortcut_attack() -> bool:
  return true
 
 func _unhandled_key_input(event: InputEvent):
- if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A]:return
+ if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A,KEY_G,KEY_H]:return
  if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:return
  if not is_visible_in_tree() or not is_instance_valid(table):return
+ var focus=get_viewport().gui_get_focus_owner()
+ if focus is LineEdit or focus is TextEdit:return
+ if event.keycode in [KEY_G,KEY_H]:
+  if revealing() or table.combat_animating or history_open or debug_drag_uid!=0:return
+  var zone="grave" if event.keycode==KEY_G else "exile"
+  var who=acting_player()
+  if debug_open and is_instance_valid(browser_panel) and browser_owner==who and browser_zone==zone:close_debug()
+  else:browse_zone(who,zone)
+  get_viewport().set_input_as_handled()
+  return
  if network_locked() or network_session!=null and not network_session.can_act(true):return
  if revealing() or table.combat_animating or history_open or debug_open or observing:return
  if drag_uid!=0 or debug_drag_uid!=0 or not local.is_empty():return
- var focus=get_viewport().gui_get_focus_owner()
- if focus is LineEdit or focus is TextEdit:return
  if event.keycode==KEY_A:
   if modal and not action_menu_open:return
   if shortcut_attack():get_viewport().set_input_as_handled()
@@ -1011,14 +1036,13 @@ func optional_trigger_prompt():
  label.set_meta("optional_trigger_prompt",true)
 func execute_action(action: Dictionary):
  if response_disabled() or not action.enabled: return
- if action.type in ["ability","extension"]:
+ if action.type in ["extension","ability"]:
   var c=engine.find_card(action.uid)
-  var can_batch=not c.is_empty() and (action.type=="ability" and engine.cards[c.card_id].get("stackable",false) or action.type=="extension" and engine.can_batch_stackable_sacrifice(c,action.key))
-  if can_batch:
+  if not c.is_empty() and engine.cards[c.card_id].get("stackable",false):
    var count=engine.stackable_members(c).size()
    if count>1:
-    var panel=overlay("选择牺牲数量" if action.type=="extension" else "选择一次启动的数量")
-    txt("%s：可牺牲 1 至 %d 个" % [engine.cards[c.card_id].name,count] if action.type=="extension" else "%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
+    var panel=overlay("选择一次启动的数量")
+    txt("%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
     var spinner=SpinBox.new();spinner.position=Vector2(196,137);spinner.size=Vector2(260,48)
     spinner.min_value=1;spinner.max_value=count;spinner.step=1;spinner.rounded=true;spinner.value=1
     panel.add_child(spinner)
@@ -1074,7 +1098,7 @@ func local_cost() -> Dictionary:
  return engine.cast_cost(acting_player(),engine.find_card(local.uid),local.get("target",{}))
 func activation_target() -> Dictionary:
  var target=local.get("target",{}).duplicate(true)
- if local.get("action","") in ["ability","extension"] and local.get("stackable_count",1)>1:target.stackable_count=local.stackable_count
+ if local.get("stackable_count",1)>1:target.stackable_count=local.stackable_count
  return target
 func local_targets() -> Array:
  if local.get("action","")=="direct_attack": return engine.Pack.all_units(engine,1-acting_player()).filter(func(r):return engine.Pack.direct_attack(engine,engine.find_card(local.uid)) or engine.find_card(r.uid).has("rank_target"))

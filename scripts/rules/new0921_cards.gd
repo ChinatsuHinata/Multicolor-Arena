@@ -132,7 +132,10 @@ static func trigger_options(e,t):
    var pool=e.players[who].deck.filter(func(c):return c.card_id in [id("ETO-007"),id("ETO-009"),id("ETO-011")])
    for label in ["置于手牌","置于墓地","横置放入颜色盘"]:groups.append(C.group(e,pool,0,1,label))
    return e.Pack.selection(groups,"n21:three_books")
-  "ETO-002":return C.pick(e,own(e,who,"ETO-S001"),0,own(e,who,"ETO-S001").size(),"牺牲灵异珠",t.effect)
+  "ETO-002":
+   var options=[]
+   for n in range(own(e,who,"ETO-S001").size()+1):options.append({"none":true,"x":n,"mode":"牺牲%d个灵异珠"%n})
+   return options
   "ETO-002:self":
    var pool=[]
    for c in e.leaders(who):
@@ -225,10 +228,15 @@ static func resolve_trigger(e,t):
      e.reveal_card(c);e.move_to(c,["hand","grave","palette"][i]);c.tapped=i==2
    e.shuffle(p.deck)
   "ETO-002":
-   var list=C.selected(e,a);var n=list.size()
-   for c in list:e.sacrifice(c)
-   for c in e.units(0)+e.units(1):e.damage_target(e.ref_target(c),n)
-   e.damage_target({"player":1-who},n)
+   var balls=own(e,who,"ETO-S001")
+   var count=clampi(int(a.get("x",0)),0,balls.size())
+   var sacrificed=0
+   for c in balls.slice(0,count):
+    if not e.can_sacrifice(c):continue
+    e.sacrifice(c)
+    if c.zone!="field":sacrificed+=1
+   for c in e.units(0)+e.units(1):e.damage_target(e.ref_target(c),sacrificed)
+   e.damage_target({"player":1-who},sacrificed)
   "ETO-002:self":
    for r in e.Pack.picked(a):
     if C.valid(e,r):e.find_card(r.uid).timer=maxi(0,e.find_card(r.uid).timer-1)

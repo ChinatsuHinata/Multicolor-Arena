@@ -111,11 +111,12 @@ func save_identity() -> bool:
  if err!=OK:error_raised.emit("无法保存联机身份："+error_string(err));return false
  return true
 func set_display_name(value: String):identity.nickname=Identity.nickname(value);save_identity()
-func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,interface_address: String="*") -> String:
+func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,interface_address: String="*",rule_set: String="unrestricted") -> String:
+ if rule_set not in ["unrestricted","official","official_spx","test"]:return "规则集无效"
  leave(false);is_host=true;seat=0;port=game_port;bind_address=interface_address
  var err=transport.host_room(port,bind_address)
  if err!=OK:return "无法建房："+error_string(err)
- series=Series.new();series.setup(format_value,strict);series.state.names[0]=identity.nickname
+ series=Series.new();series.setup(format_value,strict,rule_set);series.state.names[0]=identity.nickname
  room_id=Identity.token();guest={};applicant={};sequence=0;command_results={};receipts=["",""];replying=["",""];authority=null
  connected=false;paused=true;rejected=false;notice="等待玩家加入";room=series.public_state(0)
  start_spectators()
@@ -132,7 +133,7 @@ func join_spectator(host_address: String,game_port: int=47861) -> String:
  if error!=OK:return "无法连接观战端口："+error_string(error)
  joining=true;remote_last_seen=Time.get_ticks_msec();notice="正在加入观战";changed.emit();return ""
 func metadata() -> Dictionary:
- return {"room_id":room_id,"name":identity.nickname,"port":port,"format":series.state.format,"players":2 if connected else 1,"status":series.state.status,"version":fingerprint,"spectate":is_instance_valid(spectator_hub) and spectator_hub.listening}
+ return {"room_id":room_id,"name":identity.nickname,"port":port,"format":series.state.format,"rule_set":series.state.get("rule_set","unrestricted"),"players":2 if connected else 1,"status":series.state.status,"version":fingerprint,"spectate":is_instance_valid(spectator_hub) and spectator_hub.listening}
 func join_room(host_address: String,game_port: int=47861,resume: bool=false) -> String:
  if not resume:leave(false)
  is_host=false;seat=1;address=host_address.strip_edges();port=game_port;rejected=false;resume_requested=resume

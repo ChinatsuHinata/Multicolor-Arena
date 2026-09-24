@@ -8,6 +8,7 @@ var name_input: LineEdit
 var address_input: LineEdit
 var port_input: SpinBox
 var format_input: OptionButton
+var rule_input: OptionButton
 var interface_input: OptionButton
 var strict_input: CheckButton
 var rooms_list: VBoxContainer
@@ -44,17 +45,22 @@ func build_home():
  name_input=input(session.identity.nickname,Rect2(230,208,302,44));name_input.max_length=20
  app.label(body,"对局形式",Rect2(100,280,120,40),21)
  format_input=OptionButton.new();format_input.position=Vector2(230,279);format_input.size=Vector2(302,43);format_input.add_item("BO3 · 先赢两局");format_input.add_item("BO1 · 单局");body.add_child(format_input)
- strict_input=CheckButton.new();strict_input.text="检查卡组";strict_input.position=Vector2(95,341);strict_input.size=Vector2(440,45);strict_input.button_pressed=true;body.add_child(strict_input)
- app.label(body,"端口",Rect2(100,403,120,42),21)
- port_input=SpinBox.new();port_input.min_value=1024;port_input.max_value=65535;port_input.value=47861;port_input.position=Vector2(230,402);port_input.size=Vector2(302,42);body.add_child(port_input)
- interface_input=OptionButton.new();interface_input.position=Vector2(100,466);interface_input.size=Vector2(432,43);interface_input.add_item("所有网卡");interface_input.set_item_metadata(0,"*")
+ app.label(body,"规则集",Rect2(100,341,120,40),21)
+ rule_input=OptionButton.new();rule_input.name="RoomRuleSet";rule_input.position=Vector2(230,339);rule_input.size=Vector2(302,43)
+ rule_input.tooltip_text="规则集由房主决定，双方登记卡组和换备牌都必须符合该规则。"
+ for rule_name in app.RuleSet.LABELS:rule_input.add_item(rule_name)
+ body.add_child(rule_input)
+ strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.position=Vector2(95,389);strict_input.size=Vector2(440,45);strict_input.button_pressed=true;body.add_child(strict_input)
+ app.label(body,"端口",Rect2(100,448,120,42),21)
+ port_input=SpinBox.new();port_input.min_value=1024;port_input.max_value=65535;port_input.value=47861;port_input.position=Vector2(230,447);port_input.size=Vector2(302,42);body.add_child(port_input)
+ interface_input=OptionButton.new();interface_input.position=Vector2(100,501);interface_input.size=Vector2(432,43);interface_input.add_item("所有网卡");interface_input.set_item_metadata(0,"*")
  for address in IP.get_local_addresses():
   if address.is_valid_ip_address() and ":" not in address and not address.begins_with("127."):
    interface_input.add_item(address);interface_input.set_item_metadata(interface_input.item_count-1,address)
  body.add_child(interface_input)
- app.button(body,"创建房间",Rect2(100,540,432,54),func():
+ app.button(body,"创建房间",Rect2(100,560,432,54),func():
   session.set_display_name(name_input.text)
-  var error=session.create_room(3 if format_input.selected==0 else 1,strict_input.button_pressed,int(port_input.value),interface_input.get_selected_metadata())
+  var error=session.create_room(3 if format_input.selected==0 else 1,strict_input.button_pressed,int(port_input.value),interface_input.get_selected_metadata(),app.RuleSet.IDS[rule_input.selected])
   if not error.is_empty():show_error(error),true)
  app.button(body,"恢复房主对局",Rect2(100,626,432,49),func():
   var error=session.restore_host()
@@ -86,7 +92,7 @@ func refresh_rooms():
   var info=session.discovery.rooms[id]
   var line=HBoxContainer.new();rooms_list.add_child(line)
   var row=Button.new();row.custom_minimum_size=Vector2(680,68);line.add_child(row)
-  row.text="%s · BO%d · %d/2    %s:%d" % [info.name,info.format,info.players,info.address,info.port]
+  row.text="%s · BO%d · %s · %d/2    %s:%d" % [info.name,info.format,app.RuleSet.label_for(str(info.get("rule_set",app.RuleSet.UNRESTRICTED))),info.players,info.address,info.port]
   if info.version!=session.fingerprint:row.text+=" · 版本不一致";row.disabled=true
   row.pressed.connect(func():join(info.address,int(info.port)))
   var watch_button=Button.new();watch_button.text="观战";watch_button.custom_minimum_size=Vector2(150,68);line.add_child(watch_button)
@@ -106,7 +112,8 @@ func build_room():
  var own=session.seat;var other=1-own
  app.box(body,Rect2(70,195,1460,604))
  app.label(body,"BO%d    %s  %d : %d  %s" % [room.format,room.names[0],room.scores[0],room.scores[1],room.names[1]],Rect2(100,210,1320,46),27,app.GOLD)
- app.label(body,"检查卡组" if room.strict else "不检查卡组",Rect2(105,265,300,34),20)
+ app.label(body,"规则集："+app.RuleSet.label_for(str(room.get("rule_set",app.RuleSet.UNRESTRICTED))),Rect2(105,265,390,34),20,app.GOLD)
+ app.label(body,"主卡组 50 张" if room.strict else "主卡组张数不限",Rect2(520,265,300,34),20)
  if session.read_only:
   app.label(body,session.connection_status(),Rect2(105,350,1130,65),27,app.GOLD)
   if not session.latest_snapshot.is_empty():app.button(body,"查看战场",Rect2(1070,485,355,60),func():app.return_network_battle(),true)
@@ -116,7 +123,7 @@ func build_room():
   var addresses=[]
   for ip in IP.get_local_addresses():
    if ":" not in ip and not ip.begins_with("127."):addresses.append(ip+":"+str(session.port))
-  app.label(body,"房间地址："+" / ".join(addresses),Rect2(420,265,1000,36),18,app.MUTED)
+  app.label(body,"房间地址："+" / ".join(addresses),Rect2(105,311,1130,36),18,app.MUTED)
   app.button(body,"复制地址",Rect2(1260,311,220,42),func():DisplayServer.clipboard_set(" / ".join(addresses)))
  if not session.applicant.is_empty():
   app.label(body,session.applicant.name+" 请求加入",Rect2(105,365,810,44),23)
@@ -142,7 +149,7 @@ func build_room():
    app.button(body,"选择此卡组",Rect2(800,395,270,51),func():
     if app.decks.is_empty():return
     var deck=app.Store.clean_deck(app.decks[deck_index])
-    var error=app.Store.validate(deck,room.get("strict",true))
+    var error=app.Store.validate(deck,room.get("strict",true),str(room.get("rule_set",app.RuleSet.UNRESTRICTED)))
     if not error.is_empty():show_error(error);return
     last_error="";session.room_action({"name":"deck","deck":deck}))
   else:

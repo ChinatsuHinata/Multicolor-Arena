@@ -10,57 +10,190 @@ static func active_save_path() -> String:
  return folder()
 
 const Database = preload("res://scripts/card_database.gd")
+const RuleSet = preload("res://scripts/deck_rule_set.gd")
 static var CARDS: Dictionary = Database.load_cards()
 
 static func blank(title: String = "未命名卡组") -> Dictionary:
- return {"id":str(Time.get_unix_time_from_system()) + "_" + str(randi()), "name":title, "main":[], "side":[], "leader":""}
-static func validate(d: Variant, strict: bool = false) -> String:
+ return {"id":str(Time.get_unix_time_from_system()) + "_" + str(randi()), "name":title, "main":[], "side":[], "leader":"","rule_set":RuleSet.OFFICIAL}
+
+static func prune_for_rule(d: Dictionary, rule_set: String) -> int:
+ if rule_set not in RuleSet.IDS:return 0
+ d.rule_set=rule_set
+ var removed=0
+ if not d.get("leader","").is_empty() and (not CARDS.has(d.leader) or not RuleSet.allowed(d.leader,CARDS[d.leader],rule_set)):
+  d.leader=""
+  removed+=1
+ var leader_name=RuleSet.name_key(d.leader,CARDS) if CARDS.has(d.get("leader","")) else ""
+ var counts={}
+ for zone in ["main","side"]:
+  var kept=[]
+  for id in d[zone]:
+   if zone=="main" and kept.size()>=RuleSet.main_limit(rule_set):
+    removed+=1
+    continue
+   if not CARDS.has(id) or not RuleSet.allowed(id,CARDS[id],rule_set):
+    removed+=1
+    continue
+   var key=RuleSet.name_key(id,CARDS)
+   var maximum=RuleSet.limit(id,CARDS[id],rule_set)
+   if (key==leader_name and rule_set!=RuleSet.TEST) or (maximum>=0 and counts.get(key,0)>=maximum):
+    removed+=1
+    continue
+   kept.append(id)
+   counts[key]=counts.get(key,0)+1
+  d[zone]=kept
+ return removed
+static func validate(d: Variant, strict: bool = false, rule_set: String = "") -> String:
  if not d is Dictionary: return "卡组数据必须是有效对象。"
  if not d.get("name") is String or d.get("name", "").strip_edges().is_empty(): return "请输入卡组名称。"
  if d.name.length() > 40: return "卡组名称不能超过 40 个字符。"
  if not d.get("main") is Array or not d.get("side") is Array: return "主卡组或副卡组格式错误。"
- if d.main.size() > 70: return "主卡组最多 70 张。"
+ if not d.get("rule_set",RuleSet.UNRESTRICTED) in RuleSet.IDS:return "卡组规则集无效。"
+ if not rule_set.is_empty() and rule_set not in RuleSet.IDS:return "规则集无效。"
+ var selected_rule=rule_set if not rule_set.is_empty() else str(d.get("rule_set",RuleSet.UNRESTRICTED))
+ var main_limit=RuleSet.main_limit(selected_rule)
+ if d.main.size()>main_limit:return "规则集「%s」主卡组最多 %d 张。" % [RuleSet.label_for(selected_rule),main_limit]
  if d.side.size() > 10: return "副卡组最多 10 张。"
  if not d.get("leader") is String or not CARDS.has(d.leader) or CARDS[d.leader].kind != "自机": return "自机位必须放置一张自机，才可以保存或对战。"
  for id in d.main + d.side:
   if not id is String or not CARDS.has(id): return "卡组包含未知卡牌。"
  for id in d.main+d.side+[d.leader]:
-  if not CARDS[id].constructible: return "不能加入常规卡组："+CARDS[id].name
- if strict and d.main.size() != 50: return "主卡组需要 50 张，当前 %d 张。" % d.main.size()
- if strict:
+  if not rule_set.is_empty():
+   if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
+  elif not CARDS[id].constructible:return "不能加入常规卡组："+CARDS[id].name
+ if strict and selected_rule!=RuleSet.TEST and d.main.size() != 50: return "主卡组需要 50 张，当前 %d 张。" % d.main.size()
+ if not rule_set.is_empty():
+  var names={}
+  for id in d.main+d.side:
+   var key=RuleSet.name_key(id,CARDS)
+   names[key]=names.get(key,0)+1
+   var maximum=RuleSet.limit(id,CARDS[id],rule_set)
+   if maximum>=0 and names[key]>maximum:return "规则集「%s」同名牌最多 %d 张：%s" % [RuleSet.label_for(rule_set),maximum,key]
+  var leader_name=RuleSet.name_key(d.leader,CARDS)
+  if rule_set!=RuleSet.TEST and names.has(leader_name):return "主副卡组不能包含所选自机的同名牌。"
+  return ""
+ if strict and selected_rule!=RuleSet.TEST:
   var names={}
   for id in d.main:
    var name=CARDS[CARDS[id].get("canonical_id",id)].name
    names[name]=names.get(name,0)+1
    if "终言" in CARDS[id].get("keywords",[]) and names[name]>1: return "终言同名牌最多 1 张："+name
-   if "限制级" in CARDS[id].get("keywords",[]) and names[name]>2: return "限制级同名牌最多 2 张："+name
+   if ("限制级" in CARDS[id].get("keywords",[]) or "限制级符卡" in CARDS[id].get("keywords",[])) and names[name]>2: return "限制级同名牌最多 2 张："+name
    if names[name]>4 and not CARDS[id].get("unlimited",false): return "同名牌最多 4 张："+name
   for id in d.main+d.side:
    if CARDS[CARDS[id].get("canonical_id",id)].name==CARDS[CARDS[d.leader].get("canonical_id",d.leader)].name: return "主副卡组不能包含所选自机的同名牌。"
  return ""
-static func add_card(d: Dictionary, id: String, zone: String) -> String:
+static func add_card(d: Dictionary, id: String, zone: String, rule_set: String = "") -> String:
  if not CARDS.has(id): return "未知卡牌。"
- if not CARDS[id].constructible: return "不能加入常规卡组："+CARDS[id].name
+ if not rule_set.is_empty():
+  if rule_set not in RuleSet.IDS:return "规则集无效。"
+  if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
+ elif not CARDS[id].constructible:return "不能加入常规卡组："+CARDS[id].name
  if zone == "leader":
   if CARDS[id].kind != "自机": return "自机位只能放置自机卡。"
   d.leader = id
+  for deck_zone in ["main","side"]:
+   d[deck_zone]=d[deck_zone].filter(func(card_id):return RuleSet.name_key(card_id,CARDS)!=RuleSet.name_key(id,CARDS))
   return ""
  if not zone in ["main", "side"]: return "无效的卡组区域。"
- var limit = 70 if zone == "main" else 10
+ if not rule_set.is_empty():
+  var remaining=RuleSet.remaining(d,id,CARDS,rule_set)
+  if remaining==0:return "规则集「%s」同名牌已达到上限：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
+ var selected_rule=rule_set if not rule_set.is_empty() else str(d.get("rule_set",RuleSet.UNRESTRICTED))
+ var limit = RuleSet.main_limit(selected_rule) if zone == "main" else 10
  if d[zone].size() >= limit: return "该区域已达到 %d 张的上限。" % limit
  d[zone].append(id)
  return ""
+static func _pack_cards(cards: Array) -> Array:
+ var result: Array=[]
+ var current=""
+ var count=0
+ for id in cards:
+  if id==current:
+   count+=1
+  else:
+   if count>0: result.append([current,count] if count>1 else current)
+   current=id
+   count=1
+ if count>0: result.append([current,count] if count>1 else current)
+ return result
+static func _unpack_cards(packed: Variant, limit: int) -> Dictionary:
+ if not packed is Array: return {"error":"卡组代码的牌列表格式错误。"}
+ var cards: Array=[]
+ for item in packed:
+  var id: String
+  var count=1
+  if item is String:
+   id=item
+  elif item is Array and item.size()==2 and item[0] is String:
+   id=item[0]
+   if typeof(item[1]) not in [TYPE_INT,TYPE_FLOAT]: return {"error":"卡组代码的牌张数格式错误。"}
+   if float(item[1])<2.0 or float(item[1])>float(limit) or floor(float(item[1]))!=float(item[1]):
+    return {"error":"卡组代码的牌张数无效。"}
+   count=int(item[1])
+  else:
+   return {"error":"卡组代码的牌列表格式错误。"}
+  if cards.size()+count>limit: return {"error":"卡组代码的牌张数超过上限。"}
+  for i in range(count): cards.append(id)
+ return {"cards":cards}
+static func _base64_short(bytes: PackedByteArray) -> String:
+ var code=Marshalls.raw_to_base64(bytes)
+ while code.ends_with("="): code=code.trim_suffix("=")
+ return code
+static func encode(d: Dictionary) -> String:
+ if not validate(d).is_empty(): return ""
+ var parts=[d.name,d.leader,_pack_cards(d.main),_pack_cards(d.side)]
+ if d.get("rule_set",RuleSet.UNRESTRICTED)!=RuleSet.UNRESTRICTED:parts.append(d.rule_set)
+ var payload=JSON.stringify(parts)
+ var plain="MA1:"+payload
+ var bytes=payload.to_utf8_buffer()
+ var compressed="MA1Z:"+str(bytes.size())+":"+_base64_short(bytes.compress(FileAccess.COMPRESSION_DEFLATE))
+ return compressed if compressed.length()<plain.length() else plain
 static func decode(code: String) -> Dictionary:
+ code=code.strip_edges()
  if code.length() > 100000: return {"error":"卡组代码过长。"}
+ var compact=false
+ if code.begins_with("MA1Z:"):
+  compact=true
+  var divider=code.find(":",5)
+  if divider<0: return {"error":"压缩卡组代码格式错误。"}
+  var length_text=code.substr(5,divider-5)
+  if not length_text.is_valid_int(): return {"error":"压缩卡组代码长度无效。"}
+  var original_size=int(length_text)
+  if original_size<1 or original_size>100000: return {"error":"压缩卡组代码长度无效。"}
+  var encoded=code.substr(divider+1)
+  if encoded.is_empty() or encoded.length()%4==1: return {"error":"压缩卡组代码格式错误。"}
+  for i in range(encoded.length()):
+   var ch=encoded.unicode_at(i)
+   if not ((ch>=65 and ch<=90) or (ch>=97 and ch<=122) or (ch>=48 and ch<=57) or ch==43 or ch==47):
+    return {"error":"压缩卡组代码格式错误。"}
+  var compressed=Marshalls.base64_to_raw(encoded+"=".repeat((4-encoded.length()%4)%4))
+  if compressed.is_empty(): return {"error":"压缩卡组代码格式错误。"}
+  if _base64_short(compressed)!=encoded: return {"error":"压缩卡组代码格式错误。"}
+  var bytes=compressed.decompress(original_size,FileAccess.COMPRESSION_DEFLATE)
+  if bytes.size()!=original_size: return {"error":"无法解压卡组代码。"}
+  code=bytes.get_string_from_utf8()
+ elif code.begins_with("MA1:"):
+  compact=true
+  code=code.substr(4)
  var parser = JSON.new()
  if parser.parse(code) != OK: return {"error":"卡组代码不是有效 JSON。"}
  var d = parser.data
+ if compact:
+  if not d is Array or d.size() not in [4,5] or not d[0] is String or not d[1] is String:
+   return {"error":"卡组代码格式错误。"}
+  var main_cards=_unpack_cards(d[2],70)
+  if main_cards.has("error"): return {"error":main_cards.error}
+  var side_cards=_unpack_cards(d[3],10)
+  if side_cards.has("error"): return {"error":side_cards.error}
+  d={"name":d[0],"leader":d[1],"main":main_cards.cards,"side":side_cards.cards,"rule_set":d[4] if d.size()==5 else RuleSet.UNRESTRICTED}
  var error = validate(d)
  if not error.is_empty(): return {"error":error}
  var clean = blank(d.name + "（副本）" if d.name.length() < 35 else d.name)
  clean.main = d.main.duplicate()
  clean.side = d.side.duplicate()
  clean.leader = d.leader
+ clean.rule_set=d.get("rule_set",RuleSet.UNRESTRICTED)
  return {"deck":clean}
 static func load_decks(path: String = "") -> Dictionary:
  if path.is_empty():return load_portable()
@@ -101,7 +234,7 @@ static func persist(decks: Array, path: String = "") -> String:
  return ""
 
 static func clean_deck(d: Dictionary) -> Dictionary:
- return {"id":d.id,"name":d.name,"leader":d.leader,"main":d.main.duplicate(),"side":d.side.duplicate()}
+ return {"id":d.id,"name":d.name,"leader":d.leader,"main":d.main.duplicate(),"side":d.side.duplicate(),"rule_set":d.get("rule_set",RuleSet.UNRESTRICTED)}
 static func folder() -> String:return Paths.root().path_join("deck")
 static func scan_files(directory: String,depth: int=0) -> Array:
  var result=[]

@@ -55,6 +55,7 @@
       "174"
     ],
     "name": "1.0四色妖梦",
+    "rule_set": "official",
     "side": []
   },
   "format": "multicolor:arena/deck",

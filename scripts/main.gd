@@ -3,6 +3,8 @@ extends Control
 @export_file("*.png", "*.jpg", "*.webp") var battlefield_background: String = "res://recourse/垫子3.png"
 const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
+const RuleSet = preload("res://scripts/deck_rule_set.gd")
+const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const GOLD = Color("#d9b775")
@@ -315,12 +317,22 @@ func editor(sideboarding: bool=false):
  preview.position=Vector2(30,88)
  screen.add_child(preview)
  box(screen,Rect2(320,72,902,810))
- name_label=label(screen,"",Rect2(338,80,670,36),23,GOLD)
+ name_label=label(screen,"",Rect2(338,80,482,36),23,GOLD)
  counts=label(screen,"",Rect2(338,818,858,32),17,MUTED)
  deck_canvas=Control.new()
  deck_canvas.position=Vector2(334,126)
  deck_canvas.size=Vector2(874,680)
  screen.add_child(deck_canvas)
+ var rules=OptionButton.new()
+ rules.name="DeckRuleSet"
+ rules.position=Vector2(826,78)
+ rules.size=Vector2(250,40)
+ rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用 new-spx-001～007。\n官限有限定卡：三张限 2，允许 new-spx。\n测试卡组：所有卡均可加入，同名张数不限。"
+ for index in range(RuleSet.IDS.size()):rules.add_item("规则集："+RuleSet.LABELS[index])
+ rules.select(maxi(0,RuleSet.IDS.find(str(draft.get("rule_set",RuleSet.OFFICIAL)))))
+ rules.disabled=sideboarding
+ rules.item_selected.connect(func(index):change_deck_rule_set(RuleSet.IDS[index]))
+ screen.add_child(rules)
  if sideboarding:
   sideboard_status=label(screen,"",Rect2(1252,270,314,320),20,GOLD)
   sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -329,7 +341,8 @@ func editor(sideboarding: bool=false):
   return
  box(screen,Rect2(1238,72,344,810))
  var search=LineEdit.new()
- search.placeholder_text="搜索卡牌"
+ search.name="LibrarySearch"
+ search.placeholder_text="名称 / 红蓝单位 / 单黄符卡"
  search.text=query
  search.position=Vector2(1252,88)
  search.size=Vector2(314,42)
@@ -350,8 +363,9 @@ func editor(sideboarding: bool=false):
  var kind=OptionButton.new()
  kind.position=Vector2(1252,190)
  kind.size=Vector2(314,38)
- for x in ["全部","自机","单位","符卡","道具","结界"]: kind.add_item(x)
- kind.select(["全部","自机","单位","符卡","道具","结界"].find(filter_kind))
+ var kinds=["全部","单位","普通单位","自机单位","符卡","道具","结界"]
+ for x in kinds: kind.add_item(x)
+ kind.select(maxi(0,kinds.find("自机单位" if filter_kind=="自机" else filter_kind)))
  kind.item_selected.connect(func(i): filter_kind=kind.get_item_text(i); update_library())
  screen.add_child(kind)
  library_sort_choice=OptionButton.new()
@@ -363,8 +377,8 @@ func editor(sideboarding: bool=false):
  library_sort_choice.item_selected.connect(func(index):library_sort_mode=["类别","颜色值","名字"][index]; update_library())
  screen.add_child(library_sort_choice)
  var scroll=ScrollContainer.new()
- scroll.position=Vector2(1252,286)
- scroll.size=Vector2(314,301)
+ scroll.position=Vector2(1252,282)
+ scroll.size=Vector2(314,305)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  screen.add_child(scroll)
  library=GridContainer.new()
@@ -386,14 +400,22 @@ func editor(sideboarding: bool=false):
  screen.add_child(saved_select)
  button(screen,"保存",Rect2(1252,656,150,42),save_deck,true)
  button(screen,"使用卡组",Rect2(1416,656,150,42),use_deck)
- button(screen,"复制",Rect2(1252,710,150,42),copy_deck)
- button(screen,"粘贴",Rect2(1416,710,150,42),func(): guard(paste_dialog))
+ button(screen,"导出代码",Rect2(1252,710,150,42),export_deck)
+ button(screen,"导入代码",Rect2(1416,710,150,42),func(): guard(import_dialog))
  button(screen,"新建",Rect2(1252,764,150,42),func(): guard(func(): draft=Store.blank(); dirty=false; editor(); rename_dialog()))
  button(screen,"重命名",Rect2(1416,764,150,42),rename_dialog)
  button(screen,"清空卡组",Rect2(1252,818,150,42),func(): confirm_action("清空当前卡组？",func(): draft.main.clear(); draft.side.clear(); draft.leader=""; dirty=true; update_deck_rows()))
  button(screen,"删除卡组",Rect2(1416,818,150,42),delete_deck_dialog)
  update_preview()
  update_library()
+ update_deck_rows()
+
+func change_deck_rule_set(rule_set: String):
+ if sideboard_session!=null:return
+ if rule_set==str(draft.get("rule_set",RuleSet.OFFICIAL)):return
+ Store.prune_for_rule(draft,rule_set)
+ dirty=true
+ update_preview()
  update_deck_rows()
 
 func free_children(parent: Node):
@@ -447,61 +469,163 @@ func update_preview():
   text.add_theme_color_override("font_color",GOLD if value==info.name else WHITE)
   column.add_child(text)
  if sideboard_session==null:
-  if not info.constructible:
-   var notice=label(preview,"仅供查看 · 不可加入卡组",Rect2(0,715,260,43),17,MUTED)
+  if not RuleSet.allowed(selected,info,str(draft.get("rule_set",RuleSet.OFFICIAL))):
+   var notice=label(preview,"此规则集不可加入卡组",Rect2(0,715,260,43),17,MUTED)
    notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   elif info.kind=="自机":button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
 
 func update_library():
  free_children(library)
+ var rule_set=str(draft.get("rule_set",RuleSet.OFFICIAL))
  for id in library_ids():
   var info=Store.CARDS[id]
+  var available=RuleSet.allowed(id,info,rule_set)
+  var remaining=RuleSet.remaining(draft,id,Store.CARDS,rule_set)
   var row=preload("res://scripts/deck_card.gd").new()
   row.card_id=id
   row.source_zone="library"
-  row.draggable=info.constructible
+  row.draggable=available and remaining!=0
   row.texture_provider=func(): return texture(id)
   row.set_meta("card_id",id)
   row.custom_minimum_size=Vector2(296,64)
-  row.add_theme_stylebox_override("panel",style(Color("#142737") if info.constructible else Color("#24303a"),Color("#3d5161") if info.constructible else MUTED))
+  row.add_theme_stylebox_override("panel",style(Color("#142737") if available else Color("#24303a"),Color("#3d5161") if available else MUTED))
   library.add_child(row)
-  var full_name=label(row,info.name,Rect2(10,4,276,54),17,WHITE if info.constructible else MUTED)
+  var full_name=label(row,info.name,Rect2(10,4,222 if remaining>=0 else 276,54),17,WHITE if available else MUTED)
   full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  row.tooltip_text=info.name if info.constructible else info.name+"\n仅供查看 · 不可加入卡组"
+  if remaining>=0:label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
+  row.tooltip_text=info.name if available else info.name+"\n此规则集不可加入卡组"
   row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
   row.clicked.connect(func(card_id,_from,_index,right):
    selected=card_id
    update_preview()
-   if not right and Store.CARDS[card_id].constructible: add_to("side" if zone=="side" else "main"))
+   if not right and RuleSet.allowed(card_id,Store.CARDS[card_id],rule_set): add_to("side" if zone=="side" else "main"))
   row.set_drag_forwarding(row._get_drag_data,can_return_card,return_card_to_library)
 
 func library_ids() -> Array:
  var ids=[]
+ var alias_rules=SearchAliases.load_rules()
+ var alias_result=library_alias_ids(query,alias_rules)
+ var alias_ids=alias_result.ids
+ var role_characters=library_role_spell_characters(query,alias_rules)
+ var filters=library_query_filters(query)
+ var race_characters=library_race_characters(str(filters.get("race","")))
  for id in Store.CARDS:
   var info=Store.CARDS[id]
   if info.get("canonical_id",id)!=id: continue
-  if not library_matches_query(id,info): continue
-  if filter_kind!="全部" and info.kind!=filter_kind: continue
+  if not info.get("constructible",false) or info.get("token",false):continue
+  if not library_matches_query(id,info,role_characters,alias_ids,alias_result.exclusive,filters,race_characters): continue
+  if not library_kind_matches(info.kind,filter_kind): continue
   if not matches_colors(info): continue
   ids.append(id)
  ids.sort_custom(func(a,b):return library_card_less(a,b))
  return ids
 
-func library_matches_query(id: String,info: Dictionary) -> bool:
+func library_matches_query(id: String,info: Dictionary,role_characters: Array,alias_ids: Dictionary,alias_exclusive: bool,filters: Dictionary,race_characters: Array) -> bool:
  var term=query.strip_edges().to_lower()
  if term.is_empty():return true
- if term=="衍生物":return info.get("token",false)
- if term=="梦违":
-  var is_dream=not info.constructible and not info.get("token",false)
-  var labeled_dream="梦违" in info.get("keywords",[]) or "梦违" in info.get("rules_text","")
-  return (is_dream and labeled_dream) or term in info.name.to_lower()
+ var role_spell=info.kind=="符卡" and "角色" in str(info.get("spell_type","")) and info.get("requires_character","") in role_characters
+ if not filters.is_empty():
+  var race_match=filters.race=="" or filters.race in info.get("race",[]) or library_related_to_race(info,filters.race,race_characters)
+  var color_match=library_kind_matches(info.kind,filters.kind) and race_match and (not filters.single or info.colors.size()==1) and filters.colors.all(func(color):return color in info.colors)
+  return color_match or role_spell or alias_ids.has(id)
+ if alias_exclusive:return role_spell or alias_ids.has(id)
  var searchable=[info.name,id,info.get("title",""),info.get("character","")]
  searchable.append_array(info.get("keywords",[]))
- if info.get("token",false):searchable.append("衍生物")
- if not info.constructible:searchable.append("不可构筑")
- return searchable.any(func(value):return term in str(value).to_lower())
+ searchable.append_array(info.get("aliases",[]))
+ return role_spell or alias_ids.has(id) or searchable.any(func(value):return term in str(value).to_lower())
+
+func library_race_characters(race: String) -> Array:
+ if race.is_empty():return []
+ var characters=[]
+ for info in Store.CARDS.values():
+  if race in info.get("race",[]):
+   var character=str(info.get("character",""))
+   if not character.is_empty() and character not in characters:characters.append(character)
+ return characters
+
+func library_related_to_race(info: Dictionary,race: String,characters: Array) -> bool:
+ if race.is_empty() or info.kind not in ["符卡","道具","结界"]:return false
+ if race in info.name or race in info.get("rules_text",""):return true
+ var character=str(info.get("requires_character",""))
+ if character.is_empty():character=str(info.get("character",""))
+ if character.is_empty():return false
+ return characters.any(func(candidate):return character in candidate or candidate in character)
+
+func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
+ var text=term.strip_edges().to_lower()
+ var rule=SearchAliases.find_rule(rules,text)
+ var kind=""
+ if rule==null:
+  for suffix in ["自机单位","普通单位","单位","自机","符卡","道具","结界"]:
+   if not text.ends_with(suffix):continue
+   var alias=text.substr(0,text.length()-suffix.length()).strip_edges()
+   rule=SearchAliases.find_rule(rules,alias)
+   if rule!=null:
+    kind=suffix
+    break
+ if rule==null:return {"exclusive":false,"ids":{}}
+ var matches={}
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if library_kind_matches(info.kind,kind) and SearchAliases.card_matches(info,rule):matches[id]=true
+ return {"exclusive":rule is Dictionary and rule.get("only",false)==true,"ids":matches}
+
+func library_role_spell_characters(term: String,rules: Dictionary) -> Array:
+ var text=term.strip_edges().to_lower()
+ if not text.ends_with("符卡"):return []
+ var leader_name=text.substr(0,text.length()-"符卡".length()).strip_edges()
+ if leader_name.is_empty():return []
+ var alias_rule=SearchAliases.find_rule(rules,leader_name)
+ var characters=[]
+ for leader in Store.CARDS.values():
+  var name_match=leader.kind=="自机" and leader_name in leader.name.to_lower()
+  var alias_match=alias_rule!=null and leader.kind in ["单位","自机"] and SearchAliases.card_matches(leader,alias_rule)
+  if not name_match and not alias_match:continue
+  var character=leader.get("character","")
+  if not character.is_empty() and character not in characters:characters.append(character)
+ return characters
+
+func library_kind_matches(kind: String, wanted: String) -> bool:
+ if wanted in ["","全部"]:return true
+ if wanted=="单位":return kind in ["单位","自机"]
+ if wanted=="普通单位":return kind=="单位"
+ if wanted in ["自机单位","自机"]:return kind=="自机"
+ return kind==wanted
+
+func library_query_filters(term: String) -> Dictionary:
+ var remaining=term.strip_edges().to_lower().replace(" ","").replace("\t","").replace("\n","")
+ # "单位" is a category, so its first character is not the monochrome prefix.
+ var single=remaining.begins_with("单") and remaining!="单位"
+ if single:remaining=remaining.substr(1)
+ var kind=""
+ for suffix in ["自机单位","普通单位","单位","自机","符卡","道具","结界"]:
+  if remaining.ends_with(suffix):
+   kind=suffix
+   remaining=remaining.substr(0,remaining.length()-suffix.length())
+   break
+ var race=""
+ for race_name in library_races():
+  if remaining.ends_with(race_name):
+   race=race_name
+   remaining=remaining.substr(0,remaining.length()-race_name.length())
+   break
+ var colors=[]
+ for index in range(remaining.length()):
+  var color=remaining.substr(index,1)
+  if color not in Store.Database.COLORS:return {}
+  if color not in colors:colors.append(color)
+ if colors.is_empty() and kind.is_empty() and race.is_empty() and not single:return {}
+ return {"kind":kind,"race":race,"colors":colors,"single":single}
+
+func library_races() -> Array:
+ var found={}
+ for info in Store.CARDS.values():
+  for race in info.get("race",[]):found[race]=true
+ var races=found.keys()
+ races.sort_custom(func(a,b):return a.length()>b.length() if a.length()!=b.length() else a.naturalnocasecmp_to(b)<0)
+ return races
 
 func library_card_color_value(id: String) -> int:
  var value=0
@@ -528,7 +652,7 @@ func valid_drag_source(data: Variant) -> bool:
  if not data is Dictionary or not Store.CARDS.has(data.get("card_id","")): return false
  var source=data.get("source_zone","")
  if sideboard_session!=null and (sideboard_locked() or source not in ["main","side"]):return false
- if source=="library": return Store.CARDS[data.card_id].constructible
+ if source=="library": return RuleSet.allowed(data.card_id,Store.CARDS[data.card_id],str(draft.get("rule_set",RuleSet.OFFICIAL))) and RuleSet.remaining(draft,data.card_id,Store.CARDS,str(draft.get("rule_set",RuleSet.OFFICIAL)))!=0
  if source=="leader": return draft.leader==data.card_id
  if source in ["main","side"]:
   var index=int(data.get("source_index",-1))
@@ -548,7 +672,7 @@ func main_card_rect(index: int) -> Rect2:
 
 func update_deck_rows():
  name_label.text=draft.name+(" *" if dirty else "")
- counts.text="主卡组 %d / 70     副卡组 %d / 10     自机 %d / 1" % [draft.main.size(),draft.side.size(),0 if draft.leader.is_empty() else 1]
+ counts.text="主卡组 %d / %d     副卡组 %d / 10     自机 %d / 1" % [draft.main.size(),RuleSet.main_limit(str(draft.get("rule_set",RuleSet.OFFICIAL))),draft.side.size(),0 if draft.leader.is_empty() else 1]
  if sideboard_session!=null:
   counts.text="主卡组 %d / %d     副卡组 %d / 10     自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
   if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
@@ -587,13 +711,14 @@ func update_deck_rows():
  for c in color_counts:
   label(deck_canvas,"%s %d" % [c,color_counts[c]],Rect2(146+index*116,519,108,30),18,MUTED)
   index+=1
+ if page=="editor" and is_instance_valid(library):update_library()
 
 func add_selected(): add_to(zone)
 func add_to(target: String):
  var amount = 1 if target=="leader" else add_amount
  var copy = draft.duplicate(true)
  for i in range(amount):
-  var error = Store.add_card(copy,selected,target)
+  var error = Store.add_card(copy,selected,target,str(draft.get("rule_set",RuleSet.OFFICIAL)))
   if not error.is_empty(): alert(error); return
  draft=copy
  zone = target
@@ -634,7 +759,7 @@ func rename_dialog():
 
 func save_deck():
  if not load_error.is_empty(): alert(load_error); return
- var error = Store.validate(draft)
+ var error = Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
  if not error.is_empty(): alert(error,"无法保存"); return
  var next = decks.duplicate(true)
  var found = false
@@ -681,15 +806,30 @@ func remaining_deck_index(id: String,fallback: int) -> int:
   if decks[i].id==id: return i
  return clampi(fallback,0,maxi(0,decks.size()-1))
 
-func copy_deck():
- var error = Store.validate(draft)
- if not error.is_empty(): alert(error,"无法复制"); return
- DisplayServer.clipboard_set(JSON.stringify(draft))
+func export_deck():
+ var error = Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
+ if not error.is_empty(): alert(error,"无法导出"); return
+ var code=Store.encode(draft)
+ DisplayServer.clipboard_set(code)
+ var d=AcceptDialog.new()
+ d.title="导出卡组代码"
+ d.min_size=Vector2i(690,260)
+ label(d,"代码已复制到剪贴板",Rect2(20,20,650,32),18,GOLD)
+ var entry=TextEdit.new()
+ entry.position=Vector2(20,60)
+ entry.size=Vector2(650,145)
+ entry.text=code
+ entry.editable=false
+ d.add_child(entry)
+ d.get_ok_button().text="关闭"
+ d.confirmed.connect(d.queue_free)
+ add_child(d)
+ d.popup_centered()
  
 
-func paste_dialog():
+func import_dialog():
  var d = ConfirmationDialog.new()
- d.title = "粘贴卡组代码"
+ d.title = "导入卡组代码"
  d.min_size = Vector2i(690,430)
  var entry = TextEdit.new()
  entry.position=Vector2(20,40)
@@ -755,7 +895,7 @@ func setup():
 func start_match():
  if decks.is_empty(): alert("请选择卡组。"); return
  for i in [player_choice,ai_choice]:
-  var error=Store.validate(decks[i],not skip_check)
+  var error=Store.validate(decks[i],not skip_check,str(decks[i].get("rule_set",RuleSet.OFFICIAL)))
   if not error.is_empty():
    alert("「%s」：%s" % [decks[i].name,error],"卡组不合规")
    return
@@ -805,9 +945,9 @@ func load_legacy_test_decks():
   for d in decks.duplicate():
    if d.id==id: decks.erase(d)
  var reimu=Store.blank("测试 · 灵梦")
- reimu.id="demo_reimu"; reimu.leader="70"
+ reimu.id="demo_reimu"; reimu.leader="70"; reimu.rule_set=RuleSet.TEST
  var marisa=Store.blank("测试 · 魔理沙")
- marisa.id="demo_marisa"; marisa.leader="68"
+ marisa.id="demo_marisa"; marisa.leader="68"; marisa.rule_set=RuleSet.TEST
  for i in range(5):
   reimu.main.append_array(["164","164","165","165","167","68","70","99","100","170"])
   marisa.main.append_array(["164","164","165","167","167","68","70","99","100","170"])
@@ -822,7 +962,100 @@ func card_description(id: String) -> String:
 func make_drop_zone(target: String, rect: Rect2, parent: Node = null):
  var panel=box(parent if parent else deck_canvas,rect,Color("#13232f"),GOLD if zone==target else Color("#3b5060"))
  panel.set_drag_forwarding(Callable(),func(_at,data): return valid_drag_source(data),func(_at,data): drop_editor_card(data,target))
- if target=="leader" and draft.leader.is_empty(): label(panel,"自机",Rect2(20,60,90,40),24,MUTED)
+ if target=="leader":
+  panel.name="LeaderDropZone"
+  panel.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+  panel.gui_input.connect(func(event):
+   if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:open_leader_picker())
+  if draft.leader.is_empty(): label(panel,"自机",Rect2(20,60,90,40),24,MUTED)
+
+func leader_picker_ids() -> Array:
+ var ids=[]
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if info.kind=="自机" and RuleSet.allowed(id,info,str(draft.get("rule_set",RuleSet.OFFICIAL))) and info.get("canonical_id",id)==id:ids.append(id)
+ ids.sort_custom(func(a,b):return Store.CARDS[a].name.naturalnocasecmp_to(Store.CARDS[b].name)<0)
+ return ids
+
+func leader_picker_thumb(id: String,cache: Dictionary) -> Texture2D:
+ if cache.has(id):return cache[id]
+ var resource=load(Store.CARDS[id].image) as Texture2D
+ if resource==null:return null
+ var image=resource.get_image()
+ if image.get_width()>image.get_height():image.rotate_90(CLOCKWISE)
+ image.resize(202,276,Image.INTERPOLATE_BILINEAR)
+ var thumbnail=ImageTexture.create_from_image(image)
+ cache[id]=thumbnail
+ return thumbnail
+
+func populate_leader_picker(grid: GridContainer,dialog: AcceptDialog,term: String,cache: Dictionary):
+ free_children(grid)
+ var needle=term.strip_edges().to_lower()
+ for id in leader_picker_ids():
+  var info=Store.CARDS[id]
+  if not needle.is_empty() and needle not in info.name.to_lower() and needle not in id.to_lower() and needle not in str(info.get("character","")).to_lower():continue
+  var tile=Panel.new()
+  tile.custom_minimum_size=Vector2(218,334)
+  tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if id==draft.leader else Color("#536b7b")))
+  tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+  tile.tooltip_text=info.name+"\n点击设为自机"
+  tile.set_meta("card_id",id)
+  grid.add_child(tile)
+  var art=TextureRect.new()
+  art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+  art.texture=leader_picker_thumb(id,cache)
+  art.position=Vector2(8,8)
+  art.size=Vector2(202,276)
+  art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+  art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  tile.add_child(art)
+  var title=label(tile,("✓ " if id==draft.leader else "")+info.name,Rect2(8,289,202,38),15,GOLD if id==draft.leader else WHITE)
+  title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  title.clip_text=false
+  tile.gui_input.connect(func(event):
+   if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:choose_leader_from_picker(id,dialog))
+ if grid.get_child_count()==0:label(grid,"没有符合条件的自机",Rect2(0,0,900,36),18,MUTED)
+
+func open_leader_picker():
+ if page!="editor" or sideboard_session!=null:return
+ if get_node_or_null("LeaderPicker")!=null:return
+ var dialog=AcceptDialog.new()
+ dialog.name="LeaderPicker"
+ dialog.title="选择自机"
+ dialog.min_size=Vector2i(976,690)
+ dialog.get_ok_button().text="关闭"
+ dialog.confirmed.connect(dialog.queue_free)
+ dialog.canceled.connect(dialog.queue_free)
+ var search=LineEdit.new()
+ search.name="LeaderPickerSearch"
+ search.placeholder_text="按自机名称筛选"
+ search.position=Vector2(20,16)
+ search.size=Vector2(936,42)
+ dialog.add_child(search)
+ var scroll=ScrollContainer.new()
+ scroll.position=Vector2(20,70)
+ scroll.size=Vector2(936,550)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ dialog.add_child(scroll)
+ var grid=GridContainer.new()
+ grid.name="LeaderChoices"
+ grid.columns=4
+ grid.add_theme_constant_override("h_separation",12)
+ grid.add_theme_constant_override("v_separation",12)
+ scroll.add_child(grid)
+ var thumbnail_cache={}
+ search.text_changed.connect(func(value):populate_leader_picker(grid,dialog,value,thumbnail_cache))
+ add_child(dialog)
+ populate_leader_picker(grid,dialog,"",thumbnail_cache)
+ dialog.popup_centered()
+ search.grab_focus()
+
+func choose_leader_from_picker(id: String,dialog: AcceptDialog):
+ if not is_instance_valid(dialog):return
+ selected=id
+ if draft.leader!=id:add_to("leader")
+ update_preview()
+ dialog.queue_free()
 
 func editor_card(id: String, source: String, index: int, rect: Rect2, parent: Node = null):
  var tile=preload("res://scripts/deck_card.gd").new()
@@ -855,6 +1088,7 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
    else: draft[from].remove_at(index_in_deck)
    dirty=true
    update_deck_rows()
+  elif from=="leader":open_leader_picker()
   else: add_to(from))
  tile.set_drag_forwarding(tile._get_drag_data,func(_at,data): return valid_drag_source(data),func(_at,data): drop_editor_card(data,source))
 
@@ -866,19 +1100,20 @@ func drop_editor_card(data: Dictionary, target: String):
  var next=draft.duplicate(true)
  var error=""
  if sideboard_session!=null:next[target].append(data.card_id)
- else:error=Store.add_card(next,data.card_id,target)
+ else:
+  if source=="leader":next.leader=""
+  elif source in ["main","side"]:
+   var source_index=int(data.get("source_index",-1))
+   if source_index>=0 and source_index<next[source].size():next[source].remove_at(source_index)
+  error=Store.add_card(next,data.card_id,target,str(draft.get("rule_set",RuleSet.OFFICIAL)))
  if not error.is_empty(): alert(error); return
- if source=="leader": next.leader="" if target!="leader" else next.leader
- elif source in ["main","side"]:
-  var index=int(data.get("source_index",-1))
-  if index>=0 and index<next[source].size(): next[source].remove_at(index)
  draft=next
  dirty=true
  zone=target
  update_deck_rows()
 
 func use_deck():
- var error=Store.validate(draft)
+ var error=Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
  if not error.is_empty(): alert(error); return
  save_deck()
  if dirty: return
@@ -929,7 +1164,7 @@ func sideboard_locked() -> bool:
 
 func complete_sideboard():
  if sideboard_locked():return
- var error=preload("res://net/series_controller.gd").sideboard_error(draft,sideboard_original,sideboard_session.room.strict)
+ var error=preload("res://net/series_controller.gd").sideboard_error(draft,sideboard_original,sideboard_session.room.strict,sideboard_session.room.get("rule_set",RuleSet.UNRESTRICTED))
  if not error.is_empty():sideboard_status.text=error;return
  sideboard_waiting=true;sideboard_done.disabled=true;sideboard_status.text="正在确认更换…"
  sideboard_session.room_action({"name":"deck","deck":draft.duplicate(true)})

@@ -39,13 +39,13 @@ func run():
  e.move_to(c,"deck");e.move_to(c,"grave");e.move_to(c,"exile");e.move_to(c,"hand");e.move_to(own,"deck");view.render();await settle()
  var moves=view.reveal_player.movements
  expect(moves.size()==5 and moves[0].hidden and not moves[1].hidden and moves[4].hidden,"all intermediate moves animate and hidden deck/hand paths stay private")
- expect(view.enemy_nodes[c.uid].visible and view.enemy_nodes[c.uid].hidden_card,"opposing hand stays private after public recovery")
+ expect(view.enemy_nodes.is_empty() and view.hud.get_children().any(func(n):return n is Label and n.text=="手牌 1"),"opposing hand count recovers after public move")
  clean();c=put("96","hand",1);view.render();await settle()
  var started=Time.get_ticks_msec();e.reveal_card(c);view.render();await finish_reveals()
  var elapsed=(Time.get_ticks_msec()-started)/1000.0
  expect(view.reveal_player.completed.size()==1 and view.reveal_player.REVEAL_SECONDS==0.5,"half-second flip completes")
  print("REVEAL_WALL_SECONDS: ",elapsed)
- expect(view.enemy_nodes[c.uid].hidden_card,"temporary hand reveal reconceals")
+ expect(view.enemy_nodes.is_empty() and view.reveal_player.public_uids.is_empty(),"temporary hand reveal returns to count-only display")
  e.flip_coin(0);view.render();await create_timer(0.25).timeout
  expect(view.revealing() and is_instance_valid(view.reveal_player.result_label),"coin result stays visible")
  await capture("coin-result");await settle()

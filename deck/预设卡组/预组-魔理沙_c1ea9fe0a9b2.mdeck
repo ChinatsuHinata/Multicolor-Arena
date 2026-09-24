@@ -55,6 +55,7 @@
       "character-mar-ex01"
     ],
     "name": "预组-魔理沙",
+    "rule_set": "official",
     "side": []
   },
   "format": "multicolor:arena/deck",

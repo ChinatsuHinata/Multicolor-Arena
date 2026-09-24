@@ -56,6 +56,7 @@
         "143"
       ],
       "name": "1.0红u",
+      "rule_set": "official",
       "side": [
         "177",
         "177",
@@ -120,6 +121,7 @@
         "174"
       ],
       "name": "1.0四色妖梦",
+      "rule_set": "official",
       "side": []
     },
     {
@@ -178,6 +180,7 @@
         "character-rei-ex01"
       ],
       "name": "预组-灵梦",
+      "rule_set": "official",
       "side": []
     },
     {
@@ -236,6 +239,7 @@
         "character-mar-ex01"
       ],
       "name": "预组-魔理沙",
+      "rule_set": "official",
       "side": []
     }
   ],

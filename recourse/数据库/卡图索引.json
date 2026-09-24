@@ -3409,7 +3409,7 @@
       "名称": "秘封俱乐部初代会长「宇佐见堇子」",
       "数据": "res://cards/new-eto-001.json",
       "图片": "res://recourse/数据库/new-eto-001.tres",
-      "SHA256": "47D5B902C44D699AAE20B02616A35EE2EA374AFD2D77816729EF2AF9F5468A89",
+      "SHA256": "343E4739EC81FFB6E328BEA84B667B10DD29627CB3C9A5851B7D69F9B9FEB5AC",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921113835.jpg",
@@ -3422,7 +3422,7 @@
       "名称": "神社山道",
       "数据": "res://cards/new-loc-005.json",
       "图片": "res://recourse/数据库/new-loc-005.tres",
-      "SHA256": "E8A5482119DF47BC707704148BD38C4A2AC204C59DCB51504A9FA46917C96421",
+      "SHA256": "A1876B9086017BE8A7DF22FE00566CA49039B42842C863C85236DAF9A4630942",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114035.jpg",
@@ -3435,7 +3435,7 @@
       "名称": "废线「废弃车站下车ノ旅」",
       "数据": "res://cards/new-spx-006.json",
       "图片": "res://recourse/数据库/new-spx-006.tres",
-      "SHA256": "7A31F0402FE15A85B1F02A434F0C78F6A2BDBA1DE0CC8789C7B164954A2900E5",
+      "SHA256": "F7FFE07FE30A8E34E3F3ACD7CCCD505819BA113ACE9C46F3B0BFA737CB6963CA",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114115.jpg",
@@ -3448,7 +3448,7 @@
       "名称": "「废弃列车车厢」",
       "数据": "res://cards/new-spx-007.json",
       "图片": "res://recourse/数据库/new-spx-007.tres",
-      "SHA256": "C4C78F1C68C6F2D34A4343567A82F3584F0D5250479C964B42CD00791EC1D031",
+      "SHA256": "67B3806742EA2F2C34CE03477CC5896E7D7138B831CDCDB2FD13076B7F1BDF3C",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114134.jpg",
@@ -3461,7 +3461,7 @@
       "名称": "境界的妖怪「八云紫」",
       "数据": "res://cards/new-spx-005.json",
       "图片": "res://recourse/数据库/new-spx-005.tres",
-      "SHA256": "A7D227EDC2AB1496628EAF19B4594BC6AEF802BC27E01277E1B87CDEB017C31C",
+      "SHA256": "AFA2479475599EE96B43B7FDB81487D6A6C550DEB611930A6B6DD67AF44F1B55",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114140.jpg",
@@ -3474,7 +3474,7 @@
       "名称": "土著神「宝永四年ノ赤蛙」",
       "数据": "res://cards/new-spx-004.json",
       "图片": "res://recourse/数据库/new-spx-004.tres",
-      "SHA256": "93E33AE7B0E80614C03929A9F9C147CB9F533B35868FA3CBD5B50792814A32E7",
+      "SHA256": "971800FA8FAE9D62DABF6E2C061E68B450A70550B337A2690513BC9729441952",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114145.jpg",
@@ -3487,7 +3487,7 @@
       "名称": "昨日的神明「洩矢诹访子」",
       "数据": "res://cards/new-spx-003.json",
       "图片": "res://recourse/数据库/new-spx-003.tres",
-      "SHA256": "A2546368B6205D20DF9A7941BAD86A9D15602F63B88B498BB498AC915906D636",
+      "SHA256": "2D4FC127E66FA772A2CBE9ACF178159BD04E8C67F423B32343CC2FF504F7B53C",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114151.jpg",
@@ -3500,7 +3500,7 @@
       "名称": "「伊吹瓢」",
       "数据": "res://cards/new-spx-002.json",
       "图片": "res://recourse/数据库/new-spx-002.tres",
-      "SHA256": "C1483FC765D04A73458ED8B1EFDD37DD461395AEB995580725236CBD11F31D2C",
+      "SHA256": "D14DB074C6A4426EDEFBCAB9C3562592A68C76A66A4D805E96D0167D0BAA4166",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114158.jpg",
@@ -3513,7 +3513,7 @@
       "名称": "萃集梦乡「伊吹萃香」",
       "数据": "res://cards/new-spx-001.json",
       "图片": "res://recourse/数据库/new-spx-001.tres",
-      "SHA256": "9DD5FCD5BF1EF6CF179E2A72C83CDD7C19474BFDDD4D7E8ADF98F638799C3B01",
+      "SHA256": "4FB63B29D2028C5ADA51EFABFED31CEC558E5CACFFBCA070F3B558761B1C6CD7",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114203.jpg",
@@ -3526,7 +3526,7 @@
       "名称": "「鹿射」",
       "数据": "res://cards/new-loc-004.json",
       "图片": "res://recourse/数据库/new-loc-004.tres",
-      "SHA256": "81677A5033625B3C965E4D83F759B96B51CC8DC050848BA61A5216D808C9D547",
+      "SHA256": "4830B56C5393EF34007C32433BE01F4F717A259DC60DB37198841ACAE1CC734B",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114210.jpg",
@@ -3539,7 +3539,7 @@
       "名称": "雪符「Diamond Blizzard」",
       "数据": "res://cards/new-loc-003.json",
       "图片": "res://recourse/数据库/new-loc-003.tres",
-      "SHA256": "7990D038FAF0A13D0589045B4D7708D971A638860149C87E9B007A920FC9CC4A",
+      "SHA256": "EC6DCEEE1BB98A45A769F1D0B8CEA5EB2DE4CE0E9F394625968D24BC56A17B77",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114218.jpg",
@@ -3552,7 +3552,7 @@
       "名称": "冷符「瞬间急冻光线」",
       "数据": "res://cards/new-loc-002.json",
       "图片": "res://recourse/数据库/new-loc-002.tres",
-      "SHA256": "38FEF8F9817108A82768C4F886E0C12D53D5223396C6030C0A7E661AA05D6197",
+      "SHA256": "C71EDCA09F3FCA543423E610A39338BEB22EB5A9216227292A8B7A647B4E0281",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114227.jpg",
@@ -3565,7 +3565,7 @@
       "名称": "终局的冰之勇者「琪露诺」",
       "数据": "res://cards/new-loc-001.json",
       "图片": "res://recourse/数据库/new-loc-001.tres",
-      "SHA256": "6BF039CD8527D9A5576E303CC842990472875CE22AFD6F206AA3941E3F1B3804",
+      "SHA256": "ED352DC816550ADA1C67120F1DEDBD0D6BCB68D32BDB9D2FF420E85D1AAF6DB2",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114232.jpg",
@@ -3578,7 +3578,7 @@
       "名称": "念力「Psychokinesis APP」",
       "数据": "res://cards/new-eto-006.json",
       "图片": "res://recourse/数据库/new-eto-006.tres",
-      "SHA256": "4BB2FD21A1303743FCB23DC2AFCB670660D07475D84B91302D9C91AB757A007D",
+      "SHA256": "613E4CCB597F5EED85BC3DB37962B5C48C657CCF89CC6467F214DB88DEE58737",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114241.jpg",
@@ -3591,7 +3591,7 @@
       "名称": "枪符「3D Printer Gun」",
       "数据": "res://cards/new-eto-004.json",
       "图片": "res://recourse/数据库/new-eto-004.tres",
-      "SHA256": "E75822D4C6A73F6CE50DD50BC9FDB73185F8418C69B84B070A4678551815B3B4",
+      "SHA256": "81F170198CA20AB66B4892DA90EA67064D50379C5A69BCA2399DEF0EF6946657",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114247.jpg",
@@ -3604,7 +3604,7 @@
       "名称": "「梦违科学世纪」",
       "数据": "res://cards/new-eto-011.json",
       "图片": "res://recourse/数据库/new-eto-011.tres",
-      "SHA256": "F5BB21C8FF7205922397D7D0526CC4C5B28239EF664CFAC2AAC1FCE4F609B650",
+      "SHA256": "3D8B01D826CE9778B8B943D47DF8CC7B076919CD2CA61F048A383EB9A3C6A3A6",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114251.jpg",
@@ -3617,7 +3617,7 @@
       "名称": "「童祭」",
       "数据": "res://cards/new-eto-012.json",
       "图片": "res://recourse/数据库/new-eto-012.tres",
-      "SHA256": "E2001D79EA7F637671A6386796478BFB4073D3BD96EA92E73C0B172986FED0C2",
+      "SHA256": "9DC5BDC992AA2801E881182B29AF8798965A9AFEDFC5CB032898CCF32E1A2173",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114257.jpg",
@@ -3630,7 +3630,7 @@
       "名称": "「莲台野夜行」",
       "数据": "res://cards/new-eto-009.json",
       "图片": "res://recourse/数据库/new-eto-009.tres",
-      "SHA256": "13C12A7A72ED0910D475CD62464C173909F313D2B651FD4F936304127971E60E",
+      "SHA256": "E3D5D9946B58CEA9BB9AB94C8D0D2A99711BE539C850B353B487D7070CF46C69",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114302.jpg",
@@ -3643,7 +3643,7 @@
       "名称": "「月之妖鸟。化猫之幻」",
       "数据": "res://cards/new-eto-010.json",
       "图片": "res://recourse/数据库/new-eto-010.tres",
-      "SHA256": "1D27591A9E7378FA5EBA6482E6684E500CC1BBE21D25661ED629DECFBDE3CACC",
+      "SHA256": "2AC5537302AD17D6DADA7639E5D8DA7BA6FD02121F95100B4B2DEF6C67A1B7E7",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114308.jpg",
@@ -3656,7 +3656,7 @@
       "名称": "「最澄澈的空与海」",
       "数据": "res://cards/new-eto-008.json",
       "图片": "res://recourse/数据库/new-eto-008.tres",
-      "SHA256": "D979950D1F8389907C9DCFF1F9AC48D17A497F9B62FEF636698D965D4FD8A7F1",
+      "SHA256": "FEBD852A639EF02BDD9E58AF07B223B741CA05D486E5C6FC2518C17CBC562F94",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114313.jpg",
@@ -3669,7 +3669,7 @@
       "名称": "「卯酉东海道」",
       "数据": "res://cards/new-eto-007.json",
       "图片": "res://recourse/数据库/new-eto-007.tres",
-      "SHA256": "C6011D7DD9880BFE847AAFE609D8A0EE4AA411807BBD2CB2F7C1E20449898DC5",
+      "SHA256": "92B79EC0DCFCE1C533D0A80B4C54C9F979F8833470063D2C650B2D02AD0403F4",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114319.jpg",
@@ -3682,7 +3682,7 @@
       "名称": "命定的重逢「莲子」&「梅莉」",
       "数据": "res://cards/new-eto-003.json",
       "图片": "res://recourse/数据库/new-eto-003.tres",
-      "SHA256": "553CFF4A95D4CC52105494B1EBCDC48F396731CCB71899A109325EA518654CFA",
+      "SHA256": "9E9E958C76605D2AEACC90D1B00580BCFE75887DD79FD95FF25A7F0A6E9E798A",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114327.jpg",
@@ -3695,7 +3695,7 @@
       "名称": "「假面丧心舞 暗黑能乐」",
       "数据": "res://cards/new-eto-005.json",
       "图片": "res://recourse/数据库/new-eto-005.tres",
-      "SHA256": "081DA1B3567E4A9BFB6275CAB0E7B337A9E7C1B9969BA7A8AAF3FB18FA4749E0",
+      "SHA256": "34031A8C42E5D76EC21520BD6013A9AABF92F0B588C9B4AE0837952B5D406390",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114331.jpg",
@@ -3708,7 +3708,7 @@
       "名称": "「灵异珠」",
       "数据": "res://cards/new-eto-s001.json",
       "图片": "res://recourse/数据库/new-eto-s001.tres",
-      "SHA256": "FFA44345BD0B0C0EAECCCEEFA3379220E7DB6937D9A1B0B55D92F82326015EAC",
+      "SHA256": "561038F954EE4E6A16B2F05F1A660AC116D5A491965173C7F153F20E48AA3315",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114338.jpg",
@@ -3721,13 +3721,27 @@
       "名称": "二重身「宇佐见堇子」",
       "数据": "res://cards/new-eto-002.json",
       "图片": "res://recourse/数据库/new-eto-002.tres",
-      "SHA256": "F349A5F8CDF3B3DA681EF6EE58EC80FBCCD2756A071D0883B5C81F3D828725B0",
+      "SHA256": "76F7AA36E708C630B2463698E26AB7391D7B7087A9F7B064B4A414F6DA424AEA",
       "图集来源": [
         {
           "图片": "res://recourse/数据库/原图0921/QQ图片20260921114345.jpg",
           "SHA256": "BF7906B7C43E0CBCF1E52F014F8C28F9B62D9CA56291B1D07DDB38A9FF0434E0"
         }
       ]
+    },
+    {
+      "卡牌ID": "spell-fdf-034",
+      "名称": "源符「厌川丿翡翠」",
+      "数据": "res://cards/spell-fdf-034.json",
+      "图片": "res://recourse/数据库/spell-fdf-034.png",
+      "SHA256": "1E34668AB7BB57943302103D0174750CA592F913D31B3A524AA288586663A90E"
+    },
+    {
+      "卡牌ID": "spell-fdf-124",
+      "名称": "风神「风神木叶隐身术」",
+      "数据": "res://cards/spell-fdf-124.json",
+      "图片": "res://recourse/数据库/spell-fdf-124.png",
+      "SHA256": "F368C6D7AC287F20DF45992535A73130A31436CC758E1F08F67A6FF7579A497E"
     }
   ]
 }

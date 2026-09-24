@@ -194,10 +194,6 @@ func stackable_members(c: Dictionary) -> Array:
  var signature=stackable_signature(c)
  if signature.is_empty():return []
  return players[c.owner].field.filter(func(u):return stackable_signature(u)==signature)
-func can_batch_stackable_sacrifice(c: Dictionary,key: String) -> bool:
- if c.is_empty() or not cards.get(c.card_id,{}).get("stackable",false):return false
- # 要石有目标，每次只启动一张；无牺牲异能的新闻素材只合并显示。
- return c.card_id=="token-fdf-127" and key=="token-fdf-127" or c.card_id=="token-fdf-128" and key=="wine_discount"
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
  if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
@@ -1337,13 +1333,13 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  var clean_target=target.duplicate(true);clean_target.erase("stackable_count")
  var members=[c]
  if count>1:
-  if not can_batch_stackable_sacrifice(c,key):return "该牌不能批量牺牲"
+  if not cards[c.card_id].get("stackable",false):return "该牌不能批量启动"
   members=stackable_members(c)
-  if count>members.size():return "可牺牲数量不足"
+  if count>members.size():return "可启动数量不足"
   members.erase(c);members.push_front(c)
   members=members.slice(0,count)
   for member in members:
-   if not extension_activation_error(who,member,key).is_empty():return "有对象不能牺牲"
+   if not extension_activation_error(who,member,key).is_empty():return "有对象不能启动"
  var legal_options=Extra.activation_options(self,c,key)
  if not Pack.choice_valid(self,legal_options,clean_target): return "选择已失效"
  var target_spec={}
@@ -1482,9 +1478,8 @@ func attack_cost(who: int) -> Dictionary:
 func extension_cost(who: int,c: Dictionary,key: String,target: Dictionary={}) -> Dictionary:
  var cost=Extra.activation_cost(key).duplicate();var tax=Cat.target_tax(self,who,target)
  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
- if can_batch_stackable_sacrifice(c,key):
-  var count=maxi(1,int(target.get("stackable_count",1)))
-  for color in cost:cost[color]=int(cost[color])*count
+ var count=maxi(1,int(target.get("stackable_count",1)))
+ for color in cost:cost[color]=int(cost[color])*count
  return cost
 
 func ability_cost(who: int,uid: int,index: int,target: Dictionary={}) -> Dictionary:

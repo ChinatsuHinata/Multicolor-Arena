@@ -60,9 +60,13 @@ func run():
  trigger2=entry(extra,{"none":true},"n21:ETO-002:self");spec=N.trigger_options(e,trigger2)[0]
  aim=picks(spec,[[spec.selection[0].pool[0],spec.selection[0].pool[-1]]]);trigger2.target=aim;N.resolve_trigger(e,trigger2)
  check(primary.timer==1 and extra.timer==0,"double death removes timers across both leaders")
- fresh();var bomb=add("ETO-002");ball1=add("ETO-S001");ball2=add("ETO-S001");target=add("53","field",1)
- t=entry(bomb,{"picks":[[e.Pack.ref(e,ball1),e.Pack.ref(e,ball2)]]},"n21:ETO-002");N.resolve_trigger(e,t)
- check(ball1.zone=="grave" and ball2.zone=="grave" and target.damage==2 and bomb.damage==2 and e.players[1].life==18,"double arrival sacrifice X balls sweeps all units and opponent")
+ fresh();var bomb=add("ETO-002");ball1=add("ETO-S001");ball2=add("ETO-S001");var ball3=add("ETO-S001");var enemy_ball=add("ETO-S001","field",1);target=add("53","field",1)
+ ball2.tapped=true
+ t=entry(bomb,{"none":true},"n21:ETO-002");options=N.trigger_options(e,t)
+ check(options.size()==4 and options.map(func(o):return o.x)==[0,1,2,3] and options.all(func(o):return not o.has("selection") and not o.has("uid")),"double arrival chooses a count across all own occult balls without selecting stack members")
+ check(not e.Pack.choice_valid(e,options,{"none":true,"x":4,"mode":"牺牲4个灵异珠"}),"double arrival rejects a count above own field total")
+ t.target=options[2];N.resolve_trigger(e,t)
+ check(ball1.zone=="grave" and ball2.zone=="grave" and ball3.zone=="field" and enemy_ball.zone=="field" and target.damage==2 and bomb.damage==2 and e.players[1].life==18,"double arrival sacrifices only the chosen number and deals that much damage")
  fresh();var item=add("SPX-002");var other=add("SPX-002","field",1);resolve_spell("LOC-004");e.choose_effect({"none":true,"card_name":e.cards[item.card_id].name,"mode":e.cards[item.card_id].name})
  check(item.zone=="grave" and other.zone=="grave","deer shot destroys both sides named permanents")
  fresh();var kokoro=add("character-htk-001");var mayumi=add("character-fdf-106");resolve_spell("ETO-005")

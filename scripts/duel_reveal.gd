@@ -55,6 +55,7 @@ func next_card():
  hand_node=null;saved_hand={}
  var nodes=view.hand_nodes if c.owner==view.local_seat else view.enemy_nodes
  var from=view.project(view.table.zone_position(c.zone,c.owner))
+ if c.zone=="hand" and c.owner!=view.local_seat and not view.debug_mode:from=view.OPPONENT_HAND_COUNT.get_center()
  var initial_size=Vector2(65,91)
  if c.zone=="hand" and nodes.has(c.uid):
   hand_node=nodes[c.uid];from=hand_node.position+hand_node.size/2;initial_size=hand_node.size
@@ -100,6 +101,9 @@ func show_result():
 func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
  var key="card_"+str(uid)
  if source and move_ends.has(uid):return move_ends[uid]
+ if zone=="hand" and owner!=view.local_seat and not view.debug_mode:
+  var dimensions=Vector2(54,75)
+  return Rect2(view.OPPONENT_HAND_COUNT.get_center()-dimensions/2,dimensions)
  if zone=="stack":
   var stack_rect=view.stack_panel.card_rect(uid) if source else Rect2()
   return stack_rect if stack_rect.has_area() else view.stack_panel.arrival_rect()

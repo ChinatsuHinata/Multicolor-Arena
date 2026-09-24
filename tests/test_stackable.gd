@@ -13,8 +13,9 @@ func run():
  view=app.duel_view;view.set_process(false);e=view.engine;clean(true)
  for id in ["token-fdf-129","new-eto-s001","token-fdf-127","token-fdf-128","token-fdn-082"]:
   expect(e.cards[id].stackable and "stackable" in e.cards[id].keywords,id+" 具有 stackable 词条")
- view.inspect_card("token-fdf-129")
- expect("stackable" in view.inspection_text.get_parsed_text(),"卡牌详情展示 stackable 词条")
+ for id in ["token-fdf-129","new-eto-s001","token-fdf-127","token-fdf-128","token-fdn-082"]:
+  view.inspect_card(id)
+  expect("stackable" not in view.inspection_text.get_parsed_text() and e.cards[id].rules_text in view.inspection_text.get_parsed_text(),id+" 说明页保留能力文字但不显示 stackable")
  var stones=[]
  for i in range(4):stones.append(put("token-fdf-129","field"))
  for id in ["new-eto-s001","token-fdf-127","token-fdf-128","token-fdn-082"]:
@@ -35,7 +36,10 @@ func run():
   var destination=view.table.layout().values().filter(func(d):return d.card_id==id)
   var arrival_rect=view.reveal_player.zone_rect("field",0,later_copy.uid,false)
   expect(destination.size()==1 and arrival_rect.get_center().distance_to(view.project(destination[0].at))<1,id+" 后续入场动画指向叠放牌")
-  view.render();await settle()
+  view.render()
+  var existing_badge=view.card_badges.get("card_"+str(first_copy.uid),{})
+  expect(view.revealing() and existing_badge.has("token_count") and existing_badge.token_count.visible and existing_badge.token_count.text=="×2",id+" 产生时立即计入已有堆垛")
+  await settle()
   var displayed=view.table.descriptors.values().filter(func(d):return d.card_id==id)
   expect(displayed.size()==1 and displayed[0].members.size()==2 and view.card_badges[displayed[0].key].token_count.text=="×2",id+" 跨回合入场后自动合并")
  clean(true)
@@ -71,33 +75,30 @@ func run():
  view.render();await process_frame
  expect(e.stackable_members(stones[0]).size()==3 and view.table.descriptors.values().filter(func(d):return d.card_id=="token-fdf-129").size()==2,"不同状态的实体分别显示")
  changed[1].tapped=false
- expect(e.commit_extension(0,stones[0].uid,{"player":1,"stackable_count":2},[],"token-fdf-129")=="该牌不能批量牺牲","要石不能批量牺牲")
- expect(e.players[0].field.size()==4 and e.stack.is_empty(),"要石批量请求失败时保持原状")
  view.execute_action({"type":"extension","uid":stones[0].uid,"key":"token-fdf-129","enabled":true})
- expect(not view.modal and view.local.get("stackable_count",0)==1,"点击要石不弹出数量选择")
- view.cancel_cast()
+ expect(view.modal and nodes_of_type(view.modal_root,"SpinBox").size()==1,"点击可启动的叠放牌选择数量")
+ var spinner=nodes_of_type(view.modal_root,"SpinBox")[0]
+ expect(spinner.max_value==4,"数量上限等于同状态实体数")
+ spinner.value=3
+ await press("确认")
+ expect(view.local.get("stackable_count",0)==3,"所选数量进入启动流程")
+ view.local.target={"player":1};view.local.mode="payment";view.commit_local()
+ expect(e.stack.size()==3 and e.stack.all(func(entry):return entry.target=={"player":1}),"三枚要石分别入堆叠并共用单个目标")
+ expect(e.players[0].field.filter(func(c):return c.card_id=="token-fdf-129").size()==1,"仅牺牲所选的三枚要石")
  clean(true)
  var fish=[]
  for i in range(3):fish.append(put("token-fdf-127","field"))
- view.execute_action({"type":"extension","uid":fish[0].uid,"key":"token-fdf-127","enabled":true})
- expect(view.modal and nodes_of_type(view.modal_root,"SpinBox").size()==1,"点击叠放的烤八目鳗可选择牺牲数量")
- var spinner=nodes_of_type(view.modal_root,"SpinBox")[0]
- expect(spinner.max_value==3,"烤八目鳗数量上限为叠放数")
- spinner.value=2
- await press("确认")
- expect(view.local.get("stackable_count",0)==2,"所选数量进入启动流程")
- view.cancel_cast()
- expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":4},[],"token-fdf-127")=="可牺牲数量不足","拒绝超出实际数量的牺牲请求")
- expect(e.players[0].field.size()==3 and e.stack.is_empty(),"非法牺牲数量不改变战况")
- expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":2},[],"token-fdf-127").is_empty(),"烤八目鳗可批量牺牲")
- expect(e.players[0].field.size()==1 and e.stack.size()==2,"仅牺牲所选的两条烤八目鳗")
+ expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":4},[],"token-fdf-127")=="可启动数量不足","拒绝超出实际数量的请求")
+ expect(e.players[0].field.size()==3 and e.stack.is_empty(),"数量非法时状态不变")
+ expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":2},[],"token-fdf-127").is_empty(),"烤八目鳗可批量启动")
+ expect(e.players[0].field.size()==1 and e.stack.size()==2,"批量启动消耗恰好两枚")
  for i in range(8):
   if e.stack.is_empty():break
   e.pass_priority(e.priority)
  expect(e.players[0].life==22,"两次生命效果分别结算")
  clean(true)
  var wine=put("token-fdf-128","field");put("token-fdf-128","field")
- expect(e.commit_extension(0,wine.uid,{"color":"蓝","stackable_count":2},[],"wine_discount").is_empty(),"美宵之酒可批量牺牲")
+ expect(e.commit_extension(0,wine.uid,{"color":"蓝","stackable_count":2},[],"wine_discount").is_empty(),"美宵之酒可批量启动")
  for i in range(8):
   if e.stack.is_empty():break
   e.pass_priority(e.priority)

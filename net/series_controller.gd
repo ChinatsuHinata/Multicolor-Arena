@@ -1,17 +1,18 @@
 extends RefCounted
 const Store=preload("res://scripts/deck_store.gd")
+const RuleSet=preload("res://scripts/deck_rule_set.gd")
 const Identity=preload("res://net/local_identity.gd")
-var state={"match_id":"","game_id":"","format":3,"strict":true,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"coin":{},"coin_history":[],"counted":[],"winner":-2}
-func setup(format_value: int,strict: bool):
- state.match_id=Identity.token();state.format=3 if format_value==3 else 1;state.strict=strict
+var state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"coin":{},"coin_history":[],"counted":[],"winner":-2}
+func setup(format_value: int,strict: bool,rule_set: String=RuleSet.UNRESTRICTED):
+ state.match_id=Identity.token();state.format=3 if format_value==3 else 1;state.strict=strict;state.rule_set=rule_set
 func set_deck(seat: int,deck: Dictionary) -> String:
  if state.status not in ["lobby","between"]:return "当前不能换牌"
- var error=sideboard_error(deck,state.registered[seat],state.strict) if state.status=="between" else Store.validate(deck,state.strict)
+ var error=sideboard_error(deck,state.registered[seat],state.strict,state.rule_set) if state.status=="between" else Store.validate(deck,state.strict,state.rule_set)
  if not error.is_empty():return error
  state.decks[seat]=Store.clean_deck(deck);state.ready[seat]=false
  return ""
-static func sideboard_error(deck: Dictionary,original: Dictionary,strict: bool) -> String:
- var error=Store.validate(deck,strict)
+static func sideboard_error(deck: Dictionary,original: Dictionary,strict: bool,rule_set: String=RuleSet.UNRESTRICTED) -> String:
+ var error=Store.validate(deck,strict,rule_set)
  if not error.is_empty():return error
  if original.is_empty():return "缺少登记卡组"
  var pool=original.main+original.side;var next=deck.main+deck.side;pool.sort();next.sort()
@@ -29,7 +30,7 @@ func forfeit(disconnected_seat: int,local_record: bool=false):
  state.end_reason=state.names[disconnected_seat]+"掉线超时，整场判负"+("（本地记录）" if local_record else "")
 func ready(seat: int) -> String:
  if state.status not in ["lobby","between"]:return "当前不能准备"
- var error=Store.validate(state.decks[seat],state.strict)
+ var error=Store.validate(state.decks[seat],state.strict,state.rule_set)
  if not error.is_empty():return error
  state.ready[seat]=true
  return ""

@@ -49,24 +49,13 @@ func run():
  await capture("v11-okina-editor")
  app.query=""
  var complete_library=app.library_ids()
- expect(complete_library.filter(func(id):return not Store.CARDS[id].constructible).size()==23,"卡库列出全部七张梦违与十六张衍生物")
+ expect(complete_library.all(func(id):return Store.CARDS[id].constructible and not Store.CARDS[id].token) and not complete_library.has("character-ucs-020") and not complete_library.has("character-ucs-021"),"卡库不显示梦违与衍生物")
  app.query="梦违"
  var dream_ids=app.library_ids()
- expect(["character-ucs-020","character-ucs-021","new-eto-002","new-eto-008","new-eto-010","new-eto-012","new-eto-s001"].all(func(id):return id in dream_ids),"梦违类别检索覆盖全部七张不可构筑牌")
- expect(dream_ids.filter(func(id):return not Store.CARDS[id].constructible).size()==7,"梦违类别检索不会混入只提及梦违的普通牌")
+ expect(dream_ids.all(func(id):return Store.CARDS[id].constructible),"搜索梦违也不显示梦违卡")
  app.query="衍生物";app.update_library();await process_frame
- var token_rows=app.library.get_children().filter(func(row):return row.card_id=="token-ucs-099")
- expect(not token_rows.is_empty() and app.library_ids().has("token-fdf-127"),"没有衍生物字样的半灵与烤八目鳗也可检索")
- expect(app.library_ids().size()==16 and app.library_ids().all(func(id):return Store.CARDS[id].token),"衍生物类别检索只列出十六张实体衍生物")
- if not token_rows.is_empty():
-  var token_row=token_rows[0]
-  var deck_before_readonly=JSON.stringify([app.draft.main,app.draft.side,app.draft.leader])
-  var dirty_before_readonly=app.dirty
-  token_row.clicked.emit("token-ucs-099","library",-1,false)
-  expect(app.selected=="token-ucs-099" and nodes_of_type(app.preview,"Label").any(func(n):return "仅供查看" in n.text),"点击衍生物只显示卡牌预览")
-  await capture("v11-token-library")
-  expect(JSON.stringify([app.draft.main,app.draft.side,app.draft.leader])==deck_before_readonly and app.dirty==dirty_before_readonly,"点击衍生物不修改卡组")
-  expect(token_row._get_drag_data(Vector2.ZERO)==null and not app.valid_drag_source({"card_id":"token-ucs-099","source_zone":"library"}),"衍生物不能从卡库拖入卡组")
+ expect(app.library_ids().all(func(id):return not Store.CARDS[id].token),"搜索衍生物也不显示衍生物卡")
+ expect(not app.valid_drag_source({"card_id":"token-ucs-099","source_zone":"library"}),"衍生物不能从卡库拖入卡组")
  var illegal=Store.blank("只读卡验证");illegal.leader="70"
  expect(not Store.add_card(illegal,"new-eto-002","main").is_empty() and not Store.add_card(illegal,"token-ucs-099","side").is_empty(),"梦违与衍生物均被卡组加入规则拒绝")
  illegal.main.append("token-ucs-099")

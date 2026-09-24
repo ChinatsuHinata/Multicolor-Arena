@@ -92,6 +92,6 @@ func run():
  app.selected="29"; app.update_preview(); await capture("editor")
  app.menu(); app.about(); await click("退出调试模式"); expect(not app.debug_mode,"debug can be disabled for next match")
  app.begin_battle(true); view=app.duel_view; view.set_process(false)
- expect(not view.debug_mode and view.enemy_nodes.values().all(func(n): return n.hidden_card) and find_button(view.ui,"调试")==null,"normal match restores hidden information and removes debug controls")
+ expect(not view.debug_mode and view.enemy_nodes.is_empty() and find_button(view.ui,"调试")==null,"normal match shows no opposing hand tiles or debug controls")
  expect(FileAccess.get_file_as_string("res://saves/decks.json")==saved,"all UI tests preserve saved decks")
  print("V09_UI: %d checks; %d failures" % [checks,failures.size()]); quit(1 if not failures.is_empty() else 0)
