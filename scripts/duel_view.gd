@@ -1029,6 +1029,10 @@ func execute_action(action: Dictionary):
 func begin_action(action: Dictionary,count: int=1):
  close_overlay()
  clear_attack_preview()
+ if action.type=="extension":
+  var source=engine.find_card(action.uid)
+  var error="牌已离开" if source.is_empty() else engine.extension_activation_error(acting_player(),source,action.key)
+  if not error.is_empty():message=error;render();return
  if action.type=="attack": begin_attack_payment(action.uid)
  elif action.type=="direct_attack":
   local={"uid":action.uid,"action":"direct_attack","mode":"target","target":{},"plan":[]}

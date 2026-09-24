@@ -213,11 +213,11 @@ func source_resources(who: int) -> Array:
  for c in players[who].palette:
   if not c.tapped: sources.append({"uid":c.uid,"colors":Pack.colors(self,c),"weight":Pack.colors(self,c).size()*10,"kind":"palette"})
  for c in players[who].field:
-  if not c.tapped and DB.has_ability(cards[c.card_id],"mana"):
-   sources.append({"uid":c.uid,"colors":[DB.ability(cards[c.card_id],"mana")["颜色"]],"weight":8,"kind":"item"})
-  elif Cat.enabled(self,c,"character-fdf-098") and not Cat.State.activation_locked(self,c) and not Roster.Batch.locked(self,c) and Roster.activation_error(self,c,"character-fdf-098").is_empty():
+  if Cat.enabled(self,c,"character-fdf-098") and not c.tapped and not summoning_sick(c) and not Cat.State.activation_locked(self,c) and not Roster.Batch.locked(self,c):
    # This unit pays yellow and green together. It is one tap, never two separate sources.
    sources.append({"uid":c.uid,"colors":["黄/绿"],"pair":["黄","绿"],"weight":18,"kind":"unit"})
+  elif not c.tapped and DB.has_ability(cards[c.card_id],"mana"):
+   sources.append({"uid":c.uid,"colors":[DB.ability(cards[c.card_id],"mana")["颜色"]],"weight":8,"kind":"item"})
  sources.append_array(players[who].get("mana",[]))
  if players[who].potato: sources.append({"uid":-100-who,"colors":COLORS,"weight":1000,"kind":"potato"})
  return sources
@@ -1312,6 +1312,7 @@ func extension_activation_error(who: int,c: Dictionary,key: String="") -> String
  if Roster.Batch.locked(self,c):return "绵月丰姬：只能在自己的回合启动单位能力"
  if key.is_empty():key=Extra.activation_kind(cards[c.card_id])
  if key.is_empty(): return "没有该异能"
+ if key=="character-fdf-098":return "只能在支付黄绿颜色值时使用该单位"
  if key in Roster.ACTIVATIONS:
   var reason=Roster.activation_error(self,c,key)
   if not reason.is_empty():return reason
@@ -1360,8 +1361,6 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
   if key=="grave_reanimate": move_to(find_card(clean_target.uid),"grave")
   if key=="sacrifice_buff": sacrifice(find_card(clean_target.uid))
   if key=="leader_bounce": use_once(member.uid,key)
-  if key=="character-fdf-098":
-   Cat.add_paired_mana(self,who,["黄","绿"]);revision+=1;return ""
   stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":clean_target.duplicate(true),"name":cards[member.card_id].name})
   if not target_spec.is_empty():stack.back().target_spec=target_spec.duplicate(true)
   if key=="courage_die":

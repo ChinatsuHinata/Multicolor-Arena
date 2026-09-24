@@ -323,7 +323,7 @@ static func activation_error(e,c,k):
  var C=e.Cat
  if not C.enabled(e,c,k):return "没有该异能"
  if k in ["item-ucs-013","item-htk-008","character-fdn-043","character-smm05","character-fdf-113","token-fdf-127","token-fdf-129"] and not e.can_sacrifice(c):return "不能牺牲该永久物"
- if k in ["item-fdn-044","item-lof-009","item-ucs-017","item-fdf-096","character-fdn-006","character-fdf-098","character-fdf-112","character-fdn-027","character-fdf-113","character-fdn-041"] and (c.tapped or e.is_unit(c) and e.summoning_sick(c)):return "不能横置"
+ if k in ["item-fdn-044","item-lof-009","item-ucs-017","item-fdf-096","character-fdn-006","character-fdf-112","character-fdn-027","character-fdf-113","character-fdn-041"] and (c.tapped or e.is_unit(c) and e.summoning_sick(c)):return "不能横置"
  if k in ["item-fdf-096","character-fdn-006"] and (e.phase!="main" or not e.stack.is_empty() or not e.combat.is_empty() or e.active!=c.owner):return "只能在自由时机启动"
  if k=="character-fdn-036:self" and e.usage_count(c.uid,k)>0:return "本回合已发动"
  return ""
@@ -337,7 +337,7 @@ static func activation_options(e,c,k):
    return e.Pack.selection([g,e.Pack.group(e.Extra.add_mode(targets,"重置")+e.Extra.add_mode(targets,"置于牌库顶"),1,1,"选择目标与效果")],k)
   "item-ucs-017":return e.Pack.selection([C.group(e,e.units(who),1,1,"牺牲一个单位",true)],k)
   "item-fdf-096":return C.refs(e,(p.palette+[p.leader]).filter(func(u):return e.cards[u.card_id].kind=="自机" and (u.zone=="palette" or u.zone=="leader" and u.timer==0)))
-  "item-ucs-013","item-htk-008","character-smm05","character-fdf-098","character-fdn-038","token-fdf-127":return e.Pack.none()
+  "item-ucs-013","item-htk-008","character-smm05","character-fdn-038","token-fdf-127":return e.Pack.none()
   "character-fdn-036:self":return C.refs(e,e.units(who).filter(func(u):return u.uid!=c.uid and C.race(e,u,"天狗")))
   "character-fdn-006":return e.Pack.selection([C.group(e,p.hand.filter(func(u):return e.is_unit(u)),1,1,"弃一张单位牌",true)],k)
   "character-fdn-043":return C.pick(e,e.players[0].grave+e.players[1].grave,0,3,"移除墓地中的牌",k)
@@ -362,7 +362,7 @@ static func activation_options(e,c,k):
  return []
 static func pay_activation(e,c,k,t):
  var C=e.Cat
- if k in ["item-fdn-044","item-lof-009","item-ucs-017","item-fdf-096","character-fdn-006","character-fdf-098","character-fdf-112","character-fdn-027","character-fdf-113","character-fdn-041"]:e.tap_card(c)
+ if k in ["item-fdn-044","item-lof-009","item-ucs-017","item-fdf-096","character-fdn-006","character-fdf-112","character-fdn-027","character-fdf-113","character-fdn-041"]:e.tap_card(c)
  if k in ["item-lof-009","item-ucs-017","spell-fdf-059","spell-fdn-019"] or k=="character-fdf-112" and t.has("picks"):
   for u in C.selected(e,t):e.sacrifice(u)
  if k in ["item-ucs-013","item-htk-008","character-fdn-043","character-smm05","character-fdf-113","token-fdf-127","token-fdf-129"]:e.sacrifice(c)
@@ -400,7 +400,6 @@ static func resolve_activation(e,t):
   "character-smm05":
    for u in e.units(who):
     if u.get("token",false):C.buff(e,u,0,0,1,["英勇"])
-  "character-fdf-098":C.add_paired_mana(e,who,["黄","绿"])
   "character-fdf-112":
    if a.has("picks"):
     var n=a.picks[0].size();C.Spells.search(e,t,p.deck.filter(func(u):return C.role(e,u,"爱丽丝") and "终言" not in e.cards[u.card_id].keywords and e.Extra.cost_value(e,u)==n),0,1,"hand")
