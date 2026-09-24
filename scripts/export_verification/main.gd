@@ -8,11 +8,12 @@ func check(ok: bool,text: String):
 func _ready():call_deferred("run")
 func run():
  check(not OS.has_feature("editor"),"must run with exported release template")
- check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.1.1-bugfixed","1.1.1-bugfixed product identity")
+ check(ProjectSettings.get_setting("application/config/name")=="multicolor:arena" and ProjectSettings.get_setting("application/config/version")=="1.2","1.2 product identity")
  check(OS.get_user_data_dir().replace("\\","/").ends_with("/Godot/app_userdata/极彩 Multicolour"),"preserve prior player save directory")
  check(int(Store.CARDS["spell-fdf-068"].cost["蓝"])==2 and int(Store.CARDS["spell-fdf-068"].cost["绿"])==1,"updated Last Utopia cost exported")
  check(int(Store.CARDS["spell-fdf-042"].cost["蓝"])==2 and int(Store.CARDS["spell-fdf-042"].cost["黑"])==1,"updated Winter cost exported")
- check(Store.CARDS.size()==511,"all registered definitions load")
+ check(Store.CARDS.size()==513,"all registered definitions load")
+ check(int(Store.CARDS["new-eto-002"].cost.get("蓝",0))==2 and int(Store.CARDS["new-eto-002"].cost.get("黑",0))==1,"1.2 Sumireko cost exported")
  var corrections={"character-mar-023":{"红":1,"蓝":1},"character-fdn-026":{"蓝":1,"绿":1,"黑":1},"spell-fdf-021":{"绿":1,"黑":1},"spell-fdf-036":{"蓝":2,"黄":2},"spell-fdn-010":{"红":3,"蓝":2,"绿":1}}
  for id in corrections:
   check(Store.CARDS[id].colors==corrections[id].keys() and Store.CARDS[id].cost.size()==corrections[id].size() and corrections[id].keys().all(func(k):return int(Store.CARDS[id].cost.get(k,0))==corrections[id][k]),"0921 corrected cost and colors exported: "+id)

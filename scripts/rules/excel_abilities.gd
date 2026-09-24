@@ -728,19 +728,43 @@ static func activation_options(e,c: Dictionary,k: String) -> Array:
    for s in e.stack:
     var info=e.cards[s.get("card",s.get("source")).card_id]
     if info.kind!="符卡" and not (s.kind=="ability" and info.kind in ["单位","自机"]):continue
+    var occurrences={};var totals={}
+    for ref in e.Pack.flatten(s.target):totals[JSON.stringify(ref)]=int(totals.get(JSON.stringify(ref),0))+1
     for r in e.Pack.flatten(s.target):
+     var identity=JSON.stringify(r);var occurrence=int(occurrences.get(identity,0));occurrences[identity]=occurrence+1
      if not r.has("uid") and not r.has("player"):continue
-     var substituted=replace_target(s.target,r,e.ref_target(c))
+     if not hina_target_slot(s,r,occurrence):continue
+     var substituted=replace_target_once(s.target,r,e.ref_target(c),occurrence)
      var choices=e.targets_for(s.card.card_id,s.owner) if s.kind=="card" else e.Extra.activation_options(e,s.source,s.effect) if s.get("activation",false) else e.trigger_options(s)
-     if e.Pack.choice_valid(e,choices,substituted):result.append({"stack_id":s.id,"redirect":r})
+     var legal=e.Pack.choice_valid(e,choices,substituted)
+     if not legal and not s.get("target_spec",{}).is_empty():
+      # The stored specification is used only when a declared cost card has
+      # already left its zone. Newly chosen Hina must still be targetable now.
+      var spec=s.target_spec
+      legal=spec.has("selection") and spec.selection.any(func(g):return g.get("cost",false)) and e.target_valid(e.ref_target(c),true) and not e.Roster.protected(e,e.ref_target(c),s.owner,s.kind=="card") and e.Pack.choice_valid(e,[spec],substituted)
+     if legal:result.append({"stack_id":s.id,"redirect":r,"redirect_index":occurrence,"redirect_total":totals[identity]})
    return result
  return []
-static func replace_target(t: Dictionary,old: Dictionary,replacement: Dictionary) -> Dictionary:
- if t==old:return replacement.duplicate(true)
+static func hina_target_slot(s: Dictionary,r: Dictionary,occurrence: int) -> bool:
+ var spec=s.get("target_spec",{})
+ if not spec.has("selection") or not s.target.has("picks"):return true
+ var seen=0
+ for i in range(mini(spec.selection.size(),s.target.picks.size())):
+  for picked in s.target.picks[i]:
+   if picked!=r:continue
+   if seen==occurrence:return not spec.selection[i].get("cost",false)
+   seen+=1
+ return false
+static func replace_target_once(t: Dictionary,old: Dictionary,replacement: Dictionary,occurrence: int) -> Dictionary:
+ return replace_target_occurrence(t,old,replacement,occurrence,{"count":0})
+static func replace_target_occurrence(t: Dictionary,old: Dictionary,replacement: Dictionary,occurrence: int,seen: Dictionary) -> Dictionary:
+ if t==old:
+  var index=int(seen.count);seen.count+=1
+  if index==occurrence:return replacement.duplicate(true)
  var copy=t.duplicate(true)
- if copy.has("parts"):copy.parts=copy.parts.map(func(r):return replace_target(r,old,replacement))
+ if copy.has("parts"):copy.parts=copy.parts.map(func(r):return replace_target_occurrence(r,old,replacement,occurrence,seen))
  if copy.has("picks"):
-  for i in range(copy.picks.size()):copy.picks[i]=copy.picks[i].map(func(r):return replace_target(r,old,replacement))
+  for i in range(copy.picks.size()):copy.picks[i]=copy.picks[i].map(func(r):return replace_target_occurrence(r,old,replacement,occurrence,seen))
  return copy
 static func pay_activation(e,c: Dictionary,k: String,t: Dictionary):
  if k in New.ACTIVATIONS:New.pay_activation(e,c,k,t);return
@@ -767,7 +791,7 @@ static func resolve_activation(e,entry: Dictionary):
   "hina_redirect":
    if same:
     for s in e.stack:
-     if s.id==t.stack_id:s.target=replace_target(s.target,t.redirect,e.ref_target(c))
+     if s.id==t.stack_id:s.target=replace_target_once(s.target,t.redirect,e.ref_target(c),int(t.get("redirect_index",0)))
   "clown_sweep":
    for u in e.units(0)+e.units(1):e.damage_target(e.ref_target(u),1)
   "satori_discard":continue_choice(e,entry,"satori_discard_choice",pick(e,e.Pack.zone(e,t.player,"hand"),mini(1,e.players[t.player].hand.size()),1,"选择弃置的手牌"))

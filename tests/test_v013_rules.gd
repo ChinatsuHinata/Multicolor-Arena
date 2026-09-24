@@ -25,8 +25,11 @@ func run():
  expect(e.Cat.has(e,a,"character-fdn-006") and e.cards[a.card_id].copy_source_id=="character-fdn-007","habitat inherits fairy activated abilities")
  e.move_to(b,"hand");e.judge();expect(not e.Cat.has(e,a,"character-fdn-006"),"habitat stops inheriting after fairy leaves")
  e.move_to(a,"grave");expect(a.card_id=="character-fdn-007" and not a.get("inherited_self",false),"habitat leaves as original card")
- fresh();a=put("character-fdf-098");act(a,a.card_id);expect(a.tapped and e.stack.is_empty() and e.source_resources(0).size()==2,"Tewi generates yellow and green without stacking")
- expect(e.payment(0,{"黄":1,"绿":1}).ways==1,"floating mana is usable by solver");e.Cat.pay(e,0,e.payment(0,{"黄":1}).plan);expect(e.players[0].mana.size()==1,"payment consumes exactly selected floating mana")
+ fresh();a=put("character-fdf-098");act(a,a.card_id);expect(a.tapped and e.stack.is_empty() and e.source_resources(0).size()==1 and e.source_resources(0)[0].get("pair",[])==["黄","绿"],"Tewi generates one inseparable yellow-green resource without stacking")
+ expect(e.payment(0,{"黄":1,"绿":1}).ways==1 and e.payment(0,{"黄":1}).ways==0 and e.payment(0,{"绿":1}).ways==0,"paired floating mana can only pay yellow and green together")
+ e.Cat.pay(e,0,e.payment(0,{"黄":1,"绿":1}).plan);expect(e.players[0].mana.is_empty(),"paying the pair consumes its whole floating source")
+ fresh();a=put("character-fdf-098");b=put("character-fdf-101","field",1);b.locked_name=e.cards[a.card_id].name
+ expect(e.extension_activation_error(0,a,a.card_id)=="该对象的启动能力被禁止" and not e.source_resources(0).any(func(r):return r.uid==a.uid) and e.payment(0,{"黄":1,"绿":1}).ways==0,"Tewi cannot pay directly while its activated ability is locked")
  fresh();a=put("spell-ucs-031","field",1);b=put("50");expect(not e.can_attack(0,b.uid),"Private Square prevents unpaid attack");var resource=put("164","palette")
  expect(e.can_attack(0,b.uid),"attack becomes available with tax mana");e.attack(0,b.uid,{},[]);expect(resource.tapped and not e.combat.is_empty(),"attack commits tax before declaration")
  fresh();mana();a=put("spell-fdn-015","field",1);b=put("character-fdf-110","field",1);var c=put("spell-fdf-049","hand")

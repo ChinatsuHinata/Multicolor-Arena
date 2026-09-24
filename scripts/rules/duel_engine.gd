@@ -194,6 +194,10 @@ func stackable_members(c: Dictionary) -> Array:
  var signature=stackable_signature(c)
  if signature.is_empty():return []
  return players[c.owner].field.filter(func(u):return stackable_signature(u)==signature)
+func can_batch_stackable_sacrifice(c: Dictionary,key: String) -> bool:
+ if c.is_empty() or not cards.get(c.card_id,{}).get("stackable",false):return false
+ # 要石有目标，每次只启动一张；无牺牲异能的新闻素材只合并显示。
+ return c.card_id=="token-fdf-127" and key=="token-fdf-127" or c.card_id=="token-fdf-128" and key=="wine_discount"
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
  if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
@@ -211,7 +215,7 @@ func source_resources(who: int) -> Array:
  for c in players[who].field:
   if not c.tapped and DB.has_ability(cards[c.card_id],"mana"):
    sources.append({"uid":c.uid,"colors":[DB.ability(cards[c.card_id],"mana")["颜色"]],"weight":8,"kind":"item"})
-  elif not c.tapped and c.card_id=="character-fdf-098" and not summoning_sick(c):
+  elif Cat.enabled(self,c,"character-fdf-098") and not Cat.State.activation_locked(self,c) and not Roster.Batch.locked(self,c) and Roster.activation_error(self,c,"character-fdf-098").is_empty():
    # This unit pays yellow and green together. It is one tap, never two separate sources.
    sources.append({"uid":c.uid,"colors":["黄/绿"],"pair":["黄","绿"],"weight":18,"kind":"unit"})
  sources.append_array(players[who].get("mana",[]))
@@ -345,8 +349,14 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  var error=cast_error(who,uid)
  if not error.is_empty(): return error
  var c=find_card(uid); var info=cards[c.card_id]
+ var target_spec={}
  if info.kind=="符卡" or not info.get("variable_cost","").is_empty() or c.card_id=="character-fdf-046":
-  if not Pack.choice_valid(self,targets_for(c.card_id,who,uid),target): return "目标已失效"
+  var legal_options=targets_for(c.card_id,who,uid)
+  if not Pack.choice_valid(self,legal_options,target): return "目标已失效"
+  # A paid sacrifice/discard may remove a cost choice before an opponent can
+  # redirect the spell. Keep only the matching declaration-time specification.
+  for spec in legal_options:
+   if spec.has("selection") and spec.selection.any(func(g):return g.get("cost",false)) and Pack.choice_valid(self,[spec],target):target_spec=spec.duplicate(true);break
  if Roster.free_cast(self,c,who) and int(target.get("x",0))!=0:return "不支付颜色值使用时，X为0"
  if not payment_valid(who,cast_cost(who,c,target),plan): return "支付方案已失效"
  if Roster.key(info,["discard_draw","door_reveal"])!="" and Pack.picked(target).any(func(r):return r.uid==uid):return "不能弃置正在使用的牌"
@@ -365,6 +375,7 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
   var shown=find_card(r.uid); reveal_card(shown)
  shift(c,"stack");presentation_events.back().to_owner=who; c.owner=who;c.merge(catalogue_paid,true)
  stack.append({"id":next_stack,"kind":"card","card":c,"owner":who,"target":target.duplicate(),"name":info.name})
+ if not target_spec.is_empty():stack.back().target_spec=target_spec
  next_stack+=1; passes=0; priority=1-who
  note(player_names[who]+"使用 "+info.name,history_art(c))
  Roster.on_cast(self,c,who,old_zone)
@@ -1325,14 +1336,18 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  var clean_target=target.duplicate(true);clean_target.erase("stackable_count")
  var members=[c]
  if count>1:
-  if not cards[c.card_id].get("stackable",false):return "该牌不能批量启动"
+  if not can_batch_stackable_sacrifice(c,key):return "该牌不能批量牺牲"
   members=stackable_members(c)
-  if count>members.size():return "可启动数量不足"
+  if count>members.size():return "可牺牲数量不足"
   members.erase(c);members.push_front(c)
   members=members.slice(0,count)
   for member in members:
-   if not extension_activation_error(who,member,key).is_empty():return "有对象不能启动"
- if not Pack.choice_valid(self,Extra.activation_options(self,c,key),clean_target): return "选择已失效"
+   if not extension_activation_error(who,member,key).is_empty():return "有对象不能牺牲"
+ var legal_options=Extra.activation_options(self,c,key)
+ if not Pack.choice_valid(self,legal_options,clean_target): return "选择已失效"
+ var target_spec={}
+ for spec in legal_options:
+  if spec.has("selection") and spec.selection.any(func(g):return g.get("cost",false)) and Pack.choice_valid(self,[spec],clean_target):target_spec=spec.duplicate(true);break
  if not payment_valid(who,extension_cost(who,c,key,target),plan): return "支付方案已失效"
  Cat.pay(self,who,plan)
  for member in members:
@@ -1348,6 +1363,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
   if key=="character-fdf-098":
    Cat.add_paired_mana(self,who,["黄","绿"]);revision+=1;return ""
   stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":clean_target.duplicate(true),"name":cards[member.card_id].name})
+  if not target_spec.is_empty():stack.back().target_spec=target_spec.duplicate(true)
   if key=="courage_die":
    stack.back().die=rng.randi_range(1,6);show_result("D6 · %d" % stack.back().die,member)
   if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[member.card_id],key)
@@ -1467,8 +1483,9 @@ func attack_cost(who: int) -> Dictionary:
 func extension_cost(who: int,c: Dictionary,key: String,target: Dictionary={}) -> Dictionary:
  var cost=Extra.activation_cost(key).duplicate();var tax=Cat.target_tax(self,who,target)
  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
- var count=maxi(1,int(target.get("stackable_count",1)))
- for color in cost:cost[color]=int(cost[color])*count
+ if can_batch_stackable_sacrifice(c,key):
+  var count=maxi(1,int(target.get("stackable_count",1)))
+  for color in cost:cost[color]=int(cost[color])*count
  return cost
 
 func ability_cost(who: int,uid: int,index: int,target: Dictionary={}) -> Dictionary:

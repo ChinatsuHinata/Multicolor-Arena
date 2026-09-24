@@ -3,6 +3,10 @@ const Codec=preload("res://net/state_codec.gd")
 const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names"]
 static func hidden_card(who: int,zone: String,index: int) -> Dictionary:
  return {"card_id":"back","uid":-1000000-who*100000-(10000 if zone=="deck" else 0)-index,"epoch":0,"owner":who,"original_owner":who,"zone":zone,"leader":false,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false,"network_hidden":true}
+static func public_stack(entries: Array) -> Array:
+ var result=entries.duplicate(true)
+ for entry in result:entry.erase("target_spec")
+ return result
 static func collect_refs(v: Variant,refs: Dictionary):
  if v is Dictionary:
   if v.has("uid") and v.has("epoch"):refs[int(v.uid)]=true
@@ -14,6 +18,9 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  for key in ["catalogue_target_fast","catalogue_x_override","catalogue_retargeting","paid_cast_uid","forced_cast","revision"]:scratch[key]=e.get(key)
  var state={};var q={"cast":{},"targets":{},"actions":{},"extra":{},"extension_targets":{},"free":{},"stats":{},"leader":{},"sick":{},"haste":{},"possess":{},"lookup":{}}
  for k in PUBLIC_FIELDS:state[k]=e.get(k).duplicate(true) if e.get(k) is Array or e.get(k) is Dictionary else e.get(k)
+ # The authority alone needs declaration-time choice pools for retargeting.
+ # A paid discard could otherwise disclose private hand choices in a snapshot.
+ state.stack=public_stack(state.stack)
  q.resources=e.source_resources(seat).duplicate(true);q.response=e.has_response(seat);q.blockers=e.legal_blockers().map(func(c):return c.uid) if e.pending.get("kind","")=="block" and e.pending.owner==seat else []
  q.ability_targets=e.ability_targets().duplicate(true)
  q.legal=e.legal_casts(seat).map(func(c):return c.uid);q.fast_legal=e.legal_casts(seat,true).map(func(c):return c.uid)

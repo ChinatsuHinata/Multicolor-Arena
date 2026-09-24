@@ -5,6 +5,7 @@ static func build(e,events: Array=[],perspective: int=-1) -> Dictionary:
  var state={};var q={"stats":{},"leader":{},"sick":{},"haste":{}}
  for key in SeatView.PUBLIC_FIELDS:
   var v=e.get(key);state[key]=v.duplicate(true) if v is Array or v is Dictionary else v
+ state.stack=SeatView.public_stack(state.stack)
  state.pending={"kind":"network_wait","owner":e.pending.get("owner",e.priority)} if not e.pending.is_empty() else {}
  state.forced_cast={};state.players=[];state.presentation_events=[]
  var definitions={}

@@ -29,6 +29,7 @@ func steps(option: Dictionary) -> Array:
   for part in option.parts: result.append_array(steps(part))
   return result
  if option.has("mode"): result.append({"kind":"mode","value":option.mode})
+ if int(option.get("redirect_total",1))>1: result.append({"kind":"mode","value":"第 %d 个目标" % (int(option.get("redirect_index",0))+1)})
  if option.has("sacrifice"): result.append({"kind":"target","role":"sacrifice","value":option.sacrifice})
  var target={}
  for field in ["uid","epoch","zone","player","stack_id"]:

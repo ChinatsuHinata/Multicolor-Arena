@@ -14,7 +14,7 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Transport=preload("res://net/lan_transport.gd")
 const Discovery=preload("res://net/lan_discovery.gd")
 const Metrics=preload("res://net/connection_metrics.gd")
-const VERSION="1.1.1-bugfixed"
+const VERSION="1.2"
 const RECONNECT_LIMIT_MS=30000
 var transport
 var discovery

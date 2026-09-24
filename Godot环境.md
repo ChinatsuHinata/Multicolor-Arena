@@ -5,7 +5,7 @@
 ## 打开和编译
 
 - 双击项目根目录的 `启动Godot.cmd` 打开编辑器。
-- 双击 `编译Windows.cmd` 执行资源导入并正式导出。生成 `builds/Windows-1.1.1-bugfixed/MulticolorArena.exe` 和同名 `.pck`；分享时两者必须放在一起。
+- 双击 `编译Windows.cmd` 执行资源导入并正式导出。生成 `builds/Windows-1.2/MulticolorArena.exe` 和同名 `.pck`；分享时两者必须放在一起。
 - 命令行也可运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-windows.ps1`。
 
 ## 在 VS Code 创建安装包

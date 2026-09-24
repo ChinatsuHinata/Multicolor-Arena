@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$OutputPath = 'builds/Windows-1.1.1-bugfixed/MulticolorArena.exe'
+    [string]$OutputPath = 'builds/Windows-1.2/MulticolorArena.exe'
 )
 
 $ErrorActionPreference = 'Stop'
