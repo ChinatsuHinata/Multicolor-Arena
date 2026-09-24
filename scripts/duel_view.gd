@@ -1036,13 +1036,14 @@ func optional_trigger_prompt():
  label.set_meta("optional_trigger_prompt",true)
 func execute_action(action: Dictionary):
  if response_disabled() or not action.enabled: return
- if action.type in ["extension","ability"]:
+ if action.type in ["ability","extension"]:
   var c=engine.find_card(action.uid)
-  if not c.is_empty() and engine.cards[c.card_id].get("stackable",false):
+  var can_batch=not c.is_empty() and (action.type=="ability" and engine.cards[c.card_id].get("stackable",false) or action.type=="extension" and engine.can_batch_stackable_sacrifice(c,action.key))
+  if can_batch:
    var count=engine.stackable_members(c).size()
    if count>1:
-    var panel=overlay("选择一次启动的数量")
-    txt("%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
+    var panel=overlay("选择牺牲数量" if action.type=="extension" else "选择一次启动的数量")
+    txt("%s：可牺牲 1 至 %d 个" % [engine.cards[c.card_id].name,count] if action.type=="extension" else "%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
     var spinner=SpinBox.new();spinner.position=Vector2(196,137);spinner.size=Vector2(260,48)
     spinner.min_value=1;spinner.max_value=count;spinner.step=1;spinner.rounded=true;spinner.value=1
     panel.add_child(spinner)
@@ -1098,7 +1099,7 @@ func local_cost() -> Dictionary:
  return engine.cast_cost(acting_player(),engine.find_card(local.uid),local.get("target",{}))
 func activation_target() -> Dictionary:
  var target=local.get("target",{}).duplicate(true)
- if local.get("stackable_count",1)>1:target.stackable_count=local.stackable_count
+ if local.get("action","") in ["ability","extension"] and local.get("stackable_count",1)>1:target.stackable_count=local.stackable_count
  return target
 func local_targets() -> Array:
  if local.get("action","")=="direct_attack": return engine.Pack.all_units(engine,1-acting_player()).filter(func(r):return engine.Pack.direct_attack(engine,engine.find_card(local.uid)) or engine.find_card(r.uid).has("rank_target"))

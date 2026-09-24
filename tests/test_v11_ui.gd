@@ -49,12 +49,13 @@ func run():
  await capture("v11-okina-editor")
  app.query=""
  var complete_library=app.library_ids()
- expect(complete_library.all(func(id):return Store.CARDS[id].constructible and not Store.CARDS[id].token) and not complete_library.has("character-ucs-020") and not complete_library.has("character-ucs-021"),"卡库不显示梦违与衍生物")
+ expect(complete_library.has("character-ucs-020") and complete_library.has("character-ucs-021") and complete_library.has("token-ucs-099"),"卡库展示梦违与衍生物")
  app.query="梦违"
  var dream_ids=app.library_ids()
- expect(dream_ids.all(func(id):return Store.CARDS[id].constructible),"搜索梦违也不显示梦违卡")
+ expect(dream_ids.size()==7 and dream_ids.all(func(id):return not Store.CARDS[id].constructible and not Store.CARDS[id].token),"搜索梦违展示全部只读梦违卡")
  app.query="衍生物";app.update_library();await process_frame
- expect(app.library_ids().all(func(id):return not Store.CARDS[id].token),"搜索衍生物也不显示衍生物卡")
+ expect(app.library_ids().size()==16 and app.library_ids().all(func(id):return Store.CARDS[id].token),"搜索衍生物展示全部只读衍生物卡")
+ expect(app.library.get_children().all(func(row):return not row.draggable),"衍生物卡库行只能预览")
  expect(not app.valid_drag_source({"card_id":"token-ucs-099","source_zone":"library"}),"衍生物不能从卡库拖入卡组")
  var illegal=Store.blank("只读卡验证");illegal.leader="70"
  expect(not Store.add_card(illegal,"new-eto-002","main").is_empty() and not Store.add_card(illegal,"token-ucs-099","side").is_empty(),"梦违与衍生物均被卡组加入规则拒绝")

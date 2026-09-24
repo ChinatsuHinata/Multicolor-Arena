@@ -60,7 +60,7 @@ static func validate(d: Variant, strict: bool = false, rule_set: String = "") ->
  for id in d.main+d.side+[d.leader]:
   if not rule_set.is_empty():
    if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
-  elif not CARDS[id].constructible:return "不能加入常规卡组："+CARDS[id].name
+  elif not CARDS[id].constructible or CARDS[id].get("token",false):return "不能加入常规卡组："+CARDS[id].name
  if strict and selected_rule!=RuleSet.TEST and d.main.size() != 50: return "主卡组需要 50 张，当前 %d 张。" % d.main.size()
  if not rule_set.is_empty():
   var names={}
@@ -88,7 +88,7 @@ static func add_card(d: Dictionary, id: String, zone: String, rule_set: String =
  if not rule_set.is_empty():
   if rule_set not in RuleSet.IDS:return "规则集无效。"
   if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
- elif not CARDS[id].constructible:return "不能加入常规卡组："+CARDS[id].name
+ elif not CARDS[id].constructible or CARDS[id].get("token",false):return "不能加入常规卡组："+CARDS[id].name
  if zone == "leader":
   if CARDS[id].kind != "自机": return "自机位只能放置自机卡。"
   d.leader = id

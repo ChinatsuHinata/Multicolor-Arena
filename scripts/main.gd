@@ -470,7 +470,8 @@ func update_preview():
   column.add_child(text)
  if sideboard_session==null:
   if not RuleSet.allowed(selected,info,str(draft.get("rule_set",RuleSet.OFFICIAL))):
-   var notice=label(preview,"此规则集不可加入卡组",Rect2(0,715,260,43),17,MUTED)
+   var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
+   var notice=label(preview,reason,Rect2(0,715,260,43),17,MUTED)
    notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   elif info.kind=="自机":button(preview,"设为自机",Rect2(0,715,260,43),func(): add_to("leader"),true)
 
@@ -490,12 +491,13 @@ func update_library():
   row.custom_minimum_size=Vector2(296,64)
   row.add_theme_stylebox_override("panel",style(Color("#142737") if available else Color("#24303a"),Color("#3d5161") if available else MUTED))
   library.add_child(row)
-  var full_name=label(row,info.name,Rect2(10,4,222 if remaining>=0 else 276,54),17,WHITE if available else MUTED)
+  var full_name=label(row,info.name,Rect2(10,4,222 if available and remaining>=0 else 276,54),17,WHITE if available else MUTED)
   full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  if remaining>=0:label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
-  row.tooltip_text=info.name if available else info.name+"\n此规则集不可加入卡组"
+  if available and remaining>=0:label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
+  var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
+  row.tooltip_text=info.name if available else info.name+"\n"+reason
   row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
   row.clicked.connect(func(card_id,_from,_index,right):
    selected=card_id
@@ -514,7 +516,6 @@ func library_ids() -> Array:
  for id in Store.CARDS:
   var info=Store.CARDS[id]
   if info.get("canonical_id",id)!=id: continue
-  if not info.get("constructible",false) or info.get("token",false):continue
   if not library_matches_query(id,info,role_characters,alias_ids,alias_result.exclusive,filters,race_characters): continue
   if not library_kind_matches(info.kind,filter_kind): continue
   if not matches_colors(info): continue
@@ -525,6 +526,8 @@ func library_ids() -> Array:
 func library_matches_query(id: String,info: Dictionary,role_characters: Array,alias_ids: Dictionary,alias_exclusive: bool,filters: Dictionary,race_characters: Array) -> bool:
  var term=query.strip_edges().to_lower()
  if term.is_empty():return true
+ if term=="衍生物":return info.get("token",false)
+ if term=="梦违":return not info.get("constructible",false) and not info.get("token",false) and ("梦违" in info.name or "梦违" in info.get("rules_text","") or "梦违" in info.get("keywords",[]))
  var role_spell=info.kind=="符卡" and "角色" in str(info.get("spell_type","")) and info.get("requires_character","") in role_characters
  if not filters.is_empty():
   var race_match=filters.race=="" or filters.race in info.get("race",[]) or library_related_to_race(info,filters.race,race_characters)
@@ -534,6 +537,8 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
  var searchable=[info.name,id,info.get("title",""),info.get("character","")]
  searchable.append_array(info.get("keywords",[]))
  searchable.append_array(info.get("aliases",[]))
+ if info.get("token",false):searchable.append("衍生物")
+ if not info.get("constructible",false):searchable.append("不可构筑")
  return role_spell or alias_ids.has(id) or searchable.any(func(value):return term in str(value).to_lower())
 
 func library_race_characters(race: String) -> Array:
@@ -562,9 +567,9 @@ func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
    if not text.ends_with(suffix):continue
    var alias=text.substr(0,text.length()-suffix.length()).strip_edges()
    rule=SearchAliases.find_rule(rules,alias)
-   if rule!=null:
-    kind=suffix
-    break
+   if rule==null:continue
+   kind=suffix
+   break
  if rule==null:return {"exclusive":false,"ids":{}}
  var matches={}
  for id in Store.CARDS:

@@ -18,7 +18,7 @@ func run():
  expect(app.decks[app.player_choice].name=="预组-灵梦" and app.decks[app.ai_choice].name=="预组-魔理沙","test loader selects the two photo precons")
  expect(not app.skip_check and app.decks[app.player_choice].main.size()==50,"test precons use normal strict deck validation")
  app.draft=app.decks[app.player_choice].duplicate(true); app.selected=app.draft.leader; app.dirty=false; app.editor(); await settle()
- expect(app.library.get_children().all(func(n): return Store.CARDS[n.card_id].constructible),"tokens excluded from normal editor library")
+ expect(app.library_ids().has("token-ucs-099") and app.library.get_children().all(func(n):return Store.CARDS[n.card_id].constructible or not n.draggable),"tokens visible but read-only in normal editor library")
  expect(app.textures.size()<=48,"editor does not preload all 132 oversized textures")
  expect(app.counts.text.contains("50"),"Reimu precon displays all fifty main cards")
  await capture("precon-reimu")

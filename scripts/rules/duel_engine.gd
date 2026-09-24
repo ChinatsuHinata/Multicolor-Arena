@@ -194,6 +194,9 @@ func stackable_members(c: Dictionary) -> Array:
  var signature=stackable_signature(c)
  if signature.is_empty():return []
  return players[c.owner].field.filter(func(u):return stackable_signature(u)==signature)
+func can_batch_stackable_sacrifice(c: Dictionary,key: String) -> bool:
+ if c.is_empty() or not cards.get(c.card_id,{}).get("stackable",false):return false
+ return (c.card_id=="token-fdf-127" and key=="token-fdf-127") or (c.card_id=="token-fdf-128" and key=="wine_discount")
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
  if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
@@ -1333,7 +1336,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  var clean_target=target.duplicate(true);clean_target.erase("stackable_count")
  var members=[c]
  if count>1:
-  if not cards[c.card_id].get("stackable",false):return "该牌不能批量启动"
+  if not can_batch_stackable_sacrifice(c,key):return "该牌不能批量启动"
   members=stackable_members(c)
   if count>members.size():return "可启动数量不足"
   members.erase(c);members.push_front(c)

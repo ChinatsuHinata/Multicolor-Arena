@@ -16,8 +16,8 @@ static func label_for(rule_set: String) -> String:
  return LABELS[index] if index>=0 else "未知规则集"
 
 static func allowed(id: String,info: Dictionary,rule_set: String) -> bool:
+ if not info.get("constructible",false) or info.get("token",false):return false
  if rule_set==TEST:return true
- if not info.get("constructible",false):return false
  return rule_set!=OFFICIAL or not id in ["new-spx-001","new-spx-002","new-spx-003","new-spx-004","new-spx-005","new-spx-006","new-spx-007"]
 
 static func limit(id: String,info: Dictionary,rule_set: String) -> int:

@@ -75,19 +75,22 @@ func run():
  view.render();await process_frame
  expect(e.stackable_members(stones[0]).size()==3 and view.table.descriptors.values().filter(func(d):return d.card_id=="token-fdf-129").size()==2,"不同状态的实体分别显示")
  changed[1].tapped=false
+ expect(not e.commit_extension(0,stones[0].uid,{"player":1,"stackable_count":2},[],"token-fdf-129").is_empty(),"要石不能批量牺牲")
+ expect(e.players[0].field.size()==4 and e.stack.is_empty(),"要石批量请求失败时保持原状")
  view.execute_action({"type":"extension","uid":stones[0].uid,"key":"token-fdf-129","enabled":true})
- expect(view.modal and nodes_of_type(view.modal_root,"SpinBox").size()==1,"点击可启动的叠放牌选择数量")
- var spinner=nodes_of_type(view.modal_root,"SpinBox")[0]
- expect(spinner.max_value==4,"数量上限等于同状态实体数")
- spinner.value=3
- await press("确认")
- expect(view.local.get("stackable_count",0)==3,"所选数量进入启动流程")
- view.local.target={"player":1};view.local.mode="payment";view.commit_local()
- expect(e.stack.size()==3 and e.stack.all(func(entry):return entry.target=={"player":1}),"三枚要石分别入堆叠并共用单个目标")
- expect(e.players[0].field.filter(func(c):return c.card_id=="token-fdf-129").size()==1,"仅牺牲所选的三枚要石")
+ expect(not view.modal and view.local.get("stackable_count",1)==1,"点击要石不弹出数量选择")
+ view.cancel_cast()
  clean(true)
  var fish=[]
  for i in range(3):fish.append(put("token-fdf-127","field"))
+ view.execute_action({"type":"extension","uid":fish[0].uid,"key":"token-fdf-127","enabled":true})
+ expect(view.modal and nodes_of_type(view.modal_root,"SpinBox").size()==1,"点击叠放的烤八目鳗可选择牺牲数量")
+ var spinner=nodes_of_type(view.modal_root,"SpinBox")[0]
+ expect(spinner.max_value==3,"烤八目鳗数量上限为叠放数")
+ spinner.value=2
+ await press("确认")
+ expect(view.local.get("stackable_count",0)==2,"所选数量进入启动流程")
+ view.cancel_cast()
  expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":4},[],"token-fdf-127")=="可启动数量不足","拒绝超出实际数量的请求")
  expect(e.players[0].field.size()==3 and e.stack.is_empty(),"数量非法时状态不变")
  expect(e.commit_extension(0,fish[0].uid,{"none":true,"stackable_count":2},[],"token-fdf-127").is_empty(),"烤八目鳗可批量启动")

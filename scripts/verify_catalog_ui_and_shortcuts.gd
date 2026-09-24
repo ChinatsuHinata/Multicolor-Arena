@@ -23,10 +23,21 @@ func run():
  app.editor()
  await process_frame
  var all_cards=app.library_ids()
- check(all_cards.all(func(id):return Store.CARDS[id].constructible and not Store.CARDS[id].token) and not all_cards.has("character-ucs-020") and not all_cards.has("character-ucs-021"),"library hides dream and token cards")
- for term in ["梦违","衍生物"]:
-  app.query=term
-  check(app.library_ids().all(func(id):return Store.CARDS[id].constructible and not Store.CARDS[id].token),"search keeps excluded cards hidden: "+term)
+ var read_only=all_cards.filter(func(id):return not Store.CARDS[id].constructible or Store.CARDS[id].token)
+ check(read_only.size()==23 and all_cards.has("character-ucs-020") and all_cards.has("character-ucs-021") and all_cards.has("token-ucs-099"),"library includes all dream and token cards")
+ app.query="梦违"
+ var dreams=app.library_ids()
+ check(dreams.size()==7 and dreams.all(func(id):return not Store.CARDS[id].constructible and not Store.CARDS[id].token),"dream search finds seven read-only cards")
+ app.query="衍生物"
+ var tokens=app.library_ids()
+ check(tokens.size()==16 and tokens.all(func(id):return Store.CARDS[id].token),"token search finds sixteen read-only cards")
+ app.update_library()
+ check(app.library.get_children().all(func(row):return not row.draggable),"read-only search rows cannot be dragged")
+ var before=JSON.stringify([app.draft.main,app.draft.side,app.draft.leader])
+ var token_row=app.library.get_children()[0]
+ token_row.clicked.emit(token_row.card_id,"library",-1,false)
+ check(app.selected==token_row.card_id and JSON.stringify([app.draft.main,app.draft.side,app.draft.leader])==before,"clicking token previews without adding it")
+ check(not app.valid_drag_source({"card_id":"token-ucs-099","source_zone":"library"}),"token drag is rejected")
  app.query="蓝康"
  check(app.library_ids().has("spell-fdn-069"),"blue counter alias finds 青ノ花")
  app.query="绿康"

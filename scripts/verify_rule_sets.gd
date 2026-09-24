@@ -34,7 +34,15 @@ func _initialize():
  for i in range(5):deck.main.append("164")
  check(not Store.validate(deck,false,Rules.UNRESTRICTED).is_empty(),"ordinary cards capped at four")
  check(Store.validate(deck,false,Rules.TEST).is_empty(),"test cards ignore copy limit")
- check(Store.add_card(deck,"token-ucs-099","side",Rules.TEST).is_empty(),"test rule admits normally unconstructible cards")
+ check(not Store.add_card(deck,"token-ucs-099","side",Rules.TEST).is_empty() and not Store.add_card(deck,"character-ucs-020","main",Rules.TEST).is_empty(),"test rule still rejects tokens and dream cards")
+ for mode in Rules.IDS:
+  check(not Rules.allowed("token-ucs-099",Store.CARDS["token-ucs-099"],mode) and not Rules.allowed("character-ucs-020",Store.CARDS["character-ucs-020"],mode),"read-only cards forbidden in "+mode)
+ var forged={"name":"非法卡组","leader":"70","main":["token-ucs-099"],"side":[],"rule_set":Rules.TEST}
+ check(not Store.validate(forged,false,Rules.TEST).is_empty() and Store.decode(JSON.stringify(forged)).has("error"),"forged test deck cannot import tokens")
+ forged.main=["character-ucs-020"]
+ check(not Store.validate(forged,false,Rules.TEST).is_empty() and Store.decode(JSON.stringify(forged)).has("error"),"forged test deck cannot import dream cards")
+ var legacy=Store.blank("旧测试卡组");legacy.leader="70";legacy.main=["token-ucs-099","164","character-ucs-020"]
+ check(Store.prune_for_rule(legacy,Rules.TEST)==2 and legacy.main==["164"],"rule change removes legacy read-only cards")
  deck.main.append(deck.leader)
  check(Store.validate(deck,false,Rules.TEST).is_empty(),"test rule admits leader names in deck")
  deck.main.pop_back();deck.side.clear()
