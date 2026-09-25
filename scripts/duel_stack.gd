@@ -10,7 +10,7 @@ var tiles={}
 var signature=""
 func build(owner_view):
  view=owner_view;position=AREA.position;size=AREA.size;mouse_filter=Control.MOUSE_FILTER_IGNORE
- heading=view.txt("",Rect2(3,0,230,29),20,view.host.GOLD,self)
+ heading=view.txt("",Rect2(3,0,230,29),20,view.host.BATTLE_GOLD,self)
  scroll=ScrollContainer.new();scroll.position=Vector2(0,33);scroll.size=Vector2(236,419)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  add_child(scroll)
@@ -43,7 +43,7 @@ func sync():
      tile.accept_event())
    var caption=Label.new();caption.text=view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else ""
    caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size.x=218
-   caption.add_theme_font_size_override("font_size",15);caption.add_theme_color_override("font_color",view.host.WHITE)
+   caption.add_theme_font_size_override("font_size",15);caption.add_theme_color_override("font_color",view.host.BATTLE_WHITE)
    caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.visible=not caption.text.is_empty();row.add_child(caption)
    tile.tooltip_text=entry.name+("\n"+caption.text if not caption.text.is_empty() else "")
    tiles[entry.id]={"tile":tile,"caption":caption,"art":art}
@@ -53,7 +53,7 @@ func sync():
   var tile=tiles[id].tile;var selected=id in view.table.selected_stacks;var legal=id in view.table.targetable_stacks
   var style=StyleBoxFlat.new();style.bg_color=Color.TRANSPARENT
   if selected or legal:
-   style.set_border_width_all(4);style.border_color=Color("#ffd65c") if selected else Color("#359bff")
+   style.set_border_width_all(4);style.border_color=Color("#f3d397") if selected else Color("#69cce4")
    style.expand_margin_left=3;style.expand_margin_right=3;style.expand_margin_top=3;style.expand_margin_bottom=3
   tile.add_theme_stylebox_override("panel",style);tile.set_meta("selected",selected);tile.set_meta("legal",legal)
 func entry_rect(id:int) -> Rect2:

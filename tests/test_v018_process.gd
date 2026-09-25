@@ -34,8 +34,10 @@ func run():
    if room.own_deck.is_empty():
     var decks=Store.load_decks().decks;var selected=decks.filter(func(d):return d.id==("precon_reimu_v1" if role=="host" else "precon_marisa_v1"))
     session.room_action({"name":"deck","deck":selected[0] if not selected.is_empty() else decks[session.seat]})
-   elif room.chooser==session.seat and not room.first_chosen:session.room_action({"name":"first","first":true})
-   elif room.first_chosen and not room.ready[session.seat]:session.room_action({"name":"ready"})
+   elif not room.ready[session.seat]:session.room_action({"name":"ready"})
+   await create_timer(0.04).timeout;continue
+  if room.get("status","")=="choosing":
+   if room.chooser==session.seat:session.room_action({"name":"first","first":true})
    await create_timer(0.04).timeout;continue
   if room.get("status","")=="complete" and not facade.players.is_empty():
    var report={"role":role,"score":room.scores,"winner":room.winner,"game_id":room.game_id,"sequence":session.view_sequence,"turn":facade.turn,"life":[facade.players[0].life,facade.players[1].life],"actions":actions,"errors":failures,"history":facade.log}

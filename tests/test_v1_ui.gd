@@ -33,6 +33,7 @@ func run():
   expect(Store.validate(decks[seat],true).is_empty(),"strict legal sideboard fixture")
   authority_session.handle_room_action(seat,{"name":"deck","deck":decks[seat]})
  for seat in [0,1]:authority_session.handle_room_action(seat,{"name":"ready"})
+ authority_session.handle_room_action(authority_session.series.state.chooser,{"name":"first","first":true})
  await until(func():return not client_session.latest_snapshot.is_empty());sync_sessions()
  authority_session.submit({"name":"surrender","args":[]})
  await until(func():return client_session.room.get("status")=="between");sync_sessions()
@@ -76,6 +77,7 @@ func run():
  await tap("取消准备");await until(func():return not client_session.room.ready[1])
  expect(not find_button(app.screen,"调整主副卡组").disabled,"cancel ready restores sideboarding")
  for seat in [0,1]:authority_session.handle_room_action(seat,{"name":"ready"})
+ authority_session.handle_room_action(authority_session.series.state.chooser,{"name":"first","first":true})
  await until(func():return client_session.room.status=="playing" and client_session.room.round==2)
  app.return_network_battle();view=app.duel_view
  await until(func():return not view.revealing());await settle()

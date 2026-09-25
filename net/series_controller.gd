@@ -2,9 +2,15 @@ extends RefCounted
 const Store=preload("res://scripts/deck_store.gd")
 const RuleSet=preload("res://scripts/deck_rule_set.gd")
 const Identity=preload("res://net/local_identity.gd")
-var state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"coin":{},"coin_history":[],"counted":[],"winner":-2}
+var state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"chooser":-1,"first_chosen":false,"choice_reason":"","roll":{},"roll_history":[],"choice_history":[],"last_winner":-2,"counted":[],"winner":-2}
 func setup(format_value: int,strict: bool,rule_set: String=RuleSet.UNRESTRICTED):
  state.match_id=Identity.token();state.format=3 if format_value==3 else 1;state.strict=strict;state.rule_set=rule_set
+func rematch() -> String:
+ if state.status!="complete" or state.has("forfeit"):return "当前不能开始新的一场"
+ var old=state
+ state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":old.names.duplicate(true),"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":old.decks.duplicate(true),"first":0,"chooser":-1,"first_chosen":false,"choice_reason":"","roll":{},"roll_history":[],"choice_history":[],"last_winner":-2,"counted":[],"winner":-2,"rematch":true}
+ setup(old.format,old.strict,old.rule_set)
+ return ""
 func set_deck(seat: int,deck: Dictionary) -> String:
  if state.status not in ["lobby","between"]:return "当前不能换牌"
  var error=sideboard_error(deck,state.registered[seat],state.strict,state.rule_set) if state.status=="between" else Store.validate(deck,state.strict,state.rule_set)
@@ -34,20 +40,48 @@ func ready(seat: int) -> String:
  if not error.is_empty():return error
  state.ready[seat]=true
  return ""
-func start_game() -> bool:
+func roll_die() -> int:
+ var value=256
+ while value>=252:value=int(Crypto.new().generate_random_bytes(1)[0])
+ return value%6+1
+func prepare_choice() -> bool:
  if state.status not in ["lobby","between"] or not state.ready.all(func(v):return v):return false
+ state.first_chosen=false
+ if state.round==0:
+  var host_roll=roll_die();var guest_roll=roll_die();var ties=0
+  while host_roll==guest_roll:
+   ties+=1;host_roll=roll_die();guest_roll=roll_die()
+  state.chooser=0 if host_roll>guest_roll else 1
+  state.roll={"round":1,"values":[host_roll,guest_roll],"ties":ties,"chooser":state.chooser}
+  state.roll_history.append(state.roll.duplicate(true))
+  state.choice_reason="投点获胜"
+ else:
+  state.roll={}
+  if state.last_winner in [0,1]:
+   state.chooser=1-state.last_winner
+   state.choice_reason="上一局落败"
+  else:state.choice_reason="上一局平局，沿用选择权"
+ state.status="choosing"
+ return true
+func choose_first(seat: int,wants_first: bool) -> String:
+ if state.status!="choosing" or state.first_chosen:return "当前不能选择先后手"
+ if seat!=state.chooser:return "只能由取得选择权的玩家决定先后手"
+ state.first=seat if wants_first else 1-seat
+ state.first_chosen=true
+ return ""
+func start_game() -> bool:
+ if state.status!="choosing" or not state.first_chosen:return false
  if state.round==0:state.registered=state.decks.duplicate(true)
  state.round+=1;state.game_id=Identity.token();state.status="playing";state.ready=[false,false]
- # One authoritative opening coin per game, independent of in-game coin abilities.
- state.first=int(Crypto.new().generate_random_bytes(1)[0])%2
- state.coin={"game_id":state.game_id,"round":state.round,"face":"正面" if state.first==0 else "反面","first":state.first}
- state.coin_history.append(state.coin.duplicate(true))
+ state.choice_history.append({"game_id":state.game_id,"round":state.round,"chooser":state.chooser,"first":state.first,"reason":state.choice_reason})
  return true
-func coin_text() -> String:
- return "开局硬币 · %s · %s先手" % [state.coin.face,state.names[state.first]] if not state.coin.is_empty() else "双方准备后投硬币决定先后手"
+func opening_text() -> String:
+ var reason="投点 %s %d : %d %s · " % [state.names[0],state.roll["values"][0],state.roll["values"][1],state.names[1]] if state.round==1 else state.choice_reason+" · "
+ return reason+state.names[state.chooser]+"选择 · "+state.names[state.first]+"先手"
 func record_result(winner: int) -> bool:
  if state.game_id in state.counted or state.status!="playing" or winner not in [-1,0,1]:return false
  state.counted.append(state.game_id)
+ state.last_winner=winner
  if winner>=0:state.scores[winner]+=1
  if state.scores.any(func(n):return n>= (2 if state.format==3 else 1)):
   state.status="complete";state.winner=winner

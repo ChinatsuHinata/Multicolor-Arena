@@ -24,6 +24,86 @@ func run():
  await capture("v11-copy-menu")
  e.choose_effect({"none":true,"mode":"停止","copy_stop":true});view.render();await settle()
  expect(e.pending.is_empty(),"停止后正常进行对局")
+ clean(true)
+ var trains=[]
+ for i in range(8):trains.append(put("new-spx-007","field"))
+ view.render();await settle();await physics_frame
+ for wide in [false,true]:
+  view.table.wide_playmat=wide
+  for top_down in [false,true]:
+   view.table.top_down_view=top_down
+   var placements=view.table.layout().values().filter(func(d):return d.card_id=="new-spx-007")
+   var bounds=view.table.support_bounds()
+   var clear=placements.size()==trains.size()
+   for i in range(placements.size()):
+    var d=placements[i];var half=Vector2(view.table.CARD_SIZE.y,view.table.CARD_SIZE.x)*d.scale.x*0.5
+    var center=Vector2(absf(d.at.x),absf(d.at.z))
+    var box=Rect2(center-half,half*2)
+    clear=clear and bounds.encloses(box) and d.get("copy_index",0)==i+1 and d.get("copy_total",0)==trains.size()
+    for j in range(i):
+     var other=placements[j];var other_half=Vector2(view.table.CARD_SIZE.y,view.table.CARD_SIZE.x)*other.scale.x*0.5
+     var other_box=Rect2(Vector2(absf(other.at.x),absf(other.at.z))-other_half,other_half*2)
+     clear=clear and not box.intersects(other_box)
+   expect(clear,"八张列车在%s%s视图均可区分且位于结界区" % ["宽" if wide else "标准","俯视" if top_down else "透视"])
+ view.table.wide_playmat=false;view.table.top_down_view=false;view.render();await settle();await physics_frame
+ var train_displays=view.table.descriptors.values().filter(func(d):return d.card_id=="new-spx-007")
+ expect(train_displays.size()==8 and train_displays.all(func(d):return view.card_badges.has(d.key) and view.card_badges[d.key].has("copy_number") and view.card_badges[d.key].copy_number.text=="%d/8" % d.copy_index),"每张列车显示独立序号")
+ expect(train_displays.all(func(d):return view.table.card_at(view.table.camera.unproject_position(view.table.visuals[d.key].global_position))==d.uid),"每张列车中心可独立点选")
+ await capture("v11-train-layout")
+ for i in range(12):put("new-spx-007","field")
+ view.render();await settle();await physics_frame
+ train_displays=view.table.descriptors.values().filter(func(d):return d.card_id=="new-spx-007")
+ expect(train_displays.size()==20 and train_displays.all(func(d):return d.get("fanned",false) and view.card_badges[d.key].copy_number.text==str(d.copy_index)),"二十张列车扇形排列并显示独立编号")
+ expect(train_displays.all(func(d):return view.table.card_at(view.table.camera.unproject_position(view.table.visuals[d.key].to_global(Vector3(0,0,-view.table.CARD_SIZE.y*0.43))))==d.uid),"密集列车保留逐张可点选的外露边缘")
+ clean(true)
+ var batch_graves=[put("53","grave"),put("52","grave"),put("50","grave",1),put("51","grave",1)]
+ var batch_fuji=put("character-fdn-043","field")
+ view.begin_action(e.extra_action(batch_fuji));await settle()
+ expect(view.modal and view.region_batch_group().get("max",0)==3 and view.region_tiles.size()==4,"富士见之女在同一窗口提供至多三张墓地牌")
+ var before_batch=snapshot()
+ for i in [0,1,2]:
+  await click(view.region_tiles[batch_graves[i].uid].get_global_rect().get_center())
+ var batch_button=view.modal_root.find_child("RegionConfirm",true,false)
+ var batch_count=view.modal_root.find_child("RegionCount",true,false)
+ expect(view.region_batch.size()==3 and batch_button.text=="确认选择（3）" and "已选 3 / 最多 3" in batch_count.text and snapshot()==before_batch,"三张目标在确认前可一次勾选且不改变对局")
+ await click(view.region_tiles[batch_graves[3].uid].get_global_rect().get_center())
+ expect(view.region_batch.size()==3,"超过三张时不追加目标")
+ await click(batch_button.get_global_rect().get_center());await settle()
+ expect(view.picker.ready() and view.picker.option().picks[0].size()==3 and not view.modal,"一次确认提交整组三张目标")
+ view.confirm_declaration();await settle()
+ expect(e.stack.size()==1 and e.stack.back().target.picks[0].size()==3,"发动能力保留三张独立目标")
+ resolve();view.render();await settle()
+ expect(batch_graves.slice(0,3).all(func(c):return c.zone=="exile") and batch_graves[3].zone=="grave","结算只移除选中的三张牌")
+ clean(true)
+ var own_grave=put("53","grave")
+ var other_grave=put("52","grave")
+ var enemy_grave_a=put("50","grave",1)
+ var enemy_grave_b=put("51","grave",1)
+ var eiki=put("35","field")
+ var fuji=put("character-fdn-043","field",1)
+ e.priority=1
+ var grave_refs=[e.Pack.ref(e,own_grave),e.Pack.ref(e,enemy_grave_a),e.Pack.ref(e,enemy_grave_b)]
+ expect(e.commit_extension(1,fuji.uid,{"selection_id":"character-fdn-043","picks":[grave_refs]},[],"character-fdn-043").is_empty(),"富士见之女指向双方墓地三张牌")
+ e.presentation_events.clear();view.reveal_player.reset();view.render();await settle()
+ expect(view.grave_target_tiles.size()==3 and view.stack_target_arrows().size()==3,"墓地目标逐张显示并有独立箭头")
+ expect(not view.target_rect(grave_refs[1]).intersects(view.target_rect(grave_refs[2])),"同一墓地的两张目标牌可区分")
+ view.begin_action(e.extra_action(eiki));await process_frame
+ expect(not view.modal and view.grave_target_tiles.size()==3,"映姬响应时独立目标保持可点击")
+ var other_button=find_button(view.grave_target_layer,"选择其他墓地牌")
+ expect(other_button!=null,"仍可浏览未被堆叠指向的墓地牌")
+ if other_button!=null:
+  await click(other_button.get_global_rect().get_center())
+  expect(view.modal and view.region_tiles.has(other_grave.uid),"其他墓地牌可在选择器中精确选取")
+  view.close_overlay()
+ await click(view.grave_target_tiles[enemy_grave_a.uid].get_global_rect().get_center())
+ expect(view.local.get("target",{}).get("uid",-1)==enemy_grave_a.uid,"点击指定墓地牌选中精确目标")
+ view.confirm_declaration();await process_frame
+ expect(e.stack.size()==2 and e.stack.back().target.get("uid",-1)==enemy_grave_a.uid,"映姬在富士见之女上方响应")
+ e.pass_priority(e.priority);e.pass_priority(e.priority);view.render();await settle()
+ expect(enemy_grave_a.zone=="exile" and own_grave.zone=="grave" and enemy_grave_b.zone=="grave","映姬先移除指定目标")
+ expect(view.grave_target_tiles.size()==2 and not view.grave_target_tiles.has(enemy_grave_a.uid),"离开墓地的目标不再显示")
+ e.pass_priority(e.priority);e.pass_priority(e.priority);view.render();await settle()
+ expect(own_grave.zone=="exile" and enemy_grave_b.zone=="exile" and other_grave.zone=="grave" and view.grave_target_tiles.is_empty(),"原能力继续处理有效目标并清理显示")
  app.editor();await process_frame;app.query="摩多罗";app.update_library();await process_frame
  expect(app.library.get_child_count()==1,"组卡器摩多罗只显示一张")
  expect(is_instance_valid(app.library_sort_choice) and app.library_sort_choice.position.x>1238 and app.library_sort_choice.position.y>72,"排序菜单位于右侧卡库")

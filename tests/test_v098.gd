@@ -34,17 +34,16 @@ func run():
  expect(view.observing and not view.debug_root.visible,"debug browser can be temporarily observed")
  await press("调试"); closed("debug button remains clickable during observation")
  expect(snapshot()==before,"observation toggle does not advance priority")
- # Closing the browser restores an unfinished private payment instead of
- # losing it or leaving the right-hand choices hidden behind observation.
- clean(true); var card=put("53","hand"); var resource=put("164","palette"); view.auto_pay=false
- view.render(); await settle(); await click(view.hand_nodes[card.uid].get_global_rect().get_center()); await press("确定")
- expect(view.local.get("mode")=="payment","normal click still starts manual payment in debug mode")
- view.reserve_resource(resource.uid); view.render(); before=snapshot(); var private_before=view.local.duplicate(true)
+ # Closing the browser restores an unfinished private declaration.
+ clean(true); var card=put("53","hand"); var resource=put("164","palette");
+ view.render(); await settle(); await click(view.hand_nodes[card.uid].get_global_rect().get_center())
+ expect(view.local.get("mode")=="target" and view.payment_ready(),"normal click prepares a payable declaration in debug mode")
+ view.render(); before=snapshot(); var private_before=view.local.duplicate(true)
  await press("调试"); await press("观察战场"); await press("调试"); closed("close from observation restores payment controls")
- expect(view.local==private_before and snapshot()==before and not resource.tapped,"reserved payment survives closing debug and remains private")
- var confirm=find_button(view.ui,"确认支付")
- expect(confirm!=null and confirm.is_visible_in_tree(),"payment confirm is visible after returning")
- await press("确认支付"); expect(card.zone=="stack" and resource.tapped,"normal payment completes after debug exit")
+ expect(view.local==private_before and snapshot()==before and not resource.tapped,"recommended payment survives closing debug and remains private")
+ var confirm=find_button(view.ui,"发动")
+ expect(confirm!=null and confirm.is_visible_in_tree(),"activation is visible after returning")
+ await press("发动"); expect(card.zone=="stack" and resource.tapped,"normal payment completes after debug exit")
  resolve(); view.render(); await settle(); expect(card.zone=="field" and e.stack.is_empty(),"normal card resolves after debug exit")
  # Mandatory target selection cannot be skipped or discarded by the toggle.
  clean(true); var sunny=put("1","field"); e.Extra.event(e,sunny,"enter_haste",false); e.pump_choices(); view.render(); await settle()
@@ -87,6 +86,4 @@ func run():
  resolve(); view.render(); await settle(); resolve(); view.render(); await settle(); resolve(); view.render()
  expect(b.zone=="grave" and e.players[0].life==18 and e.players[1].life==21 and e.combat.is_empty(),"death ability resolves and graveyard victim is never exiled")
  expect(FileAccess.get_file_as_string(Store.SAVE_PATH)==saved,"live saved decks unchanged")
- var report="%d checks; %d failures\n%s" % [checks,failures.size(),"\n".join(failures)]
- FileAccess.open("res://work/v098-ui-tests.txt",FileAccess.WRITE).store_string(report)
- print("V098_UI: "+report); quit(0 if failures.is_empty() else 1)
+ print("V098_UI: ",checks," checks; ",failures," failures"); quit(0 if failures.is_empty() else 1)

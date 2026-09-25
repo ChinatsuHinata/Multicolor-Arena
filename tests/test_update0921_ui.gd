@@ -26,6 +26,13 @@ func run():
  await capture("update0921-battle")
  e.stack=[];view.inspect_card(unit.card_id,unit.uid);view.render();await settle()
  expect(app.preview_texture(unit.card_id).get_height()>app.preview_texture(unit.card_id).get_width(),"unit preview remains portrait")
+ clean(true)
+ var ward_unit=put("54","field")
+ ward_unit.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.damage_target(e.ref_target(ward_unit),2);view.render();await process_frame
+ expect(view.modal and find_button(view.ui,"防避 1  ·  持续")!=null and find_button(view.ui,"防避 3  ·  持续")!=null,"mixed ward choices appear for controller")
+ await press("防避 3  ·  持续")
+ expect(e.pending.is_empty() and ward_unit.wards.size()==1 and ward_unit.wards[0].amount==1,"ward button resolves damage")
  app.editor();await process_frame
  app.draft.main=[]
  for i in range(50):app.draft.main.append("53")
@@ -38,4 +45,3 @@ func run():
  await capture("update0921-editor")
  print("UPDATE0921 UI ",checks," checks; failures=",failures)
  quit(0 if failures.is_empty() else 1)
-

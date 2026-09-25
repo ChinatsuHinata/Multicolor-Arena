@@ -87,7 +87,8 @@ static func spell_options(e,id,who) -> Variant:
  var k=e.Roster.key(e.cards[id],SPELLS)
  match k:
   "peach_modes":return e.Extra.add_mode(e.Pack.all_units(e),"指示物翻倍")+[{"mode":"回复并抓牌","none":true},{"mode":"牌库顶放入颜色盘","none":true}]
-  "fairy_rewrite","blue_flower":return spells(e)
+  "fairy_rewrite":return e.Pack.none()
+  "blue_flower":return spells(e)
   "night_sakura":return e.Pack.none()
   "icicle_tide":return e.Roster.pick(e,e.Pack.all_units(e),0,2,"选择至多两个单位",k)
   "angry_mask":return e.ability_targets()

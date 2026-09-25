@@ -4,6 +4,7 @@ const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
+const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const STAGE=Rect2(0,0,1600,900)
 const HAND=Rect2(246,663,1108,232)
 const OPPONENT_HAND_COUNT=Rect2(1070,78,170,30)
@@ -14,12 +15,16 @@ const COLOR_INK={"红":Color("#cf5b60"),"蓝":Color("#4d94d5"),"绿":Color("#489
 var debug_mode=false
 var debug_controls: Control
 var debug_button: Button
+var debug_help_button: Button
+var debug_free_checkbox: CheckButton
 var debug_root: Control
 var debug_open=false
 var history_open=false
 var history_root: Control
 var history_panel: Panel
 var region_selected: Dictionary={}
+var region_batch: Array=[]
+var region_batch_key=""
 var region_tiles={}
 var inspection_text: RichTextLabel
 const ZONE_NAMES={"deck":"牌库","grave":"墓地","exile":"除外区","field":"战场","palette":"颜色盘","hand":"手牌","leader":"自机区","stack":"堆叠"}
@@ -69,6 +74,8 @@ var life_last={}
 var life_flashes={}
 var life_flash_tweens={}
 var arrow_layer: Control
+var grave_target_layer: Control
+var grave_target_tiles={}
 var local: Dictionary={}
 var selection: Array=[]
 enum ResponseMode { DEFAULT, ON, OFF }
@@ -122,7 +129,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   var packet=session.pop_snapshot();engine.apply_snapshot(packet.projection)
   session.error_raised.connect(network_error)
  else:
-  debug_mode=host.debug_mode;engine=Duel.new();engine.debug_enabled=debug_mode;engine.start(a,b,first,seed_value)
+  debug_mode=host.debug_mode;engine=Duel.new();engine.debug_enabled=debug_mode;engine.debug_free_payment=debug_mode and host.debug_free_payment;engine.start(a,b,first,seed_value)
  viewport=SubViewport.new(); viewport.own_world_3d=true
  viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  viewport.render_target_clear_mode=SubViewport.CLEAR_MODE_ALWAYS
@@ -156,6 +163,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
  effects=layer(ui)
  stack_panel=preload("res://scripts/duel_stack.gd").new(); ui.add_child(stack_panel); stack_panel.build(self)
+ grave_target_layer=layer(ui)
  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
  banner=layer(ui)
  if session!=null and not session.read_only and not session.replay_mode:
@@ -167,8 +175,21 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  reset_view_button.tooltip_text="复原战场缩放和位置"
  if debug_mode:
   debug_controls=layer(ui)
+  debug_help_button=btn("测试说明",Rect2(1020,57,120,34),open_debug_help,false,debug_controls)
+  debug_help_button.tooltip_text="查看测试模式的区域操作与快捷键"
   debug_button=btn("调试",Rect2(1460,57,116,34),debug_menu,false,debug_controls)
   debug_button.toggle_mode=true
+  debug_free_checkbox=CheckButton.new()
+  debug_free_checkbox.text="无需付费"
+  debug_free_checkbox.position=Vector2(1160,57)
+  debug_free_checkbox.size=Vector2(145,34)
+  debug_free_checkbox.button_pressed=engine.debug_free_payment
+  debug_free_checkbox.tooltip_text="跳过出牌、异能与攻击的颜色费用"
+  debug_free_checkbox.toggled.connect(func(value):
+   engine.debug_free_payment=value
+   host.debug_free_payment=value
+   render())
+  debug_controls.add_child(debug_free_checkbox)
  get_viewport().size_changed.connect(resize_world)
  if session!=null:
   was_network_locked=network_locked();was_network_ended=session.ended();session.changed.connect(network_changed)
@@ -230,9 +251,14 @@ func stage_input(event: InputEvent):
  if event is InputEventMouseButton:
   var converted=event.duplicate()
   converted.position=event.position/STAGE.size*Vector2(viewport.size)
+  if event.pressed and event.button_index==MOUSE_BUTTON_LEFT and can_debug_add() and table.card_at(converted.position)==0:
+   var spot=table.debug_field_group(converted.position)
+   if not spot.is_empty():
+    open_debug_card_picker(int(spot.owner),"field",spot.group)
+    return
   table.pointer(converted)
 func free_main() -> bool:
- return engine.active==acting_player() and engine.phase=="main" and engine.stack.is_empty() and engine.combat.is_empty()
+ return engine.active==acting_player() and engine.phase=="main" and engine.pending.is_empty() and engine.stack.is_empty() and engine.combat.is_empty()
 func in_response_window() -> bool:
  return engine!=null and engine.winner==-2 and engine.priority==acting_player() and engine.phase!="mulligan" and engine.pending.is_empty() and not free_main()
 func should_ask_response() -> bool:
@@ -297,7 +323,7 @@ func right_rect(rect: Rect2) -> Rect2:
   rect.position.x=SIDEBAR.position.x+(rect.position.x-1290)*218.0/294.0
   rect.size.x*=218.0/294.0
  return rect
-func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#e8edf0"),parent: Node=null):
+func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#f7f1ee"),parent: Node=null):
  if parent==null:rect=right_rect(rect)
  var label=host.label(hud if parent==null else parent,text,rect,font,color)
  if building_prompt and parent==null: label.set_meta("choice_widget",true)
@@ -365,38 +391,41 @@ func render():
  var available=highlights()
  table.targetable_stacks=picker.available_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id) if picker_active() else []
  table.selected_stacks=picker.selected_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id)
+ table.stack_target_uids=interactive_stack_target_uids()
  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
  render_hands(available)
  stack_panel.sync()
+ render_grave_targets()
  table.presented_moves.clear()
  rebuild_badges()
  for mode in [ResponseMode.ON,ResponseMode.OFF]:
   var toggle=btn("全响应" if mode==ResponseMode.ON else "不响应",Rect2(1040+(mode-1)*115,12,108,38),func():set_response_mode(ResponseMode.DEFAULT if response_mode==mode else mode),response_mode==mode)
   toggle.toggle_mode=true;toggle.set_pressed_no_signal(response_mode==mode)
- txt("连接中断，对局结束" if network_session!=null and network_session.ended() else "第 %d 回合  ·  %s  ·  %s" % [engine.turn,player_caption(engine.active),phase_names[engine.phase]],Rect2(410 if not player_buffs(1-local_seat).is_empty() else 310,12,630,42),23,host.GOLD)
+ host.title_plate(hud,Rect2(298,5,733,58))
+ txt("连接中断，对局结束" if network_session!=null and network_session.ended() else "第 %d 回合  ·  %s  ·  %s" % [engine.turn,player_caption(engine.active),phase_names[engine.phase]],Rect2(365,12,630,42),23,host.BATTLE_GOLD)
  btn("设置",Rect2(1460,12,116,40),settings_menu)
  btn("对局记录",Rect2(1310,99,266,40),open_history)
  if network_session!=null:
   if is_instance_valid(chat_panel):btn("聊天",Rect2(1310,145,266,38),func():chat_panel.visible=not chat_panel.visible)
-  network_latency_label=txt(network_session.latency_text(),Rect2(1000,58,303,31),16,host.MUTED)
+  network_latency_label=txt(network_session.latency_text(),Rect2(1000,58,303,31),16,host.BATTLE_MUTED)
   network_latency_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   network_latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新。"
   render_undo()
  if debug_mode:
-  txt("操作："+player_caption(acting_player()),Rect2(866,15,158,32),18,host.GOLD)
+  txt("操作："+player_caption(acting_player()),Rect2(866,15,158,32),18,host.BATTLE_GOLD)
  life_widgets={}
  render_life(1-local_seat,Rect2(18,18,218,61))
  render_life(local_seat,Rect2(18,793,218,70))
- txt("A  攻击",Rect2(18,865,103,17),13,host.MUTED)
- txt("G  墓地",Rect2(126,865,110,17),13,host.MUTED)
- txt("Q  不响应/继续",Rect2(18,882,103,17),13,host.MUTED)
- txt("H  除外区",Rect2(126,882,110,17),13,host.MUTED)
- txt("手牌 %d" % engine.players[1-local_seat].hand.size(),OPPONENT_HAND_COUNT,18,host.WHITE)
+ txt("A  攻击",Rect2(18,865,103,17),13,host.BATTLE_MUTED)
+ txt("G  墓地",Rect2(126,865,110,17),13,host.BATTLE_MUTED)
+ txt("Q  不响应/继续",Rect2(18,882,103,17),13,host.BATTLE_MUTED)
+ txt("H  除外区",Rect2(126,882,110,17),13,host.BATTLE_MUTED)
+ txt("手牌 %d" % engine.players[1-local_seat].hand.size(),OPPONENT_HAND_COUNT,18,host.BATTLE_WHITE)
  building_prompt=true
  if not table.combat_animating: render_prompt()
  building_prompt=false
- if not message.is_empty(): txt(message,Rect2(307,639,995,28),18,Color("#f0cf93"))
- if not engine.log.is_empty(): txt(engine.log.back(),Rect2(320,53,990,26),15,host.MUTED)
+ if not message.is_empty(): txt(message,Rect2(307,639,995,28),18,Color("#f3d397"))
+ if not engine.log.is_empty(): txt(engine.log.back(),Rect2(320,53,990,26),15,host.BATTLE_MUTED)
  update_inspection()
  if last_phase!=engine.phase or last_turn!=engine.turn:
   show_phase_banner()
@@ -405,6 +434,7 @@ func render():
  if network_locked():pass
  elif engine.winner!=-2 and not table.combat_animating: result_overlay()
  elif engine.pending.get("kind","")=="damage_assignment" and engine.pending.owner==acting_player() and not table.combat_animating: damage_dialog()
+ elif engine.pending.get("kind","")=="ward_order" and engine.pending.owner==acting_player() and not table.combat_animating: ward_order_menu()
  elif engine.pending.get("kind","")=="trigger_order" and engine.pending.owner==acting_player() and not table.combat_animating: trigger_order_menu()
  elif region_picker_needed() and not table.combat_animating: region_picker()
  refresh_observation()
@@ -473,7 +503,7 @@ func rebuild_badges():
     if entry.id!=d.stack_id or entry.kind!="ability" and not entry.has("ability_text"): continue
     var caption=AbilityCaption.text(entry)
     var root=Control.new(); root.mouse_filter=Control.MOUSE_FILTER_IGNORE; badges.add_child(root)
-    var label=txt(caption,Rect2(-118,0,236,68),16,host.WHITE,root)
+    var label=txt(caption,Rect2(-118,0,236,68),16,host.BATTLE_WHITE,root)
     label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     label.size=Vector2(236,68)
     label.add_theme_color_override("font_shadow_color",Color("#081019")); label.add_theme_constant_override("shadow_offset_y",2)
@@ -486,7 +516,7 @@ func rebuild_badges():
   var root=Control.new(); root.mouse_filter=Control.MOUSE_FILTER_IGNORE; badges.add_child(root)
   var parts={"root":root,"zone":d.zone,"owner":d.owner}
   if d.zone=="field" and engine.is_unit(c):
-   var panel=host.box(root,Rect2(0,0,76,25),Color("#111d2b"),Color("#aaa080")); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+   var panel=host.box(root,Rect2(0,0,76,25),Color("#241d32"),Color("#b88972")); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
    var stat_names=["power","health","spirit"]
    var positions=[0,27,52]
    parts.values={}
@@ -497,10 +527,10 @@ func rebuild_badges():
     var label=txt(str(value),Rect2(positions[index],0,24,25),15,stat_color(value,base),panel)
     label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     parts.values[key_name]=label
-   txt("/",Rect2(23,0,7,25),15,host.WHITE,panel)
-   txt("·",Rect2(48,0,7,25),15,host.WHITE,panel)
+   txt("/",Rect2(23,0,7,25),15,host.BATTLE_WHITE,panel)
+   txt("·",Rect2(48,0,7,25),15,host.BATTLE_WHITE,panel)
    parts.stats=panel
-   if c.get("courage",0)>0:parts.courage=txt("◆ %d" % c.courage,Rect2(0,0,56,24),17,host.GOLD,root)
+   if c.get("courage",0)>0:parts.courage=txt("◆ %d" % c.courage,Rect2(0,0,56,24),17,host.BATTLE_GOLD,root)
    var marker=combat_marker(c.uid)
    if not marker.is_empty():
     var icon=TextureRect.new(); icon.size=Vector2(42,42)
@@ -508,18 +538,24 @@ func rebuild_badges():
     icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
     icon.set_meta("combat_role",marker); root.add_child(icon); parts.marker=icon
   elif d.zone=="leader" and c.timer>0:
-   parts.sick=txt("计时 %d" % c.timer,Rect2(0,0,100,24),17,host.GOLD,root)
+   parts.sick=txt("计时 %d" % c.timer,Rect2(0,0,100,24),17,host.BATTLE_GOLD,root)
   var marks=board_counter_text(c)
   if not marks.is_empty():
-   var mark=txt(marks,Rect2(0,0,100,40),13,Color("#fff2bb"),root)
+   var mark=txt(marks,Rect2(0,0,100,40),13,Color("#f9dfad"),root)
    mark.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    mark.add_theme_color_override("font_outline_color",Color("#081019"));mark.add_theme_constant_override("outline_size",5)
    parts.counters=mark
   if d.get("members",[]).size()>1 or d.zone=="field" and engine.cards[c.card_id].get("stackable",false):
-   var count=txt("×%d" % d.members.size(),Rect2(0,0,80,32),26,host.GOLD,root)
+   var count=txt("×%d" % d.members.size(),Rect2(0,0,80,32),26,host.BATTLE_GOLD,root)
    count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;count.add_theme_color_override("font_outline_color",Color("#081019"));count.add_theme_constant_override("outline_size",6)
    count.visible=d.members.size()>1
    parts.token_count=count
+  if d.get("copy_total",0)>1:
+   var fanned=d.get("fanned",false)
+   var number=txt(str(d.copy_index) if fanned else "%d/%d" % [d.copy_index,d.copy_total],Rect2(0,0,28 if fanned else 48,22),12 if fanned else 14,host.BATTLE_GOLD,root)
+   number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   number.add_theme_color_override("font_outline_color",Color("#081019"));number.add_theme_constant_override("outline_size",5)
+   parts.copy_number=number;parts.fanned=fanned
   card_badges[key]=parts
  for key in table.piles:
   if "exile" in key and engine.players[0 if key.begins_with("p") else 1].exile.is_empty(): continue
@@ -528,7 +564,7 @@ func rebuild_badges():
   var zone_name="deck" if "deck" in key else "exile" if "exile" in key else "grave"
   var who=0 if key.begins_with("p") else 1
   var count=table.piles[key].get_meta("count",0) if table.combat_animating else engine.players[who][zone_name].size()
-  var label=txt({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),Rect2(-48,0,96,26),17,host.WHITE,root)
+  var label=txt({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),Rect2(-48,0,96,26),17,host.BATTLE_WHITE,root)
   label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  update_badge_positions()
 func refresh_stackable_badges():
@@ -539,7 +575,8 @@ func refresh_stackable_badges():
   var d=table.descriptors[key]
   var c=engine.find_card(d.uid)
   if c.is_empty() or c.zone!="field" or not engine.cards[c.card_id].get("stackable",false):continue
-  var count=engine.stackable_members(c).size()
+  var isolated=d.uid in table.chosen or d.uid in table.stack_target_uids or table.reserved.any(func(r):return r.uid==d.uid)
+  var count=1 if isolated else engine.stackable_members(c).filter(func(u):return u.uid not in table.chosen and u.uid not in table.stack_target_uids and not table.reserved.any(func(r):return r.uid==u.uid)).size()
   parts.token_count.text="×%d" % count
   parts.token_count.visible=count>1
 func projected_card_rect(node: Node3D) -> Rect2:
@@ -562,6 +599,7 @@ func update_badge_positions():
    if parts.has("courage"):parts.courage.position=Vector2(-rect.size.x/2,-rect.size.y/2-20)
    if parts.has("counters"):parts.counters.position=Vector2(-50,rect.size.y/2-58 if parts.has("stats") else -rect.size.y/2+12)
    if parts.has("token_count"):parts.token_count.position=Vector2(-40,rect.size.y/2-33)
+   if parts.has("copy_number"):parts.copy_number.position=Vector2(-rect.size.x/2+2 if parts.fanned else rect.size.x/2-46,rect.size.y/2-25)
    if parts.has("marker"): parts.marker.position=Vector2(rect.size.x/2-32,-rect.size.y/2-10)
    if parts.has("sick"): parts.sick.position=Vector2(-49,rect.size.y/2+1)
    if parts.has("caption"):
@@ -581,7 +619,7 @@ func show_phase_banner():
  if is_instance_valid(banner_tween): banner_tween.kill()
  var caption=phase_names[engine.phase]
  if engine.turn!=last_turn: caption=("你的回合" if engine.active==local_seat else "对手回合")+" · "+caption
- var label=txt(caption,Rect2(375,314,850,76),42,Color("#fff2c0"),banner)
+ var label=txt(caption,Rect2(375,314,850,76),42,Color("#f9e6c2"),banner)
  label.add_theme_color_override("font_shadow_color",Color(0.01,0.02,0.03,0.95))
  label.add_theme_constant_override("shadow_offset_x",3)
  label.add_theme_constant_override("shadow_offset_y",4)
@@ -600,7 +638,7 @@ func inspect_card(id: String,uid: int=0,caption: String=""):
 func update_inspection():
  var current=engine.find_card(inspect_uid)
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
- inspection.visible=not inspect_id.is_empty()
+ inspection.visible=host.show_card_inspection and not inspect_id.is_empty()
  var counters=counter_lines(current)
  var signature=inspect_id+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))
  if signature==inspection_signature: return
@@ -616,7 +654,7 @@ func update_inspection():
  image.mouse_filter=Control.MOUSE_FILTER_IGNORE; bg.add_child(image)
  var info=engine.cards.get(inspect_id,{})
  var name=inspect_caption if inspect_id=="back" else "红薯" if inspect_id=="potato" else info.name
- var title=txt(name,Rect2(10,164 if landscape else 296,198,74),18,host.GOLD,bg)
+ var title=txt(name,Rect2(10,164 if landscape else 296,198,74),18,host.BATTLE_GOLD,bg)
  title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; title.size=Vector2(198,74)
  if info.has("cost"):
   var cost_icons=HexCost.new();cost_icons.position=Vector2(10,239 if landscape else 372)
@@ -624,7 +662,7 @@ func update_inspection():
  inspection_text=RichTextLabel.new(); inspection_text.position=Vector2(10,378); inspection_text.size=Vector2(198,270)
  if landscape:inspection_text.position.y=278;inspection_text.size.y=370
  else:inspection_text.position.y=411;inspection_text.size.y=237
- inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.WHITE)
+ inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.BATTLE_WHITE)
  inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
@@ -632,7 +670,7 @@ func update_inspection():
  var at=rules.find("自机能力：")
  if at>=0:
   inspection_text.add_text(rules.left(at))
-  inspection_text.push_color(host.WHITE if enabled else Color("#78818b"))
+  inspection_text.push_color(host.BATTLE_WHITE if enabled else Color("#a397a7"))
   inspection_text.add_text(rules.substr(at)); inspection_text.pop()
  else: inspection_text.add_text(rules)
  for line in counters:inspection_text.add_text("\n"+line)
@@ -672,7 +710,7 @@ func render_prompt():
  if network_session!=null and network_session.replay_mode:return
  if network_session!=null and not network_session.room.get("undo_request",{}).is_empty():return
  if network_session!=null and not network_session.can_act(true):
-  network_status_label=txt(network_session.connection_status(),Rect2(1290,660,294,100),18,host.GOLD)
+  network_status_label=txt(network_session.connection_status(),Rect2(1290,660,294,100),18,host.BATTLE_GOLD)
   network_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   if network_session.ended() or network_session.read_only and not network_session.replay_mode:btn("返回联机房间",Rect2(1330,799,237,49),func():host.online(),true)
   return
@@ -695,6 +733,7 @@ func render_prompt():
   match engine.pending.kind:
    "effect_choice":
     var t=engine.pending.trigger
+    if t.effect=="fairy_rewrite_resolution":text="妖精ノ巡礼：选择要改写的其他符卡"
     if t.effect=="cat:grant" and t.data.get("free",false) and not t.data.get("payment_chosen",false):
      text="是否支付颜色使用？"
      btn("不支付颜色使用",Rect2(1330,675,237,49),func(): engine.set_granted_payment(false);picker.reset();render(),true)
@@ -704,6 +743,7 @@ func render_prompt():
      render_inline_picker(confirm_trigger,t.optional)
      if t.optional: optional_trigger_prompt()
    "trigger_order": pass
+   "ward_order": text="选择先损失的防避"
    "timer":
     text=engine.pending.change.get("source_name","")+" · 计时替代"
     for i in range(3):
@@ -737,6 +777,8 @@ func render_prompt():
     b.disabled=selection.size()!=engine.pending.count
    "damage_assignment":
     text="分配战斗伤害"
+ elif not engine.pending.is_empty():
+  text="等待对手完成选择"
  elif engine.priority==acting_player() and engine.winner==-2:
   if attack_preview_uid!=0:
    var attack_button=btn("攻击",Rect2(1330,770,237,55),confirm_attack,true)
@@ -748,7 +790,7 @@ func render_prompt():
    text="响应窗口"
    var response_button=btn("不响应 / 继续",Rect2(1330,770,237,55),pass_response,true)
    response_button.tooltip_text="快捷键：Q"
- txt(text,Rect2(310,605,1000,37),21,host.GOLD)
+ txt(text,Rect2(310,605,1000,37),21,host.BATTLE_GOLD)
 
 func shortcut_attack() -> bool:
  if attack_preview_uid!=0:
@@ -816,6 +858,11 @@ func _input(event: InputEvent):
   return
  if debug_open and event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
   close_debug(); get_viewport().set_input_as_handled(); return
+ if event is InputEventKey and event.pressed and not event.echo and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed and can_debug_add():
+  var destination={KEY_Z:"hand",KEY_X:"palette",KEY_C:"grave"}.get(event.keycode,"")
+  if not destination.is_empty():
+   open_debug_card_picker(engine.active,destination)
+   get_viewport().set_input_as_handled();return
  if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and modal:
   var at=make_input_local(event).position
   for uid in region_tiles:
@@ -832,7 +879,7 @@ func _input(event: InputEvent):
  if observing and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
   var point=make_input_local(event).position
   var on_debug_toggle=is_instance_valid(debug_button) and debug_button.get_global_rect().has_point(point)
-  if not on_debug_toggle and not observe_button.get_global_rect().has_point(point) and not STAGE.has_point(point) and not inspection.get_global_rect().has_point(point):
+  if not on_debug_toggle and not observe_button.get_global_rect().has_point(point) and not STAGE.has_point(point) and not (inspection.visible and inspection.get_global_rect().has_point(point)):
    get_viewport().set_input_as_handled(); return
  if not observing and drag_uid==0 and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:
   if not local.is_empty(): cancel_cast()
@@ -859,7 +906,7 @@ func _input(event: InputEvent):
     if hand_nodes.has(drag_uid): hand_nodes[drag_uid].update_style(true,true)
    drag_art=host.card(ui,engine.find_card(drag_uid).card_id,Rect2(at-Vector2(82,115),Vector2(164,230)))
    drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE; drag_art.modulate.a=0.9
-   var drag_style=host.style(Color("#27313d"),Color("#ffd65c")); drag_style.set_border_width_all(5)
+   var drag_style=host.style(Color("#27313d"),Color("#f3d397")); drag_style.set_border_width_all(5)
    drag_art.add_theme_stylebox_override("panel",drag_style)
   if dragging: drag_art.position=at-Vector2(82,115)
  elif event is InputEventMouseButton:
@@ -971,10 +1018,10 @@ func leader_zone_clicked(who: int):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(leader.card_id,leader.uid))
   tile.set_meta("leader_choice_uid",leader.uid)
   if not error.is_empty():tile.modulate=Color(0.55,0.55,0.55);tile.tooltip_text=error
-  var label=txt(engine.cards[leader.card_id].name,Rect2(at+Vector2(-15,247),Vector2(195,38)),16,host.GOLD,content)
+  var label=txt(engine.cards[leader.card_id].name,Rect2(at+Vector2(-15,247),Vector2(195,38)),16,host.BATTLE_GOLD,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   if not error.is_empty():
-   var reason=txt(error,Rect2(at+Vector2(-15,283),Vector2(195,44)),14,host.MUTED,content)
+   var reason=txt(error,Rect2(at+Vector2(-15,283),Vector2(195,44)),14,host.BATTLE_MUTED,content)
    reason.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;reason.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("取消",Rect2(480,420,220,42),close_overlay,false,panel)
 func open_actions(c: Dictionary):
@@ -996,7 +1043,7 @@ func open_actions(c: Dictionary):
   var tile=host.card(content,c.card_id,Rect2(at,Vector2(173,241)),func(): execute_action(action))
   if action.type=="attack":tile.tooltip_text="快捷键：A"
   if not action.enabled: tile.modulate=Color(0.55,0.55,0.55)
-  var label=txt(action.label,Rect2(at+Vector2(-4,251),Vector2(185,74)),18,host.GOLD if action.enabled else host.MUTED,content)
+  var label=txt(action.label,Rect2(at+Vector2(-4,251),Vector2(185,74)),18,host.BATTLE_GOLD if action.enabled else host.BATTLE_MUTED,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   label.size=Vector2(185,74)
 func choice_card_content(panel: Control,count: int,dimensions: Vector2) -> Control:
@@ -1021,16 +1068,40 @@ func trigger_order_menu():
    if observing or engine.pending.get("kind","")!="trigger_order": return
    engine.choose_trigger_order(i); picker.reset(); render())
   tile.set_meta("trigger_index",i)
-  var label=txt(AbilityCaption.text(t),Rect2(at+Vector2(-4,251),Vector2(194,78)),17,host.WHITE,content)
+  var label=txt(AbilityCaption.text(t),Rect2(at+Vector2(-4,251),Vector2(194,78)),17,host.BATTLE_WHITE,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   label.size=Vector2(194,78)
+func ward_order_menu():
+ if engine.pending.get("kind","")!="ward_order":return
+ var target=engine.find_card(engine.pending.target.uid)
+ if target.is_empty():return
+ var panel=overlay("选择先损失的防避")
+ panel.size=Vector2(650,465);center_panel(panel)
+ var art=host.card(panel,target.card_id,Rect2(28,80,180,251),func():inspect_card(target.card_id,target.uid))
+ art.tooltip_text="右键查看单位"
+ var name=txt(engine.cards[target.card_id].name,Rect2(25,342,190,74),17,host.BATTLE_WHITE,panel)
+ name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ txt("将受到 %d 点伤害。请选择优先消耗的防避。" % engine.pending.incoming,Rect2(233,81,390,56),18,host.BATTLE_WHITE,panel).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var scroll=ScrollContainer.new();scroll.position=Vector2(232,146);scroll.size=Vector2(391,269)
+ panel.add_child(scroll)
+ var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+ for index in engine.pending.options:
+  var ward=target.wards[index]
+  var expiry="持续" if int(ward.get("turn",engine.turn))==-1 else "本回合"
+  if ward.get("next",false):expiry+=" · 下一次伤害"
+  var button=Button.new();button.text="防避 %d  ·  %s" % [int(ward.get("amount",0)),expiry]
+  button.custom_minimum_size=Vector2(365,48);rows.add_child(button)
+  button.pressed.connect(func():
+   if observing or engine.pending.get("kind","")!="ward_order":return
+   engine.choose_ward(index);render())
+ refresh_observation()
 func optional_trigger_prompt():
  var inline_rows=picker.available().any(func(atom):
   if atom.kind!="target": return true
   if not atom.value.has("uid"): return false
   var c=engine.find_card(atom.value.uid)
   return not c.is_empty() and c.zone not in ["field","palette","leader","stack","hand"])
- var label=txt("是否发动%s的触发效果" % engine.cards[engine.pending.trigger.source.card_id].name,Rect2(1330,586 if inline_rows else 702,237,78),17,host.GOLD)
+ var label=txt("是否发动%s的触发效果" % engine.cards[engine.pending.trigger.source.card_id].name,Rect2(1330,586 if inline_rows else 702,237,78),17,host.BATTLE_GOLD)
  label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  label.size=Vector2(right_rect(Rect2(1330,0,237,78)).size.x,96)
  label.set_meta("optional_trigger_prompt",true)
@@ -1043,7 +1114,7 @@ func execute_action(action: Dictionary):
    var count=engine.stackable_members(c).size()
    if count>1:
     var panel=overlay("选择牺牲数量" if action.type=="extension" else "选择一次启动的数量")
-    txt("%s：可牺牲 1 至 %d 个" % [engine.cards[c.card_id].name,count] if action.type=="extension" else "%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.WHITE,panel)
+    txt("%s：可牺牲 1 至 %d 个" % [engine.cards[c.card_id].name,count] if action.type=="extension" else "%s：可启动 1 至 %d 个" % [engine.cards[c.card_id].name,count],Rect2(38,83,570,42),21,host.BATTLE_WHITE,panel)
     var spinner=SpinBox.new();spinner.position=Vector2(196,137);spinner.size=Vector2(260,48)
     spinner.min_value=1;spinner.max_value=count;spinner.step=1;spinner.rounded=true;spinner.value=1
     panel.add_child(spinner)
@@ -1198,8 +1269,8 @@ func overlay(title: String) -> Panel:
  if is_instance_valid(stack_panel):stack_panel.hide()
  var shade=ColorRect.new(); shade.color=Color(0,0,0,0.65); shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ui.add_child(shade)
  modal_root=shade
- var panel=host.box(shade,Rect2(475,285,650,330),Color("#101c28"),host.GOLD)
- var heading=txt(title,Rect2(30,18,590,42),27,host.GOLD,panel)
+ var panel=host.box(shade,Rect2(475,285,650,330),Color("#241d32"),host.BATTLE_GOLD)
+ var heading=txt(title,Rect2(30,18,590,42),27,host.BATTLE_GOLD,panel)
  heading.name="DialogTitle"; heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  refresh_observation()
  return panel
@@ -1219,15 +1290,23 @@ func network_changed():
  render()
 func settings_menu():
  var panel=overlay("对战设置")
- panel.position=Vector2(475,285)
- txt("卡牌视角",Rect2(30,68,560,28),18,host.MUTED,panel).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ panel.position=Vector2(475,255)
+ panel.size.y=390
+ txt("卡牌视角",Rect2(30,68,560,28),18,host.BATTLE_MUTED,panel).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("3D 斜视",Rect2(30,100,260,48),func():set_card_view(false),not table.top_down_view,panel)
  btn("2D 上方俯视",Rect2(330,100,260,48),func():set_card_view(true),table.top_down_view,panel)
- btn("继续游戏",Rect2(30,180,260,48),func(): modal=false; render(),true,panel)
+ var inspection_cb=CheckButton.new()
+ inspection_cb.text="显示左侧卡牌效果说明栏"
+ inspection_cb.position=Vector2(30,165)
+ inspection_cb.size=Vector2(560,48)
+ inspection_cb.button_pressed=host.show_card_inspection
+ inspection_cb.toggled.connect(func(value): host.set_show_card_inspection(value); update_inspection())
+ panel.add_child(inspection_cb)
+ btn("继续游戏",Rect2(30,230,260,48),func(): modal=false; render(),true,panel)
  if network_session!=null and not network_session.replay_mode:
-  btn("返回联机房间",Rect2(195,250,260,48),func():host.online(),false,panel)
+  btn("返回联机房间",Rect2(195,305,260,48),func():host.online(),false,panel)
  if network_session!=null and network_session.read_only:return
- btn("本局投降",Rect2(330,180,260,48),func():
+ btn("本局投降",Rect2(330,230,260,48),func():
   var confirm=overlay("确认本局投降")
   confirm.position=Vector2(475,285)
   btn("本局投降",Rect2(35,155,260,50),func(): modal=false; local={}; engine.surrender(local_seat); render(),true,confirm)
@@ -1240,12 +1319,12 @@ func set_card_view(top_down: bool):
  settings_menu()
 func result_overlay():
  var panel=overlay("本局平局" if engine.winner==-1 else "本局胜利" if engine.winner==local_seat else "本局结束")
- txt(engine.log.back(),Rect2(30,90,590,80),22,host.WHITE,panel)
+ txt(engine.log.back(),Rect2(30,90,590,80),22,host.BATTLE_WHITE,panel)
  var next_label="返回对局准备"
  if network_session!=null:
   var room=network_session.room
   next_label="下一局" if room.get("status","")=="between" else "返回联机房间"
-  txt("BO%d · %d : %d" % [room.format,room.scores[0],room.scores[1]],Rect2(30,160,590,40),22,host.GOLD,panel)
+  txt("BO%d · %d : %d" % [room.format,room.scores[0],room.scores[1]],Rect2(30,160,590,40),22,host.BATTLE_GOLD,panel)
  btn(next_label,Rect2(160,220,330,56),func(): host.online() if network_session!=null else host.setup(),true,panel)
 func damage_dialog():
  if engine.pending.get("kind","")!="damage_assignment": return
@@ -1269,11 +1348,11 @@ func damage_dialog():
   art.set_meta("damage_card",c.uid); content.add_child(art)
   art.gui_input.connect(func(event):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT: inspect_card(c.card_id,c.uid))
-  var value=txt("0",Rect2(at.x+48,at.y+220,54,40),27,host.WHITE,content); value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  var value=txt("0",Rect2(at.x+48,at.y+220,54,40),27,host.BATTLE_WHITE,content); value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   var minus=btn("−",Rect2(at.x,at.y+222,40,37),func(): change_damage(key,-1),false,content)
   var plus=btn("+",Rect2(at.x+110,at.y+222,40,37),func(): change_damage(key,1),false,content)
   damage_controls[key]={"value":value,"minus":minus,"plus":plus}
- damage_remainder=txt("",Rect2(24,512,width-48,47),19,host.WHITE,panel)
+ damage_remainder=txt("",Rect2(24,512,width-48,47),19,host.BATTLE_WHITE,panel)
  damage_remainder.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("确定分配",Rect2(width-247,582,210,49),confirm_damage,true,panel)
  update_damage_controls()
@@ -1310,7 +1389,7 @@ func selected_uids() -> Array:
   if target.has("uid") and target.uid not in selected: selected.append(target.uid)
  return selected
 func stat_color(value: int,base: int) -> Color:
- return Color("#69e59a") if value>base else Color("#ff737b") if value<base else host.WHITE
+ return Color("#69e59a") if value>base else Color("#ff737b") if value<base else host.BATTLE_WHITE
 func combat_marker(uid: int) -> String:
  if attack_preview_uid==uid: return "sword"
  if engine.combat.is_empty(): return ""
@@ -1335,6 +1414,10 @@ func refresh_observation():
  if is_instance_valid(debug_button):
   debug_button.set_pressed_no_signal(debug_open)
   debug_button.tooltip_text="收起调试，返回对局" if debug_open else "查看或移动区域卡牌"
+ if is_instance_valid(debug_free_checkbox):
+  debug_free_checkbox.set_pressed_no_signal(engine.debug_free_payment)
+  debug_free_checkbox.disabled=modal or not local.is_empty() or not engine.pending.is_empty()
+ if is_instance_valid(debug_help_button):debug_help_button.disabled=modal
  observe_button.visible=choice_active() or observing
  observe_button.text="返回选择" if observing else "观察战场"
  ui.move_child(inspection,-1)
@@ -1430,10 +1513,10 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
  debug_root=layer(ui)
  browser_panel=host.box(debug_root,SIDEBAR,Color.TRANSPARENT,Color.TRANSPARENT); browser_panel.name="PileBrowser"
  if network_session!=null and network_session.replay_mode:browser_panel.size.y=530
- var browser_header=host.box(browser_panel,Rect2(0,0,SIDEBAR.size.x,45),Color("#101c28"),Color("#637a93"))
+ var browser_header=host.box(browser_panel,Rect2(0,0,SIDEBAR.size.x,45),Color("#241d32"),Color("#806b86"))
  browser_header.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var cards=zone_cards(who,zone)
- txt(player_caption(who)+" · "+ZONE_NAMES[zone]+" · %d" % cards.size(),Rect2(10,10,158,35),18,host.GOLD,browser_panel)
+ txt(player_caption(who)+" · "+ZONE_NAMES[zone]+" · %d" % cards.size(),Rect2(10,10,158,35),18,host.BATTLE_GOLD,browser_panel)
  var close=btn("×",Rect2(174,10,34,32),close_debug,false,browser_panel)
  close.name="ClosePileBrowser"; close.tooltip_text="返回对局"
  var top=53
@@ -1465,7 +1548,7 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
    elif event.button_index==MOUSE_BUTTON_LEFT:
     if debug_mode and can_begin_debug_drag(): begin_debug_drag(c.uid,art.get_global_transform()*event.position)
     elif not card_hidden: browse_card_action(c))
- if cards.is_empty(): txt("空",Rect2(80,top+35,60,35),22,host.MUTED,browser_panel)
+ if cards.is_empty(): txt("空",Rect2(80,top+35,60,35),22,host.BATTLE_MUTED,browser_panel)
  browser_scroll.set_deferred("scroll_vertical",scroll_position)
  update_browser_styles(); refresh_observation()
 
@@ -1478,7 +1561,7 @@ func update_browser_styles():
   if c.is_empty(): continue
   var selected=c.uid in selected_uids()
   var legal=(c.owner==acting_player() or engine.Pack.cast_from(engine,c,acting_player())) and not response_disabled() and (engine.cast_error(acting_player(),c.uid).is_empty() or not engine.extra_action(c).is_empty() and engine.extension_activation_error(c.owner,c).is_empty())
-  var style=host.style(Color("#172936"),Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#304657"))
+  var style=host.style(Color("#29233b"),Color("#f3d397") if selected else Color("#69cce4") if legal else Color("#806b86"))
   style.set_border_width_all(4 if selected or legal else 1); art.add_theme_stylebox_override("panel",style)
 func browse_card_action(c: Dictionary):
  inspect_card(c.card_id,c.uid)
@@ -1494,6 +1577,75 @@ func debug_menu():
  if not debug_mode or history_open or table.combat_animating: return
  if debug_open: close_debug()
  else: browse_zone(acting_player(),"deck")
+
+func open_debug_help():
+ if not debug_mode or modal or history_open or table.combat_animating:return
+ var panel=overlay("测试操作说明")
+ panel.size=Vector2(790,610);center_panel(panel)
+ var guide=RichTextLabel.new()
+ guide.position=Vector2(35,72);guide.size=Vector2(720,454)
+ guide.bbcode_enabled=true;guide.scroll_active=true
+ guide.add_theme_font_size_override("normal_font_size",18)
+ guide.add_theme_color_override("default_color",host.BATTLE_WHITE)
+ guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\nC：加入当前回合玩家的墓地，包括梦违牌。\n\n[b]移动已有卡牌[/b]\n点击「调试」打开区域列表，按住列表、手牌或场上的卡面，拖到所属玩家的目标区域。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
+ panel.add_child(guide)
+ btn("返回对局",Rect2(535,544,220,46),close_overlay,false,panel)
+
+func can_debug_add() -> bool:
+ return debug_mode and network_session==null and engine!=null and engine.debug_enabled and engine.winner==-2 and engine.phase!="mulligan" and engine.stack.is_empty() and engine.combat.is_empty() and engine.pending.is_empty() and local.is_empty() and not history_open and not debug_open and not observing and not modal and not table.combat_animating and debug_drag_uid==0
+
+func debug_card_matches(id: String,group: String) -> bool:
+ var info=engine.cards[id]
+ match group:
+  "unit":return info.kind in ["自机","单位"]
+  "item":return info.kind=="道具"
+  "support":return info.kind=="结界"
+ return true
+
+func open_debug_card_picker(who: int,destination: String,group: String=""):
+ if not can_debug_add():return
+ var title=player_caption(who)+" · 加入"+({"field":{"unit":"单位区域","item":"道具区域","support":"结界区域"}.get(group,"战场"),"hand":"手牌","palette":"颜色盘（竖直）","grave":"墓地"}.get(destination,destination))
+ var panel=overlay(title)
+ panel.size=Vector2(760,650);center_panel(panel)
+ var search=LineEdit.new();search.position=Vector2(24,70);search.size=Vector2(712,43)
+ search.placeholder_text="输入卡名、编号或别名搜索（包含梦违与衍生物）"
+ panel.add_child(search)
+ var count=txt("",Rect2(28,119,700,28),16,host.BATTLE_MUTED,panel)
+ var scroll=ScrollContainer.new();scroll.position=Vector2(24,151);scroll.size=Vector2(712,423)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
+ var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+ search.text_changed.connect(func(query): fill_debug_card_picker(rows,count,scroll,query,who,destination,group))
+ fill_debug_card_picker(rows,count,scroll,"",who,destination,group)
+ btn("取消",Rect2(520,590,210,43),close_overlay,false,panel)
+ search.grab_focus()
+
+func fill_debug_card_picker(rows: VBoxContainer,count: Label,scroll: ScrollContainer,query: String,who: int,destination: String,group: String):
+ clear_children(rows)
+ var term=query.strip_edges().to_lower()
+ var alias_rule=SearchAliases.find_rule(SearchAliases.load_rules(),term) if not term.is_empty() else null
+ var alias_only=alias_rule is Dictionary and alias_rule.get("only",false)==true
+ var matches=[]
+ for id in engine.cards:
+  if not debug_card_matches(id,group):continue
+  var info=engine.cards[id]
+  var alias_match=SearchAliases.card_matches(info,alias_rule,id)
+  if alias_only and not alias_match:continue
+  if not term.is_empty() and not alias_match and term not in str(id).to_lower() and term not in str(info.name).to_lower() and not info.get("aliases",[]).any(func(alias):return term in str(alias).to_lower()):continue
+  matches.append(id)
+ matches.sort_custom(func(a,b):return str(engine.cards[a].name)<str(engine.cards[b].name))
+ count.text="找到 %d 张 · 点击加入%s" % [matches.size(),"（请继续输入以缩小范围）" if matches.size()>80 else ""]
+ for id in matches.slice(0,80):
+  var chosen_id: String=id
+  var info=engine.cards[id]
+  var suffix=" · 梦违" if "梦违" in info.get("keywords",[]) or "梦违" in info.get("rules_text","") else " · 衍生物" if info.get("token",false) else ""
+  var row=Button.new();row.text="%s  [%s]  %s%s" % [info.name,id,info.kind,suffix]
+  row.alignment=HORIZONTAL_ALIGNMENT_LEFT;row.custom_minimum_size=Vector2(680,42)
+  rows.add_child(row)
+  row.pressed.connect(func():
+   close_overlay()
+   message=engine.debug_add(chosen_id,who,destination)
+   render())
+ scroll.scroll_vertical=0
 func begin_debug_drag(uid: int,at: Vector2):
  if not debug_mode or observing: return
  var c=engine.find_card(uid)
@@ -1518,9 +1670,9 @@ func handle_debug_drag(event: InputEvent):
    if is_instance_valid(browser_panel): browser_panel.hide()
    debug_drag_art=host.card(ui,engine.find_card(debug_drag_uid).card_id,Rect2(debug_drag_pointer-Vector2(70,97),Vector2(140,195)))
    debug_drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE; debug_drag_art.modulate.a=0.82
-   debug_drop_hint=txt("",Rect2(0,0,170,38),22,host.GOLD,debug_drag_art)
+   debug_drop_hint=txt("",Rect2(0,0,170,38),22,host.BATTLE_GOLD,debug_drag_art)
    debug_drop_hint.position=Vector2(-15,-43); debug_drop_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-   debug_drop_hint.add_theme_constant_override("outline_size",6); debug_drop_hint.add_theme_color_override("font_outline_color",Color("#101c28"))
+   debug_drop_hint.add_theme_constant_override("outline_size",6); debug_drop_hint.add_theme_color_override("font_outline_color",Color("#241d32"))
   if debug_dragging:
    debug_drag_art.position=debug_drag_pointer-Vector2(70,97)
    var c=engine.find_card(debug_drag_uid)
@@ -1606,7 +1758,7 @@ func inline_pick(atom: Dictionary):
 func render_inline_picker(confirm: Callable,optional: bool=false):
  var choice_parent=hud
  var wide_choices=false
- if not picker.prompt().is_empty(): txt(picker.prompt(),Rect2(1330,610,237,48),17,host.GOLD)
+ if not picker.prompt().is_empty(): txt(picker.prompt(),Rect2(1330,610,237,48),17,host.BATTLE_GOLD)
  var options=[]
  for atom in picker.available():
   if atom.kind!="target" or not atom.value.has("uid") and not atom.value.has("player") and not atom.value.has("stack_id") or atom.value.has("counter"): options.append(atom); continue
@@ -1640,7 +1792,7 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
      var c=engine.find_card(atom.value.uid)
      if not c.is_empty(): inspect_card(c.card_id,c.uid))
  if picker.available().any(func(atom): return atom.get("role","")=="sacrifice"):
-  txt("选择牺牲的单位",Rect2(1330,620,237,32),18,host.GOLD)
+  txt("选择牺牲的单位",Rect2(1330,620,237,32),18,host.BATTLE_GOLD)
  if local.is_empty() or payment_ready():
   var confirm_rect=Rect2(580,570,240,49) if wide_choices else Rect2(1330,799,237,49)
   var button=btn("确定" if local.is_empty() else "发动",confirm_rect,confirm,true,choice_parent)
@@ -1694,7 +1846,7 @@ func render_undo():
   button.disabled=not network_session.can_act(true) or not network_session.room.get("undo_available",false) or not engine.stack.is_empty()
   return
  var own=int(request.from)==local_seat
- var message_label=txt("等待对方同意悔棋" if own else "对方请求悔棋",Rect2(1366,618,218,68),19,host.GOLD)
+ var message_label=txt("等待对方同意悔棋" if own else "对方请求悔棋",Rect2(1366,618,218,68),19,host.BATTLE_GOLD)
  message_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  if own:btn("取消请求",Rect2(1366,694,218,42),func():network_session.room_action({"name":"undo_cancel","ticket":request.id}))
  else:
@@ -1718,20 +1870,20 @@ func render_life(who: int,rect: Rect2):
  life_last[who]=current_life
  var selected=picker.selected_refs().any(func(t): return t.get("player",-1)==who)
  var legal=picker_active() and picker.available_refs().any(func(t): return t.get("player",-1)==who)
- var color=Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#486376")
+ var color=Color("#f3d397") if selected else Color("#69cce4") if legal else Color("#806b86")
  var button=btn(player_caption(who)+"  %d" % engine.players[who].life,rect,func(): choose_target({"player":who}))
  button.tooltip_text=player_buffs(who) if not player_buffs(who).is_empty() else "当前没有玩家指示物或增益"
- var panel=host.style(Color("#192a38"),color); panel.set_border_width_all(4 if selected or legal else 1)
+ var panel=host.style(Color("#2a243a"),color); panel.set_border_width_all(4 if selected or legal else 1)
  for state in ["normal","hover","pressed","focus"]: button.add_theme_stylebox_override(state,panel)
  var bar=ProgressBar.new(); bar.position=Vector2(10,rect.size.y-15)
  bar.min_value=0; bar.max_value=20; bar.value=clampf(engine.players[who].life,0,20); bar.show_percentage=false
  bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var background=StyleBoxFlat.new(); background.bg_color=Color("#09121d"); background.set_corner_radius_all(3)
- var fill=StyleBoxFlat.new(); fill.bg_color=Color("#a94752") if who!=local_seat else Color("#43b59a"); fill.set_corner_radius_all(3)
+ var background=StyleBoxFlat.new(); background.bg_color=Color("#18172b"); background.set_corner_radius_all(3)
+ var fill=StyleBoxFlat.new(); fill.bg_color=Color("#b84648") if who!=local_seat else Color("#69cce4"); fill.set_corner_radius_all(3)
  bar.add_theme_stylebox_override("background",background); bar.add_theme_stylebox_override("fill",fill); button.add_child(bar)
  bar.add_theme_font_size_override("font_size",1); bar.size=Vector2(rect.size.x-20,7)
  life_widgets[who]={"button":button,"bar":bar,"legal":legal,"selected":selected}
- var status=txt(player_buffs_compact(who),Rect2(rect.end.x+8,rect.position.y,160,rect.size.y),16,host.GOLD)
+ var status=txt(player_buffs_compact(who),Rect2(rect.end.x+8,rect.position.y,160,rect.size.y),16,host.BATTLE_GOLD)
  status.mouse_filter=Control.MOUSE_FILTER_IGNORE;status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  life_widgets[who].buffs=status
 func target_rect(target: Dictionary) -> Rect2:
@@ -1740,6 +1892,9 @@ func target_rect(target: Dictionary) -> Rect2:
  if target.has("uid"):
   var c=engine.find_card(target.uid)
   if c.is_empty() or c.epoch!=target.get("epoch",-1): return Rect2()
+  if c.zone=="grave" and grave_target_tiles.has(c.uid):
+   var tile=grave_target_tiles[c.uid]
+   return tile.get_global_rect().intersection(tile.get_meta("target_scroll").get_global_rect())
   if c.zone=="stack": return stack_panel.card_rect(c.uid)
   var key="card_"+str(c.uid)
   if table.visuals.has(key): return projected_card_rect(table.visuals[key])
@@ -1763,6 +1918,75 @@ func arrow_targets(target: Dictionary) -> Array:
  for field in ["uid","epoch","zone","player","stack_id"]:
   if target.has(field): actual[field]=target[field]
  return [actual] if not actual.is_empty() else []
+
+func interactive_stack_target_uids() -> Array:
+ var result=[]
+ for entry in engine.stack:
+  for ref in arrow_targets(entry.get("target",{})):
+   if not ref.has("uid"):continue
+   var c=engine.find_card(ref.uid)
+   if c.is_empty() or c.zone!="field" or c.epoch!=ref.get("epoch",-1):continue
+   if not engine.cards[c.card_id].get("stackable",false):continue
+   if engine.cards[c.card_id].kind not in ["道具","结界"]:continue
+   if c.uid not in result:result.append(c.uid)
+ return result
+
+func stack_grave_targets() -> Dictionary:
+ var targets={0:[],1:[]}
+ for entry in engine.stack:
+  for ref in arrow_targets(entry.get("target",{})):
+   if not ref.has("uid"):continue
+   var c=engine.find_card(ref.uid)
+   if c.is_empty() or c.zone!="grave" or c.epoch!=ref.get("epoch",-1):continue
+   if not targets[c.owner].any(func(other):return other.uid==c.uid):targets[c.owner].append(ref)
+ return targets
+
+func exposed_grave_choice() -> bool:
+ var atoms=region_atoms()
+ if atoms.is_empty() or not atoms.all(func(atom):return engine.find_card(atom.value.uid).zone=="grave"):return false
+ return atoms.any(func(atom):return grave_target_tiles.has(atom.value.uid))
+
+func render_grave_targets():
+ clear_children(grave_target_layer);grave_target_tiles={}
+ var targets=stack_grave_targets()
+ var available=picker.available_refs() if picker_active() else []
+ var selected=picker.selected_refs() if picker_active() else []
+ for who in [1-local_seat,local_seat]:
+  var refs=targets[who]
+  if refs.is_empty():continue
+  var width=maxf(190.0,minf(600.0,26.0+refs.size()*126.0))
+  var at=Vector2(250,159 if who!=local_seat else 411)
+  var panel=host.box(grave_target_layer,Rect2(at,Vector2(width,249)),Color("#241d32e8"),Color("#b88972"))
+  panel.name="GraveTargets%d" % who
+  txt(player_caption(who)+"墓地 · 堆叠目标",Rect2(12,7,width-24,27),17,host.BATTLE_GOLD,panel)
+  var scroll=ScrollContainer.new();scroll.position=Vector2(10,37);scroll.size=Vector2(width-20,178)
+  scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
+  var row=HBoxContainer.new();row.add_theme_constant_override("separation",8);scroll.add_child(row)
+  for ref in refs:
+   var c=engine.find_card(ref.uid)
+   var cell=Control.new();cell.custom_minimum_size=Vector2(118,174);row.add_child(cell)
+   var legal=available.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
+   var chosen=selected.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
+   var art=host.card(cell,c.card_id,Rect2(4,0,110,153),func():
+    if legal:choose_target(ref)
+    else:inspect_card(c.card_id,c.uid))
+   art.name="GraveTargetCard";art.set_meta("target_uid",c.uid)
+   art.set_meta("target_scroll",scroll)
+   art.tooltip_text=engine.cards[c.card_id].name+" · "+player_caption(who)+"墓地"
+   art.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+   var style=host.style(Color("#29233b"),Color("#f3d397") if chosen else Color("#69cce4") if legal else Color("#b88972"))
+   style.set_border_width_all(3 if legal or chosen else 1)
+   art.add_theme_stylebox_override("panel",style)
+   art.gui_input.connect(func(event):
+    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(c.card_id,c.uid))
+   var name=txt(engine.cards[c.card_id].name,Rect2(0,155,118,19),13,host.BATTLE_WHITE,cell)
+   name.clip_text=true;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   grave_target_tiles[c.uid]=art
+  if picker_active() and not region_atoms().is_empty() and exposed_grave_choice():
+   var others=region_atoms().any(func(atom):return not grave_target_tiles.has(atom.value.uid))
+   if others and who==local_seat or others and targets[local_seat].is_empty():
+    var browse=btn("选择其他墓地牌",Rect2(width-169,218,157,27),region_picker,false,panel)
+    browse.add_theme_font_size_override("font_size",13)
 func rect_edge(rect: Rect2,toward: Vector2) -> Vector2:
  var direction=(toward-rect.get_center()).normalized()
  var distance=minf(rect.size.x*0.5/maxf(0.001,absf(direction.x)),rect.size.y*0.5/maxf(0.001,absf(direction.y)))
@@ -1793,16 +2017,16 @@ func open_history():
  if history_open: return
  history_open=true; history_root=layer(ui)
  var shade=ColorRect.new(); shade.color=Color(0,0,0,0.38); shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); history_root.add_child(shade)
- history_panel=host.box(history_root,Rect2(1100,75,480,807),Color("#0f1b29"),Color("#637a93"))
- txt("对局流程记录",Rect2(20,15,435,40),26,host.GOLD,history_panel)
+ history_panel=host.box(history_root,Rect2(1100,75,480,807),Color("#241d32"),Color("#806b86"))
+ txt("对局流程记录",Rect2(20,15,435,40),26,host.BATTLE_GOLD,history_panel)
  var scroll=ScrollContainer.new(); scroll.position=Vector2(14,66); scroll.size=Vector2(453,724); scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; history_panel.add_child(scroll)
  var column=VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; scroll.add_child(column)
  var events=engine.history.duplicate(); events.reverse()
  for entry in events:
   var row=PanelContainer.new(); row.custom_minimum_size=Vector2(432,96 if entry.art.is_empty() else 136); column.add_child(row)
-  row.add_theme_stylebox_override("panel",host.style(Color("#162636"),Color("#2d455a")))
+  row.add_theme_stylebox_override("panel",host.style(Color("#302840"),Color("#705d7d")))
   var content=Control.new(); row.add_child(content)
-  txt("第%d回合 · %s" % [entry.turn,phase_names.get(entry.phase,entry.phase)],Rect2(0,0,400,23),14,host.MUTED,content)
+  txt("第%d回合 · %s" % [entry.turn,phase_names.get(entry.phase,entry.phase)],Rect2(0,0,400,23),14,host.BATTLE_MUTED,content)
   var left=0
   if not entry.art.is_empty():
    var art=entry.art[0]; var hidden=art.get("hidden",false) and art.owner!=local_seat and not debug_mode
@@ -1810,7 +2034,7 @@ func open_history():
    card.set_meta("history_display_id","back" if hidden else art.card_id); left=74
    card.gui_input.connect(func(event):
     if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and not hidden: inspect_card(art.card_id))
-  var label=txt(entry.text,Rect2(left,29,398-left,74),17,host.WHITE,content)
+  var label=txt(entry.text,Rect2(left,29,398-left,74),17,host.BATTLE_WHITE,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.size=Vector2(398-left,74)
  refresh_observation()
 func close_history():
@@ -1823,10 +2047,26 @@ func region_atoms() -> Array:
   var c=engine.find_card(atom.value.uid)
   return not c.is_empty() and c.zone in ["deck","grave","exile","hand"])
 func region_picker_needed() -> bool:
- return picker_active() and not picker.ready() and not region_atoms().is_empty()
+ return picker_active() and not picker.ready() and not region_atoms().is_empty() and (not exposed_grave_choice() or not region_batch_group().is_empty())
+func region_batch_group() -> Dictionary:
+ if picker.specs.is_empty() or picker.ready():return {}
+ var state=picker.dynamic_state()
+ if state.index<0 or state.group>=picker.specs[state.index].get("selection",[]).size():return {}
+ var group=picker.specs[state.index].selection[state.group]
+ if int(group.max)<=1 or group.pool.is_empty() or group.get("distinct_names",false) or group.has("sum_max"):return {}
+ for ref in group.pool:
+  if not ref.has("uid"):return {}
+  var card=engine.find_card(ref.uid)
+  if card.is_empty() or card.zone not in ["deck","grave","exile","hand"]:return {}
+ return group
 func region_picker():
  var atoms=region_atoms()
  if atoms.is_empty(): return
+ var batch_group=region_batch_group()
+ var batch_key=picker.key+JSON.stringify(picker.path)
+ if region_batch_key!=batch_key:
+  region_batch=[];region_batch_key=batch_key
+ region_batch=region_batch.filter(func(atom):return atom in atoms)
  if region_selected not in atoms: region_selected={}
  var panel=overlay(picker.prompt() if not picker.prompt().is_empty() else "选择卡牌")
  panel.size=Vector2(895,460); center_panel(panel); panel.set_meta("region_picker",true)
@@ -1836,35 +2076,60 @@ func region_picker():
  for atom in atoms:
   var c=engine.find_card(atom.value.uid)
   var tile=Control.new(); tile.custom_minimum_size=Vector2(142,292); row.add_child(tile)
-  var title=txt((player_caption(c.owner)+" · ")+ZONE_NAMES[c.zone],Rect2(0,0,142,28),16,host.GOLD,tile)
+  var title=txt((player_caption(c.owner)+" · ")+ZONE_NAMES[c.zone],Rect2(0,0,142,28),16,host.BATTLE_GOLD,tile)
   title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   var art=host.card(tile,c.card_id,Rect2(0,33,142,198),func(): select_region_atom(atom))
   art.set_meta("region_uid",c.uid)
   art.gui_input.connect(func(event):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT: inspect_card(c.card_id,c.uid))
-  var name=txt(engine.cards[c.card_id].name,Rect2(0,237,142,54),15,host.WHITE,tile)
+  var name=txt(engine.cards[c.card_id].name,Rect2(0,237,142,54),15,host.BATTLE_WHITE,tile)
   name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; name.size=Vector2(142,54)
   region_tiles[c.uid]=art
+ if not batch_group.is_empty():
+  var count_label=txt("",Rect2(22,396,575,32),17,host.BATTLE_GOLD,panel)
+  count_label.name="RegionCount"
  var confirm=btn("确定",Rect2(624,392,243,48),confirm_region_atom,true,panel)
- confirm.name="RegionConfirm"; confirm.disabled=region_selected.is_empty() and not picker.available().any(func(a): return a.kind=="finish_group")
+ confirm.name="RegionConfirm"
  update_region_styles()
 func select_region_atom(atom: Dictionary):
  if observing: return
- region_selected=atom if region_selected!=atom else {}
+ var group=region_batch_group()
+ if group.is_empty():region_selected=atom if region_selected!=atom else {}
+ elif atom in region_batch:region_batch.erase(atom)
+ elif picker.dynamic_state().current.size()+region_batch.size()<int(group.max):region_batch.append(atom)
  update_region_styles()
 func update_region_styles():
  for uid in region_tiles:
-  var selected=region_selected.get("value",{}).get("uid",-1)==uid
-  var style=host.style(Color("#172936"),Color("#ffd65c") if selected else Color("#359bff")); style.set_border_width_all(4)
+  var selected=region_selected.get("value",{}).get("uid",-1)==uid or region_batch.any(func(atom):return atom.value.uid==uid)
+  var style=host.style(Color("#29233b"),Color("#f3d397") if selected else Color("#69cce4")); style.set_border_width_all(4)
   region_tiles[uid].add_theme_stylebox_override("panel",style)
  if is_instance_valid(modal_root):
   var confirm=modal_root.find_child("RegionConfirm",true,false)
   if confirm:
+   var group=region_batch_group()
+   if not group.is_empty():
+    var count=picker.dynamic_state().current.size()+region_batch.size()
+    var count_label=modal_root.find_child("RegionCount",true,false)
+    if count_label:count_label.text="点击卡牌多选 · 已选 %d / 最多 %d 张" % [count,int(group.max)]
+    confirm.disabled=count<int(group.min) or count>int(group.max)
+    confirm.text="确认选择（%d）" % count if count>0 else "跳过此项"
+    return
    var finish=picker.available().filter(func(a): return a.kind=="finish_group")
    confirm.disabled=region_selected.is_empty() and finish.is_empty()
    confirm.text=finish[0].value if region_selected.is_empty() and not finish.is_empty() else "确定"
 func confirm_region_atom():
  if observing: return
+ var group=region_batch_group()
+ if not group.is_empty():
+  var count=picker.dynamic_state().current.size()+region_batch.size()
+  if count<int(group.min) or count>int(group.max):return
+  for atom in region_batch:
+   if not picker.select(atom):return
+  var finish=picker.available().filter(func(a):return a.kind=="finish_group")
+  if finish.is_empty():return
+  picker.select(finish[0]);region_batch=[];region_batch_key="";region_selected={}
+  if not local.is_empty():local.target=picker.option()
+  render();return
  if region_selected.is_empty():
   for a in picker.available():
    if a.kind=="finish_group": inline_pick(a); return
@@ -1938,8 +2203,8 @@ func render_floating_resources():
  for resource in pool:
   var button=Button.new();button.text="%s 1%s" % [resource.colors[0]," ✓" if local.plan.any(func(p):return p.uid==resource.uid) else ""]
   button.custom_minimum_size=Vector2(165,34);rows.add_child(button);button.pressed.connect(func():reserve_resource(resource.uid))
-  var ink=Color("#ffd65c") if local.plan.any(func(p):return p.uid==resource.uid) else Color("#359bff")
-  button.add_theme_stylebox_override("normal",host.style(Color("#172936"),ink))
+  var ink=Color("#f3d397") if local.plan.any(func(p):return p.uid==resource.uid) else Color("#69cce4")
+  button.add_theme_stylebox_override("normal",host.style(Color("#29233b"),ink))
 
 func player_caption(who: int) -> String:
  return engine.player_names[who] if network_session!=null else ("你" if who==0 else "人机")

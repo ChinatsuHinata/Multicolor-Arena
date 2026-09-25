@@ -63,13 +63,16 @@ func run():
  expect(stored is Dictionary and stored.get("top_down_view") == view.table.top_down_view,"selected card view is saved for later duels")
  expect(view.table.camera.projection==Camera3D.PROJECTION_ORTHOGONAL,"2D card view uses orthographic projection")
  expect(is_equal_approx(view.table.camera.rotation.x,-PI/2) and is_zero_approx(view.table.camera.position.x) and is_zero_approx(view.table.camera.position.z),"2D card view looks straight down from above")
- expect(is_equal_approx(view.table.camera.size,view.table.TOP_DOWN_CAMERA_SIZE) and view.table.camera.size<view.table.BOARD_SIZE.y,"2D view zooms in on the playable battlefield")
+ expect(is_equal_approx(view.table.camera.size,view.table.WIDE_TOP_DOWN_CAMERA_SIZE) and view.table.camera.size<view.table.WIDE_BOARD_SIZE.y,"2D view zooms in on the playable battlefield")
  expect(view.table.board.mesh.size==view.table.TOP_DOWN_BOARD_SIZE and view.table.board.mesh.size.x>view.table.board.mesh.size.y,"2D battlefield uses the wide playmat")
- expect(view.table.wide_playmat and view.table.board.material_override is ShaderMaterial,"printed zones use selective horizontal extension")
+ expect(view.table.wide_playmat and view.table.board.material_override is ShaderMaterial,"printed zones use selective extension")
  var old_slot_width=0.08*view.table.PRINTED_MAT_SIZE.x
  expect(is_equal_approx(view.table.playmat_x(0.9)-view.table.playmat_x(0.82),old_slot_width),"grave and deck slot widths remain unchanged")
  expect(view.table.zone_position("leader",0).x<-9.0 and view.table.zone_position("deck",0).x>9.0 and view.table.piles.pdeck.get_node("Top").mesh.size==view.table.CARD_SIZE*view.table.SLOT_SCALE,"fixed-size leader and deck cards follow the outer slots")
  expect(view.table.playmat_x(0.84)-view.table.playmat_x(0.16)>0.68*view.table.PRINTED_MAT_SIZE.x+6.9,"battlefield and palette gain horizontal space")
+ expect(view.table.board.mesh.size.y-view.table.PRINTED_MAT_SIZE.y>2.0,"battlefield gains vertical space")
+ var printed_slot_gap=(1027.0-809.0)/1200.0*view.table.PRINTED_MAT_SIZE.y
+ expect(is_equal_approx(view.table.zone_position("grave",0).z-view.table.zone_position("deck",0).z,printed_slot_gap),"printed side card slots keep their vertical proportions")
  view.close_overlay()
  var wheel=InputEventMouseButton.new()
  wheel.pressed=true
@@ -117,7 +120,7 @@ func run():
  root.push_input(drag,true)
  await process_frame
  find_button(view.ui,"视角复原").pressed.emit()
- expect(view.table.camera_offset==Vector3.ZERO and is_equal_approx(view.table.camera.size,view.table.TOP_DOWN_CAMERA_SIZE),"visible reset button restores center and zoom")
+ expect(view.table.camera_offset==Vector3.ZERO and is_equal_approx(view.table.camera.size,view.table.WIDE_TOP_DOWN_CAMERA_SIZE),"visible reset button restores center and zoom")
  var hand_point=view.hand_nodes[hand_card.uid].get_global_rect().get_center()
  drag.pressed=true
  drag.position=hand_point

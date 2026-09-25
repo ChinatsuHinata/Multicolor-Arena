@@ -133,15 +133,29 @@ func build_room():
   app.label(body,"整场结束 · "+room.names[room.winner]+"获胜",Rect2(100,382,1180,70),31,app.GOLD)
   if room.has("end_reason"):app.label(body,room.end_reason,Rect2(105,465,1300,50),22)
   if not session.latest_snapshot.is_empty():app.button(body,"查看战场",Rect2(1070,540,355,60),func():app.return_network_battle())
+  var rematch=app.button(body,"更换卡组，再来一场",Rect2(1070,620,355,60),func():session.room_action({"name":"rematch"}),true)
+  rematch.disabled=not session.can_act()
  elif room.status=="aborted":
   app.label(body,"连接中断，对局结束 · 不计胜负",Rect2(100,382,1180,70),31,app.GOLD)
   if not session.latest_snapshot.is_empty():app.button(body,"查看战场",Rect2(1070,485,355,60),func():app.return_network_battle())
  elif room.status=="playing":
   app.label(body,"第 %d 局正在进行" % room.round,Rect2(105,370,1000,45),25)
   app.button(body,"回到战场",Rect2(1070,415,355,60),func():app.return_network_battle(),true)
+ elif room.status=="choosing":
+  app.label(body,"第 %d 局 · 选择先后手" % (room.round+1),Rect2(105,370,1000,45),27,app.GOLD)
+  if room.round==0:
+   app.label(body,"投骰结果：%s %d  ·  %s %d" % [room.names[0],room.roll["values"][0],room.names[1],room.roll["values"][1]],Rect2(105,430,900,45),23)
+  else:app.label(body,room.choice_reason,Rect2(105,430,900,45),23)
+  if own==room.chooser:
+   app.label(body,"你取得了选择权",Rect2(105,489,700,38),22,app.GOLD)
+   var first_button=app.button(body,"我方先手",Rect2(105,545,280,60),func():session.room_action({"name":"first","first":true}),true)
+   var second_button=app.button(body,"我方后手",Rect2(405,545,280,60),func():session.room_action({"name":"first","first":false}))
+   first_button.disabled=not session.can_act();second_button.disabled=not session.can_act()
+  else:app.label(body,"等待 %s 选择先后手" % room.names[room.chooser],Rect2(105,500,900,50),22,app.GOLD)
  elif room.status in ["lobby","between"]:
   app.label(body,"对手："+("已准备" if room.ready[other] else "未准备"),Rect2(105,312,620,42),21)
   if room.status=="lobby":
+   if room.get("rematch",false):app.label(body,"新的一场 · 可重新选择卡组",Rect2(800,315,560,40),21,app.GOLD)
    var pick=OptionButton.new();pick.position=Vector2(105,395);pick.size=Vector2(665,51);body.add_child(pick)
    for deck in app.decks:pick.add_item(deck.name)
    deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
@@ -158,7 +172,8 @@ func build_room():
    app.label(body,"第 %d 局准备" % (room.round+1),Rect2(800,395,500,51),25,app.GOLD)
   if not room.own_deck.is_empty():
    app.label(body,room.own_deck.name+" · 主卡组 %d / 副卡组 %d" % [room.own_deck.main.size(),room.own_deck.side.size()],Rect2(105,468,1030,46),22,app.GOLD)
-  app.label(body,"双方准备后投硬币决定先后手",Rect2(105,552,900,45),22)
+  var choice_hint="双方准备后投骰，点数高者选择先后手" if room.status=="lobby" else "双方准备后由上一局败者选择先后手" if room.last_winner in [0,1] else "双方准备后由上一局选择者选择先后手"
+  app.label(body,choice_hint,Rect2(105,552,900,45),22)
   var ready=app.button(body,"取消准备" if room.ready[own] else "准备",Rect2(1070,550,355,60),func():session.room_action({"name":"unready" if room.ready[own] else "ready"}),true)
   ready.disabled=room.own_deck.is_empty() or not session.can_act()
  if not session.connected and not session.is_host and not session.ended():

@@ -182,8 +182,7 @@ static func resolve_trigger(e,t):
    for r in e.Pack.picked(a):
     if C.unit(e,r):
      var u=e.find_card(r.uid);var controller=u.owner;var health=maxi(0,e.stat(u,"health")-u.damage)
-     var dealt=e.damage_target(r,n)
-     if dealt>health:e.damage_target({"player":controller},dealt-health)
+     e.damage_with_overflow(r,n,controller,health)
   "SPX-005":e.Roster.field_many(e,p.grave.filter(func(c):return e.cards[c.card_id].kind in ["结界","道具"] and e.cards[c.card_id].name==a.card_name),who)
   "SPX-003:self":C.token(e,who,"青蛙",4,4,2,["蓝","绿"],["不占战场格"])
   "SPX-001:self":

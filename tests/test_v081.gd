@@ -15,6 +15,7 @@ func clean():
   p.field=[]; p.hand=[]; p.palette=[]; p.grave=[]; p.potato=false; p.mulligan_done=true
  e.phase="main"; e.turn=4; e.active=1; e.priority=1; e.pending={}
  view.local={}; view.selection=[]; view.previous_snapshot={}; view.table.last_combat={}
+ e.presentation_events.clear();view.reveal_player.reset()
 func put(who: int,id: String,zone: String):
  var c=e.make_card(id,who,zone); e.players[who][zone].append(c); return c
 func resolve(): e.pass_priority(e.priority); e.pass_priority(e.priority)
@@ -75,11 +76,9 @@ func run():
  clean(); var source=put(0,"68","field")
  e.stack.append({"id":900,"kind":"ability","owner":0,"source":source.duplicate(true),"target":{"player":1},"amount":1,"name":"测试异能"})
  view.selection=[source.uid]; view.render(); await process_frame
- var visual=view.table.visuals["ability_900"]
- expect(not visual.get_node("Outline").visible and not visual.get_node("Halo").visible,"ability stack copy has no selection outline or glow")
+ var stack_tile=view.stack_panel.tiles[900].tile
+ expect(view.stack_panel.entry_rect(900).has_area() and not stack_tile.get_meta("selected"),"ability stack card does not inherit source selection")
  expect(view.table.visuals["card_"+str(source.uid)].get_node("Outline").visible,"source permanent selection remains independent of stack")
  expect(FileAccess.get_file_as_string("res://saves/decks.json")==save_before,"player deck file unchanged")
- var file=FileAccess.open("res://work/v081-tests.txt",FileAccess.WRITE)
- file.store_string("%d checks; %d failures\n%s" % [checks,failures.size(),"\n".join(failures)])
  print("V081_TEST: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

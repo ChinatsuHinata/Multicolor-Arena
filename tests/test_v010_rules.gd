@@ -124,6 +124,25 @@ func run():
  expect(a.wards.size()==2,"new Escape Velocity art grants two independent prevent-three shields")
  e.damage_target(e.ref_target(a),2); expect(a.damage==0 and a.wards.size()==1,"small damage consumes only first shield")
  e.damage_target(e.ref_target(a),5); expect(a.damage==2 and a.wards.is_empty(),"next damage consumes remaining shield")
+ fresh(); a=put("54","field",1); a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.damage_target(e.ref_target(a),2)
+ expect(e.pending.get("kind","")=="ward_order" and e.pending.owner==1 and a.damage==0,"mixed wards wait for the damaged unit's controller")
+ expect(preload("res://net/command_gateway.gd").apply(e,0,{"name":"choose_ward","args":[1]})=="不是你的选择时机","other player cannot choose the ward")
+ e.choose_ward(1); expect(e.pending.is_empty() and a.wards.size()==1 and a.wards[0].amount==1,"controller can preserve the smaller ward")
+ fresh(); a=put("54","field",1);a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.damage_target(e.ref_target(a),2);e.choose_ward(0)
+ expect(e.pending.is_empty() and a.wards.is_empty() and a.damage==0,"choosing the smaller ward consumes both against two damage")
+ fresh(); a=put("54","field",1);a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.damage_target(e.ref_target(a),2);e.damage_target(e.ref_target(a),2);e.choose_ward(1)
+ expect(a.damage==1 and a.wards.is_empty(),"later damage waits and resumes in order")
+ fresh(); a=put("53","field",1);a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.damage_with_overflow(e.ref_target(a),7,1,2)
+ expect(e.players[1].life==20 and e.pending.get("kind","")=="ward_order","overflow waits for ward choice")
+ e.choose_ward(1);expect(e.players[1].life==19 and a.zone=="grave","overflow uses the actual damage after prevention")
+ fresh(); var attacker=put("53");a=put("54","field",1);a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}]
+ e.combat={"owner":0,"attacker":e.ref_target(attacker),"blockers":[e.ref_target(a)],"blocked":true,"step":"block_window","strike_round":"normal"}
+ e.combat_damage({});expect(e.pending.get("kind","")=="ward_order" and e.pending.owner==1 and attacker.damage==0,"combat waits before simultaneous damage")
+ e.choose_ward(1);expect(a.wards.size()==1 and a.wards[0].amount==1 and attacker.zone=="grave","combat resumes using selected ward order")
  fresh(); a=put("character-fdf-070"); activate(a,{"player":0})
  expect(a.zone=="grave" and e.players[0].wards.size()==5,"Letty sacrifices for five independent prevention instances")
  e.damage_target({"player":0},3); expect(e.players[0].life==20 and e.players[0].wards.size()==2,"three damage consumes three prevent-one abilities")
@@ -131,9 +150,9 @@ func run():
  expect(e.players[1].life==17,"furnace increases a unit's single-target noncombat damage")
  spell_context(a,false); e.damage_target({"player":1},2); expect(e.players[1].life==15,"furnace does not increase a multiple-target damage effect")
  e.combat_hit(a,{"player":1},2); expect(e.players[1].life==13,"furnace never increases combat damage")
- fresh(); mana(); a=put("70"); cast_new("spell-mar-014"); e.damage_target(e.ref_target(a),5)
- expect(a.damage==0,"Paranoid Lost prevents noncombat damage to self-unit category")
- e.combat_hit(put("53","field",1),e.ref_target(a),1); expect(a.damage==1,"Paranoid does not prevent combat damage")
+ fresh(); mana(); a=put("70"); cast_new("spell-mar-014");a.wards=[{"amount":1,"turn":-1},{"amount":3,"turn":-1}];e.damage_target(e.ref_target(a),5)
+ expect(a.damage==0 and e.pending.is_empty() and a.wards.size()==2,"Paranoid Lost prevents noncombat damage before ward choice")
+ a.wards=[];e.combat_hit(put("53","field",1),e.ref_target(a),1); expect(a.damage==1,"Paranoid does not prevent combat damage")
  # Enter triggers, searching and complete resolution choices.
  fresh(); a=enter("character-soi-018"); settle(); expect(e.players[0].palette.size()==1 and e.players[0].palette[0].tapped,"Yuuka enter ramps tapped")
  fresh(); mana(); a=enter("character-rei-007"); settle(); expect(a.plus_counters==2,"explorer checks eight palette cards and gains two counters")
@@ -157,6 +176,18 @@ func run():
  e.start_turn(0); settle(); expect(a.zone=="field" and a.owner==1,"Yukari returns at controller's next prepare")
  fresh(); a=put("character-fdf-ex02"); a.leader_counters=1; b=put("53"); mana(); activate(a,e.ref_target(b))
  expect(b.zone=="exile" and not e.extension_activation_error(0,a).is_empty(),"Yukari active blink is limited to once per turn")
+ fresh(); mana(); var aya=put("79"); aya.leader=true
+ var first_target=put("53"); var second_target=put("54")
+ expect(e.commit_extension(0,aya.uid,e.ref_target(first_target),[]).is_empty(),"Aya uses her once-per-turn ability")
+ settle(); e.priority=0
+ expect(first_target.zone=="hand" and e.usage_count(aya.uid,"leader_bounce")==1 and not e.extension_activation_error(0,aya).is_empty(),"ability stays spent before blink")
+ options=e.targets_for("114",0)
+ cast_new("114",selected(options,[[e.ref_target(aya)]]))
+ expect(aya.zone=="field" and e.usage_count(aya.uid,"leader_bounce")==0,"Boundary returns Aya as a fresh field object")
+ expect(e.extension_activation_error(0,aya).is_empty(),"returned Aya can activate again this turn")
+ expect(e.commit_extension(0,aya.uid,e.ref_target(second_target),[]).is_empty(),"returned Aya activates a second time")
+ settle()
+ expect(second_target.zone=="hand" and e.usage_count(aya.uid,"leader_bounce")==1 and not e.extension_activation_error(0,aya).is_empty(),"second use resolves and is limited again")
  fresh(); a=enter("character-rei-ex01"); settle(); var n=e.players[0].hand.size(); e.move_to(a,"grave"); settle()
  expect(e.players[0].hand.size()==n+2,"Larva draws twice on death alongside crystal")
  fresh(); a=put("character-rei-023"); b=put("164","palette"); b.tapped=true; activate(a,Pack.ref(e,b))

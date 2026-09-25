@@ -12,6 +12,7 @@ func run():
  await until(func():return client_session.can_act())
  for seat in [0,1]:authority_session.handle_room_action(seat,{"name":"deck","deck":app.decks[seat]})
  for seat in [0,1]:authority_session.handle_room_action(seat,{"name":"ready"})
+ authority_session.handle_room_action(authority_session.series.state.chooser,{"name":"first","first":true})
  await until(func():return not client_session.latest_snapshot.is_empty())
  app.return_network_battle();view=app.duel_view
  await until(func():return not view.revealing())

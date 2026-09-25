@@ -32,8 +32,8 @@ func update_style(ready: bool,selected: bool):
   style.set_border_width_all(4)
   style.expand_margin_left=4; style.expand_margin_right=4
   style.expand_margin_top=4; style.expand_margin_bottom=4
-  style.border_color=Color("#ffd65c") if selected else Color("#359bff")
-  style.shadow_color=Color(1.0,0.67,0.13,0.72) if selected else Color(0.12,0.48,1.0,0.65)
+  style.border_color=Color("#f3d397") if selected else Color("#69cce4")
+  style.shadow_color=Color(0.87,0.53,0.33,0.72) if selected else Color(0.18,0.69,0.82,0.65)
   style.shadow_size=10 if selected else 7
  add_theme_stylebox_override("panel",style)
  if not is_instance_valid(art): return

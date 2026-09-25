@@ -5,18 +5,29 @@ const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
 const SearchAliases=preload("res://scripts/card_search_aliases.gd")
+const DeckImage=preload("res://scripts/deck_image_export.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
-const GOLD = Color("#d9b775")
-const INK = Color("#101c28")
-const MUTED = Color("#91a5b7")
-const WHITE = Color("#e8edf0")
+const HakureiSkin=preload("res://scripts/hakurei_skin.gd")
+const GAME_TITLE = "极彩 · 幻想对决"
+const GOLD = Color("#f2ca8b")
+const INK = Color("#211c35")
+const MUTED = Color("#bcaec1")
+const WHITE = Color("#f9e9d0")
+const BATTLE_INK = Color("#241d32")
+const BATTLE_BORDER = Color("#806b86")
+const BATTLE_GOLD = Color("#f3d397")
+const BATTLE_WHITE = Color("#f7f1ee")
+const BATTLE_MUTED = Color("#bcaec1")
+const BATTLE_RED = Color("#b84648")
+const BATTLE_SKY = Color("#69cce4")
 var deck_canvas: Control
 var screen: Control
 var page = ""
 var decks: Array = []
 var draft: Dictionary
 var dirty = false
+var deck_capture_busy = false
 var load_error = ""
 var selected = "70"
 var zone = "main"
@@ -28,6 +39,7 @@ var color_buttons = {}
 var main_scroll: ScrollContainer
 var main_content: Control
 var library: GridContainer
+var library_rows: Dictionary = {}
 var library_sort_choice: OptionButton
 var deck_rows: VBoxContainer
 var preview: Control
@@ -36,17 +48,17 @@ var name_label: Label
 var saved_select: OptionButton
 var player_choice = 0
 var ai_choice = 0
-var skip_check = false
-var ai_one = false
 var textures = {}
 var duel_view
 var lan_session
 var network_game_open=""
 var status = ""
 var debug_mode=false
+var debug_free_payment=false
 var about_code=""
 var fullscreen = false
 var top_down_view = false
+var show_card_inspection = true
 var add_amount = 1
 var zone_buttons = {}
 var settings_path = "res://saves/settings.json" if OS.has_feature("editor") else "user://settings.json"
@@ -64,6 +76,7 @@ func _ready():
  var t = Theme.new()
  t.default_font = f
  t.default_font_size = 18
+ HakureiSkin.apply_theme(t)
  theme = t
  var loaded = Store.load_decks()
  decks = loaded.decks
@@ -78,15 +91,15 @@ func _ready():
   if saved_settings is Dictionary:
    fullscreen = saved_settings.get("fullscreen", false) == true
    top_down_view = saved_settings.get("top_down_view", false) == true
+   show_card_inspection = saved_settings.get("show_card_inspection", true) == true
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  menu()
  if not load_error.is_empty(): alert(load_error)
 
 func _draw():
  if page=="battle": return
- draw_rect(Rect2(0,0,1600,900), Color("#09121d"))
- for i in range(22):
-  draw_circle(Vector2(1150,400),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
+ draw_texture_rect(HakureiSkin.texture("shrine_backdrop"),Rect2(0,0,1600,900),false,Color(0.78,0.73,0.82,1.0))
+ draw_rect(Rect2(0,0,1600,900),Color("#15132442"))
 
 func clear_page(next: String):
  if page=="sideboard" and next!="sideboard":restore_editor_draft()
@@ -103,7 +116,11 @@ func box(parent: Node, rect: Rect2, color: Color = INK, border: Color = Color("#
  var p = Panel.new()
  p.position = rect.position
  p.size = rect.size
- p.add_theme_stylebox_override("panel", style(color,border))
+ var standard_panel = color == INK
+ if page == "battle":
+  if color == INK: color = BATTLE_INK
+  if border == Color("#30424f"): border = BATTLE_BORDER
+ p.add_theme_stylebox_override("panel", HakureiSkin.frame("panel",68.0,68.0) if standard_panel else style(color,border))
  parent.add_child(p)
  return p
 
@@ -136,15 +153,26 @@ func button(parent: Node, text: String, rect: Rect2, action: Callable, accent: b
  b.text = text
  b.position = rect.position
  b.size = rect.size
- b.add_theme_stylebox_override("normal",style(Color("#3b3325") if accent else Color("#192a38"),GOLD if accent else Color("#3d5161")))
- b.add_theme_stylebox_override("hover",style(Color("#4b4130") if accent else Color("#294354"),GOLD))
- b.add_theme_stylebox_override("pressed",style(Color("#615135"),GOLD))
- b.add_theme_stylebox_override("focus",style(Color(0,0,0,0),GOLD))
- b.add_theme_color_override("font_color",GOLD if accent else WHITE)
+ for state in ["normal", "hover", "pressed"]:
+  b.add_theme_stylebox_override(state,HakureiSkin.large_button_frame(state,accent) if rect.size.x >= 400 and rect.size.y >= 60 else HakureiSkin.compact_frame(state,accent))
+ b.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+ var bright_accent = accent and rect.size.x >= 400 and rect.size.y >= 60
+ b.add_theme_color_override("font_color",Color("#302035") if bright_accent else HakureiSkin.CREAM)
+ b.add_theme_color_override("font_hover_color",Color("#302035") if bright_accent else HakureiSkin.GOLD)
+ b.add_theme_color_override("font_pressed_color",Color("#302035") if bright_accent else HakureiSkin.CREAM)
  b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
  b.pressed.connect(action)
  parent.add_child(b)
  return b
+
+func title_plate(parent: Node, rect: Rect2) -> Panel:
+ var plate := Panel.new()
+ plate.position = rect.position
+ plate.size = rect.size
+ plate.add_theme_stylebox_override("panel",HakureiSkin.frame("panel",68.0,68.0) if rect.size.y >= 160.0 else HakureiSkin.frame("button",66.0,18.0))
+ plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ parent.add_child(plate)
+ return plate
 
 func texture(id: String) -> Texture2D:
  if id=="back": return load(CARD_BACK_PATH)
@@ -201,10 +229,10 @@ func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable(
  return p
 
 func header(title: String, back: Callable):
- label(screen,"multicolor:arena  /  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(42,22,500,34),20,GOLD)
- label(screen,title,Rect2(42,68,1100,48),32)
+ title_plate(screen,Rect2(24,12,1532,114))
+ label(screen,GAME_TITLE+"  /  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(52,19,800,31),17,HakureiSkin.GOLD)
+ label(screen,title,Rect2(52,59,1110,54),32,HakureiSkin.CREAM)
  button(screen,"返回",Rect2(1430,32,126,46),back)
- box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
 
 func alert(message: String, title: String = "提示"):
  var d = AcceptDialog.new()
@@ -241,14 +269,17 @@ func guard(action: Callable):
 
 func menu():
  clear_page("menu")
- label(screen,"VERSION "+str(ProjectSettings.get_setting("application/config/version")),Rect2(92,74,900,42),18,GOLD)
- label(screen,"multicolor:arena",Rect2(86,173,760,125),66)
- label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(94,309,740,48),24,MUTED)
+ label(screen,"VERSION "+str(ProjectSettings.get_setting("application/config/version")),Rect2(92,74,900,42),18,HakureiSkin.GOLD)
+ title_plate(screen,Rect2(72,153,792,204))
+ label(screen,"MULTICOLOR : ARENA   /   "+str(ProjectSettings.get_setting("application/config/version")),Rect2(170,179,612,35),18,HakureiSkin.GOLD)
+ label(screen,GAME_TITLE,Rect2(169,222,610,78),52,HakureiSkin.CREAM)
+ label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(172,309,605,38),21,HakureiSkin.GOLD)
  button(screen,"人机对战    →",Rect2(96,422,440,70),setup,true)
  button(screen,"联网对战",Rect2(96,512,440,64),online)
  button(screen,"编辑牌组",Rect2(96,594,440,64),func(): editor())
  button(screen,"设置",Rect2(96,676,440,64),settings)
  button(screen,"关于",Rect2(96,758,440,64),about)
+ button(screen,"退出游戏",Rect2(570,676,280,64),func(): get_tree().quit())
  button(screen,"对局回放",Rect2(570,758,280,64),replays)
  card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
  card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
@@ -293,31 +324,54 @@ func settings():
  view_cb.button_pressed = top_down_view
  view_cb.toggled.connect(set_top_down_view)
  screen.add_child(view_cb)
+ var inspection_cb = CheckButton.new()
+ inspection_cb.text = "显示左侧卡牌效果说明栏"
+ inspection_cb.position = Vector2(420,450)
+ inspection_cb.size = Vector2(700,60)
+ inspection_cb.button_pressed = show_card_inspection
+ inspection_cb.toggled.connect(set_show_card_inspection)
+ screen.add_child(inspection_cb)
 
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection}))
   f.close()
  else: alert("无法保存设置。")
 
 func set_top_down_view(value: bool):
  top_down_view=value
  save_settings()
+
+func set_show_card_inspection(value: bool):
+ show_card_inspection=value
+ save_settings()
  
 
 func editor(sideboarding: bool=false):
  if not sideboarding:reload_decks()
  clear_page("sideboard" if sideboarding else "editor")
- label(screen,"换备牌" if sideboarding else "卡组编辑器",Rect2(24,12,270,46),28,GOLD)
+ title_plate(screen,Rect2(8,0,1584,68))
+ label(screen,("换备牌" if sideboarding else "组卡器")+"  ·  "+GAME_TITLE,Rect2(87,11,541,45),27,HakureiSkin.CREAM)
  button(screen,"返回",Rect2(1480,14,100,40),online if sideboarding else func(): guard(menu))
  button(screen,"排序卡组",Rect2(1090,14,156,40),sort_current_deck)
+ if not sideboarding:
+  var capture_button=button(screen,"卡组截图",Rect2(650,14,156,40),capture_current_deck)
+  capture_button.name="DeckCaptureButton"
+  var folder_button=button(screen,"打开 deck 文件夹",Rect2(820,14,242,40),open_deck_folder)
+  folder_button.name="OpenDeckFolderButton"
+  button(screen,"组卡教程",Rect2(1294,14,156,40),show_deck_tutorial)
  box(screen,Rect2(18,72,286,810))
  preview=Control.new()
  preview.position=Vector2(30,88)
  screen.add_child(preview)
  box(screen,Rect2(320,72,902,810))
- name_label=label(screen,"",Rect2(338,80,482,36),23,GOLD)
+ name_label=label(screen,"",Rect2(462,80,358,36),23,GOLD)
+ if not sideboarding:
+  name_label.mouse_filter=Control.MOUSE_FILTER_STOP
+  name_label.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+  name_label.tooltip_text="双击卡组名称可重命名"
+  name_label.gui_input.connect(on_deck_title_input)
  counts=label(screen,"",Rect2(338,818,858,32),17,MUTED)
  deck_canvas=Control.new()
  deck_canvas.position=Vector2(334,126)
@@ -327,7 +381,7 @@ func editor(sideboarding: bool=false):
  rules.name="DeckRuleSet"
  rules.position=Vector2(826,78)
  rules.size=Vector2(250,40)
- rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用 new-spx-001～007。\n官限有限定卡：三张限 2，允许 new-spx。\n测试卡组：所有卡均可加入，同名张数不限。"
+ rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用线下独占卡。\n官限有限定卡：三张限 2，可以使用线下独占卡。\n测试卡组：所有卡均可加入，同名张数不限。"
  for index in range(RuleSet.IDS.size()):rules.add_item("规则集："+RuleSet.LABELS[index])
  rules.select(maxi(0,RuleSet.IDS.find(str(draft.get("rule_set",RuleSet.OFFICIAL)))))
  rules.disabled=sideboarding
@@ -342,7 +396,7 @@ func editor(sideboarding: bool=false):
  box(screen,Rect2(1238,72,344,810))
  var search=LineEdit.new()
  search.name="LibrarySearch"
- search.placeholder_text="名称 / 红蓝单位 / 单黄符卡"
+ search.placeholder_text="名称 / 红蓝单位 / 单蓝普通符卡"
  search.text=query
  search.position=Vector2(1252,88)
  search.size=Vector2(314,42)
@@ -361,9 +415,10 @@ func editor(sideboarding: bool=false):
   color_buttons[color]=b
  refresh_color_buttons()
  var kind=OptionButton.new()
+ kind.name="LibraryKindFilter"
  kind.position=Vector2(1252,190)
  kind.size=Vector2(314,38)
- var kinds=["全部","单位","普通单位","自机单位","符卡","道具","结界"]
+ var kinds=["全部","单位","普通单位","自机单位","符卡","普通符卡","道具","结界"]
  for x in kinds: kind.add_item(x)
  kind.select(maxi(0,kinds.find("自机单位" if filter_kind=="自机" else filter_kind)))
  kind.item_selected.connect(func(i): filter_kind=kind.get_item_text(i); update_library())
@@ -417,6 +472,7 @@ func change_deck_rule_set(rule_set: String):
  dirty=true
  update_preview()
  update_deck_rows()
+ update_library()
 
 func free_children(parent: Node):
  for c in parent.get_children():
@@ -477,6 +533,7 @@ func update_preview():
 
 func update_library():
  free_children(library)
+ library_rows.clear()
  var rule_set=str(draft.get("rule_set",RuleSet.OFFICIAL))
  for id in library_ids():
   var info=Store.CARDS[id]
@@ -489,13 +546,15 @@ func update_library():
   row.texture_provider=func(): return texture(id)
   row.set_meta("card_id",id)
   row.custom_minimum_size=Vector2(296,64)
-  row.add_theme_stylebox_override("panel",style(Color("#142737") if available else Color("#24303a"),Color("#3d5161") if available else MUTED))
+  row.add_theme_stylebox_override("panel",style(Color("#2b263e") if available else Color("#302a39"),Color("#8b6b81") if available else MUTED))
   library.add_child(row)
   var full_name=label(row,info.name,Rect2(10,4,222 if available and remaining>=0 else 276,54),17,WHITE if available else MUTED)
   full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  if available and remaining>=0:label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
+  var remaining_label: Label=null
+  if available and remaining>=0:remaining_label=label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
+  library_rows[id]={"row":row,"remaining_label":remaining_label}
   var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
   row.tooltip_text=info.name if available else info.name+"\n"+reason
   row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
@@ -504,6 +563,25 @@ func update_library():
    update_preview()
    if not right and RuleSet.allowed(card_id,Store.CARDS[card_id],rule_set): add_to("side" if zone=="side" else "main"))
   row.set_drag_forwarding(row._get_drag_data,can_return_card,return_card_to_library)
+
+func refresh_library_limits():
+ var rule_set=str(draft.get("rule_set",RuleSet.OFFICIAL))
+ var counts={}
+ for id in draft.main+draft.side:
+  if not Store.CARDS.has(id):continue
+  var key=RuleSet.name_key(id,Store.CARDS)
+  counts[key]=counts.get(key,0)+1
+ var leader_key=RuleSet.name_key(draft.leader,Store.CARDS) if Store.CARDS.has(draft.leader) else ""
+ for id in library_rows:
+  var info=Store.CARDS[id]
+  var item=library_rows[id]
+  var maximum=RuleSet.limit(id,info,rule_set)
+  var remaining=maximum if maximum<0 else maxi(0,maximum-counts.get(RuleSet.name_key(id,Store.CARDS),0))
+  if not leader_key.is_empty() and RuleSet.name_key(id,Store.CARDS)==leader_key:remaining=0
+  item.row.draggable=RuleSet.allowed(id,info,rule_set) and remaining!=0
+  if item.remaining_label!=null:
+   item.remaining_label.text="余 %d" % remaining
+   item.remaining_label.add_theme_color_override("font_color",GOLD if remaining>0 else MUTED)
 
 func library_ids() -> Array:
  var ids=[]
@@ -517,7 +595,7 @@ func library_ids() -> Array:
   var info=Store.CARDS[id]
   if info.get("canonical_id",id)!=id: continue
   if not library_matches_query(id,info,role_characters,alias_ids,alias_result.exclusive,filters,race_characters): continue
-  if not library_kind_matches(info.kind,filter_kind): continue
+  if not library_kind_matches(info,filter_kind): continue
   if not matches_colors(info): continue
   ids.append(id)
  ids.sort_custom(func(a,b):return library_card_less(a,b))
@@ -531,7 +609,8 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
  var role_spell=info.kind=="符卡" and "角色" in str(info.get("spell_type","")) and info.get("requires_character","") in role_characters
  if not filters.is_empty():
   var race_match=filters.race=="" or filters.race in info.get("race",[]) or library_related_to_race(info,filters.race,race_characters)
-  var color_match=library_kind_matches(info.kind,filters.kind) and race_match and (not filters.single or info.colors.size()==1) and filters.colors.all(func(color):return color in info.colors)
+  var color_match=library_kind_matches(info,filters.kind) and race_match and (not filters.single or info.colors.size()==1) and filters.colors.all(func(color):return color in info.colors)
+  if filters.kind=="普通符卡":return color_match
   return color_match or role_spell or alias_ids.has(id)
  if alias_exclusive:return role_spell or alias_ids.has(id)
  var searchable=[info.name,id,info.get("title",""),info.get("character","")]
@@ -563,7 +642,7 @@ func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
  var rule=SearchAliases.find_rule(rules,text)
  var kind=""
  if rule==null:
-  for suffix in ["自机单位","普通单位","单位","自机","符卡","道具","结界"]:
+  for suffix in ["自机单位","普通单位","普通符卡","单位","自机","符卡","道具","结界"]:
    if not text.ends_with(suffix):continue
    var alias=text.substr(0,text.length()-suffix.length()).strip_edges()
    rule=SearchAliases.find_rule(rules,alias)
@@ -574,7 +653,7 @@ func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
  var matches={}
  for id in Store.CARDS:
   var info=Store.CARDS[id]
-  if library_kind_matches(info.kind,kind) and SearchAliases.card_matches(info,rule):matches[id]=true
+  if library_kind_matches(info,kind) and SearchAliases.card_matches(info,rule,id):matches[id]=true
  return {"exclusive":rule is Dictionary and rule.get("only",false)==true,"ids":matches}
 
 func library_role_spell_characters(term: String,rules: Dictionary) -> Array:
@@ -584,19 +663,22 @@ func library_role_spell_characters(term: String,rules: Dictionary) -> Array:
  if leader_name.is_empty():return []
  var alias_rule=SearchAliases.find_rule(rules,leader_name)
  var characters=[]
- for leader in Store.CARDS.values():
+ for leader_id in Store.CARDS:
+  var leader=Store.CARDS[leader_id]
   var name_match=leader.kind=="自机" and leader_name in leader.name.to_lower()
-  var alias_match=alias_rule!=null and leader.kind in ["单位","自机"] and SearchAliases.card_matches(leader,alias_rule)
+  var alias_match=alias_rule!=null and leader.kind in ["单位","自机"] and SearchAliases.card_matches(leader,alias_rule,leader_id)
   if not name_match and not alias_match:continue
   var character=leader.get("character","")
   if not character.is_empty() and character not in characters:characters.append(character)
  return characters
 
-func library_kind_matches(kind: String, wanted: String) -> bool:
+func library_kind_matches(info: Dictionary, wanted: String) -> bool:
+ var kind=str(info.kind)
  if wanted in ["","全部"]:return true
  if wanted=="单位":return kind in ["单位","自机"]
  if wanted=="普通单位":return kind=="单位"
  if wanted in ["自机单位","自机"]:return kind=="自机"
+ if wanted=="普通符卡":return kind=="符卡" and str(info.get("requires_character","")).is_empty() and "角色" not in str(info.get("spell_type",""))
  return kind==wanted
 
 func library_query_filters(term: String) -> Dictionary:
@@ -605,7 +687,7 @@ func library_query_filters(term: String) -> Dictionary:
  var single=remaining.begins_with("单") and remaining!="单位"
  if single:remaining=remaining.substr(1)
  var kind=""
- for suffix in ["自机单位","普通单位","单位","自机","符卡","道具","结界"]:
+ for suffix in ["自机单位","普通单位","普通符卡","单位","自机","符卡","道具","结界"]:
   if remaining.ends_with(suffix):
    kind=suffix
    remaining=remaining.substr(0,remaining.length()-suffix.length())
@@ -716,7 +798,7 @@ func update_deck_rows():
  for c in color_counts:
   label(deck_canvas,"%s %d" % [c,color_counts[c]],Rect2(146+index*116,519,108,30),18,MUTED)
   index+=1
- if page=="editor" and is_instance_valid(library):update_library()
+ if page=="editor" and is_instance_valid(library):refresh_library_limits()
 
 func add_selected(): add_to(zone)
 func add_to(target: String):
@@ -735,6 +817,58 @@ func remove_card(id: String):
  else: draft[zone].erase(id)
  dirty = true
  update_deck_rows()
+
+func on_deck_title_input(event: InputEvent):
+ if page=="editor" and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and event.double_click:
+  rename_dialog()
+
+func show_deck_tutorial():
+ var dialog=AcceptDialog.new()
+ dialog.name="DeckTutorial"
+ dialog.title="组卡教程"
+ dialog.min_size=Vector2i(820,680)
+ dialog.get_ok_button().text="关闭"
+ dialog.confirmed.connect(dialog.queue_free)
+ dialog.canceled.connect(dialog.queue_free)
+ var guide=RichTextLabel.new()
+ guide.name="DeckTutorialText"
+ guide.position=Vector2(22,18)
+ guide.size=Vector2(776,585)
+ guide.bbcode_enabled=true
+ guide.text="""[color=#d9b775][b]卡组与规则[/b][/color]
+点击右侧“新建”创建卡组；双击中央上方的卡组名称，或点击“重命名”修改名称。选择“规则集”后，卡库会标示卡牌可用性和同名剩余张数；右侧“卡组”下拉框可切换已保存卡组。
+
+[color=#d9b775][b]选牌与编辑[/b][/color]
+左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。
+主、副卡组中的卡牌左键再加一张，右键移除；在主、副卡组间拖动可移动卡牌，拖回右侧卡库可移除。顶部“排序卡组”整理主、副卡组的排列。
+
+[color=#d9b775][b]搜索与筛选[/b][/color]
+搜索框可输入卡名、卡牌编号或别名，例如“西瓜”“530”；输入“天子符卡”可找对应角色的符卡。“密封”显示命定的重逢、大空魔术与两张梦违单位，“密封符卡”显示六张关联符卡。
+可把颜色、类别和种族写在一起：如“红蓝单位”“单蓝普通符卡”“红黑人类”。搜索中的颜色表示“包含这些颜色”；开头加“单”限定单色牌。“普通单位”和“自机单位”分别筛选两类单位，“普通符卡”排除角色符卡。
+颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。
+
+[color=#d9b775][b]保存与使用[/b][/color]
+右下角可保存、使用、清空或删除卡组，也可导出代码到剪贴板、从代码导入新卡组。顶部“卡组截图”将当前卡组保存为 PNG，并提示完整路径；“打开 deck 文件夹”可查看卡组文件和 image 截图目录。名称后的 * 表示有未保存的修改。保存需要设置自机；正常对战还要求主卡组恰好 50 张。"""
+ dialog.add_child(guide)
+ add_child(dialog)
+ dialog.popup_centered()
+
+func capture_current_deck():
+ if page!="editor" or deck_capture_busy:return
+ deck_capture_busy=true
+ var result=await DeckImage.capture(self,draft.duplicate(true),dirty)
+ deck_capture_busy=false
+ if result.has("error"):alert(result.error,"截图失败")
+ else:alert("卡组截图已保存：\n"+str(result.path),"截图完成")
+
+func open_deck_folder():
+ var folder=Store.folder()
+ var directory_error=DirAccess.make_dir_recursive_absolute(folder)
+ if directory_error!=OK:
+  alert("无法创建 deck 文件夹："+error_string(directory_error),"打开失败")
+  return
+ var open_error=OS.shell_show_in_file_manager(folder)
+ if open_error!=OK:alert("无法打开 deck 文件夹："+error_string(open_error),"打开失败")
 
 func rename_dialog():
  var d = ConfirmationDialog.new()
@@ -879,33 +1013,35 @@ func setup():
    var chosen=decks[player_choice if i==0 else ai_choice]
    card(screen,chosen.leader,Rect2(x+24,340,106,151))
    label(screen,"主卡组 %d\n副卡组 %d" % [chosen.main.size(),chosen.side.size()],Rect2(x+160,352,340,110),22)
- var skip=CheckButton.new()
- skip.text="不检查卡组"
- skip.position=Vector2(420,568)
- skip.size=Vector2(800,45)
- skip.button_pressed=skip_check
- skip.toggled.connect(func(value): skip_check=value)
- screen.add_child(skip)
- var one=CheckButton.new()
- one.text="人机必定投 1"
- one.position=Vector2(420,630)
- one.size=Vector2(800,45)
- one.button_pressed=ai_one
- one.toggled.connect(func(value): ai_one=value)
- screen.add_child(one)
- button(screen,"开始对战",Rect2(570,721,460,68),start_match,true)
+ var test_mode=CheckButton.new()
+ test_mode.text="测试模式（手动控制双方）"
+ test_mode.position=Vector2(420,585)
+ test_mode.size=Vector2(390,40)
+ test_mode.button_pressed=debug_mode
+ test_mode.toggled.connect(func(value): debug_mode=value; setup())
+ screen.add_child(test_mode)
+ var free_payment=CheckButton.new()
+ free_payment.text="无需付费"
+ free_payment.position=Vector2(820,585)
+ free_payment.size=Vector2(260,40)
+ free_payment.button_pressed=debug_free_payment
+ free_payment.disabled=not debug_mode
+ free_payment.tooltip_text="测试模式中跳过出牌、异能与攻击的颜色费用"
+ free_payment.toggled.connect(func(value): debug_free_payment=value)
+ screen.add_child(free_payment)
+ button(screen,"开始对战",Rect2(570,654,460,68),start_match,true)
  button(screen,"编辑牌组",Rect2(1080,730,250,50),editor)
  button(screen,"载入测试卡组",Rect2(80,730,270,50),load_test_decks)
 
 func start_match():
  if decks.is_empty(): alert("请选择卡组。"); return
  for i in [player_choice,ai_choice]:
-  var error=Store.validate(decks[i],not skip_check,str(decks[i].get("rule_set",RuleSet.OFFICIAL)))
+  var error=Store.validate(decks[i],true,str(decks[i].get("rule_set",RuleSet.OFFICIAL)))
   if not error.is_empty():
    alert("「%s」：%s" % [decks[i].name,error],"卡组不合规")
    return
- var your_roll = randi_range(2,6) if ai_one else randi_range(1,6)
- var bot_roll = 1 if ai_one else randi_range(1,6)
+ var your_roll = randi_range(1,6)
+ var bot_roll = randi_range(1,6)
  while your_roll==bot_roll: your_roll=randi_range(1,6); bot_roll=randi_range(1,6)
  if your_roll>bot_roll:
   var d=ConfirmationDialog.new()
@@ -942,7 +1078,7 @@ func load_test_decks():
   if found<0: found=decks.size(); decks.append(template.duplicate(true))
   else: decks[found]=template.duplicate(true)
   positions.append(found)
- player_choice=positions[0]; ai_choice=positions[1]; skip_check=false; ai_one=true
+ player_choice=positions[0]; ai_choice=positions[1]
  setup()
 
 func load_legacy_test_decks():
@@ -958,14 +1094,13 @@ func load_legacy_test_decks():
   marisa.main.append_array(["164","164","165","167","167","68","70","99","100","170"])
  player_choice=decks.size(); ai_choice=decks.size()+1
  decks.append(reimu); decks.append(marisa)
- skip_check=true; ai_one=true
  setup()
 
 func card_description(id: String) -> String:
  return Store.CARDS[id].rules_text
 
 func make_drop_zone(target: String, rect: Rect2, parent: Node = null):
- var panel=box(parent if parent else deck_canvas,rect,Color("#13232f"),GOLD if zone==target else Color("#3b5060"))
+ var panel=box(parent if parent else deck_canvas,rect,Color("#211f35"),GOLD if zone==target else Color("#765d7d"))
  panel.set_drag_forwarding(Callable(),func(_at,data): return valid_drag_source(data),func(_at,data): drop_editor_card(data,target))
  if target=="leader":
   panel.name="LeaderDropZone"
@@ -1001,7 +1136,7 @@ func populate_leader_picker(grid: GridContainer,dialog: AcceptDialog,term: Strin
   if not needle.is_empty() and needle not in info.name.to_lower() and needle not in id.to_lower() and needle not in str(info.get("character","")).to_lower():continue
   var tile=Panel.new()
   tile.custom_minimum_size=Vector2(218,334)
-  tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if id==draft.leader else Color("#536b7b")))
+  tile.add_theme_stylebox_override("panel",style(Color("#2b263e"),GOLD if id==draft.leader else Color("#856f8b")))
   tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
   tile.tooltip_text=info.name+"\n点击设为自机"
   tile.set_meta("card_id",id)
@@ -1070,7 +1205,7 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  tile.source_index=index
  tile.position=rect.position
  tile.size=rect.size
- tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if source=="leader" else Color("#677585")))
+ tile.add_theme_stylebox_override("panel",style(Color("#2b263e"),GOLD if source=="leader" else Color("#856f8b")))
  (parent if parent else deck_canvas).add_child(tile)
  var art=TextureRect.new()
  art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
@@ -1132,7 +1267,7 @@ func about():
  about_code=""
  var title=label(screen,"关于",Rect2(100,210,1400,70),44,GOLD)
  title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var version=label(screen,"multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
+ var version=label(screen,GAME_TITLE+"  /  multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
  version.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var body=label(screen,"本作品基于开源游戏引擎godot和东方project的二次创作“极彩multicolor”，由chatgpt辅助代码\n所制成。所有卡图等知识产权均归属于社团“The 495th Complex”",Rect2(100,365,1400,90),32)
  body.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
