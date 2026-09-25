@@ -142,7 +142,43 @@ func run():
  expect(app.library_ids().has("121") and app.library_ids().has("spell-ucs-027") and "红" not in Store.CARDS["121"].colors,"color and matching leader-name role spells are combined")
  search.text="紫符卡"
  search.text_changed.emit(search.text)
- expect(not app.library_ids().has("new-spx-006") and app.library_ids().any(func(id):return Store.CARDS[id].get("requires_character","")=="八云紫"),"leader-name search only adds role spells")
+ expect(app.library_ids().has("new-spx-006") and app.library_ids().any(func(id):return Store.CARDS[id].get("requires_character","")=="八云紫"),"leader-name search includes every bound role spell")
+ var leader_characters=[]
+ for info in Store.CARDS.values():
+  if info.kind=="自机" and not info.character.is_empty() and info.character not in leader_characters:leader_characters.append(info.character)
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if info.kind!="符卡":continue
+  var required=str(info.get("requires_character",""))
+  expect(("角色" in str(info.get("spell_type","")))==(not required.is_empty()),"role spell type and character binding agree: "+id)
+  if not required.is_empty():expect(leader_characters.any(func(character):return required in str(character)),"role spell binds to an existing leader: "+id)
+ for example in [
+  ["火焰猫燐符卡",["spell-fdf-006","spell-fdf-012"]],
+  ["蕾米莉亚符卡",["109","spell-fdf-035"]],
+  ["堇子符卡",["new-eto-004","new-eto-006"]],
+  ["琪露诺符卡",["new-loc-002","new-loc-003"]],
+  ["诹访子符卡",["new-spx-004"]],
+  ["紫符卡",["new-spx-006"]]
+ ]:
+  app.query=example[0]
+  var matches=app.library_ids()
+  expect(example[1].all(func(id):return id in matches),"character spell search binds %s" % example[0])
+ var role_spell_ids={}
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if info.kind!="符卡" or info.get("canonical_id",id)!=id:continue
+  var required=str(info.get("requires_character",""))
+  if required.is_empty():continue
+  if not role_spell_ids.has(required):role_spell_ids[required]=[]
+  role_spell_ids[required].append(id)
+ for character in role_spell_ids:
+  app.query=character+"符卡"
+  var matches=app.library_ids()
+  expect(role_spell_ids[character].all(func(id):return id in matches),"all role spells found by character: "+character)
+ for term in ["芙兰符卡","芙兰朵露符卡"]:
+  app.query=term
+  var matches=app.library_ids()
+  expect(["104","spell-fdf-051","spell-fdf-058","spell-fdn-005","spell-fdn-017"].all(func(id):return id in matches) and not matches.has("109"),"Flandre spell search: "+term)
  var alias_examples={
   "西瓜":["90","new-spx-001"],"青蛙":["93","new-spx-003","character-ucs-025"],
   "老师":["character-fdf-ex05"],"小五":["76"],"恋恋":["73"],

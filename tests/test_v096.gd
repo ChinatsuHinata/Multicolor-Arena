@@ -91,7 +91,7 @@ func run():
  await capture("damage-allocation-centered")
  view.close_overlay(); clean(); e.surrender(1); view.render(); centered("end-of-game panel centered")
  # Direct debug dragging from actual hand/world meshes, not just browser entries.
- clean(true); var c=put("53","hand"); var top=put("54","deck")
+ clean(true); app.debug_drag_to_field=true; var c=put("53","hand"); var top=put("54","deck")
  view.render(); await settle(); await debug_drag_card(c.uid,view.hand_nodes[c.uid].get_global_rect().get_center(),pile_point("deck"))
  expect(c.zone=="deck" and e.players[0].deck[0].uid==c.uid,"direct hand drag puts card on deck top")
  view.browse_zone(0,"deck"); await settle(); await debug_drag_card(c.uid,top_art().get_global_rect().get_center(),Vector2(700,780)); view.close_debug()

@@ -16,6 +16,10 @@ tests/
 tests/*
 !tests/test_rematch.gd
 !tests/test_dream_copy_targets.gd
+!tests/test_unit_order_ui.gd
+!tests/test_fairy_habitat.gd
+!tests/test_fairy_habitat_ui.gd
+!tests/test_fairy_habitat_keywords.gd
 
 # Installer packages and local packaging automation
 *-setup.exe

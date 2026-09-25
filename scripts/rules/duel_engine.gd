@@ -817,7 +817,7 @@ func finish_turn():
  if not pending.is_empty() or not stack.is_empty() or winner!=-2:return
  Roster.cleanup(self)
  for p in players:
-  p.wards=[]; p.wine=[];p.mana=[]
+  p.wards=p.get("wards",[]).filter(func(w):return int(w.get("turn",turn))==-1); p.wine=[];p.mana=[]
   for c in p.field: c.damage=0; c.modifiers=[]; c.spell_damage=false; c.wards=c.get("wards",[]).filter(func(w):return w.turn==-1); c.base_override={}; c.medicine=[]
  start_turn(extra_turns.pop_front() if not extra_turns.is_empty() else 1-active)
 func can_attack(who: int,uid: int) -> bool:

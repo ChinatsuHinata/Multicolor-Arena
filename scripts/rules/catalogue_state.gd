@@ -167,17 +167,46 @@ static func state_checks(e):
   if not C.with_key(e,who,"spell-fdn-002").is_empty() and not e.units(who).is_empty():e.players[who].life=maxi(1,e.players[who].life)
  sync_fairies(e)
 static func sync_fairies(e):
+ var habitats=[]
  for who in range(e.players.size()):
   for c in e.units(who):
    var base=c.get("habitat_base",c.card_id)
-   if not e.Roster.has(e.cards[base],"character-fdn-007"):continue
-   var info=e.cards[base].duplicate(true);info.copy_source_id=base
-   for u in e.units(who):
-    if u.uid==c.uid or not e.Cat.race(e,u,"妖精"):continue
-    var other=e.cards[u.get("habitat_base",u.card_id)]
-    for a in other.abilities:
-     if a not in info.abilities:info.abilities.append(a.duplicate(true))
-    for k in other.keywords:
-     if k not in info.keywords:info.keywords.append(k)
-   var id="catalogue_habitat_"+str(c.uid);e.cards[id]=info;c.card_id=id;c.habitat_base=base;c.inherited_self=true
-
+   if e.Roster.has(e.cards[base],"character-fdn-007"):habitats.append(c)
+ if habitats.is_empty():return
+ var keyword_candidates={}
+ for card_info in e.cards.values():
+  for k in card_info.get("keywords",[]):keyword_candidates[k]=true
+ for who in range(e.players.size()):
+  for u in e.units(who):
+   for k in u.get("extra_keywords",[]):keyword_candidates[k]=true
+   for modifier in u.get("modifiers",[]):
+    for k in modifier:
+     if modifier[k] is bool and modifier[k]:keyword_candidates[k]=true
+ for c in habitats:
+  var base=c.get("habitat_base",c.card_id)
+  var info=e.cards[base].duplicate(true);info.copy_source_id=base
+  var printed=base
+  var visited={}
+  while not visited.has(printed):
+   visited[printed]=true
+   var source_id=String(e.cards[printed].get("copy_source_id",""))
+   if source_id.is_empty() or not e.cards.has(source_id):break
+   printed=source_id
+  if printed!=base and e.Roster.has(e.cards[printed],"character-fdn-007"):
+   info.abilities=e.cards[printed].abilities.duplicate(true)
+   info.keywords=e.cards[printed].keywords.duplicate()
+  for u in e.units(c.owner):
+   if u.uid==c.uid or not e.Cat.race(e,u,"妖精"):continue
+   var other=e.cards[u.get("habitat_base",u.card_id)]
+   for a in other.abilities:
+    if a not in info.abilities:info.abilities.append(a.duplicate(true))
+   var explicit_keywords=other.get("keywords",[]).duplicate()
+   explicit_keywords.append_array(u.get("extra_keywords",[]))
+   for modifier in u.get("modifiers",[]):
+    for k in modifier:
+     if modifier[k] is bool and modifier[k] and k not in explicit_keywords:explicit_keywords.append(k)
+   for k in keyword_candidates:
+    # Slot exemptions from the habitat leader are rules for fairies, not abilities they pass back to the habitat.
+    if k=="不占战场格" and k not in explicit_keywords:continue
+    if k not in info.keywords and e.Extra.keyword(e,u,k):info.keywords.append(k)
+  var id="catalogue_habitat_"+str(c.uid);e.cards[id]=info;c.card_id=id;c.habitat_base=base;c.inherited_self=true

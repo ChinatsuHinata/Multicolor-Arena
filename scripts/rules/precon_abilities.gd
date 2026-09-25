@@ -500,12 +500,12 @@ static func resolve_activation(e,entry: Dictionary):
   "marisa_recover":
    for r in picked(t,1):
     if e.Extra.valid(e,r): e.move_to(e.find_card(r.uid),"hand")
-static func shield(e,t: Dictionary,amounts: Array,next_damage: bool=false):
+static func shield(e,t: Dictionary,amounts: Array,next_damage: bool=false,this_turn: bool=true):
  if not e.target_valid(t): return
  var c=e.players[t.player] if t.has("player") else e.find_card(t.uid)
  for amount in amounts:
   e.next_buff_order+=1
-  c.wards=c.get("wards",[])+[{"amount":amount,"turn":e.turn,"next":next_damage,"order":e.next_buff_order}]
+  c.wards=c.get("wards",[])+[{"amount":amount,"turn":e.turn if this_turn else -1,"next":next_damage,"order":e.next_buff_order}]
 static func adjusted_damage(e,t: Dictionary,amount: int) -> int:
  var context=e.damage_context; var source=context.get("source",{}); var combat=context.get("combat",false)
  if not combat and not source.is_empty() and context.get("single",false):

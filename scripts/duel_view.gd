@@ -6,6 +6,9 @@ const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const STAGE=Rect2(0,0,1600,900)
+const CARD_ICON_SIZE=28.0
+const CARD_ICON_GAP=3.0
+const CARD_ICON_INSET=3.0
 const HAND=Rect2(246,663,1108,232)
 const OPPONENT_HAND_COUNT=Rect2(1070,78,170,30)
 const SIDEBAR=Rect2(1366,100,218,660)
@@ -102,10 +105,18 @@ var drag_origin=Vector2.ZERO
 var drag_pointer=Vector2.ZERO
 var dragging=false
 var drag_art: Control
+var unit_drag_uid=0
+var unit_drag_epoch=0
+var unit_drag_owner=0
+var unit_drag_origin=Vector2.ZERO
+var unit_drag_pointer=Vector2.ZERO
+var unit_dragging=false
+var unit_drag_art: Control
 var previous_snapshot={}
 var frame_count=0
 var observing=false
 var observe_button: Button
+var sort_units_button: Button
 var reset_view_button: Button
 var camera_dragging=false
 var camera_drag_last=Vector2.ZERO
@@ -175,7 +186,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  reset_view_button.tooltip_text="复原战场缩放和位置"
  if debug_mode:
   debug_controls=layer(ui)
-  debug_help_button=btn("测试说明",Rect2(1020,57,120,34),open_debug_help,false,debug_controls)
+  debug_help_button=btn("测试说明",Rect2(1450,840,120,34),open_debug_help,false,debug_controls)
   debug_help_button.tooltip_text="查看测试模式的区域操作与快捷键"
   debug_button=btn("调试",Rect2(1460,57,116,34),debug_menu,false,debug_controls)
   debug_button.toggle_mode=true
@@ -247,6 +258,18 @@ func stage_input(event: InputEvent):
   var uid=table.card_at(event.position/STAGE.size*Vector2(viewport.size))
   if uid>0:
    begin_debug_drag(uid,STAGE.position+event.position); return
+ if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and not observing and not modal and not history_open and drag_uid==0 and debug_drag_uid==0:
+  var uid=table.card_at(event.position/STAGE.size*Vector2(viewport.size))
+  if uid>0:
+   var c=engine.find_card(uid)
+   if not c.is_empty() and c.zone=="field" and engine.is_unit(c):
+    unit_drag_uid=uid
+    unit_drag_epoch=c.epoch
+    unit_drag_owner=c.owner
+    unit_drag_origin=STAGE.position+event.position
+    unit_drag_pointer=unit_drag_origin
+    unit_dragging=false
+    return
  if history_open or (modal and not observing) or dragging or debug_drag_uid!=0: return
  if event is InputEventMouseButton:
   var converted=event.duplicate()
@@ -330,7 +353,7 @@ func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#e8edf0"),par
  return label
 func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: Node=null):
  if parent==null and rect.position.y>=90:rect=right_rect(rect)
- var inspection_action=text in ["设置","对局记录","聊天","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
+ var inspection_action=text in ["设置","对局记录","单位自动排序","聊天","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
  var button=host.button(hud if parent==null else parent,text,rect,func():
   if not network_locked() or inspection_action:action.call(),accent)
  if network_locked() and not inspection_action:button.disabled=true
@@ -404,6 +427,8 @@ func render():
  txt("连接中断，对局结束" if network_session!=null and network_session.ended() else "第 %d 回合  ·  %s  ·  %s" % [engine.turn,player_caption(engine.active),phase_names[engine.phase]],Rect2(410 if not player_buffs(1-local_seat).is_empty() else 310,12,630,42),23,host.GOLD)
  btn("设置",Rect2(1460,12,116,40),settings_menu)
  btn("对局记录",Rect2(1310,99,266,40),open_history)
+ sort_units_button=btn("单位自动排序",Rect2(1270,12,164,40),sort_units)
+ sort_units_button.tooltip_text="拖动战场单位调整位置；点击后按占格、颜色值和同名单位排序。"
  if network_session!=null:
   if is_instance_valid(chat_panel):btn("聊天",Rect2(1310,145,266,38),func():chat_panel.visible=not chat_panel.visible)
   network_latency_label=txt(network_session.latency_text(),Rect2(1000,58,303,31),16,host.MUTED)
@@ -514,6 +539,22 @@ func rebuild_badges():
   if c.is_empty(): continue
   var root=Control.new(); root.mouse_filter=Control.MOUSE_FILTER_IGNORE; badges.add_child(root)
   var parts={"root":root,"zone":d.zone,"owner":d.owner}
+  var icons=[]
+  if c.get("leader",false):icons.append("res://assets/leader_crown.svg")
+  if d.zone=="field" and engine.is_unit(c) and engine.Extra.keyword(engine,c,"不占战场格"):icons.append("res://assets/slot_ghost.svg")
+  var copy_marker=String(engine.cards[c.card_id].get("copy_marker",""))
+  if copy_marker in ["keiki","alice","yukari","mountain_fairy"]:icons.append("res://assets/copy_markers/"+copy_marker+".png")
+  if not icons.is_empty():
+   parts.icons=[]
+   for icon_path in icons:
+    var icon=TextureRect.new()
+    icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    icon.texture=load(icon_path)
+    icon.size=Vector2(CARD_ICON_SIZE,CARD_ICON_SIZE)
+    icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    icon.texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
+    root.add_child(icon);parts.icons.append(icon)
   if d.zone=="field" and engine.is_unit(c):
    var panel=host.box(root,Rect2(0,0,76,25),Color("#111d2b"),Color("#aaa080")); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
    var stat_names=["power","health","spirit"]
@@ -582,6 +623,17 @@ func projected_card_rect(node: Node3D) -> Rect2:
  var rect=Rect2(project(node.to_global(Vector3(-0.975,0,-1.36))),Vector2.ZERO)
  for corner in [Vector3(0.975,0,-1.36),Vector3(-0.975,0,1.36),Vector3(0.975,0,1.36)]: rect=rect.expand(project(node.to_global(corner)))
  return rect
+func position_card_icons(icons: Array, rect: Rect2):
+ var icon_count=icons.size()
+ var columns=maxi(1,mini(icon_count,int(floor((rect.size.x-2.0*CARD_ICON_INSET+CARD_ICON_GAP)/(CARD_ICON_SIZE+CARD_ICON_GAP)))))
+ var right=rect.size.x/2.0-CARD_ICON_INSET
+ var top=-rect.size.y/2.0+CARD_ICON_INSET
+ for index in range(icon_count):
+  var row=int(index/columns)
+  var column=index%columns
+  var row_count=mini(columns,icon_count-row*columns)
+  var row_width=row_count*CARD_ICON_SIZE+(row_count-1)*CARD_ICON_GAP
+  icons[index].position=Vector2(right-row_width+column*(CARD_ICON_SIZE+CARD_ICON_GAP),top+row*(CARD_ICON_SIZE+CARD_ICON_GAP))
 func update_badge_positions():
  if not is_instance_valid(table): return
  var stack_rects=[]
@@ -601,6 +653,7 @@ func update_badge_positions():
    if parts.has("copy_number"):parts.copy_number.position=Vector2(-rect.size.x/2+2 if parts.fanned else rect.size.x/2-46,rect.size.y/2-25)
    if parts.has("marker"): parts.marker.position=Vector2(rect.size.x/2-32,-rect.size.y/2-10)
    if parts.has("sick"): parts.sick.position=Vector2(-49,rect.size.y/2+1)
+   if parts.has("icons"):position_card_icons(parts.icons,rect)
    if parts.has("caption"):
     root.position=Vector2(clampf(rect.get_center().x,STAGE.position.x+118,STAGE.end.x-118),rect.end.y+6)
     var occupied=Rect2(root.position+parts.caption.position,parts.caption.size)
@@ -639,7 +692,26 @@ func update_inspection():
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
  inspection.visible=host.show_card_inspection and not inspect_id.is_empty()
  var counters=counter_lines(current)
- var signature=inspect_id+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))
+ var shown_id=current.card_id if not current.is_empty() and inspect_id not in ["back","potato"] else inspect_id
+ var info=engine.cards.get(shown_id,{})
+ var inherited_keywords=[]
+ var inherited_abilities=[]
+ if not current.is_empty() and engine.Roster.has(info,"character-fdn-007"):
+  var base_id=shown_id
+  var visited={}
+  while not visited.has(base_id):
+   visited[base_id]=true
+   var source_id=String(engine.cards[base_id].get("copy_source_id",""))
+   if source_id.is_empty() or not engine.cards.has(source_id):break
+   base_id=source_id
+  var base_info=engine.cards[base_id]
+  for keyword in info.get("keywords",[]):
+   if keyword not in base_info.get("keywords",[]):inherited_keywords.append(keyword)
+  for ability in info.get("abilities",[]):
+   if ability not in base_info.get("abilities",[]):
+    var ability_text=String(ability.get("名称",""))
+    if not ability_text.is_empty() and ability_text not in inherited_abilities:inherited_abilities.append(ability_text)
+ var signature=inspect_id+shown_id+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))+str(inherited_keywords)+str(inherited_abilities)
  if signature==inspection_signature: return
  inspection_signature=signature
  clear_children(inspection)
@@ -651,7 +723,6 @@ func update_inspection():
  var landscape=host.landscape_card(inspect_id)
  if landscape:image.size=Vector2(198,142)
  image.mouse_filter=Control.MOUSE_FILTER_IGNORE; bg.add_child(image)
- var info=engine.cards.get(inspect_id,{})
  var name=inspect_caption if inspect_id=="back" else "红薯" if inspect_id=="potato" else info.name
  var title=txt(name,Rect2(10,164 if landscape else 296,198,74),18,host.GOLD,bg)
  title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; title.size=Vector2(198,74)
@@ -672,6 +743,8 @@ func update_inspection():
   inspection_text.push_color(host.WHITE if enabled else Color("#78818b"))
   inspection_text.add_text(rules.substr(at)); inspection_text.pop()
  else: inspection_text.add_text(rules)
+ if not inherited_keywords.is_empty():inspection_text.add_text("\n继承词条："+"、".join(inherited_keywords))
+ if not inherited_abilities.is_empty():inspection_text.add_text("\n继承能力：\n"+"\n".join(inherited_abilities))
  for line in counters:inspection_text.add_text("\n"+line)
  if not current.get("moods",[]).is_empty():inspection_text.add_text("\n已选心情："+"、".join(current.moods))
  inspection_text.set_meta("leader_enabled",enabled)
@@ -834,8 +907,46 @@ func begin_hand_drag(uid: int,at: Vector2):
  if engine.find_card(uid).owner!=acting_player(): return
  clear_attack_preview()
  drag_uid=uid; drag_origin=at; drag_pointer=at; dragging=false
+func sort_units():
+ table.auto_sort_units()
+ render()
+func finish_unit_drag(cancelled: bool):
+ var uid=unit_drag_uid
+ var epoch=unit_drag_epoch
+ var owner=unit_drag_owner
+ var moved=unit_dragging
+ var at=unit_drag_pointer
+ unit_drag_uid=0;unit_dragging=false
+ if is_instance_valid(unit_drag_art):unit_drag_art.queue_free()
+ unit_drag_art=null
+ if cancelled:return
+ var c=engine.find_card(uid)
+ if c.is_empty() or c.epoch!=epoch or c.zone!="field" or c.owner!=owner:return
+ if moved:
+  if STAGE.has_point(at) and table.reorder_unit(uid,stage_point(at)):render()
+ else:object_clicked(uid)
+func handle_unit_drag(event: InputEvent) -> bool:
+ if unit_drag_uid==0:return false
+ if event is InputEventMouseMotion:
+  unit_drag_pointer=make_input_local(event).position
+  if not unit_dragging and unit_drag_pointer.distance_to(unit_drag_origin)>10:
+   unit_dragging=true
+   var c=engine.find_card(unit_drag_uid)
+   if c.is_empty():finish_unit_drag(true);return true
+   unit_drag_art=host.card(ui,c.card_id,Rect2(unit_drag_pointer-Vector2(70,97),Vector2(140,195)))
+   unit_drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE;unit_drag_art.modulate.a=0.82
+  if unit_dragging and is_instance_valid(unit_drag_art):unit_drag_art.position=unit_drag_pointer-Vector2(70,97)
+  get_viewport().set_input_as_handled()
+  return true
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
+  finish_unit_drag(true);get_viewport().set_input_as_handled();return true
+ if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:
+  unit_drag_pointer=make_input_local(event).position
+  finish_unit_drag(false);get_viewport().set_input_as_handled();return true
+ return false
 func _input(event: InputEvent):
  if camera_drag_input(event):return
+ if handle_unit_drag(event):return
  if revealing():
   get_viewport().set_input_as_handled();return
  if is_instance_valid(table) and table.combat_animating:
@@ -1026,7 +1137,7 @@ func leader_zone_clicked(who: int):
 func open_actions(c: Dictionary):
  if network_locked():return
  if response_disabled(): return
- var actions=engine.available_actions(acting_player(),c.uid)
+ var actions=engine.available_actions(acting_player(),c.uid,true).filter(func(action):return action.enabled or action.type in ["ability","extension"])
  if actions.size()==1 and actions[0].type=="attack":
   clear_attack_preview(); attack_preview_uid=c.uid; selection=[c.uid]; render(); return
  clear_attack_preview()
@@ -1041,10 +1152,13 @@ func open_actions(c: Dictionary):
   var at=choice_card_position(i,actions.size())
   var tile=host.card(content,c.card_id,Rect2(at,Vector2(173,241)),func(): execute_action(action))
   if action.type=="attack":tile.tooltip_text="快捷键：A"
-  if not action.enabled: tile.modulate=Color(0.55,0.55,0.55)
+  if not action.enabled:
+   tile.modulate=Color(0.55,0.55,0.55)
+   tile.tooltip_text=action.get("reason","当前不能发动")
   var label=txt(action.label,Rect2(at+Vector2(-4,251),Vector2(185,74)),18,host.GOLD if action.enabled else host.MUTED,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   label.size=Vector2(185,74)
+  if not action.enabled:label.tooltip_text=action.get("reason","当前不能发动")
 func choice_card_content(panel: Control,count: int,dimensions: Vector2) -> Control:
  var scroll=ScrollContainer.new(); scroll.position=Vector2(20,75); scroll.size=dimensions
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED; panel.add_child(scroll)
@@ -1289,8 +1403,8 @@ func network_changed():
  render()
 func settings_menu():
  var panel=overlay("对战设置")
- panel.position=Vector2(475,255)
- panel.size.y=390
+ panel.position=Vector2(475,225 if debug_mode else 255)
+ panel.size.y=450 if debug_mode else 390
  txt("卡牌视角",Rect2(30,68,560,28),18,host.MUTED,panel).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("3D 斜视",Rect2(30,100,260,48),func():set_card_view(false),not table.top_down_view,panel)
  btn("2D 上方俯视",Rect2(330,100,260,48),func():set_card_view(true),table.top_down_view,panel)
@@ -1301,11 +1415,21 @@ func settings_menu():
  inspection_cb.button_pressed=host.show_card_inspection
  inspection_cb.toggled.connect(func(value): host.set_show_card_inspection(value); update_inspection())
  panel.add_child(inspection_cb)
- btn("继续游戏",Rect2(30,230,260,48),func(): modal=false; render(),true,panel)
+ if debug_mode:
+  var drag_cb=CheckButton.new()
+  drag_cb.text="允许调试拖动放入战场"
+  drag_cb.position=Vector2(30,220)
+  drag_cb.size=Vector2(560,48)
+  drag_cb.button_pressed=host.debug_drag_to_field
+  drag_cb.tooltip_text="仅影响测试模式中拖动卡牌放入战场；点击空白处加入卡牌仍可使用。"
+  drag_cb.toggled.connect(host.set_debug_drag_to_field)
+  panel.add_child(drag_cb)
+ var action_y=290 if debug_mode else 230
+ btn("继续游戏",Rect2(30,action_y,260,48),func(): modal=false; render(),true,panel)
  if network_session!=null and not network_session.replay_mode:
   btn("返回联机房间",Rect2(195,305,260,48),func():host.online(),false,panel)
  if network_session!=null and network_session.read_only:return
- btn("本局投降",Rect2(330,230,260,48),func():
+ btn("本局投降",Rect2(330,action_y,260,48),func():
   var confirm=overlay("确认本局投降")
   confirm.position=Vector2(475,285)
   btn("本局投降",Rect2(35,155,260,50),func(): modal=false; local={}; engine.surrender(local_seat); render(),true,confirm)
@@ -1416,8 +1540,10 @@ func refresh_observation():
  if is_instance_valid(debug_free_checkbox):
   debug_free_checkbox.set_pressed_no_signal(engine.debug_free_payment)
   debug_free_checkbox.disabled=modal or not local.is_empty() or not engine.pending.is_empty()
- if is_instance_valid(debug_help_button):debug_help_button.disabled=modal
+ if is_instance_valid(debug_help_button):
+  debug_help_button.disabled=modal
  observe_button.visible=choice_active() or observing
+ if is_instance_valid(sort_units_button):sort_units_button.visible=not observe_button.visible
  observe_button.text="返回选择" if observing else "观察战场"
  ui.move_child(inspection,-1)
  ui.move_child(observe_button,-1)
@@ -1586,7 +1712,7 @@ func open_debug_help():
  guide.bbcode_enabled=true;guide.scroll_active=true
  guide.add_theme_font_size_override("normal_font_size",18)
  guide.add_theme_color_override("default_color",host.WHITE)
- guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\nC：加入当前回合玩家的墓地，包括梦违牌。\n\n[b]移动已有卡牌[/b]\n点击「调试」打开区域列表，按住列表、手牌或场上的卡面，拖到所属玩家的目标区域。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
+ guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\nC：加入当前回合玩家的墓地，包括梦违牌。\n\n[b]移动已有卡牌[/b]\n按住场上单位拖到所属玩家的单位区域可调整摆放顺序；拖到其他区域执行调试移动。点击「调试」可打开区域列表，列表和手牌中的卡面也可拖到所属玩家的目标区域。拖入战场需要先在「设置」中开启「允许调试拖动放入战场」。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
  panel.add_child(guide)
  btn("返回对局",Rect2(535,544,220,46),close_overlay,false,panel)
 
@@ -1658,9 +1784,15 @@ func begin_debug_drag(uid: int,at: Vector2):
 func debug_destination(at: Vector2,owner: int) -> String:
  if is_instance_valid(browser_panel) and browser_panel.visible and browser_panel.get_global_rect().has_point(at): return ""
  var board_zone=table.debug_drop_zone((at-STAGE.position)/STAGE.size*Vector2(viewport.size),owner) if STAGE.has_point(at) else ""
+ if board_zone=="field" and not host.debug_drag_to_field:return ""
  if board_zone in ["deck","grave","exile","leader"]: return board_zone
  if hand_area(owner).has_point(at): return "hand"
  return board_zone
+
+func debug_unit_reorder_target(c: Dictionary,at: Vector2) -> bool:
+ if debug_drag_browser or c.is_empty() or c.zone!="field" or not engine.is_unit(c) or not STAGE.has_point(at):return false
+ var spot=table.debug_field_group(stage_point(at))
+ return not spot.is_empty() and spot.owner==c.owner and spot.group=="unit"
 func handle_debug_drag(event: InputEvent):
  if event is InputEventMouseMotion:
   debug_drag_pointer=make_input_local(event).position
@@ -1676,7 +1808,9 @@ func handle_debug_drag(event: InputEvent):
    debug_drag_art.position=debug_drag_pointer-Vector2(70,97)
    var c=engine.find_card(debug_drag_uid)
    var destination=debug_destination(debug_drag_pointer,c.owner) if not c.is_empty() else ""
-   debug_drop_hint.text="放入"+ZONE_NAMES[destination]+("顶" if destination=="deck" else "") if not destination.is_empty() else "取消移动"
+   if debug_unit_reorder_target(c,debug_drag_pointer):debug_drop_hint.text="调整单位位置"
+   elif not destination.is_empty():debug_drop_hint.text="放入"+ZONE_NAMES[destination]+("顶" if destination=="deck" else "")
+   else:debug_drop_hint.text="取消移动"
   get_viewport().set_input_as_handled()
  elif event is InputEventMouseButton:
   debug_drag_pointer=make_input_local(event).position
@@ -1699,6 +1833,9 @@ func finish_debug_drag(cancelled: bool):
   if c.zone in ["field","leader"]: object_clicked(c.uid)
   elif c.zone=="hand": hand_clicked(c.uid)
   else: browse_card_action(c)
+  return
+ if debug_unit_reorder_target(c,at):
+  if table.reorder_unit(uid,stage_point(at)):render()
   return
  if destination.is_empty(): return
  var error=engine.debug_move(uid,destination)

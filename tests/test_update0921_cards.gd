@@ -54,7 +54,9 @@ func run():
  check(e.triggers.any(func(t):return t.effect=="n21:LOC-005") and e.usage_count(road.uid,"n21:LOC-005")==1,"road sees self-unit entering once")
  var count=e.triggers.size();enter("ETO-003");check(e.triggers.filter(func(t):return t.effect=="n21:LOC-005").size()==1,"road limit applies to this permanent")
  t=entry(road,{"uid":u.uid,"epoch":u.epoch,"mode":"防避2"},"n21:LOC-005");N.resolve_trigger(e,t)
- check(u.get("wards",[]).size()==1,"road shield mode")
+ check(u.get("wards",[]).size()==1 and u.wards[0].turn==-1,"road shield mode is persistent")
+ e.triggers=[];e.pending={};e.stack=[];e.finish_turn()
+ check(u.wards.size()==1,"road shield survives turn end")
  fresh();u=enter("LOC-001");u.leader=true;e.triggers=[]
  e.Roster.Batch.counter(e,u,"courage",3,0)
  check(e.stat(u,"power")==4 and e.stat(u,"health")==3 and e.stat(u,"spirit")==3,"Cirno all-counter power and spirit bonus")
@@ -126,4 +128,3 @@ func run():
  check(not e.triggers.any(func(v):return v.effect=="untap"),"static brave does not enter stack")
  print("UPDATE0921 CARDS ",checks," checks; failures=",failures)
  quit(0 if failures.is_empty() else 1)
-

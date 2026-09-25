@@ -186,7 +186,7 @@ static func resolve(e,t):
    var cost={"红":1,"黑":1} if k=="cat:nuclear_return" else {"黄":1,"黑":1} if k=="cat:sacrifice_recover" else {"绿":1}
    C.choose(e,t,"cat:trigger_pay",C.pay_options(e,who,cost),{"cost":cost,"effect":k,"ref":C.ref(e,c) if not c.is_empty() else {}})
   "spell-fdf-024":
-   for u in e.units(who):C.buff(e,u,0,0,0,["防避3"])
+   for u in e.units(who):C.buff(e,u,0,0,0,["防避3"],false)
   "spell-fdn-012":e.Cat.Spells.search(e,t,p.deck.filter(func(u):return C.character(e,u,"魂魄妖梦")),0,1,"field")
   "character-fdn-037":
    if not p.deck.is_empty():
@@ -394,7 +394,7 @@ static func resolve_activation(e,t):
   "item-htk-008":e.draw(who,2);C.continued_move(e,t,p.hand,mini(1,p.hand.size()),1,"grave","弃一张牌")
   "character-fdn-036:self":if C.unit(e,a):e.move_to(e.find_card(a.uid),"hand")
   "character-fdn-038":if same:e.move_to(c,"hand")
-  "character-fdn-006":C.copy_token(e,who,c if same else t.source,true)
+  "character-fdn-006":C.copy_token(e,who,c if same else t.source,true,"mountain_fairy")
   "character-fdn-043":
    for u in C.selected(e,a):e.move_to(u,"exile")
   "character-smm05":

@@ -7,154 +7,154 @@
       "名称": "「鬼神长」",
       "数据": "res://cards/50.json",
       "图片": "res://recourse/数据库/50.png",
-      "SHA256": "AE34632D820698C04A0CAC1C06D4E7A25A005A19F94F534CFAFEDA394F2639C9"
+      "SHA256": "08A23459A7DFF430B90E61F912AAA8D61ED955415AA95D4ED4C5409E5492801E"
     },
     {
       "卡牌ID": "53",
       "名称": "「山童士兵」",
       "数据": "res://cards/53.json",
       "图片": "res://recourse/数据库/53.png",
-      "SHA256": "F80F40061E15778EF57065ED4A4E0BA6A2314E12DB2A6DE7CFD667F361DC46F7"
+      "SHA256": "ABF8CC04FBEC6FB0414B236E5211EF3947901E72F5AE2AA3E803BC3A9586C27D"
     },
     {
       "卡牌ID": "54",
       "名称": "「埴轮泰坦」",
       "数据": "res://cards/54.json",
       "图片": "res://recourse/数据库/54.png",
-      "SHA256": "A8A43738D2D2209B981C60983E0A344D3B3691456B73D7144455E138BDC3F72F"
+      "SHA256": "DEF7F6C3CC68369AFF783D0224EC1C14EFDF15CE5D60E01CE331F0171AD52417"
     },
     {
       "卡牌ID": "56",
       "名称": "「龙宫使者」",
       "数据": "res://cards/56.json",
       "图片": "res://recourse/数据库/56.png",
-      "SHA256": "876B73FCF33256A81141FE45AE97A0AFFF8ECD5CC8C96B0CADFD4C30DC64196B"
+      "SHA256": "DF78D4F43C76739604CE1B62A953742A8E9141518836263A47E5BD447278E478"
     },
     {
       "卡牌ID": "57",
       "名称": "「玩耍的妖精」",
       "数据": "res://cards/57.json",
       "图片": "res://recourse/数据库/57.png",
-      "SHA256": "B92EA85344EA60CF5A177ADA716B98D2FCD9B1A8E367A1726916AE9019CD6007"
+      "SHA256": "FE7FEFCEE0C6E935CD86B2762D8F9C19753BD624BDD4FC6A26C8FC36371EBFFF"
     },
     {
       "卡牌ID": "68",
       "名称": "普通的魔法使「雾雨魔理沙」",
       "数据": "res://cards/68.json",
       "图片": "res://recourse/数据库/68.png",
-      "SHA256": "00036570596C3C0F7E3CEA49EDE1F6255F3F51BBD2CCD55A5F11A12EBA6B2811"
+      "SHA256": "B0EF7FF48BC513E019BC40C72131FFBDEF0B10B8698D1F07362B96F4133FA8DB"
     },
     {
       "卡牌ID": "70",
       "名称": "乐园的可爱巫女「博丽灵梦」",
       "数据": "res://cards/70.json",
       "图片": "res://recourse/数据库/70.png",
-      "SHA256": "0834A32BE2BFC7AD9C8BEED0143B4F5E9F9FDB60FA647A3209B543B82F27AD7B"
+      "SHA256": "66D37090F8B6737BFC8CC80E42B42E05EB0E82D8CCF1A8C434791DCE69FE884E"
     },
     {
       "卡牌ID": "96",
       "名称": "「樱华ノ月」",
       "数据": "res://cards/96.json",
       "图片": "res://recourse/数据库/96.png",
-      "SHA256": "35BEDF6335EAB3F313B08095F6F24E54CC23F582223309027920A0DCDBB8A198"
+      "SHA256": "60A4FC9796EEAA421F5F73C3D06AD8D3934A0ADF163BBE24ADA270F72A43C934"
     },
     {
       "卡牌ID": "99",
       "名称": "恋符「极限火花」",
       "数据": "res://cards/99.json",
       "图片": "res://recourse/数据库/99.png",
-      "SHA256": "FE924DB32FA3829693A4043FEA6643FD442F400C649CC37BCACA2EECA7F870E0"
+      "SHA256": "5597EEA3357B05F9E2A9655D37C4A41EF73DE466F2C25937A2BB92CE4DB7BEDE"
     },
     {
       "卡牌ID": "100",
       "名称": "灵符「梦想封印-瞬-」",
       "数据": "res://cards/100.json",
       "图片": "res://recourse/数据库/100.png",
-      "SHA256": "6C8D47C929CF66EDA20726EDFE6426EF6BF1685408178BC1EDAFC2BDA198C62B"
+      "SHA256": "8FC186C81F20D062DED9996C3B6A8DD37585B3F08C9950D99465A1C36B3E53F5"
     },
     {
       "卡牌ID": "112",
       "名称": "「甜蜜时刻」",
       "数据": "res://cards/112.json",
       "图片": "res://recourse/数据库/112.png",
-      "SHA256": "3B33C4E702FB409B87ADD78E6F503576D1A5C26C871B4CDA2E2E1BF91EB1C936"
+      "SHA256": "227741E42434E26E05558870A1685164BA6F32BF6CAE838D8889F879FAB56381"
     },
     {
       "卡牌ID": "164",
       "名称": "「妖魔书」",
       "数据": "res://cards/164.json",
       "图片": "res://recourse/数据库/164.png",
-      "SHA256": "8A9983F76B2F7150348860388C35AAB646BF55BE015198CAFA115BCE0A829E21"
+      "SHA256": "CD269B4DF22BE6A4197922E5B447B7A122B0E4932DD5C47A689E9C800C4625E8"
     },
     {
       "卡牌ID": "165",
       "名称": "「蕾米莉亚的烛台」",
       "数据": "res://cards/165.json",
       "图片": "res://recourse/数据库/165.png",
-      "SHA256": "299A99C9DB23009123A8D6FE5F746D80C8D4DD2FA2B7F335D4777890D46943E8"
+      "SHA256": "1FD11621318AD3EC78E3F8AD950E5B821737828A9BCB61B5C322914B222E8F45"
     },
     {
       "卡牌ID": "167",
       "名称": "「魔理沙的元素瓶」",
       "数据": "res://cards/167.json",
       "图片": "res://recourse/数据库/167.png",
-      "SHA256": "0CA78B7AF1F51ADB8C62712F9D97C74E1417B757B41C0E55637F4D7F0B562072"
+      "SHA256": "0414D4DA800073A272B75EB90BB036D43E505E39A8DC25C527135231F6F5D286"
     },
     {
       "卡牌ID": "170",
       "名称": "博丽神社",
       "数据": "res://cards/170.json",
       "图片": "res://recourse/数据库/170.png",
-      "SHA256": "C4FBB7BA41B2B10B3F40F77EF28DDE74285757255F6079E4DB61D2EB8D3025A3"
+      "SHA256": "9F93C216F04235152B8D6CC2632E60039FF163EBC97F519C97C6DABD782B77B0"
     },
     {
       "卡牌ID": "1",
       "名称": "日之光「桑尼·米尔克」",
       "数据": "res://cards/1.json",
       "图片": "res://recourse/数据库/1.png",
-      "SHA256": "D0797B3FBB4CB2AEF61BA88FBB5D7049A93ABC9B44D8B4C8EEA664B54A241FCE"
+      "SHA256": "2C255705F7F138DFAFC7A843A3003CA5B2ABA92AEC3709525C4FF8C05CBE2600"
     },
     {
       "卡牌ID": "5",
       "名称": "「大妖精」",
       "数据": "res://cards/5.json",
       "图片": "res://recourse/数据库/5.png",
-      "SHA256": "0CC2E71FD7390FBA27E907276C402E7ABB0CD45770C3F1B82F57E3A3A7BB6DB6"
+      "SHA256": "B2EF365B8D86F56FB9C8AD5B7B2A2CDF7B1827A61E6B898A415E54B37F6B779B"
     },
     {
       "卡牌ID": "6",
       "名称": "可怕的波动「芙兰朵露·斯卡蕾特」",
       "数据": "res://cards/6.json",
       "图片": "res://recourse/数据库/6.png",
-      "SHA256": "19E47E93836F902C86BE25ECA77556666A6C3D7D197D92551B2575D530876A6D"
+      "SHA256": "7B4B4E1348D94D8CBC64D220D8BBEF7A955562FEF0C9BC20CA4858B4B9D28190"
     },
     {
       "卡牌ID": "11",
       "名称": "巡秋而来「秋静叶」",
       "数据": "res://cards/11.json",
       "图片": "res://recourse/数据库/11.png",
-      "SHA256": "8153DB368BF85CA3E1B5D35A3D077D6D1FAF2513769E951032BE5DCD0DB21464"
+      "SHA256": "FC885813722B1F3ED05B28CE0B4FCFD5BDA54E417717C9BAF98B7959A2388999"
     },
     {
       "卡牌ID": "14",
       "名称": "「小恶魔」",
       "数据": "res://cards/14.json",
       "图片": "res://recourse/数据库/14.png",
-      "SHA256": "9231D2029F7A878E35A90B84DCCE7B96906DBAD365120C63BBFABC28FC0EEEBA"
+      "SHA256": "B02E4A384B75E7DF6A728E294B1FE71E8374F04946F7EF122E06DBD3DFD09758"
     },
     {
       "卡牌ID": "15",
       "名称": "宵暗的妖怪「露米娅」",
       "数据": "res://cards/15.json",
       "图片": "res://recourse/数据库/15.png",
-      "SHA256": "D80050E981E4807AB1378646B4B81B2C0BB778524CE94E064057DFEE75AA3091"
+      "SHA256": "729BEF86FFBD6571BC0BA8C28C000C9C53CE29F6499E14F7B928ABE682F0B44E"
     },
     {
       "卡牌ID": "18",
       "名称": "天狗记者「射命丸文」",
       "数据": "res://cards/18.json",
       "图片": "res://recourse/数据库/18.png",
-      "SHA256": "034B21CFDD92FFD394C5105C7E6B58335E0CDF952BAF8CE77A73AA0449664FF3"
+      "SHA256": "F99E3685A401D199262BC36A7017EA10C1CC45C57C707FF1713421EECC2E9ECB"
     },
     {
       "卡牌ID": "21",
@@ -168,126 +168,126 @@
       "名称": "地壳下的嫉妒心「水桥帕露西」",
       "数据": "res://cards/23.json",
       "图片": "res://recourse/数据库/23.png",
-      "SHA256": "CE131FC8ABD023FC372A2A543EE53556802B87ECCCFD6EE40A30E7412EABE8B3"
+      "SHA256": "30C9582EC32DB1E09E6373841B04DA1530C5A6A3274DBD9B15644BA9EC1FA56A"
     },
     {
       "卡牌ID": "28",
       "名称": "提琴手「露娜萨·普莉兹姆利巴」",
       "数据": "res://cards/28.json",
       "图片": "res://recourse/数据库/28.png",
-      "SHA256": "B5FB6E0E159EB61886C7EA0508C359B7413DFC40209A0F8657B4FC5385F1E6AC"
+      "SHA256": "338D8DBA9E403E4CBD1D73D88C628AC6D64FC746CEEFC7252E00554E3477C220"
     },
     {
       "卡牌ID": "29",
       "名称": "键盘手「莉莉卡·普莉兹姆利巴」",
       "数据": "res://cards/29.json",
       "图片": "res://recourse/数据库/29.png",
-      "SHA256": "98AFB50D119CAB02C4145C5624DF8F8935ACB9CE9ADF61A4EBFF9CEA704FFEC3"
+      "SHA256": "F3534AEB9C09407B2B99F363AC14EC6A9B0F8690484928AD0A583C643A9F65D1"
     },
     {
       "卡牌ID": "30",
       "名称": "小号手「梅露兰·普莉兹姆利巴」",
       "数据": "res://cards/30.json",
       "图片": "res://recourse/数据库/30.png",
-      "SHA256": "4E2EE22FFF68A3F9AD8C9CFB2343248A8EB67A10C36A1969C5CCC970839019C1"
+      "SHA256": "A030F7BFAE3C0F9BA9BE9B1C9FB60A1F5B2410D26717A7B8E72E7D6198A50FA0"
     },
     {
       "卡牌ID": "33",
       "名称": "狂气月兔「铃仙·优昙华院·因幡」",
       "数据": "res://cards/33.json",
       "图片": "res://recourse/数据库/33.png",
-      "SHA256": "E50ADCC7151CD2014F07299117F6E846E0D7770C337BB8DAFCA308D5A96A1381"
+      "SHA256": "AECA297EABF10C866367777E52B775A100836BB0EDDB83F0EAA30025EEF6B095"
     },
     {
       "卡牌ID": "35",
       "名称": "地狱的最高裁判长「四季映姬」",
       "数据": "res://cards/35.json",
       "图片": "res://recourse/数据库/35.png",
-      "SHA256": "BEBA34089C39564E4A542BFD6F5BC26845BEAB294783358C40D32E3907D355DB"
+      "SHA256": "F53EBB5A76E9DE3022D3E72163ADA32EFCF5912F1A224FAE93C69B8E1EE33122"
     },
     {
       "卡牌ID": "38",
       "名称": "引雷的亡灵「苏我屠自古」",
       "数据": "res://cards/38.json",
       "图片": "res://recourse/数据库/38.png",
-      "SHA256": "9B3D0A969E0C581ED1C669CDCA18E06D7F61FED39FA6876C31F37B2118B6A8D3"
+      "SHA256": "6D21014FEC3F457E757F9CFEF0A5237FCC9F6D09FF6B175D6DB21183E81FCB6B"
     },
     {
       "卡牌ID": "39",
       "名称": "苍天的庭师「魂魄妖梦」",
       "数据": "res://cards/39.json",
       "图片": "res://recourse/数据库/39.png",
-      "SHA256": "5531FCBE652ECD8686FF28E0934348DB425D75F7088659B0273690B607789C57"
+      "SHA256": "F481CD959FEA1B3A802CE8EEED600F51AB9FBCC13ED4E6DDB229A9F673A3A024"
     },
     {
       "卡牌ID": "41",
       "名称": "刚欲同盟盟主「饕餮尤魔」",
       "数据": "res://cards/41.json",
       "图片": "res://recourse/数据库/41.png",
-      "SHA256": "AC4648D14D138000E17A3FF759D38D417B6C0BB0694B814E39561F451B0D7F01"
+      "SHA256": "59540B4A2AFABE1ADBD744EFE592089B72CB75F198AC4CA5339223BF57324EF3"
     },
     {
       "卡牌ID": "48",
       "名称": "雪之亡灵「西行寺幽幽子」",
       "数据": "res://cards/48.json",
       "图片": "res://recourse/数据库/48.png",
-      "SHA256": "52C3A941FA95E83992082C206D9A86D273E5A0367841D41A17E432C7F8375CE9"
+      "SHA256": "3C27956BDE2CB6B1A45000A41FEC9C6584F1B3AC533678D496FE202D13CCAAD5"
     },
     {
       "卡牌ID": "49",
       "名称": "星降的风水师「物部布都」",
       "数据": "res://cards/49.json",
       "图片": "res://recourse/数据库/49.png",
-      "SHA256": "EF13FA1C7536292AFA9E89D5C89367DED5089B3075594A339D0F3DB7CDC7BDD6"
+      "SHA256": "3CFDEC824B0F6BC764E9C3095F9774FA6F285BE10A13D0205124F6D1ADA3E675"
     },
     {
       "卡牌ID": "61",
       "名称": "忠诚的死体「宫古芳香」",
       "数据": "res://cards/61.json",
       "图片": "res://recourse/数据库/61.png",
-      "SHA256": "3F5B5342A450D822C5CDEFBA18A94EE71609C08CB11FD0777600A857D3C39842"
+      "SHA256": "6891EB7F8E15393A59887A00E8EC470BB4462ACAF747D4D605ABC2B800B1A69F"
     },
     {
       "卡牌ID": "64",
       "名称": "未知力量X「封兽ぬえ」",
       "数据": "res://cards/64.json",
       "图片": "res://recourse/数据库/64.png",
-      "SHA256": "16B654542866F48F0471D725B51174AB7F4D79970F7D785B5F75421FC49F4258"
+      "SHA256": "6636CE2A3B300217BF8318D00AC81227049221FFB9B84966BFCFC266AF6AA1CF"
     },
     {
       "卡牌ID": "71",
       "名称": "华胥的亡灵「西行寺幽幽子」",
       "数据": "res://cards/71.json",
       "图片": "res://recourse/数据库/71.png",
-      "SHA256": "FDDF210BCE4F02CA9B611705292995EA1DACA237DFB6DFD79098FF6636059112"
+      "SHA256": "0EA779921D40C17F7662AD2272BB724EE19F6645702CB1B7D6BC0968B27C6D15"
     },
     {
       "卡牌ID": "75",
       "名称": "红魔馆的女仆「十六夜咲夜」",
       "数据": "res://cards/75.json",
       "图片": "res://recourse/数据库/75.png",
-      "SHA256": "844E09F34377C2D0E2D3A9065C6C78FE9D2E980A489062307528E3C76815D953"
+      "SHA256": "6E33F7847340D8B2D549833120CC465DB89760C173C6AD54E9F4FF7D0AF13AE9"
     },
     {
       "卡牌ID": "78",
       "名称": "地底的太阳「灵乌路空」",
       "数据": "res://cards/78.json",
       "图片": "res://recourse/数据库/78.png",
-      "SHA256": "E71EA550FC164B1C758C849CD3D3580E7C006A3BA7F54F6667969B1B558AB79A"
+      "SHA256": "F6AE5E6F97B950702BEB377CC4CDE3750BE19F6988F3181AA284590D5E8FE8F0"
     },
     {
       "卡牌ID": "79",
       "名称": "飞散红叶的天狗「射命丸文」",
       "数据": "res://cards/79.json",
       "图片": "res://recourse/数据库/79.png",
-      "SHA256": "B26E3B250107D9EC1E4ABB3BC8A2237F41A64CF067ED2A15CEFEEEE7D495361F"
+      "SHA256": "B6D46D2DE03FB2F9EEA0C251FCAFBF7A743A80C16BA622AD7EACFC13FB7A9BCD"
     },
     {
       "卡牌ID": "87",
       "名称": "二百由旬之一闪「魂魄妖梦」",
       "数据": "res://cards/87.json",
       "图片": "res://recourse/数据库/87.png",
-      "SHA256": "A2E2DFF19642AA2CED83AADDF2CE1D767A6A21ED328AA2DBED6FD3F39C50B9A9"
+      "SHA256": "7E414EC50AD096E9C4F4D4634C4FA925BF24B51F3F28CA88AC210541E20477AB"
     },
     {
       "卡牌ID": "soi_unit_004",
@@ -301,147 +301,147 @@
       "名称": "「秋意ノ溪」",
       "数据": "res://cards/94.json",
       "图片": "res://recourse/数据库/94.png",
-      "SHA256": "87264EFCF5F571C8282DE0ED4BB58B68F465F6233A14D2C1A5F33E027A1CAA04"
+      "SHA256": "00B7ED328F685D1BE6D63F0937173099F6019C50650899EF4BE11A3422779BB9"
     },
     {
       "卡牌ID": "106",
       "名称": "「彼岸ノ神想」",
       "数据": "res://cards/106.json",
       "图片": "res://recourse/数据库/106.png",
-      "SHA256": "8F0B3815741C63FBD37D8AED70DE88463F215F8BF9432F627954799D10B243DF"
+      "SHA256": "92191083B9E18B37A2B569A9C7B71EC4DC1062B04A4814645DC075C455744E18"
     },
     {
       "卡牌ID": "110",
       "名称": "「背德ノ吸血鬼」",
       "数据": "res://cards/110.json",
       "图片": "res://recourse/数据库/110.png",
-      "SHA256": "03A09B6FC5AA1484FD63AFED1915A0BC627127B0E921DECB4D65B850CA5AA5F0"
+      "SHA256": "907742687E9714C243527627AEAB9778D86792D6006AD2617315A9C571A83678"
     },
     {
       "卡牌ID": "118",
       "名称": "空观剑「六根清净斩」",
       "数据": "res://cards/118.json",
       "图片": "res://recourse/数据库/118.png",
-      "SHA256": "B0DAB58EE9C19408ECBC55C69AB763EA9AE23E7CDDB85B37A45AE9E661A9FDB8"
+      "SHA256": "E1094823A69B55DEA3C9A2BBD8D59238597717656107DB4885C2D518F60967FF"
     },
     {
       "卡牌ID": "120",
       "名称": "「反魂蝶」",
       "数据": "res://cards/120.json",
       "图片": "res://recourse/数据库/120.png",
-      "SHA256": "88B2B693FED8E87C8E4695BC4DC7CB1A3EBB941AFE0DFE49B0B9D4966A5B3FDC"
+      "SHA256": "8492BFD005BE54867833B7FC965A4847699C71EBD3F434AD0BFCE05C6F0E288B"
     },
     {
       "卡牌ID": "130",
       "名称": "「永夜蛰居」",
       "数据": "res://cards/130.json",
       "图片": "res://recourse/数据库/130.png",
-      "SHA256": "7FB61DE7CB2B62796386D1A67093D34B000D3FE08168407344C4CD306513310B"
+      "SHA256": "5A4473019C8C7FBEFEBE2D602C948C735F17C593347337A98D40E94BEEA8EE83"
     },
     {
       "卡牌ID": "131",
       "名称": "「神游」",
       "数据": "res://cards/131.json",
       "图片": "res://recourse/数据库/131.png",
-      "SHA256": "C2EACE8017361E8406AB7B97AAC0116E110B6D9F652D763D817417F0205EA42F"
+      "SHA256": "714FE21E764D8A96A4800A3C2A3B30D169FB6F6353B66CB579E9D63EDC2F5834"
     },
     {
       "卡牌ID": "139",
       "名称": "「不明ノ正体」",
       "数据": "res://cards/139.json",
       "图片": "res://recourse/数据库/139.png",
-      "SHA256": "6B1F3E9352CA05000C62E2488FF90B7EBC7A222A0A2C9DE34846A43ED2A34A86"
+      "SHA256": "29EDD61F35D5794970E6092DBD522425174094D4F0ADF48B6AC7F478D0D651DD"
     },
     {
       "卡牌ID": "141",
       "名称": "「出鞘」",
       "数据": "res://cards/141.json",
       "图片": "res://recourse/数据库/141.png",
-      "SHA256": "B648D36D4DB207D657CA6B1CA67EA715A7D81A45766C518DE91C6BBFDDD56C74"
+      "SHA256": "E0CC579B3CE1BBB911C621C68735CA23DDF9984DF3210202F743FC0E73B019BB"
     },
     {
       "卡牌ID": "143",
       "名称": "「极光」",
       "数据": "res://cards/143.json",
       "图片": "res://recourse/数据库/143.png",
-      "SHA256": "60B69D4F9BBCE3A84151A9357395B3946A82480CDD348E52BA9B564687ACEA82"
+      "SHA256": "017A5952A592960C9F3E0B77DB62488DCC363BEDB8202D0F72BA3F3099992794"
     },
     {
       "卡牌ID": "147",
       "名称": "「无意识ノ雨」",
       "数据": "res://cards/147.json",
       "图片": "res://recourse/数据库/147.png",
-      "SHA256": "1AC6273161098B52DDC6901BF6C28E5D9FCEE6D1B56DF48B1BC5B53D99AB8AD4"
+      "SHA256": "832798620B6B3EB2A247AAF5889E342FF52E7008AA9459CEB881407AEB55614D"
     },
     {
       "卡牌ID": "162",
       "名称": "「Hell's Tokamak」",
       "数据": "res://cards/162.json",
       "图片": "res://recourse/数据库/162.png",
-      "SHA256": "03128756FEC1DA505EDE85DBA829CA09A1ED17E9FD0FEFDD0998AB96B1EE5DD3"
+      "SHA256": "4C7F11B8862F30F69C445E5EFFC1CC29EA1E094F71985BDBADA0F5D01C282A46"
     },
     {
       "卡牌ID": "163",
       "名称": "「萤燈ノ森」",
       "数据": "res://cards/163.json",
       "图片": "res://recourse/数据库/163.png",
-      "SHA256": "A38A52FF81449331259AB1A244D92106FCD98953D8A376B5F313EF54FE430266"
+      "SHA256": "4AFDEE35EA87012C326890B845787389C27870E773E62341806C71D24584E593"
     },
     {
       "卡牌ID": "176",
       "名称": "「异星弹幕ノ空」",
       "数据": "res://cards/176.json",
       "图片": "res://recourse/数据库/176.png",
-      "SHA256": "5E2B9629801E5D63A180EADF52E787C0307608110AF89D5FE40F5AFAABA5C1EE"
+      "SHA256": "2D40ACCD5B153DFE744AA5A2F81556C309BD1FDAEDB159DEB8B98CB622B2DCB3"
     },
     {
       "卡牌ID": "177",
       "名称": "「正义宝塔ノ光」",
       "数据": "res://cards/177.json",
       "图片": "res://recourse/数据库/177.png",
-      "SHA256": "F9F1AAA362795ABDF7BA667594C2065AE03EEFB026D9C5F5DB12A93B4F1F2D92"
+      "SHA256": "1558FFBE36868A26F542C6A0474B346BABB3F73BDF8480CE54081CA9E258C5DF"
     },
     {
       "卡牌ID": "166",
       "名称": "「早苗的御币」",
       "数据": "res://cards/166.json",
       "图片": "res://recourse/数据库/166.png",
-      "SHA256": "90D3ACBCC3929AEA222B1FBB873A993BA919852F9856139FA1876FA813A070C6"
+      "SHA256": "BF78198E06EDFE5E7B6CB6DDD696970C0D78E3211037D7AC875B29750791969D"
     },
     {
       "卡牌ID": "168",
       "名称": "「幽幽子的折扇」",
       "数据": "res://cards/168.json",
       "图片": "res://recourse/数据库/168.png",
-      "SHA256": "E017745230F948B473B4765F20B3C018ACAC518752F309F6E854490B3615F0B8"
+      "SHA256": "749B732CEF27E2471F3A46BBEA3458B99126B38F8D3C1EE73CB928AB4C986EA1"
     },
     {
       "卡牌ID": "169",
       "名称": "红魔馆",
       "数据": "res://cards/169.json",
       "图片": "res://recourse/数据库/169.png",
-      "SHA256": "CD06614005B43C59C84CAF8E3EBDE788B5BEE3971593D9DBF44D26A160FC1A5A"
+      "SHA256": "FE34A4BB40B452E9FFE2D02FFC8C6641145898D4CC878D0C6AA2770F32344B21"
     },
     {
       "卡牌ID": "174",
       "名称": "有顶ノ天",
       "数据": "res://cards/174.json",
       "图片": "res://recourse/数据库/174.png",
-      "SHA256": "1BD91AF53364CBB6E83348E20DFA1C391208E933C7CD617CC40B77A5BC08ECDC"
+      "SHA256": "2860E5F07AF57606BEC75F4CB4D393564917D0D34519736848DDE27B4BF1E4F1"
     },
     {
       "卡牌ID": "91",
       "名称": "地狱的轮祸「火焰猫燐」",
       "数据": "res://cards/91.json",
       "图片": "res://recourse/数据库/91.png",
-      "SHA256": "F0852670E79385B40A789F29EF9E53F0E2E77AFD7614D2E7FB824FBD7843B6C6"
+      "SHA256": "F2A97B6A7D264544F561E3C66049AEA6AC33E7C29903813BA2AC7F7E50F71C6F"
     },
     {
       "卡牌ID": "133",
       "名称": "「未应ノ爱」",
       "数据": "res://cards/133.json",
       "图片": "res://recourse/数据库/133.png",
-      "SHA256": "9C0BBA33D0899964E454DE48CF4328EFFB41C26B9555935CBB076BC710A4B1AF"
+      "SHA256": "C82B350AC310F505C0EE1FC48E20B1E480CD6D288FEE1A4357E41EAC8AE2D9E8"
     },
     {
       "卡牌ID": "rec_unit_097",
@@ -455,56 +455,56 @@
       "名称": "未确认幻想飞行物「封兽ぬえ」",
       "数据": "res://cards/soi_unit_086.json",
       "图片": "res://recourse/数据库/soi_unit_086.jpg",
-      "SHA256": "5478F15058173EE12ECDBC4C2C55A45F245AD3810FE3273BF7BF8769E8137896"
+      "SHA256": "EDED1BF47905430CF65BF243B4916345FC949C284F1EA2599742AC7B5E57914D"
     },
     {
       "卡牌ID": "character-soi-018",
       "名称": "阳花的妖怪「风见幽香」",
       "数据": "res://cards/character-soi-018.json",
       "图片": "res://recourse/数据库/character-soi-018.png",
-      "SHA256": "AA12313D2881C12A1FF7B8164C14B9892E66B559EEF03F0E5C0DD2EE1CB09B81"
+      "SHA256": "1CA9A2A950FA70B05FB3BF26AD7CE2CA76632378639CFBC49A0D3D2EB23B4F28"
     },
     {
       "卡牌ID": "character-soi-006",
       "名称": "运送春天的妖精「莉莉白」",
       "数据": "res://cards/character-soi-006.json",
       "图片": "res://recourse/数据库/character-soi-006.png",
-      "SHA256": "52F1F3AD118D2DED35E8A4C5373197BDC30818F9048727AE4730E9BF94F9B486"
+      "SHA256": "FDE7489DB4BB5E50144D59B1BB1AE0CC44E93346AA89059ADED89FACF17D1DDD"
     },
     {
       "卡牌ID": "spell-soi-098",
       "名称": "「人神ノ嬉」",
       "数据": "res://cards/spell-soi-098.json",
       "图片": "res://recourse/数据库/spell-soi-098.png",
-      "SHA256": "378A2096EC8E8250A13418828AA80E1B378F1561D45CC5950CFB3A936831F3FD"
+      "SHA256": "10CEA91BE24BFF89441433E6D2C7AF3B0BCFB762B55FF7F169C63F162B232765"
     },
     {
       "卡牌ID": "spell-fdf-054",
       "名称": "「云中」",
       "数据": "res://cards/spell-fdf-054.json",
       "图片": "res://recourse/数据库/spell-fdf-054.jpg",
-      "SHA256": "A40A034F0DFE2D965673E1BEE5291EF9F804823446AE8F2FE8F4094D1C1E9B36"
+      "SHA256": "450DE52B6279A9ECE20F4A43CF6DCABC80B4AA5C068D08DB3EE6651BE843B005"
     },
     {
       "卡牌ID": "spell-rei-015",
       "名称": "「山涧ノ川」",
       "数据": "res://cards/spell-rei-015.json",
       "图片": "res://recourse/数据库/spell-rei-015.jpg",
-      "SHA256": "C904A6C65929874E1019CFBC6CA29CCE89085E4EF3DE8F6653115E21634DCE8F"
+      "SHA256": "A9C9DE59102703DC14327E88701E31E46CF4E8E52FF311C3E0AA5415C729363F"
     },
     {
       "卡牌ID": "spell-mar-007",
       "名称": "「灵击符」",
       "数据": "res://cards/spell-mar-007.json",
       "图片": "res://recourse/数据库/spell-mar-007.jpg",
-      "SHA256": "A1142DD7A597FA6303B773FFE833714D3CA57F16D6555C8A03F7E90DF106C49F"
+      "SHA256": "EBADE7091EF7563196F1330FE037FA960227D76E47FA9ADF395C2AE467A07243"
     },
     {
       "卡牌ID": "field-fdn-016",
       "名称": "「祈雨ノ阵」",
       "数据": "res://cards/field-fdn-016.json",
       "图片": "res://recourse/数据库/field-fdn-016.jpg",
-      "SHA256": "7747477A4D720FD06A116161F7E242338DD48B1423D5234C367F2ABCA28C65A1"
+      "SHA256": "D47AF3A9F13A07758408E9BD415F7F234DEBE9E383948B4AF47D434E13356687"
     },
     {
       "卡牌ID": "spell-fdf-ex05",
@@ -518,14 +518,14 @@
       "名称": "「约定」",
       "数据": "res://cards/spell-rei-006.json",
       "图片": "res://recourse/数据库/spell-rei-006.jpg",
-      "SHA256": "EB6F64110378F974B7E6E4EF2972DF87D1F92C1D9B5601F0986DB6111330B2DE"
+      "SHA256": "31F222D3B166A4723207D88D06445978485297D4C976BF204D40E19980F235FD"
     },
     {
       "卡牌ID": "spell-mar-005",
       "名称": "「结界ノ一侧」",
       "数据": "res://cards/spell-mar-005.json",
       "图片": "res://recourse/数据库/spell-mar-005.jpg",
-      "SHA256": "839D67E5660810780AF61D1DEBF68E6CC28F98DAE4C13F9C72EF94E03D7AACFA"
+      "SHA256": "B4BD6F76347F78FB1CF2ACEE9F91364497AF7E3490160C5657F76971EFD1A873"
     },
     {
       "卡牌ID": "character-fdf-ex05",
@@ -539,7 +539,7 @@
       "名称": "吸血鬼衍生物",
       "数据": "res://cards/token-fdf-133.json",
       "图片": "res://recourse/数据库/token-fdf-133.jpg",
-      "SHA256": "711C1FE0A2031C6A4F0D337237438C0D9652E5EEBF4C8726EDC94CBB8384FB43"
+      "SHA256": "FD505DE598EF04385E274FFFC02783F08C7F77EA25E1AF92BFB144C7D3F5F71D"
     },
     {
       "卡牌ID": "character-rei-ex01",
@@ -553,182 +553,182 @@
       "名称": "大地的守护神「比那名居天子」",
       "数据": "res://cards/character-fdf-ex04.json",
       "图片": "res://recourse/数据库/character-fdf-ex04.jpg",
-      "SHA256": "DACBDA331E4A56B2B33D38260D335A1BD4E899455B4DFC3A96D5F1AE0E052589"
+      "SHA256": "B667B20F63FE1A088A607DF811D4C1435E59C9326584169B00AB3FFA60A32182"
     },
     {
       "卡牌ID": "character-rei-001",
       "名称": "大结界的巫女「博丽灵梦」",
       "数据": "res://cards/character-rei-001.json",
       "图片": "res://recourse/数据库/character-rei-001.jpg",
-      "SHA256": "13E0FA7734C3005D718ADB7B1C35EACD8BC5BB91CE84A3B064639A601034199E"
+      "SHA256": "C02858D4A9886685761F13BB12847F93F2F7B13A178EA6CF65D59FBCD127F302"
     },
     {
       "卡牌ID": "spell-rei-010",
       "名称": "宝具「阴阳鬼神玉」",
       "数据": "res://cards/spell-rei-010.json",
       "图片": "res://recourse/数据库/spell-rei-010.jpg",
-      "SHA256": "ED18582F9315CF6F904174576C70040E4C6F78459208D085663DE18EF155D2E4"
+      "SHA256": "7AFD9E5EF038F4CF3E862BA8297520FCC14B3C70B5EF97C35A2C48558FD8BB1E"
     },
     {
       "卡牌ID": "character-mar-020",
       "名称": "实验中的魔女「雾雨魔理沙」",
       "数据": "res://cards/character-mar-020.json",
       "图片": "res://recourse/数据库/character-mar-020.jpg",
-      "SHA256": "D24CE52D96BB3CDB3D488B735617C63148557734364DC95179379F18BBA8BB2F"
+      "SHA256": "AC20BD402D5813C20C5597FD4157E701F79D111BFF919CDB1CCFD0C6FE2F548C"
     },
     {
       "卡牌ID": "token-smm-025",
       "名称": "小人衍生物",
       "数据": "res://cards/token-smm-025.json",
       "图片": "res://recourse/数据库/token-smm-025.jpg",
-      "SHA256": "853FAD0769588EE1E9072319811CCD5D7673FF1DD7EBB6651A521D68FB7231A5"
+      "SHA256": "7D683AAEB5DB2F531C64BA3910C4ACF2EF1CA63210915D4A772C4829000C4DA3"
     },
     {
       "卡牌ID": "character-rei-017",
       "名称": "小径的红叶巫女「博丽灵梦」",
       "数据": "res://cards/character-rei-017.json",
       "图片": "res://recourse/数据库/character-rei-017.jpg",
-      "SHA256": "D7D6D4BE856D0A51BF161B57F0A75A6430C3F33FE42F4D6283921575A05D3D38"
+      "SHA256": "12BBBA64A82EB30A59AEBFE5046688D364F8F8534DA1DD735A2ED1E73E488B0C"
     },
     {
       "卡牌ID": "character-rei-007",
       "名称": "「山童探险家」",
       "数据": "res://cards/character-rei-007.json",
       "图片": "res://recourse/数据库/character-rei-007.jpg",
-      "SHA256": "59B34ADBBCBE3EDE2A92701778FD6088AF50AE8BA83334C080A1AFB19EFB1762"
+      "SHA256": "08B8F7CEDB8D225F39AD9C8EA819A56C5D7417ADFA189196FA783C6797A7FDF2"
     },
     {
       "卡牌ID": "field-rei-004",
       "名称": "常置阵",
       "数据": "res://cards/field-rei-004.json",
       "图片": "res://recourse/数据库/field-rei-004.jpg",
-      "SHA256": "3B0740DF7D370247DA821BE8E3E719C093C3CCD7775F381B9560605E571C1F3E"
+      "SHA256": "813B1E727EEA1287425E51FE179F53555577692DCF72B168EE561E269B47C9D2"
     },
     {
       "卡牌ID": "character-rec-096",
       "名称": "幸运的白兔「因幡帝」",
       "数据": "res://cards/character-rec-096.json",
       "图片": "res://recourse/数据库/character-rec-096.jpg",
-      "SHA256": "D653111444A4F0B1A543858ABD47AAC7D604D2567635E2914AC1EE14D16672E9"
+      "SHA256": "F202D0769746CDBD2CA987F47890A59C9D8C0DC20ED48D64FB416DCA2B97F907"
     },
     {
       "卡牌ID": "character-fdf-070",
       "名称": "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
       "数据": "res://cards/character-fdf-070.json",
       "图片": "res://recourse/数据库/character-fdf-070.jpg",
-      "SHA256": "2A76304BC56D470506B1FA593A070982B3EEE24F46562179C1F06064C28CAF60"
+      "SHA256": "31939B830F2205E6B204C69F2171820D8098DF54898EA5F42878C1155B075AA3"
     },
     {
       "卡牌ID": "token-fdn-085",
       "名称": "幻象衍生物",
       "数据": "res://cards/token-fdn-085.json",
       "图片": "res://recourse/数据库/token-fdn-085.jpg",
-      "SHA256": "31DDD8F31220FE53561A0216DB4E48AC50FD9EB5CEEEEC2F237E806A6EE272BE"
+      "SHA256": "7E39C123C2842B717D7079B91B8508D5FDD4B70AE96AD5DC1AECE802429C536D"
     },
     {
       "卡牌ID": "spell-mar-002",
       "名称": "恋心「Double Spark」",
       "数据": "res://cards/spell-mar-002.json",
       "图片": "res://recourse/数据库/spell-mar-002.jpg",
-      "SHA256": "A04CBEE556E83D58276FAC43ECB19A64D983B9566E8287420B8AF3EE6CFAE89B"
+      "SHA256": "A79019254D4E65FCA46D2124D1C45A101AA998715D3D5C839BC60A493FD2C3DD"
     },
     {
       "卡牌ID": "spell-mar-003",
       "名称": "恋符「Non-Directional Laser」",
       "数据": "res://cards/spell-mar-003.json",
       "图片": "res://recourse/数据库/spell-mar-003.jpg",
-      "SHA256": "01E1B1753CDADF91A93B58EE3754DD49684CB07DEE0D162D3B9906BBB2F165DC"
+      "SHA256": "9DE4A8513AFA60B2EDC103FE4A6CAB8C7B5F225733F7DDFD2FF826D230E2D7FE"
     },
     {
       "卡牌ID": "character-fdf-ex01",
       "名称": "恶魔之妹「芙兰朵露·斯卡蕾特」",
       "数据": "res://cards/character-fdf-ex01.json",
       "图片": "res://recourse/数据库/character-fdf-ex01.jpg",
-      "SHA256": "E3190B16DD78124F6B3977DE7B5B3B7A53B3E4EF690D5B266F50AFA40F8AD5AF"
+      "SHA256": "A233EFC114B6E43A53945FB9A1C981BA7C4B2E91B863C1FF8C0B21C105BD6A78"
     },
     {
       "卡牌ID": "field-fdf-108",
       "名称": "旧都",
       "数据": "res://cards/field-fdf-108.json",
       "图片": "res://recourse/数据库/field-fdf-108.jpg",
-      "SHA256": "AE1540601D098D782196B1C47B80A352E50881E0407BACC2541C957E3EF3B316"
+      "SHA256": "371B064FCBA60943D20E07ACEB239E7CDA103B1B44E4ED320FC956A659088242"
     },
     {
       "卡牌ID": "spell-fdf-019",
       "名称": "星符「Escape Velocity」",
       "数据": "res://cards/spell-fdf-019.json",
       "图片": "res://recourse/数据库/spell-fdf-019.jpg",
-      "SHA256": "2FE9A5A89290852A84E588277EBEAD4485D09C07EAF325BBA3C4E1363BB0BD27"
+      "SHA256": "54E18F4D82C305982F3B778E1B3622DCB40D50307A4CDF25815C85E92B4F6402"
     },
     {
       "卡牌ID": "spell-fdf-023",
       "名称": "星符「Meteonic Shower」",
       "数据": "res://cards/spell-fdf-023.json",
       "图片": "res://recourse/数据库/spell-fdf-023.jpg",
-      "SHA256": "7083896C7933A7E500262556C26AAC9E20184105AB03D5B29A5861E521BD4A9D"
+      "SHA256": "F9252C2DF3D599AE195B84374B78E040DBB8A786A2E070EEDFDC5A5D51B5D977"
     },
     {
       "卡牌ID": "character-fdf-116",
       "名称": "月之头脑「八意永琳」",
       "数据": "res://cards/character-fdf-116.json",
       "图片": "res://recourse/数据库/character-fdf-116.jpg",
-      "SHA256": "2B728164D00CBEFE9356E40F136AEE54D19F67D54D5AB9B21576C780FCFF07A0"
+      "SHA256": "DCC6D38DD0E98D70FCC764E34DDBDE19D57E697BA78234C8DA60491B86D98262"
     },
     {
       "卡牌ID": "token-fdf-132",
       "名称": "月兔衍生物",
       "数据": "res://cards/token-fdf-132.json",
       "图片": "res://recourse/数据库/token-fdf-132.jpg",
-      "SHA256": "FC81F158887A5C667EA0547035870F8385D9A160C610986B43144621FD0CAF89"
+      "SHA256": "6F3C680D92E3D00B6751FE328DD45938B52157C0CE80BDD208E2E2247F7AF875"
     },
     {
       "卡牌ID": "spell-fdf-011",
       "名称": "梦符「二重结界」",
       "数据": "res://cards/spell-fdf-011.json",
       "图片": "res://recourse/数据库/spell-fdf-011.jpg",
-      "SHA256": "E271DEB6F4C884D2DBCB42B2757F066521CB0F524E58675A215C75D5D800ECA9"
+      "SHA256": "DD08B09B3DA3F82FDA6E29F00E4DF4EFC6C1E8F501A248C5D521E59F469B256C"
     },
     {
       "卡牌ID": "character-rei-022",
       "名称": "毗沙门天「寅丸星」",
       "数据": "res://cards/character-rei-022.json",
       "图片": "res://recourse/数据库/character-rei-022.jpg",
-      "SHA256": "D9441C26F1C1CB78BBDC84181DE2F498AF0B0A606A2A16B0EFECE5446B6733C5"
+      "SHA256": "36D45F5CE3D41B1930BB4EF2F5921C5E580FBC648482CFC025BC0F5D684FFF4B"
     },
     {
       "卡牌ID": "spell-rei-011",
       "名称": "灵符「梦想妙珠」",
       "数据": "res://cards/spell-rei-011.json",
       "图片": "res://recourse/数据库/spell-rei-011.jpg",
-      "SHA256": "36053E936CCC396B80E47F22EE8B1E4200F378CA573443CE430F1B908D2E63E3"
+      "SHA256": "0A11EA628E0CE8752107D8DC8165704B088560F331461882E55416693CE21107"
     },
     {
       "卡牌ID": "spell-rei-012",
       "名称": "灵符「梦想封印-散-」",
       "数据": "res://cards/spell-rei-012.json",
       "图片": "res://recourse/数据库/spell-rei-012.jpg",
-      "SHA256": "A020E37E3C21C7C7C593EF0E6C7AB3C2F122F0B5BA020B7998B229B33155EFE7"
+      "SHA256": "89DBAEF9FFA28A30207B7835C30ABA4886AD928C588A7D9F39CDB71896AD191B"
     },
     {
       "卡牌ID": "character-fdf-099",
       "名称": "生意兴隆的吉祥物「豪德寺三花」",
       "数据": "res://cards/character-fdf-099.json",
       "图片": "res://recourse/数据库/character-fdf-099.jpg",
-      "SHA256": "18022986955F457B93B674015D77D258E42EC1CAFFC5D7826BAF770FE909A496"
+      "SHA256": "03FA60E1EA926A6EB865558C6CEA7209890E5CFCC3C4C989BE9257F8AB4B6C2C"
     },
     {
       "卡牌ID": "spell-fdf-007",
       "名称": "神技「八方鬼缚阵」",
       "数据": "res://cards/spell-fdf-007.json",
       "图片": "res://recourse/数据库/spell-fdf-007.jpg",
-      "SHA256": "713783FC640AA88E56928C10807ABF70D2DEDD8014760BE7C2DE487DE2E0D34D"
+      "SHA256": "C0CBC5233EC7BB0A57430344F340D36F17DAB637B8E0E958E0BD2B1B0F8C1927"
     },
     {
       "卡牌ID": "character-fdf-ex02",
       "名称": "神隐的主犯「八云紫」",
       "数据": "res://cards/character-fdf-ex02.json",
       "图片": "res://recourse/数据库/character-fdf-ex02.jpg",
-      "SHA256": "2D4D2F08F2CA12D12AAF122B4A24494193C02BD5B8D8F774D47ABD321C50B512"
+      "SHA256": "C2062386CAE3B66A2A64DE438BEDEC3C132BE3C6B911DCA69C00399AA7AA4D94"
     },
     {
       "卡牌ID": "character-rei-026",
@@ -742,42 +742,42 @@
       "名称": "系缚阵",
       "数据": "res://cards/field-rei-005.json",
       "图片": "res://recourse/数据库/field-rei-005.jpg",
-      "SHA256": "3ACEBBE45139F02497BFE23194D3E1CBA70F0500A5798E95FBE36D8BECD98B6C"
+      "SHA256": "997D23F7BAC2EF0EA80EDA17520CE323AC9C4D07CB17BE34A29BCECB5D6B37FD"
     },
     {
       "卡牌ID": "spell-rei-002",
       "名称": "结界「扩散结界」",
       "数据": "res://cards/spell-rei-002.json",
       "图片": "res://recourse/数据库/spell-rei-002.jpg",
-      "SHA256": "86E0A35C99F4CA4EFF3D286CA39E417FC310749FFD8B2377CDE6F88929520CF0"
+      "SHA256": "26D29AE5BA80FB99973A7BA032F4DB69E8D46A8F7F181271D9E76DB447C55321"
     },
     {
       "卡牌ID": "character-mar-ex",
       "名称": "胆大心细的魔法使「雾雨魔理沙」",
       "数据": "res://cards/character-mar-ex.json",
       "图片": "res://recourse/数据库/character-mar-ex.jpg",
-      "SHA256": "8D5F79EBAFF8B949603F78269D33EB72A0C089D0A7A219788968CCCE06572CDB"
+      "SHA256": "77CDA68527B45404243B10AA37F35A50A489B1E84DF7839099B804B67A85D3CC"
     },
     {
       "卡牌ID": "token-kmo-027",
       "名称": "蝙蝠衍生物",
       "数据": "res://cards/token-kmo-027.json",
       "图片": "res://recourse/数据库/token-kmo-027.jpg",
-      "SHA256": "00A76A08D01A91471339C8750863C580B99C9A26E20101CBA1A13B4E0EAF4B08"
+      "SHA256": "507848B9AF9F42210B422C9831970AC08CCD679BF4B6E576D41CDD0D7BA51455"
     },
     {
       "卡牌ID": "field-rei-003",
       "名称": "警醒阵",
       "数据": "res://cards/field-rei-003.json",
       "图片": "res://recourse/数据库/field-rei-003.jpg",
-      "SHA256": "5267079B71F3C9E7AAFCE2101F4EEEBB502E3ECEAF7742F21FC2A0DB8F5ECF60"
+      "SHA256": "10C7220969DD8EE500F5A437D97A9088849093D8B92FCDD78296A17B2C2F1DF6"
     },
     {
       "卡牌ID": "character-rec-104",
       "名称": "识文解意的爱书「本居小铃」",
       "数据": "res://cards/character-rec-104.json",
       "图片": "res://recourse/数据库/character-rec-104.jpg",
-      "SHA256": "C9D586B8956EDF873AF7604A69ECC53290E323B85B999F9A63A00BBAFA091D57"
+      "SHA256": "2B5DB86AC35F32F5F59DE8D394492C461371E6E1A3CAC43853B328D5C13D07C5"
     },
     {
       "卡牌ID": "field-smm-004",
@@ -791,63 +791,63 @@
       "名称": "邪恋「容易结果ノ极限火花」",
       "数据": "res://cards/spell-mar-004.json",
       "图片": "res://recourse/数据库/spell-mar-004.jpg",
-      "SHA256": "F4DA1C62434F5F4D83A398FBE7E3BFEB8007246C98F450AB035C0FD10A02AAD7"
+      "SHA256": "7472337821F4D469DD365350C509271C3E5BDDD24E4B370624FC507796384F5B"
     },
     {
       "卡牌ID": "field-mar-006",
       "名称": "雾雨魔法店",
       "数据": "res://cards/field-mar-006.json",
       "图片": "res://recourse/数据库/field-mar-006.jpg",
-      "SHA256": "AFFF550D70415C978752D863F29630BECA6C57BB6BD5153130E1299F1AEE560B"
+      "SHA256": "453AE621527F47066C5A346C53AA11883F741CE4F8F28B1DDABA8E9E93B8CEAC"
     },
     {
       "卡牌ID": "character-ucs-060",
       "名称": "鬼神仙人「茨木华扇」",
       "数据": "res://cards/character-ucs-060.json",
       "图片": "res://recourse/数据库/character-ucs-060.jpg",
-      "SHA256": "5880228A9EDAD4A60F452F986EDF45060A541A6B05F5F620B328DFBD7A0DEBFB"
+      "SHA256": "65F02204F0C93E66D3CFF55C884C6DA9AF2B766E6E0615335C5C03BE9F8D6982"
     },
     {
       "卡牌ID": "token-fdf-130",
       "名称": "鬼衍生物",
       "数据": "res://cards/token-fdf-130.json",
       "图片": "res://recourse/数据库/token-fdf-130.jpg",
-      "SHA256": "150ED8B985DF4A6F88E81AE4E03930637A6E4B7391C3E28F5FB7F62C4BCEFC0A"
+      "SHA256": "8BF146BE9EDC5167A80382D1F76397214381692C0D226502A23311DF55145754"
     },
     {
       "卡牌ID": "character-fdf-ex03",
       "名称": "魔神复诵「圣白莲」",
       "数据": "res://cards/character-fdf-ex03.json",
       "图片": "res://recourse/数据库/character-fdf-ex03.jpg",
-      "SHA256": "854558E6FF67723D9AE2341B44477EE5EBDD4FC85097A410D56D4A8D7B6F6916"
+      "SHA256": "296E03017D2091877F174B37B20ED5698F7375FD3AF2BBA3B7F9066E7A61B49D"
     },
     {
       "卡牌ID": "spell-fdf-036",
       "名称": "魔符「Stardust Reverie」",
       "数据": "res://cards/spell-fdf-036.json",
       "图片": "res://recourse/数据库/spell-fdf-036.jpg",
-      "SHA256": "3FFEDE171E423FCA1B3B1FCC5CAE175C96F00C769BA8ED9C4CAAFBD3168F862A"
+      "SHA256": "821A73D52ACB1AB0767FE20D499A5C8A4874F34903ABD63876DDB45C333797A1"
     },
     {
       "卡牌ID": "character-fdf-095",
       "名称": "鲵吞亭的店花「奥野田美宵」",
       "数据": "res://cards/character-fdf-095.json",
       "图片": "res://recourse/数据库/character-fdf-095.jpg",
-      "SHA256": "0AFD08B01BB72E43713E21086D24E2B36C47C3954075CC660905A59A20F879A1"
+      "SHA256": "E17E99101C4D37BBABFF34F0255035A6FDCFD2D8BB3A3F0C8BD220692F3476E7"
     },
     {
       "卡牌ID": "character-rei-023",
       "名称": "丰收之秋「秋穰子」",
       "数据": "res://cards/character-rei-023.json",
       "图片": "res://recourse/数据库/character-rei-023.jpg",
-      "SHA256": "C3D89292DB10D621713C4158E68A16BCC216AF3D0966AC70153EADE59AE8B824"
+      "SHA256": "1076CB29C447D1F0EB0F8418EF1D8902340B792599ECC86D7868E28870D80DB0"
     },
     {
       "卡牌ID": "spell-mar-012",
       "名称": "光击「射月」",
       "数据": "res://cards/spell-mar-012.json",
       "图片": "res://recourse/数据库/spell-mar-012.jpg",
-      "SHA256": "583F4614A2E97966D704AE8D181FD1CB58CDA9E04A70169CE3425D4119A79ACD"
+      "SHA256": "52B35704E1E7E7EF5E77F103D61F19F1778A4B78738F9340DC6328DF0DC5D2DD"
     },
     {
       "卡牌ID": "spell-mar-013",
@@ -861,35 +861,35 @@
       "名称": "「Paranoid Lost」",
       "数据": "res://cards/spell-mar-014.json",
       "图片": "res://recourse/数据库/spell-mar-014.jpg",
-      "SHA256": "B0907537BB413FD23FB4F96449B2FFFB576823138913E43AFD8CB4FDEF8BCD4F"
+      "SHA256": "D1966F28E50170CD815E1D7B656DE3D6BDA4D570151B321CA1E877C79EAB9143"
     },
     {
       "卡牌ID": "item-mar-017",
       "名称": "「八卦炉」",
       "数据": "res://cards/item-mar-017.json",
       "图片": "res://recourse/数据库/item-mar-017.jpg",
-      "SHA256": "F2DD6CE82DBB01916FD3504E6E12BD79C718D6D2B0FF9E197B846780E6626F5A"
+      "SHA256": "4531FFC09EAE6B8566A29C70AEF220D2E717A2E00CBC12D2433F8AE722877EE0"
     },
     {
       "卡牌ID": "character-mar-021",
       "名称": "知识与避世的少女「帕秋莉·诺蕾姬」",
       "数据": "res://cards/character-mar-021.json",
       "图片": "res://recourse/数据库/character-mar-021.jpg",
-      "SHA256": "1B1507483CC318A710C6B093F21B79A2D33F8949F5BFA216B5A0F1E8BC02E1C5"
+      "SHA256": "73A28AC08AB29D015B2CC30494415B78AA8F40F9674CF6096A3A9CE32AED4FDA"
     },
     {
       "卡牌ID": "character-mar-022",
       "名称": "月之都的射手「清兰」",
       "数据": "res://cards/character-mar-022.json",
       "图片": "res://recourse/数据库/character-mar-022.jpg",
-      "SHA256": "2DA9415AEC6C3D1F3641FC31CA7973BAE82CF79690F14C0B3D68BD502272D1B8"
+      "SHA256": "FC8A6863C13180ECE504DD0B6971B891BE5C18527D79E05737B959B999A5E194"
     },
     {
       "卡牌ID": "character-mar-023",
       "名称": "勤奋的图书管理员「小恶魔」",
       "数据": "res://cards/character-mar-023.json",
       "图片": "res://recourse/数据库/character-mar-023.jpg",
-      "SHA256": "B4C079548B498998253EB211C6FEDD9C54041778D29C285543F906612B4DA5CC"
+      "SHA256": "5D2199F7AFBAD83F05E9148FCA56DC148E4C591B8B81585E5ACD4C0267680E3D"
     },
     {
       "卡牌ID": "character-mar-024",
@@ -903,742 +903,742 @@
       "名称": "无名的读书妖怪「朱鹭子」",
       "数据": "res://cards/character-mar-025.json",
       "图片": "res://recourse/数据库/character-mar-025.jpg",
-      "SHA256": "7ACBF669474641BF3D86F10F232C175339FBC4E07ECC5DD79A90F6D1B18105EA"
+      "SHA256": "F4D42BA1880AD35EFB319554F1CC035AFACD1811FC37C17350C646E3E7277366"
     },
     {
       "卡牌ID": "character-mar-ex01",
       "名称": "七曜魔法使「帕秋莉·诺蕾姬」",
       "数据": "res://cards/character-mar-ex01.json",
       "图片": "res://recourse/数据库/character-mar-ex01.jpg",
-      "SHA256": "C0DE655B311BC23CEE081AA357C19D10C79A15BA1C448F63CD00AFD5F549DE29"
+      "SHA256": "9EE59AB8405D1B0614F9325D15E5043F46DF96D57E6E4BF98855F3449400A19A"
     },
     {
       "卡牌ID": "token-fdf-128",
       "名称": "美宵之酒",
       "数据": "res://cards/token-fdf-128.json",
       "图片": "res://recourse/数据库/token-fdf-128.jpg",
-      "SHA256": "C869760BF6C385CCFC1F7B47BE58335046E71960A126A7C7AA5C2ECAA2F8BCEC"
+      "SHA256": "C2BCE52323440C2271C471DF14974E8EA7406B0BDAD769C49D56AF07B9190D3E"
     },
     {
       "卡牌ID": "token-ucs-093",
       "名称": "蓬莱之药",
       "数据": "res://cards/token-ucs-093.json",
-      "图片": "res://recourse/数据库/token-ucs-093.svg",
-      "SHA256": "F0B4DD7411A8D7993A38A1CF6A3E1EB1A67DB02805F158330ECC4EF1050C17D1"
+      "图片": "res://recourse/数据库/token-ucs-093.jpg",
+      "SHA256": "16846A35607D34B9701BDB1FE2A1A4C4D9EE547F1C0572687B9C5AE94890D09C"
     },
     {
       "卡牌ID": "101",
       "名称": "「妖恋谈」",
       "数据": "res://cards/101.json",
       "图片": "res://recourse/数据库/101.png",
-      "SHA256": "91A26CF7CC38950D8AFB73EDAC7A357C2BD7FCCEEDA1DDB1DA1AA77337111D47"
+      "SHA256": "52F44C3559776F592CC6BB6EDEF734BA3420639B4642806AF24BE685DAA83ADF"
     },
     {
       "卡牌ID": "102",
       "名称": "「万华ノ镜」",
       "数据": "res://cards/102.json",
       "图片": "res://recourse/数据库/102.png",
-      "SHA256": "E14F64616CF579ED35E5201AAC29EFC3BFEF6F30F5A80716984E5BC23D750930"
+      "SHA256": "EC831208B6AA54F8C5644EBEEED2B9886DDF986334924FB9C6CD20F030A22BFD"
     },
     {
       "卡牌ID": "103",
       "名称": "「萤火ノ天」",
       "数据": "res://cards/103.json",
       "图片": "res://recourse/数据库/103.png",
-      "SHA256": "805EB49556EA6CF88725A0EA256F9E0F8E74709B93384B42164484856B197695"
+      "SHA256": "10D1A96D1CA0F9B4C96ED31464B7CA9CA247CC954F8AFC374F910F27D0C39C79"
     },
     {
       "卡牌ID": "104",
       "名称": "禁忌「莱瓦汀」",
       "数据": "res://cards/104.json",
       "图片": "res://recourse/数据库/104.png",
-      "SHA256": "37BA3BA397B07A43489E38E399895DA85B667C4E887E5517CD461171B59B06BC"
+      "SHA256": "C50A00210F68F922A86935233F5C38264FBE53B7F9DE0904D7646B07900FCF3C"
     },
     {
       "卡牌ID": "105",
       "名称": "奇迹「白昼ノ客星」",
       "数据": "res://cards/105.json",
       "图片": "res://recourse/数据库/105.png",
-      "SHA256": "0116631A58055D82BEE7E9C52027371F2715104BA388C19065911A26478D43A0"
+      "SHA256": "610DD1AB54156D26984C49AAC1983120783A9D9BC6C45B42580FD6C4C474D13B"
     },
     {
       "卡牌ID": "107",
       "名称": "「稻田姬ノ秋」",
       "数据": "res://cards/107.json",
       "图片": "res://recourse/数据库/107.png",
-      "SHA256": "C63F3FC145F76494DFB11A4A721A4BBF4B92546EB9C76462832D8C24372D7BE1"
+      "SHA256": "AD9E94F8A42D4CCDAC5EE14E1729CE50AD2FFAEBBFD38431B3CB35DF82162DAC"
     },
     {
       "卡牌ID": "109",
       "名称": "神枪「冈格尼尔」",
       "数据": "res://cards/109.json",
       "图片": "res://recourse/数据库/109.png",
-      "SHA256": "2FB316241B2093168E8758CD1CDE447112A93DF1FB4D3F0FC2151D108B7581F4"
+      "SHA256": "863723877A27567C9803FBDED967B0B6E821ECA2C040FD9C1F5CE54F9EDA52D0"
     },
     {
       "卡牌ID": "111",
       "名称": "「缘起ノ幻想乡」",
       "数据": "res://cards/111.json",
       "图片": "res://recourse/数据库/111.png",
-      "SHA256": "DBEBE961C53F66B07798981B5AEBCFC03306ACFBF4D44AB277B09D682A6D961E"
+      "SHA256": "11464C1E8C249A4E2F78B3084298239832838B4714277ABD305E31A08F40BAF0"
     },
     {
       "卡牌ID": "113",
       "名称": "「活动记录」",
       "数据": "res://cards/113.json",
       "图片": "res://recourse/数据库/113.png",
-      "SHA256": "80420988788EA1F97B7B05A851B9960681D44244F1D255020CA4EE569B613980"
+      "SHA256": "5D1BB4E76318FD8913DC575415D69272EAC3EE91ABFFC4E2BE09704B4FABB040"
     },
     {
       "卡牌ID": "114",
       "名称": "「境界」",
       "数据": "res://cards/114.json",
       "图片": "res://recourse/数据库/114.png",
-      "SHA256": "E262682ED85E99B72FB4FFE04FAC5C1CF0B8F639896BA9D0D7ED3962ED5C708E"
+      "SHA256": "461225554DDF3A182A52CA794E2FEF75B7297F229640D10E8747641EF7F9E1FD"
     },
     {
       "卡牌ID": "116",
       "名称": "「太阳ノ花田」",
       "数据": "res://cards/116.json",
       "图片": "res://recourse/数据库/116.png",
-      "SHA256": "C99B2AC9D572A10A78FBAB1B3FC32B4DAA9BFED77C0C0F1CB126D02DCD669432"
+      "SHA256": "28A9563D7F5891E7F1319764F17D58D1E171E2AE7BB5DCA91F5541FD254275A9"
     },
     {
       "卡牌ID": "119",
       "名称": "旧史「旧秘境史-古代史-」",
       "数据": "res://cards/119.json",
       "图片": "res://recourse/数据库/119.png",
-      "SHA256": "1F9691A9640AB225595B47A7FFFC25442F5E31210956FE03E8FBDFBEF93D025A"
+      "SHA256": "5BE6C482FDCE80679D19FD15709D636030BC217104D9693B0A55A6FAC10A9E81"
     },
     {
       "卡牌ID": "12",
       "名称": "冬之妖怪「蕾蒂·霍瓦特洛克」",
       "数据": "res://cards/12.json",
       "图片": "res://recourse/数据库/12.png",
-      "SHA256": "67131AE1B64E3B9F228D984542FCBB618FBEAD00D04198C073EF92712BC9130E"
+      "SHA256": "41E7C2192D4A16F34C4205AA24F26B56D0DB49E610B04AD28A63F8A2333A887D"
     },
     {
       "卡牌ID": "121",
       "名称": "幻世「the world」",
       "数据": "res://cards/121.json",
       "图片": "res://recourse/数据库/121.png",
-      "SHA256": "BF959B70C7E623706A69EAC699E69F3B31179B38538E1BF6647F272DFD6ABC08"
+      "SHA256": "9684C1B875CB9B5172603C57339C7A654A6F3EAE4C3B3605D6924B3B349AF8D1"
     },
     {
       "卡牌ID": "122",
       "名称": "「幻想风靡」",
       "数据": "res://cards/122.json",
       "图片": "res://recourse/数据库/122.png",
-      "SHA256": "5BE719B4CFDC676EA35BA4B767714BADA6EA0D43B7888551A7F035DA8B136D3E"
+      "SHA256": "1AFA33F8707F6BFCAA351269EA48BCC436E1EDB81067FDD246260D79CF9D0C42"
     },
     {
       "卡牌ID": "123",
       "名称": "「天狗ノ防御」",
       "数据": "res://cards/123.json",
       "图片": "res://recourse/数据库/123.png",
-      "SHA256": "41E1436CDAEE8A8AC056761163C7403AE1C9F85D4776CA82D3EF448BF8CEEE89"
+      "SHA256": "20EBBF0A68F26CDD3DAE590249B4F75C699C67EC9D7D26759698D5F877B02512"
     },
     {
       "卡牌ID": "124",
       "名称": "「废墟ノ梦」",
       "数据": "res://cards/124.json",
       "图片": "res://recourse/数据库/124.png",
-      "SHA256": "59A426029F658E87BB4196B402E5D1DC5ADF11B4BFA397929D8CD24D626B2FB7"
+      "SHA256": "4A5547F8DC8D7E552B02251AFCB39C166CB40FE02BACDABCF7C10C0816C241E4"
     },
     {
       "卡牌ID": "125",
       "名称": "本能「本我的解放」",
       "数据": "res://cards/125.json",
       "图片": "res://recourse/数据库/125.png",
-      "SHA256": "9A3078D8139565FC98A0695E8CE9FE407445F2F6BDEDF2E8BC3B704FAB145798"
+      "SHA256": "F3361CBCFC6461FAC9F113812737F2FBBED2BB0F9EE4FC4B8AD150F7A863C07F"
     },
     {
       "卡牌ID": "126",
       "名称": "「湖上」",
       "数据": "res://cards/126.json",
       "图片": "res://recourse/数据库/126.png",
-      "SHA256": "29142FCD80B421F12C92A01391BEA9FB9ECE7B5878024FCA07EE801EFEF5C8AD"
+      "SHA256": "EF49A7F6F55F40D9F59DC2A3CCE4BAAEF9F9EFBB7BF92916FE464FFADE868503"
     },
     {
       "卡牌ID": "127",
       "名称": "「九天ノ瀑布」",
       "数据": "res://cards/127.json",
       "图片": "res://recourse/数据库/127.png",
-      "SHA256": "BD22BFDA57919FCDB66184153E2E74D0A04F0FA3586A69350CBA72A357C5E155"
+      "SHA256": "A308E2B9C5C4348A07BCC06B622CFE447EB420B6AEC4406458B9520C03B84F60"
     },
     {
       "卡牌ID": "128",
       "名称": "火水木金土符「贤者之石」",
       "数据": "res://cards/128.json",
       "图片": "res://recourse/数据库/128.png",
-      "SHA256": "74C7DC038792D6C9D825F0BF7193A9FB732F5F3F4E66126F5BF9D271C2BB1A1B"
+      "SHA256": "E52E6C15B6CDF6E63371FF313B5747FF4ED8DA510F1BCF174ECA815B44CB4319"
     },
     {
       "卡牌ID": "129",
       "名称": "「宵暗ノ翼」",
       "数据": "res://cards/129.json",
       "图片": "res://recourse/数据库/129.png",
-      "SHA256": "23EB6FC7A24C5FAF6380CD6C5B10B5A7D25E52E1BCD780B29790C454FD5D3DD1"
+      "SHA256": "1D5E509BE45BFFBA7E3BCA4B0166AF1F9E54FE9693AFFC7E6A238C2DDE9CFF57"
     },
     {
       "卡牌ID": "13",
       "名称": "湖畔的住人「大妖精」",
       "数据": "res://cards/13.json",
       "图片": "res://recourse/数据库/13.png",
-      "SHA256": "4998A57FAAF248D9F8DB127BBDB17E30DA7B656D9597DD68513AC85CDE708721"
+      "SHA256": "C0C7B50D6626C92E50AFE310CD6A4DA74DD7CE3D291714B28BA25D41314CA6A6"
     },
     {
       "卡牌ID": "132",
       "名称": "「幽冥境」",
       "数据": "res://cards/132.json",
       "图片": "res://recourse/数据库/132.png",
-      "SHA256": "E641B94E3131BBEB2DFAA20CC3F827B56BD035D3E84A4358428CE172BFBDE58D"
+      "SHA256": "93858B9B8FEF1854C12070D83E6426D06F6D765C42ED2283519B35F06CCEEDC6"
     },
     {
       "卡牌ID": "134",
       "名称": "「神ノ风」",
       "数据": "res://cards/134.json",
       "图片": "res://recourse/数据库/134.png",
-      "SHA256": "347F5EC726F5E7C9ED1441D03AC1780B2036DB867AF4C8E48D3611A5ADA408D1"
+      "SHA256": "FE3415AFEF9BBBD45EF5003A3F5D6656849C02EAAA21E40669584643C9C26FA3"
     },
     {
       "卡牌ID": "135",
       "名称": "「夜ノ蝶」",
       "数据": "res://cards/135.json",
       "图片": "res://recourse/数据库/135.png",
-      "SHA256": "9154507FC69EDFCABB08D4CDA97A9AC03DCE9631900F99313F734B94161FF31E"
+      "SHA256": "D9F268B3967D5BBA7B6A6430E5114F310155C5C63891191CE4025754556B4B75"
     },
     {
       "卡牌ID": "136",
       "名称": "「天ノ磐舟」",
       "数据": "res://cards/136.json",
       "图片": "res://recourse/数据库/136.png",
-      "SHA256": "E6A136849B93613D101392D9E0674A7B3EAF2B1434EE834603743BF08CA18A11"
+      "SHA256": "428F2BA94EAD9EAC2E5A8DC6ACC7F47418CDDBBE435945A2ABB2D0C392F6310C"
     },
     {
       "卡牌ID": "137",
       "名称": "「百万鬼夜行」",
       "数据": "res://cards/137.json",
       "图片": "res://recourse/数据库/137.png",
-      "SHA256": "617496190289DED00A4008872BB779578F9A07403900C0A513D0E6F22ADF368A"
+      "SHA256": "6F3EF6AB478E1762543BCE859566DFBE81713216E0C08E306FC6801EA7F2095C"
     },
     {
       "卡牌ID": "138",
       "名称": "「天ノ羽衣」",
       "数据": "res://cards/138.json",
       "图片": "res://recourse/数据库/138.png",
-      "SHA256": "E6C3F30C7AE560D9AC5A2963B969B2EA4B4A30BC43C08B5D8CE8AC2609015BBC"
+      "SHA256": "53EBEE5CEDEBCB904448B413083CF8D958484D09D9E33BF8C64C0829546931BD"
     },
     {
       "卡牌ID": "140",
       "名称": "「审ノ视」",
       "数据": "res://cards/140.json",
       "图片": "res://recourse/数据库/140.png",
-      "SHA256": "F79ABA57E395776A2F369EE9B8B216C713098F8787F1DE9F42DD5C7F5DC3AEBB"
+      "SHA256": "795FA2A00949D7B8B9746E7A3711F9AF9009B168A38C631C76A70DF7DE12AADF"
     },
     {
       "卡牌ID": "142",
       "名称": "「秋」",
       "数据": "res://cards/142.json",
       "图片": "res://recourse/数据库/142.png",
-      "SHA256": "DAD316F801DD7A49A3B426EDFD485476BF72DBF6F2DE17977AE0BFA43DDEFE1A"
+      "SHA256": "E3E28D5860955F5499AFE3D0C4D0AAF0CD68C1BF6A5E5472B20AE5FB4D21AA1D"
     },
     {
       "卡牌ID": "144",
       "名称": "「深红ノ进击」",
       "数据": "res://cards/144.json",
       "图片": "res://recourse/数据库/144.png",
-      "SHA256": "B2C80797E816634D5344345390DE5E62B613EF6EDDFCE18AEA45B46B9799E997"
+      "SHA256": "F2BB4314D1E0F551D793523DFBC23948DFEA36CCBD87AEA725FBB3F00E0E1AFE"
     },
     {
       "卡牌ID": "145",
       "名称": "「静空」",
       "数据": "res://cards/145.json",
       "图片": "res://recourse/数据库/145.png",
-      "SHA256": "E6274732FDF06670A37BF429B4F14D5B9F5270EF2BE98A0BD0F69701962533AC"
+      "SHA256": "9D07AF89C4A1BDBBC7BA6C5C7C23F53F3C5916AAAA8A5B0E1EA87821C3510C32"
     },
     {
       "卡牌ID": "146",
       "名称": "「花ノ幻想」",
       "数据": "res://cards/146.json",
       "图片": "res://recourse/数据库/146.png",
-      "SHA256": "00059AB50504D7F35864D3606292C21C93D7839C6D623A2B97B8D55FC54D3F26"
+      "SHA256": "500BBA47835BACAD8D40CB358B10DB2B612DE5D39EC4E135120B9D19D9D7E425"
     },
     {
       "卡牌ID": "148",
       "名称": "「今昔ノ花」",
       "数据": "res://cards/148.json",
       "图片": "res://recourse/数据库/148.png",
-      "SHA256": "C0BFB5A8BB4A144852C550491DA9440FD7BE217A7B4D0009FB6519DA8E367232"
+      "SHA256": "B0A8A9BD9EC4B03EEF58B67CFF7896D19D7F541D55659EF63F9B79DA00ADD44A"
     },
     {
       "卡牌ID": "149",
       "名称": "「秘神ノ门扉」",
       "数据": "res://cards/149.json",
       "图片": "res://recourse/数据库/149.png",
-      "SHA256": "238C88A01767240B22FCF7CCB0204ADA4468C6BC0BB3BF5A4F0E355AE8B154F4"
+      "SHA256": "61430686B15FDFF84A475FFE898330EB068C23BDC48262E739F7710C0D932F4E"
     },
     {
       "卡牌ID": "150",
       "名称": "「风神的神德」",
       "数据": "res://cards/150.json",
       "图片": "res://recourse/数据库/150.png",
-      "SHA256": "523146BE00CB6E290171B3570C8B151AB7209CF0F7C7158569ABB5500DC11993"
+      "SHA256": "2BA2968B36934A880230BF5E4900C48A3AEF5328128B64D34645CC9D61118762"
     },
     {
       "卡牌ID": "151",
       "名称": "土著神「小小青蛙不输风雨」",
       "数据": "res://cards/151.json",
       "图片": "res://recourse/数据库/151.png",
-      "SHA256": "4AB107EDD37895B42592F78B73A5CF961F7DD5D42439A990096D62D0BE7CD5B0"
+      "SHA256": "636DFC22BCCA827A66B20488D64B8048D7949DA62B93631FB6955D4A019AAE86"
     },
     {
       "卡牌ID": "152",
       "名称": "「幻想ノ灵火」",
       "数据": "res://cards/152.json",
       "图片": "res://recourse/数据库/152.png",
-      "SHA256": "F1C734AD3763F7A6236944A8E85877EC3CC9CC2779130442BFCC97030426E019"
+      "SHA256": "AB3C16C772658BF953A6D2AE9EDE5A3B408DB48F1F4AFAE6F21B5F963DF1860D"
     },
     {
       "卡牌ID": "153",
       "名称": "战符「小小军势」",
       "数据": "res://cards/153.json",
       "图片": "res://recourse/数据库/153.png",
-      "SHA256": "9802A56DE4780B6D2AE779E894930D19C5045B57256AC112C9EE9DA8886F24E0"
+      "SHA256": "29295765A7F6769C67B7CA6FA84B67D84DDAFC090B5487711E97EE72AE4BD27E"
     },
     {
       "卡牌ID": "154",
       "名称": "要石「开天辟地ノ压」",
       "数据": "res://cards/154.json",
       "图片": "res://recourse/数据库/154.png",
-      "SHA256": "5BBD8C7C76386C1EF21D1AD8C519C72859E5410E71D75D4A1A445F08395C308E"
+      "SHA256": "DA8A062EAF9E727EC5DF0D5C85653C5C1D2A1B35F4594112BDB2D49EC8557E38"
     },
     {
       "卡牌ID": "155",
       "名称": "「妖精ノ祭典」",
       "数据": "res://cards/155.json",
       "图片": "res://recourse/数据库/155.png",
-      "SHA256": "7FFAA44597A5A902134962BB6926CFEB3238BA7271E09CEF3D982B8129DA23B4"
+      "SHA256": "81E79B8979B5A9652F19519A3669D11E4DA1514B06F076CBD95854FBBF96857D"
     },
     {
       "卡牌ID": "156",
       "名称": "冻符「完美冻结」",
       "数据": "res://cards/156.json",
       "图片": "res://recourse/数据库/156.png",
-      "SHA256": "01F4D960497BD1E3174D4AAAEDB328064C243458832D581EBC39755D28118484"
+      "SHA256": "65FFEBC8CB045EACFC8BD2F24C2AA13EA082BFF8C83E790E12A60FC08BB2D171"
     },
     {
       "卡牌ID": "157",
       "名称": "想起「恐怖ノ回忆」",
       "数据": "res://cards/157.json",
       "图片": "res://recourse/数据库/157.png",
-      "SHA256": "FF700495BF157DD88E9718EC65C926BD212DED7B309538C919AE1B29FABA38B7"
+      "SHA256": "F83AE42371F0138E762187A5B7D939FB186DA59FF517BF6B23F73A86EE186AC1"
     },
     {
       "卡牌ID": "158",
       "名称": "幻想「花鸟风月、啸风弄月」",
       "数据": "res://cards/158.json",
       "图片": "res://recourse/数据库/158.png",
-      "SHA256": "D13C3D91C96A1D882D272468DFDE453E11900FDB889849F31C7DCFB43F2A7CF6"
+      "SHA256": "3873527141B229B8112506058675840AD1064080F42979DD104AF9A02E2C0B77"
     },
     {
       "卡牌ID": "159",
       "名称": "「永夜归返-子ノ刻-」",
       "数据": "res://cards/159.json",
       "图片": "res://recourse/数据库/159.png",
-      "SHA256": "E3A543CAA993F3FB7DCB26AFF8B67F05761C6C0A2E249D745F2719EB5EC17E96"
+      "SHA256": "F690133607C6A3A7FEBC40ACA705B9E3A0C6DD2207DDB3C64D1EE884F2C0FE2A"
     },
     {
       "卡牌ID": "160",
       "名称": "「游行圣」",
       "数据": "res://cards/160.json",
       "图片": "res://recourse/数据库/160.png",
-      "SHA256": "098649E8584EEC06DD85E0086924184A5427A42837ECE5093AD51DFF5A6D8CAC"
+      "SHA256": "CD436FFB5AC64403D1842593E5D9A88419778BCA49DA1583F1FEAA03AB8041AA"
     },
     {
       "卡牌ID": "161",
       "名称": "妖怪「火焰ノ车轮」",
       "数据": "res://cards/161.json",
       "图片": "res://recourse/数据库/161.png",
-      "SHA256": "E0A7408C4948153A63BADE221E138969D0BFBEB457B8D9555602DA09CFBED919"
+      "SHA256": "9BBC5C056F2F87103B166EBDE216B15C9C9B2901762F7462464D9010FC690E15"
     },
     {
       "卡牌ID": "17",
       "名称": "甜蜜毒药「梅蒂欣·梅兰可莉」",
       "数据": "res://cards/17.json",
       "图片": "res://recourse/数据库/17.png",
-      "SHA256": "E8E1612C04097A58077ECA40D088416FED34CBBBB27B4514A05AFB600A997FEE"
+      "SHA256": "CE0B58D0DF0B9A0645FF997DB38A020B8CD76CB1179BD5AB22BC5F0D21F4C094"
     },
     {
       "卡牌ID": "171",
       "名称": "无名ノ丘",
       "数据": "res://cards/171.json",
       "图片": "res://recourse/数据库/171.png",
-      "SHA256": "181B6F702A3E7811E9657008843D493ED4DD63BD90F6A0AD2B1CB2AD8C2DE600"
+      "SHA256": "CE9EC6972965431B83372E68A3B3F6DB5728E16E3090577174BD36E5294A2484"
     },
     {
       "卡牌ID": "172",
       "名称": "雾ノ湖",
       "数据": "res://cards/172.json",
       "图片": "res://recourse/数据库/172.png",
-      "SHA256": "981949F0400A8E426C41A99EC3686D3B12A06CA158431283E845A74F74A6335F"
+      "SHA256": "FA5A984D677DBB37820E3ACD7DDB2D588431DD7C17F06EE1B666A911252692EE"
     },
     {
       "卡牌ID": "173",
       "名称": "心ノ箱",
       "数据": "res://cards/173.json",
       "图片": "res://recourse/数据库/173.png",
-      "SHA256": "2B677154CC1241086AC50304F74882F7ABF6E612542EA55547B50CA3BEE95CE2"
+      "SHA256": "3916DD362CF2AD64388A365F66C367669724F229F1C30FE83E8DC967EE16053D"
     },
     {
       "卡牌ID": "175",
       "名称": "冥界",
       "数据": "res://cards/175.json",
       "图片": "res://recourse/数据库/175.png",
-      "SHA256": "E03E518DEC08A93AC09748BEA0CADDC852685C1E10CE1B5116513BB4F6AC62B1"
+      "SHA256": "70B145E88DAD4E21D1EF3E3E51077E37CE4C03AC6D4ED74316692E97AF5D930E"
     },
     {
       "卡牌ID": "178",
       "名称": "妖云「平安时代ノ黑云」",
       "数据": "res://cards/178.json",
       "图片": "res://recourse/数据库/178.png",
-      "SHA256": "B05C38580BD1485C5ED0765A662E434671BC5B39454632C10034FEF2CF077BB3"
+      "SHA256": "83EF2E0CCF571231E20AF94F40772A38E53E3E94EBBF6187C507638EDE99FAB4"
     },
     {
       "卡牌ID": "19",
       "名称": "暗中的光虫「莉格露·奈特巴格」",
       "数据": "res://cards/19.json",
       "图片": "res://recourse/数据库/19.png",
-      "SHA256": "6D8A8579B2BD94401FFF501CF3E51E052B4332FCF1FCCCF0C94633CD93480BE8"
+      "SHA256": "92C58D56D7422E4AC052774CBC7CAEED7FEB2B8011CC1D14AC7A538CD5F20D6A"
     },
     {
       "卡牌ID": "2",
       "名称": "月之光「露娜·切露德」",
       "数据": "res://cards/2.json",
       "图片": "res://recourse/数据库/2.png",
-      "SHA256": "A1A93BA099F312E306D654662E6F8DCC522616F1FE24A4B5BD5735C321A53770"
+      "SHA256": "59BFABD48ADD00424A3673B935133B324F5387587A93A3AAE427DE930D76C643"
     },
     {
       "卡牌ID": "22",
       "名称": "夜雀「米斯蒂娅·萝蕾拉」",
       "数据": "res://cards/22.json",
       "图片": "res://recourse/数据库/22.png",
-      "SHA256": "1D1717DCEEBA7B353425BC17BC60A1259A98D2BD7264AA03BCC27E1C70D040BA"
+      "SHA256": "0E1D87A03524F9A253823EF269477760829668871D9221ADF32D41269CEE7CCE"
     },
     {
       "卡牌ID": "24",
       "名称": "式神「八云蓝」",
       "数据": "res://cards/24.json",
       "图片": "res://recourse/数据库/24.png",
-      "SHA256": "1B5B6C1BFE2B1428B7EA1C6D8660E58D3C95A2126FCF5B7ECBEEF8F53AE87ACF"
+      "SHA256": "7970F0039B18939A7642BE62602A1626B3D174C15723D476582FD444AA1245C3"
     },
     {
       "卡牌ID": "25",
       "名称": "念写记者「姬海棠果」",
       "数据": "res://cards/25.json",
       "图片": "res://recourse/数据库/25.png",
-      "SHA256": "F6F84DA1B7C97F914EF56AFC4BC2F971A29443F1E2DD7DE6FD06194B62874DBE"
+      "SHA256": "6E6E7CC39C43B3BF042A7E2C359528C57CA4EE1DC4BD64DEA32B808D2660293F"
     },
     {
       "卡牌ID": "26",
       "名称": "三途川之引渡人「小野冢小町」",
       "数据": "res://cards/26.json",
       "图片": "res://recourse/数据库/26.png",
-      "SHA256": "E55FFB799ACD19DE8E9F6069A9A5ECEF1D95EF0BF7D67BD6D196A694B8BBCD45"
+      "SHA256": "BE467325E2BB4C813CA7862974BA95AC438A0F91EC204CE960B0253E93056818"
     },
     {
       "卡牌ID": "27",
       "名称": "水中工程师「河城荷取」",
       "数据": "res://cards/27.json",
       "图片": "res://recourse/数据库/27.png",
-      "SHA256": "48AF8F95D70B929C9E9EB81845B9EB08A96B14DE70991D58D890A921B10E2344"
+      "SHA256": "B508B6BDDF2F7FB6D5EA7B26B81DCE7FB48976CE359AB7AC4154B4EB8B1177B0"
     },
     {
       "卡牌ID": "3",
       "名称": "三月精「斯塔·萨菲雅」",
       "数据": "res://cards/3.json",
       "图片": "res://recourse/数据库/3.png",
-      "SHA256": "F44107540793F2E1164911A1F4927CBC75F22002AC5E4AC1670663CF70998E0B"
+      "SHA256": "34D887F266C27782A1535F651653D89147961F7A4FFC4A83C34E568DEFE24BBE"
     },
     {
       "卡牌ID": "31",
       "名称": "独臂有角的仙人「茨木华扇」",
       "数据": "res://cards/31.json",
       "图片": "res://recourse/数据库/31.png",
-      "SHA256": "80BCCFABDE8CFA0C7260516E5457B25892415536F07EA459113E61EFCF8FAE03"
+      "SHA256": "7AF2DEABC959A6AE04900321DD8E19A296F16149CB4C2D33D3563BC7581417D4"
     },
     {
       "卡牌ID": "32",
       "名称": "秘神流雏「键山雏」",
       "数据": "res://cards/32.json",
       "图片": "res://recourse/数据库/32.png",
-      "SHA256": "F242B947A0E68CAF48402E6D6791431DE1892CAF1F40CE0B2F177F8D93ABC05D"
+      "SHA256": "B984C9B5DB798957606F7FA4441303D440427040B9CC664B888E566A12E6A7C0"
     },
     {
       "卡牌ID": "34",
       "名称": "地狱的妖精「克劳恩皮丝」",
       "数据": "res://cards/34.json",
       "图片": "res://recourse/数据库/34.png",
-      "SHA256": "DB9B7DDB2908F6655478C53F247A17598660C92F505D073405A57B47AFB4EA51"
+      "SHA256": "FC66B8C4DFEFA18A48984B4E88D320570530416CAFD75BA17C41031FFB5CFB72"
     },
     {
       "卡牌ID": "42",
       "名称": "无理非道的仙人「霍青娥」",
       "数据": "res://cards/42.json",
       "图片": "res://recourse/数据库/42.png",
-      "SHA256": "880EA2F5439058362002ADAAF0FFB239ED6A6087359E28EAD991E2CECF99E99C"
+      "SHA256": "E46580CD269B44AC8CFA85FF0B9FCAA19484DEA948ED1EB3979685AECBA0650E"
     },
     {
       "卡牌ID": "43",
       "名称": "漆黑的噬龙者「姬虫百百世」",
       "数据": "res://cards/43.json",
       "图片": "res://recourse/数据库/43.png",
-      "SHA256": "19338EEE54FBC7C2100BB532E12E99D71DE0A63F503678C9C3878DD42E69E083"
+      "SHA256": "3775A043E22ACD48AB6DEC3095EFB73D45EE0959529D165117B557EC5B300918"
     },
     {
       "卡牌ID": "44",
       "名称": "幻想乡的记忆「稗田阿求」",
       "数据": "res://cards/44.json",
       "图片": "res://recourse/数据库/44.png",
-      "SHA256": "A675B56574624832612D23792F7C58EDB53F5327A3ADDF6505A42FB63194BC90"
+      "SHA256": "9AA3D9ED3178FCC00A54265E1DCB3E4354728B2F7C68F8427BF5B15BBE1805EC"
     },
     {
       "卡牌ID": "45",
       "名称": "孤援的造型神「埴安神袿姬」",
       "数据": "res://cards/45.json",
       "图片": "res://recourse/数据库/45.png",
-      "SHA256": "9399A33FAA106486690B6C1712BF22CB21F80896F2D0E3DA5E3D724E26E7DD88"
+      "SHA256": "BA7305AFCFFAEA32926BD9B49826A1E6F89FBD0AA1C157DA2B4848860287A16D"
     },
     {
       "卡牌ID": "46",
       "名称": "「橙」",
       "数据": "res://cards/46.json",
       "图片": "res://recourse/数据库/46.jpeg",
-      "SHA256": "D562B2E65756C3C90506D7CFFF250D89EBB815909CFBE3987B67F9229E22CEEF"
+      "SHA256": "F9C533574BF1B7F55FF4C49FECAD22083C2793DE6D6D3CA839A91643A0D8DEBC"
     },
     {
       "卡牌ID": "47",
       "名称": "恶魔的门番「红美铃」",
       "数据": "res://cards/47.json",
       "图片": "res://recourse/数据库/47.png",
-      "SHA256": "316CB9910F36B2D76BB16D7C58A2922CCF4886B1E12485D948E8725491D06538"
+      "SHA256": "734ECE60ED50382072CC10EF32196775AF4EC73A1E50D5F80DA0D3EF3F2B65E4"
     },
     {
       "卡牌ID": "51",
       "名称": "「魍魉」",
       "数据": "res://cards/51.json",
       "图片": "res://recourse/数据库/51.png",
-      "SHA256": "165808C3676A1767C212413CDE0D186AEF4D2B8B19081062ACA6673ECE1D7273"
+      "SHA256": "E61652511D91013AF106E9689ABA51F2658A365EF39F73EC5041A4CEE668D743"
     },
     {
       "卡牌ID": "52",
       "名称": "「高阶恶魔」",
       "数据": "res://cards/52.json",
       "图片": "res://recourse/数据库/52.png",
-      "SHA256": "6742E881593D35BDFE51B0FFE98A392A44E64A768EAC22E127498E110382CB80"
+      "SHA256": "9EDBA9C953C43C3EFEC57C47C52E5ACF7B014D5E59AE439D82325B5CA1A01535"
     },
     {
       "卡牌ID": "55",
       "名称": "「风元素」",
       "数据": "res://cards/55.json",
       "图片": "res://recourse/数据库/55.png",
-      "SHA256": "87C9045057D498AEEDB7A58313F3F856C58AEABDDE22218EDE641DB43B2DE2FD"
+      "SHA256": "89EF1A2FEC45A43FB5FD12D611BFBBB1CF096A2F133A4A7C16B3A693B10430A7"
     },
     {
       "卡牌ID": "58",
       "名称": "「大天狗」",
       "数据": "res://cards/58.json",
       "图片": "res://recourse/数据库/58.png",
-      "SHA256": "59D3D59E7951ADE6AE0C67F895771A2528FDEF3CE1A66131205BA09652690DB7"
+      "SHA256": "5DFA7B7BB7A317509374D3528D818F7534AA2D78B286B391693F612DE51D57EC"
     },
     {
       "卡牌ID": "59",
       "名称": "遗忘之伞「多多良小伞」",
       "数据": "res://cards/59.json",
       "图片": "res://recourse/数据库/59.png",
-      "SHA256": "D5AD7F281EE4D0E8D0A3EAB84BEA25D8AD2F694F2290C9D56B0AEBDCE1CE68CB"
+      "SHA256": "C2877B7FE746484B15092F168C052C66F7D56C68FF327475DBD45A96DDD58968"
     },
     {
       "卡牌ID": "60",
       "名称": "大海的正义「村纱水蜜」",
       "数据": "res://cards/60.json",
       "图片": "res://recourse/数据库/60.png",
-      "SHA256": "B0DD971B6B396657A16BEB7EDE714F2EB7586A4179FCD567DE9BB2212F60CA1C"
+      "SHA256": "DA0E60EDD60E34AF1CC518D3EE73FBCFFEC3AA061F086DE7A9DE7453D331E722"
     },
     {
       "卡牌ID": "62",
       "名称": "邪术仙人「霍青娥」",
       "数据": "res://cards/62.json",
       "图片": "res://recourse/数据库/62.png",
-      "SHA256": "BEF3DD5406356848A2E809902D265D89007E577040AE50F168388B0B1CABA7C2"
+      "SHA256": "527328CCFD890DD11DCE571C6D9D59B70E5074F77838D9D4151233551710B6D3"
     },
     {
       "卡牌ID": "63",
       "名称": "探宝队员「纳兹琳」",
       "数据": "res://cards/63.json",
       "图片": "res://recourse/数据库/63.png",
-      "SHA256": "6F14306E5215590CCE14EE0EFD29A72933E718C0E461199EBE49D29096F0DD8D"
+      "SHA256": "88B0A7C019CCAC341F64FD9A933462FEF116BE49A5C3DA7C442B4F64284F77DA"
     },
     {
       "卡牌ID": "66",
       "名称": "回声山彦「幽谷响子」",
       "数据": "res://cards/66.json",
       "图片": "res://recourse/数据库/66.png",
-      "SHA256": "E643E3D5653D555CC2BEC5FB7853A90CA4C0DD1CE7C6E6BA1375CC9BF65AF182"
+      "SHA256": "9552C978CD21A7CF68B1290DA05559AC56498BAE7739C255A8BF063E96CEC9A4"
     },
     {
       "卡牌ID": "67",
       "名称": "问答无用「云居一轮&云山」",
       "数据": "res://cards/67.json",
       "图片": "res://recourse/数据库/67.png",
-      "SHA256": "358C6117CFF1051AB16BDE63A517FCFD4BD3A682EAE29A15F3B91BDEE792FCF7"
+      "SHA256": "BF54488D440BE334D0264A5F0B900F1F131BF0F071DEFB558F068BF9406A2845"
     },
     {
       "卡牌ID": "7",
       "名称": "「蓬莱人偶」",
       "数据": "res://cards/7.json",
       "图片": "res://recourse/数据库/7.png",
-      "SHA256": "EE6EB38AE4C6189390DB04670FD04551433AF8F456BCAA3080C7506DDE7D4D9D"
+      "SHA256": "F235727FD22B1D64A6EA4DDDEB173B127D63F111988A600CC4F7682BD26268DC"
     },
     {
       "卡牌ID": "73",
       "名称": "紧闭的恋之瞳「古明地恋」",
       "数据": "res://cards/73.json",
       "图片": "res://recourse/数据库/73.png",
-      "SHA256": "66C697F9AC4EA4054630E852CC66247C2E67A06333899396E645260A946973CB"
+      "SHA256": "A0FFDEBAC07E646A2B85480395B1883B0113F71FB8402810C5517D6BF4ED3E75"
     },
     {
       "卡牌ID": "74",
       "名称": "永远鲜红的幼月「蕾米莉亚·斯卡蕾特」",
       "数据": "res://cards/74.json",
       "图片": "res://recourse/数据库/74.png",
-      "SHA256": "38F81AB602228770E6FF273C6330DE88675D516D3C78793BAC9C8D0D7E8424E8"
+      "SHA256": "B33855BCF7C19906A8482C9C2A1613F1852CEA60C13BBE89DBD64737380171E3"
     },
     {
       "卡牌ID": "76",
       "名称": "第三只眼「古明地觉」",
       "数据": "res://cards/76.json",
       "图片": "res://recourse/数据库/76.png",
-      "SHA256": "313DF21793CB0EBFE12CF76ABD61059FD66397C016A567113C09F8BE523DDF7B"
+      "SHA256": "00B603976CAF698DBB49E3A4292149D37162CB61CBCB275A2CA18A490C1FB2F4"
     },
     {
       "卡牌ID": "77",
       "名称": "七色的人偶使「爱丽丝·玛格特洛依德」",
       "数据": "res://cards/77.json",
       "图片": "res://recourse/数据库/77.png",
-      "SHA256": "6493B0A87E13C34C0C439DD4D8A9BC9892FE84AA4E5F13706BD86FB819DD0D62"
+      "SHA256": "13473905C21703F7264DB8A301BA7D20B6DCD39460D6C77F9A5741D2A0845327"
     },
     {
       "卡牌ID": "8",
       "名称": "「上海人偶」",
       "数据": "res://cards/8.json",
       "图片": "res://recourse/数据库/8.png",
-      "SHA256": "05FB042F0DC891748F85120C071ACB8E83F1605B74CAAA796F6DDFFFB76ACD09"
+      "SHA256": "6A04B832F3BA49FF75630C7295B594357D8874EE26ACA210BB7F8E9DC026F62B"
     },
     {
       "卡牌ID": "80",
       "名称": "湖上的冰精「琪露诺」",
       "数据": "res://cards/80.json",
       "图片": "res://recourse/数据库/80.png",
-      "SHA256": "4EBFD0CA73C9FCDF6D32FE53ED5954EF2623C4CF81C8DED629799438D24B516E"
+      "SHA256": "694E850C590E088B2EF26458B2F251184A1B202E543CA5B30176B285DEF275CA"
     },
     {
       "卡牌ID": "82",
       "名称": "八坂的神风「八坂神奈子」",
       "数据": "res://cards/82.json",
       "图片": "res://recourse/数据库/82.png",
-      "SHA256": "0CC29BDAA740D770FBED078914FF3AC819CCBF9B00FFB83548BA65AF40E5B3C6"
+      "SHA256": "1DBC5367A5E433183A59C4C20B6A935F09CB042B908824BA2B4EC5F391CABA59"
     },
     {
       "卡牌ID": "85",
       "名称": "永远与须臾的罪人「蓬莱山辉夜」",
       "数据": "res://cards/85.json",
       "图片": "res://recourse/数据库/85.png",
-      "SHA256": "78FA46CA82FFB5F7821D0108B017A674C6198F5D445F85106862AB6EE31FAF26"
+      "SHA256": "FE647BA6EB6FE02C215645AB443DFFB81FE9715212D3B9189BCA7153669B8E88"
     },
     {
       "卡牌ID": "86",
       "名称": "四季鲜花之主「风见幽香」",
       "数据": "res://cards/86.json",
       "图片": "res://recourse/数据库/86.png",
-      "SHA256": "815684FF2512673E6E4D83387DB3AC2796E5904050D93A0EB81EA32DABD6569A"
+      "SHA256": "5FFB19EAD301437E800F28DC0F656F69B2443EB7488FF049A6459E24991BD8A6"
     },
     {
       "卡牌ID": "9",
       "名称": "祈风之人「东风谷早苗」",
       "数据": "res://cards/9.json",
       "图片": "res://recourse/数据库/9.png",
-      "SHA256": "E566CBA3D25F40A66D22AFED102854238E9398B7BE9C3BDBC5B05CDD9072A533"
+      "SHA256": "6CD6330BEF63158B6023839AC57E1AC67D25FA41F5359B69DCF4D9368AEFD7C1"
     },
     {
       "卡牌ID": "90",
       "名称": "百鬼夜行「伊吹萃香」",
       "数据": "res://cards/90.json",
       "图片": "res://recourse/数据库/90.png",
-      "SHA256": "2CF16A7C8E566337220E529F94D4650A024393CC3C67534D3A4B696BE5F4D266"
+      "SHA256": "DF7A17DA9A80054EB643FA170FC285ED28A67252685DAB0EC415EBF3DED5BD35"
     },
     {
       "卡牌ID": "93",
       "名称": "土著神之顶「洩矢诹访子」",
       "数据": "res://cards/93.json",
       "图片": "res://recourse/数据库/93.png",
-      "SHA256": "732C1A4E6A085478DCA8A0A74AED83866D34594E355DB39F30A6E8E356D9842F"
+      "SHA256": "DB7B857C94787CAA0E3B0B792CC13C668BFD1FE47C4B70994C01B3620FA36696"
     },
     {
       "卡牌ID": "97",
       "名称": "「妖精ノ嬉游」",
       "数据": "res://cards/97.json",
       "图片": "res://recourse/数据库/97.png",
-      "SHA256": "8F82587B0BEFD5D70783E9CED4C246E83B8B59485EF6B22E4FB8B287F87285F7"
+      "SHA256": "AEBEEDEB089CEE91DA65E777746DECBDBE4C3D05CF8CC6BE9FC9D78B7EEFF54F"
     },
     {
       "卡牌ID": "98",
       "名称": "「天狗ノ晴岚」",
       "数据": "res://cards/98.json",
       "图片": "res://recourse/数据库/98.png",
-      "SHA256": "586699A8535EE814B54C872DB05F98BE60C8BC8E75543DB546AEFC255263C620"
+      "SHA256": "435AD7FBD481B067E40A1AF03FED6CDADEE3C1116587D0901EFC392CD0D0D22D"
     },
     {
       "卡牌ID": "spell-smm-006",
       "名称": "「小憩」",
       "数据": "res://cards/spell-smm-006.json",
       "图片": "res://recourse/数据库/spell-smm-006.jpg",
-      "SHA256": "09071355AEB928D72CE249FFC906E48D707C5CD25AC2C310681B2019430F2C13"
+      "SHA256": "04720EA22697C56547729DC1A493F6F048591593F2DBDDDBB6ED5B49A4B0D55E"
     },
     {
       "卡牌ID": "spell-kmo-005",
       "名称": "「春雪」",
       "数据": "res://cards/spell-kmo-005.json",
       "图片": "res://recourse/数据库/spell-kmo-005.jpg",
-      "SHA256": "D1141D12E6312A50BA00786BF3CD20B3E56D30B905E44C25FB4D7767A05566B4"
+      "SHA256": "4072C048E2A7DF5B9AE6C594A78144B2403798AD7D300D93113E476AF9A77A24"
     },
     {
       "卡牌ID": "spell-kmo-004",
       "名称": "「血族的末裔」",
       "数据": "res://cards/spell-kmo-004.json",
       "图片": "res://recourse/数据库/spell-kmo-004.jpg",
-      "SHA256": "2CC92A82B0C3C1B8946C6DE687395628C919E96CFCF3A222DB1118A01F227B17"
+      "SHA256": "044CAA79B183CF1B2A3D005AC6B24EF438F098B07C7E6D7A8535EE205071D713"
     },
     {
       "卡牌ID": "character-smm01",
       "名称": "小人的后裔「少名针妙丸」",
       "数据": "res://cards/character-smm01.json",
       "图片": "res://recourse/数据库/character-smm01.jpg",
-      "SHA256": "E476786A3E6AAC47C135A0439A9B5E15D9F6DD4AB1770DDE6A2C05779B0CAB65"
+      "SHA256": "8D64F24AAB59F468E9C6682289B14F3F869F7DB4987F856AAE453BC6EB8AF098"
     },
     {
       "卡牌ID": "character-kmo-001",
       "名称": "彼岸的渡者「小野冢小町」",
       "数据": "res://cards/character-kmo-001.json",
       "图片": "res://recourse/数据库/character-kmo-001.jpg",
-      "SHA256": "3778290FC1EA714D50F23B24AF9D02B33651E8B128B666CC9C09BEF3A98C8FB5"
+      "SHA256": "36B1173434535A18DA9E790F04725292F829F3E0461CDA611B27B37966855495"
     },
     {
       "卡牌ID": "spell-kmo-002",
       "名称": "死神「彼岸归航」",
       "数据": "res://cards/spell-kmo-002.json",
       "图片": "res://recourse/数据库/spell-kmo-002.jpg",
-      "SHA256": "26F8F07F6057BDA68C762FA8F8CA327F90652AEE5D9E8005B5B76037701BD5E5"
+      "SHA256": "3003192943D0332E568F3FDAF03D439FBAD9BC7072A1DA2FF7FECCCB00FDDB1B"
     },
     {
       "卡牌ID": "character-smm07",
@@ -1652,735 +1652,735 @@
       "名称": "「Subterranean Rose」",
       "数据": "res://cards/spell-ucs-011.json",
       "图片": "res://recourse/数据库/spell-ucs-011.jpg",
-      "SHA256": "0D4C41FCE9E5FAD0E56563074B0592C93A42A147D1D6647EE52ABAF369AE5F2C"
+      "SHA256": "775929CE34F55B68AF6499F7C848E3D63BB6C3511C0E003E0417C8C6AFEB8053"
     },
     {
       "卡牌ID": "spell-ucs-008",
       "名称": "「人神ノ黎明景」",
       "数据": "res://cards/spell-ucs-008.json",
       "图片": "res://recourse/数据库/spell-ucs-008.jpg",
-      "SHA256": "C42C038DC9C43315C17F8528019006DE6932CA3B2CB093F1E619D5B11EF87612"
+      "SHA256": "7FF6ADB6FCFE107B0D2496D77A0D2D783FB0CBC1FA09E6736A55483F49795BFD"
     },
     {
       "卡牌ID": "item-ucs-012",
       "名称": "「河童背包」",
       "数据": "res://cards/item-ucs-012.json",
       "图片": "res://recourse/数据库/item-ucs-012.jpg",
-      "SHA256": "E854792E53C0DC5D8BEB2897DD4631F5F71C9A7F168E7FE92D498B157B2BC47F"
+      "SHA256": "942C505EC1B753E07D9D87ADB7443CF83DC0C942EA2FE63B138C0941C5D4F192"
     },
     {
       "卡牌ID": "spell-ucs-029",
       "名称": "人符「现世斩」",
       "数据": "res://cards/spell-ucs-029.json",
       "图片": "res://recourse/数据库/spell-ucs-029.jpg",
-      "SHA256": "4C437FD67BAECC2EE54841F35F074E0AB8B111C3B0F475499C948A1ECE319E4E"
+      "SHA256": "5EA84D54D2668B4EA6CC61652E34B1826499854E4384DD597F9C32B4200797EA"
     },
     {
       "卡牌ID": "spell-ucs-026",
       "名称": "四天王奥义「三步坏废」",
       "数据": "res://cards/spell-ucs-026.json",
       "图片": "res://recourse/数据库/spell-ucs-026.jpg",
-      "SHA256": "66EB5CC1EF3CB4A38F48CB84CB961CF6724381EAA2C736871EE51B53D491649E"
+      "SHA256": "E7A9B480E06C15EEAA1A1403398B68D5AAE7348859B447A95B82B0367A9A55E2"
     },
     {
       "卡牌ID": "character-ucs-032",
       "名称": "小夜岚的女仆「十六夜咲夜」",
       "数据": "res://cards/character-ucs-032.json",
       "图片": "res://recourse/数据库/character-ucs-032.jpg",
-      "SHA256": "600E85BA14C34541BBF5F8C4DE6D12516DD2795DD2131EB5FA7400F720617921"
+      "SHA256": "7AD2E04CB16D50E9BF189F629C4E97BF5A7CB2CA4510194FAB0267AFA0B5BF82"
     },
     {
       "卡牌ID": "character-ucs-072",
       "名称": "山坂与湖水的化身「八坂神奈子」",
       "数据": "res://cards/character-ucs-072.json",
       "图片": "res://recourse/数据库/character-ucs-072.jpg",
-      "SHA256": "0C3ABEF57946EE242D9979AE7765085B01466AA1033BC6B3F484DF076439CCCE"
+      "SHA256": "A659135788FAA588A5023FA2BB42D4BDDE0F6A85707F9D1D5AC81041F09B739B"
     },
     {
       "卡牌ID": "spell-ucs-019",
       "名称": "幻想「第一种永久机关」",
       "数据": "res://cards/spell-ucs-019.json",
       "图片": "res://recourse/数据库/spell-ucs-019.jpg",
-      "SHA256": "0317F89CC842A5A9B38E10661CBC4ABEFA3BBF47D6906B3953082FD93E369567"
+      "SHA256": "FC2741EBF9B6635BEDC90F6394D2E3FB1D3AD6FEBC21E8F9684CED9037040919"
     },
     {
       "卡牌ID": "character-ucs-071",
       "名称": "惊天动地的唐伞妖怪「多多良小伞」",
       "数据": "res://cards/character-ucs-071.json",
       "图片": "res://recourse/数据库/character-ucs-071.jpg",
-      "SHA256": "443618CB09F2A285EE62D6447527D5F0691DD7927EA04F7078CBAAC6A59E0395"
+      "SHA256": "1A5663D716CBEA1ED13F0CC169A6F1E1362AFB5412FFF707CB63BAC56F9EA27C"
     },
     {
       "卡牌ID": "character-ucs-038",
       "名称": "旧地狱的宠物妖怪「火焰猫燐」",
       "数据": "res://cards/character-ucs-038.json",
       "图片": "res://recourse/数据库/character-ucs-038.jpg",
-      "SHA256": "760D9B0F7D7B4DB6DB697D4E521FB1148FC060B4D1C5106D27768F4C47A173AF"
+      "SHA256": "6691CA8A600FCA076977DC45D0302E4F831A9FA0090D98EF43BD0AC137A0BFAF"
     },
     {
       "卡牌ID": "character-ucs-069",
       "名称": "星降之处的道士「丰聪耳神子」",
       "数据": "res://cards/character-ucs-069.json",
       "图片": "res://recourse/数据库/character-ucs-069.jpg",
-      "SHA256": "98E9296A0223073EC49325DC861489A6A69A3F4DD9492EC16C32C67B751D2D87"
+      "SHA256": "A22A9B46E3C08BA1800DBE5AD73642790BD7C250D94D6E8C504A19829A8A7CDA"
     },
     {
       "卡牌ID": "character-ucs-048",
       "名称": "「法兰西人偶」",
       "数据": "res://cards/character-ucs-048.json",
       "图片": "res://recourse/数据库/character-ucs-048.jpg",
-      "SHA256": "EE5EA153DFCDE0055708742A750B04212AA4373F9981F681159008E7E8291080"
+      "SHA256": "05C92D58BF48C3CFD5E63AD20EDD64407AF5B888A80AD405BFEB8564D0AB353B"
     },
     {
       "卡牌ID": "character-ucs-042",
       "名称": "绿眼的无间妒嫉「水桥帕露西」",
       "数据": "res://cards/character-ucs-042.json",
       "图片": "res://recourse/数据库/character-ucs-042.jpg",
-      "SHA256": "DCA9CBDCDE70F72B3454AB5989C96CD55AEA89D663DD18E12E90F00479DA25E8"
+      "SHA256": "54944FE476429C18068A220839ED1D498769AB8C986E746B944A33869795F383"
     },
     {
       "卡牌ID": "spell-ucs-014",
       "名称": "转世「一条归桥」",
       "数据": "res://cards/spell-ucs-014.json",
       "图片": "res://recourse/数据库/spell-ucs-014.jpg",
-      "SHA256": "C59F638F2095456DF499647B12408BA918271F9C2346344CBBFFA16F3C256E57"
+      "SHA256": "9F7D730656838F49F785509CF2FD70A47A3E801E883069FE2B517BBF827550F4"
     },
     {
       "卡牌ID": "spell-ucs-027",
       "名称": "非想「非想非非想ノ剑」",
       "数据": "res://cards/spell-ucs-027.json",
       "图片": "res://recourse/数据库/spell-ucs-027.jpg",
-      "SHA256": "074784C7D8DD3DACBB2A5872631BC8BD395403964C632B9CFE30FE00DB328B3A"
+      "SHA256": "842C741E36C959568F4B407F00B132B80027604F91B5462C6CF9CCA2D1F183B6"
     },
     {
       "卡牌ID": "token-ucs-099",
       "名称": "半灵",
       "数据": "res://cards/token-ucs-099.json",
       "图片": "res://recourse/数据库/token-ucs-099.jpg",
-      "SHA256": "5BD5CA81EE80588D0EFBE62E365471C9A0FDD82438D73097B51D8C6CED8AE96C"
+      "SHA256": "36874FEABB921DD5BD59B59CFC59FF4148056204CF6DE6E71DFAB9C9B8A3E292"
     },
     {
       "卡牌ID": "spell-lof-025",
       "名称": "「天界ノ蜜桃」",
       "数据": "res://cards/spell-lof-025.json",
       "图片": "res://recourse/数据库/spell-lof-025.jpg",
-      "SHA256": "D3AB2DE3D7F251DC1400119F3F3C79431D8C14CBB3FCF1BA10E51E5EB45685B5"
+      "SHA256": "4456E8D8FF57B8801EB6532A19F70BC2C31EB4DCFCBEE6EF8971646DE0F92116"
     },
     {
       "卡牌ID": "spell-fdn-066",
       "名称": "「妖精ノ巡礼」",
       "数据": "res://cards/spell-fdn-066.json",
       "图片": "res://recourse/数据库/spell-fdn-066.jpg",
-      "SHA256": "12527C772652C13EAD99C8F4A97AC4B2F0E494EC408F65CD97A2B6DBA1753554"
+      "SHA256": "2D63F4DD0A289689366E4712311E09CEC84F8F046CF0193F5FFAB320822B4836"
     },
     {
       "卡牌ID": "spell-htk-018",
       "名称": "「常夜ノ樱」",
       "数据": "res://cards/spell-htk-018.json",
       "图片": "res://recourse/数据库/spell-htk-018.jpg",
-      "SHA256": "C370FD9994DA22373DC8B6BB2429205978EFD2D9430A32373873BD5E0B4FCABC"
+      "SHA256": "41D95A2557DB8C997C429A0C150AE3B6C718821DA026DD16FF8A9B87C3884E50"
     },
     {
       "卡牌ID": "spell-fdn-069",
       "名称": "「青ノ花」",
       "数据": "res://cards/spell-fdn-069.json",
       "图片": "res://recourse/数据库/spell-fdn-069.jpg",
-      "SHA256": "54FA341B7C0D29D3BAB27C3C03E51A0B85E30F7EEB92CDA1713C04104F808E83"
+      "SHA256": "68D2594DBC2B8FF1D05ABC96B82792B836B35BEE2C03E235E6FC0D4D6CAB3719"
     },
     {
       "卡牌ID": "character-lof-003",
       "名称": "五谷丰穰之神德「东风谷早苗」",
       "数据": "res://cards/character-lof-003.json",
       "图片": "res://recourse/数据库/character-lof-003.jpg",
-      "SHA256": "AC583B53C52B1AC506454E51CE704D6E9FC1B1F40A9094C922A43DC4F8482C1B"
+      "SHA256": "060730EDFA16E3F03BBCDFE818F33FB76D3435EEA42817C95655FE6E160B2995"
     },
     {
       "卡牌ID": "character-lof-017",
       "名称": "仲夏的妖精「爱塔妮缇拉尔瓦」",
       "数据": "res://cards/character-lof-017.json",
       "图片": "res://recourse/数据库/character-lof-017.jpg",
-      "SHA256": "E677489A8C62154D6A85A0BCA87D843E247A7C03B621C250166B6F6BFDF9DF5F"
+      "SHA256": "D097AA4309BB0C2F7D66F947E4920030E283982E77C7A0527D394ED746672A5E"
     },
     {
       "卡牌ID": "spell-lof-007",
       "名称": "冻符「冰柱海潮」",
       "数据": "res://cards/spell-lof-007.json",
       "图片": "res://recourse/数据库/spell-lof-007.jpg",
-      "SHA256": "1E0DC32C5F41E541CD4E8CAE2EC2AA1DFBF86BF025FAA0138F3A55466E4BA949"
+      "SHA256": "956FFB2F2A82F83F4EED3327001E7F253986B577728446E3430C77DE5A9058A6"
     },
     {
       "卡牌ID": "spell-htk-003",
       "名称": "凭依「喜怒哀乐附体」",
       "数据": "res://cards/spell-htk-003.json",
       "图片": "res://recourse/数据库/spell-htk-003.jpg",
-      "SHA256": "A1EA93EF3BEE109502748F81CAC9D68324C2E26A96ED210CE864D48286E5AED7"
+      "SHA256": "CCFD97CC17B61B1B1345F095A38536914C5904506976FA0666D781E6E5EFF918"
     },
     {
       "卡牌ID": "spell-fdf-083",
       "名称": "怒面「愤怒ノ忌狼面」",
       "数据": "res://cards/spell-fdf-083.json",
       "图片": "res://recourse/数据库/spell-fdf-083.jpg",
-      "SHA256": "88EDE3BFCE85E500114937FDBCF605C3FF5A173C5F4D28F63C51CF17AD66B7B5"
+      "SHA256": "EA39F3486C8407AE27C362A244070266B5092BC9FD1A23FBD2EC411A7BEAF92B"
     },
     {
       "卡牌ID": "character-fdn-068",
       "名称": "春的另一面「莉莉黑」",
       "数据": "res://cards/character-fdn-068.json",
       "图片": "res://recourse/数据库/character-fdn-068.jpg",
-      "SHA256": "06E5E8BBDA1784158ACC77C5EFAF8508787D475BA9A1539C1E09074F2E71B4E2"
+      "SHA256": "5E660C5934C637ACC1E97C963587088F8C7968CCAE250EC521B248433A053358"
     },
     {
       "卡牌ID": "character-lof-001",
       "名称": "活力四射的冰之勇者「琪露诺」",
       "数据": "res://cards/character-lof-001.json",
       "图片": "res://recourse/数据库/character-lof-001.jpg",
-      "SHA256": "94C1AEFD12BD0458E902B243D09B461A39549C1912108EDE9FDC43C22980A838"
+      "SHA256": "9B627DB3FDB9D3D8C405D6FECE52827D0CBAB05F4A8E20E3E8162891B3CD06EA"
     },
     {
       "卡牌ID": "character-htk-001",
       "名称": "表情丰富的扑克脸「秦心」",
       "数据": "res://cards/character-htk-001.json",
       "图片": "res://recourse/数据库/character-htk-001.jpg",
-      "SHA256": "4A8C648ACACC5CE80A5BD5274B81D6B85A97BDFD27216174DAEB4A1F058686DA"
+      "SHA256": "51DC73E5DA6906EA48094EEB2C292B5255AA15427CA03C5763815A17E2AD7467"
     },
     {
       "卡牌ID": "character-fdn-067",
       "名称": "连接海与山的月之公主「绵月丰姬」",
       "数据": "res://cards/character-fdn-067.json",
       "图片": "res://recourse/数据库/character-fdn-067.jpg",
-      "SHA256": "DC910665467D9F5762DCD4D53254788A7AB04CFBC49BA42D9E6C153749DD4624"
+      "SHA256": "348C25D0F8E19C3CB67CBD160A03E9ACDAC10B9AE9DE0FDAE51B2725A7F00505"
     },
     {
       "卡牌ID": "character-htk-002",
       "名称": "香霖堂的谜之妖怪「朱鹭子」",
       "数据": "res://cards/character-htk-002.json",
       "图片": "res://recourse/数据库/character-htk-002.jpg",
-      "SHA256": "2113ACDF13AC5F40961F54BBC62FE22F3BF56E951C9A88ED77B737E3B8BA56D8"
+      "SHA256": "82F565AFF651436A29CBFEA83572CDAF62DA47A46CE37EBA9964F65596554CBF"
     },
     {
       "卡牌ID": "character-ucs-007",
       "名称": "高地的山女「驹草山如」",
       "数据": "res://cards/character-ucs-007.json",
       "图片": "res://recourse/数据库/character-ucs-007.jpg",
-      "SHA256": "7F4F9F2D007EF36EE41013548AAAB953F7873FC2FF581974CEC3FA496304EE01"
+      "SHA256": "BC52B3F70F1B680C98AB4BD7A68447E16830B5907673971736E50C3924E9ED3C"
     },
     {
       "卡牌ID": "token-htk-033",
       "名称": "姥面",
       "数据": "res://cards/token-htk-033.json",
       "图片": "res://recourse/数据库/token-htk-033.jpg",
-      "SHA256": "E90A818EA781082B41F023CED90E5533A40003F17C1C7744F950DE7B417E12BB"
+      "SHA256": "C107ECEBBC04F9C0964E73E16ABC5A44E608C5DB107BE42FA995DFBCD8FA8449"
     },
     {
       "卡牌ID": "token-htk-031",
       "名称": "小面",
       "数据": "res://cards/token-htk-031.json",
       "图片": "res://recourse/数据库/token-htk-031.jpg",
-      "SHA256": "851C39F00E9F696B5B840D1103FE1563610F7446CE8DB360A8932894018C9492"
+      "SHA256": "636999BAC107D21E290BC2EC6A730837CD5360A0264816C3A4E917B72D663D98"
     },
     {
       "卡牌ID": "token-htk-032",
       "名称": "般若面",
       "数据": "res://cards/token-htk-032.json",
       "图片": "res://recourse/数据库/token-htk-032.jpg",
-      "SHA256": "B0C36B88E8EF61697388A1B1C0E8639EF99881B22E5C60F5D9FA0208480C5F64"
+      "SHA256": "0E68BD452DA01FA38104FC5B458C517BB528B82534E630E5C247593B2E39E3BE"
     },
     {
       "卡牌ID": "spell-fdn-017",
       "名称": "QED「495年ノ波纹」",
       "数据": "res://cards/spell-fdn-017.json",
       "图片": "res://recourse/数据库/spell-fdn-017.jpg",
-      "SHA256": "9FDF981CFAF07EAD3A37011EAE8129296980B70E20ED3B2CA3A1BB5D852183B6"
+      "SHA256": "EC02295452D759945663AEF7C43941183B290447A63F4681F50A4AC033A74C6C"
     },
     {
       "卡牌ID": "spell-fdf-085",
       "名称": "「5:30 PM」",
       "数据": "res://cards/spell-fdf-085.json",
       "图片": "res://recourse/数据库/spell-fdf-085.jpg",
-      "SHA256": "01B459328D752ED977CDF5B3A25AF719F54900CE9F3CB757AFA0DC573FEA2049"
+      "SHA256": "CBE0B8A810398AC668D029792527D5F98202E466BD5D63D5656813D16D6B5358"
     },
     {
       "卡牌ID": "spell-fdf-064",
       "名称": "「Mooned Insect」",
       "数据": "res://cards/spell-fdf-064.json",
       "图片": "res://recourse/数据库/spell-fdf-064.jpg",
-      "SHA256": "1B58D7C27A5326BE4425674BBB420CFF7D02B82CE9E02F81E38F266C183B4283"
+      "SHA256": "8768B3FBD564D1E66A06C4060149A207ED3D2D4C6438024ABACFE8944E4E8507"
     },
     {
       "卡牌ID": "spell-fdn-005",
       "名称": "「U.N.OWEN 就是她吗？」",
       "数据": "res://cards/spell-fdn-005.json",
       "图片": "res://recourse/数据库/spell-fdn-005.jpg",
-      "SHA256": "4625A8C4BCAFC217269970B27FDD6FD294F95E5184992294719F9A88206BD725"
+      "SHA256": "9B7ADBB51B45B7E08518637BCFF5C7A74697E312B6CB4C7E12AFEC655D899BAE"
     },
     {
       "卡牌ID": "spell-fdf-088",
       "名称": "「Wall of Issun」",
       "数据": "res://cards/spell-fdf-088.json",
       "图片": "res://recourse/数据库/spell-fdf-088.jpg",
-      "SHA256": "6987040D74AAF1F91C1DEA2E31118B866CDF7039D4A578E27915B55F3FE83A12"
+      "SHA256": "5E416FD56786DD2ED77D54421DF36961182BF22F66E75F085B3B70AAAA405539"
     },
     {
       "卡牌ID": "spell-fdn-009",
       "名称": "「不详」",
       "数据": "res://cards/spell-fdn-009.json",
       "图片": "res://recourse/数据库/spell-fdn-009.jpg",
-      "SHA256": "0351EF0C5E1CCB8C87435FA57E9E1DFFCF90A309EDAE0AD1265C9DB2063046D3"
+      "SHA256": "D5DED000552426E25352752D4A466A1597F9B03EEB5C421277BE0514587CA675"
     },
     {
       "卡牌ID": "spell-ucs-022",
       "名称": "「世界ノ间隙·大空魔术」",
       "数据": "res://cards/spell-ucs-022.json",
       "图片": "res://recourse/数据库/spell-ucs-022.jpg",
-      "SHA256": "2D7D3DAF2C038A08B4644A8320352F721D5C564D03ECE151C8FFE8E0D1C55CCB"
+      "SHA256": "3E49C070355BF7446E97148C59C87B17C62DE58DDAC417D258C357D2654A5045"
     },
     {
       "卡牌ID": "spell-fdf-086",
       "名称": "「全人类ノ绯想天」",
       "数据": "res://cards/spell-fdf-086.json",
       "图片": "res://recourse/数据库/spell-fdf-086.jpg",
-      "SHA256": "E4B245B26870ADA9C49610DF913D78D8A2E5FA3F179B717C65DE0FB5ED274304"
+      "SHA256": "8D9E4096026C3504E7056AD33E238555EFE2CD7538F57EF7256EE76F64E840E8"
     },
     {
       "卡牌ID": "spell-fdf-042",
       "名称": "「冬」",
       "数据": "res://cards/spell-fdf-042.json",
       "图片": "res://recourse/数据库/spell-fdf-042.jpg",
-      "SHA256": "A1221610F536E0D2378404D2DD7590D122FA9009D9BBB6257396823CBC40C838"
+      "SHA256": "6D8EA7DFA55BA2F7E50E0442798E8DC629E70BD6FA77CF319D6E533D54700D33"
     },
     {
       "卡牌ID": "spell-fdn-022",
       "名称": "「冰精ノ花环」",
       "数据": "res://cards/spell-fdn-022.json",
       "图片": "res://recourse/数据库/spell-fdn-022.jpg",
-      "SHA256": "2DB1D87F16A445D159E1B315D60D6C0F742C230760A50D7FBC3FF5DAFC5D7A79"
+      "SHA256": "EAE1EEFE7C29F00F1A23499D900F14D524D28C7A126590FD4DFD0501DF05628E"
     },
     {
       "卡牌ID": "spell-fdn-040",
       "名称": "「凭坐ノ缚」",
       "数据": "res://cards/spell-fdn-040.json",
       "图片": "res://recourse/数据库/spell-fdn-040.jpg",
-      "SHA256": "100EEF8C1A71F5F716A7D8843444DCB3E48C17ABEEDCFC557CC03FF6056E9BFB"
+      "SHA256": "10BF1F13C145F54CACA5B579FAD5C93E9C55C42A0DBA05C260BDC0708D0AB290"
     },
     {
       "卡牌ID": "spell-lof-006",
       "名称": "「可爱ノ妖精叠奏曲」",
       "数据": "res://cards/spell-lof-006.json",
       "图片": "res://recourse/数据库/spell-lof-006.jpg",
-      "SHA256": "3F4876BC3B678AFF74E4F47BE724DFE28A974EBAC9D45923D80BE1E7AFA484C3"
+      "SHA256": "FCD5B1E2394DDB2A509B9D037228CEA80835BF5BAD5EB73FDE72AEAAA5DC97E2"
     },
     {
       "卡牌ID": "item-fdn-044",
       "名称": "「因幡帝的幸运萝卜」",
       "数据": "res://cards/item-fdn-044.json",
       "图片": "res://recourse/数据库/item-fdn-044.jpg",
-      "SHA256": "ADD84566E650F8BA6DDFE5F2E5428F53EA26674AA108F3AF1B90D366E4EA7EFF"
+      "SHA256": "7D5833D5F80DBAEFBA22B851F2E478BB3933B5AB380930763498E3A940A838D9"
     },
     {
       "卡牌ID": "spell-fdf-044",
       "名称": "「圣ノ鼓动·法界ノ火」",
       "数据": "res://cards/spell-fdf-044.json",
       "图片": "res://recourse/数据库/spell-fdf-044.jpg",
-      "SHA256": "FE074AC3637F7F84E5A0D49032FB70B19F5703CB42EAAB36664D3FFAEEC58280"
+      "SHA256": "0EE0C6EF27BDE1A94572D653E45A12966F51F97E68E3CE8C910F83DB34BC9412"
     },
     {
       "卡牌ID": "spell-fdf-005",
       "名称": "「夏」",
       "数据": "res://cards/spell-fdf-005.json",
       "图片": "res://recourse/数据库/spell-fdf-005.jpg",
-      "SHA256": "AA977BF76043BAB34C46DAABF0EFD22D90DD7E41835B861E478837DD3EE2627F"
+      "SHA256": "517030C0B050452D3CE54E348498A72EF074D23BBD4906A1CE27E2AD7CBE14C3"
     },
     {
       "卡牌ID": "spell-fdf-120",
       "名称": "「天空の魔法使」",
       "数据": "res://cards/spell-fdf-120.json",
       "图片": "res://recourse/数据库/spell-fdf-120.jpg",
-      "SHA256": "FC500FC8D186283B0D6A1282B756B32A673A2872C1D171FF0E12673AE883D1A0"
+      "SHA256": "59BC15EE09396C4D768C4CC6F0AEDC83BB82DD926C9213446D569A0ED5222C3B"
     },
     {
       "卡牌ID": "spell-htk-004",
       "名称": "「奏中ノ能乐、亡失ノ感情」",
       "数据": "res://cards/spell-htk-004.json",
       "图片": "res://recourse/数据库/spell-htk-004.jpg",
-      "SHA256": "0240CBE6066AB82F577CD80EA7640FA68CDC43C921852E5FC1FA49AF58770487"
+      "SHA256": "31ADFE44A23D53B346AC09052D9F91E9A1A775AAB020C46D5A4A27AB26105110"
     },
     {
       "卡牌ID": "item-lof-009",
       "名称": "「妖精公主的信物」",
       "数据": "res://cards/item-lof-009.json",
       "图片": "res://recourse/数据库/item-lof-009.jpg",
-      "SHA256": "0D247F9CF64536A1D421396CFC9A502E68E85DF24C7674505385DE2C8CA5FBEE"
+      "SHA256": "ED67971AF57CD848BB304E541D7F3524F9C216933459C16F01D65CD96B74CC11"
     },
     {
       "卡牌ID": "spell-fdf-084",
       "名称": "「守护ノ要石」",
       "数据": "res://cards/spell-fdf-084.json",
       "图片": "res://recourse/数据库/spell-fdf-084.jpg",
-      "SHA256": "D96892C3E909EBF59B10C7BC90E72F9BA05CECF0856E56672F5536BFD596405C"
+      "SHA256": "2A977EC83857DE16945DCFF2BB0943F6A9C42027872786772943854AB9A55D57"
     },
     {
       "卡牌ID": "spell-fdf-072",
       "名称": "「平安京ノ恶梦」",
       "数据": "res://cards/spell-fdf-072.json",
       "图片": "res://recourse/数据库/spell-fdf-072.jpg",
-      "SHA256": "8251C4A302323C27A492BA7694878567F7D19AF4717B274ABB982AA2F42D344F"
+      "SHA256": "F2DD626847D2B2F8F19CCB97E1E36BD72C82E9675FEAB100CFD2A3FFA23DEB51"
     },
     {
       "卡牌ID": "spell-fdf-026",
       "名称": "「幻想春花」",
       "数据": "res://cards/spell-fdf-026.json",
       "图片": "res://recourse/数据库/spell-fdf-026.jpg",
-      "SHA256": "706617A1F573F1A4D5BEA340515CEA82C79E9F1006DE321CCC88A5D149B7435B"
+      "SHA256": "F3426D3E722589040EE0E5A68A5A32F9FAD8412C14063455F5B84DA52B7F9D0B"
     },
     {
       "卡牌ID": "spell-fdn-032",
       "名称": "「幻波ノ影、狂气ノ瞳」",
       "数据": "res://cards/spell-fdn-032.json",
       "图片": "res://recourse/数据库/spell-fdn-032.jpg",
-      "SHA256": "14D7A27BCB1D8045F373AD7B93D3581697B5CC6D6DDCC5DCF06127936D47D7FE"
+      "SHA256": "A67071D04F3EBF0C309ED72E0057799273CCF94C483FC696D1E7E8980F118D22"
     },
     {
       "卡牌ID": "spell-fdn-010",
       "名称": "「幼心ノ地，有顶天变」",
       "数据": "res://cards/spell-fdn-010.json",
       "图片": "res://recourse/数据库/spell-fdn-010.jpg",
-      "SHA256": "E9276BE0E8527259715FEDBACC9D6E62AEE9B2BCF9D4471E6ABAAAF754FE0FEC"
+      "SHA256": "2F7120B709FD757E769D8F6F149496170A421B68EB0495A4DC18BAB7B8D17DC7"
     },
     {
       "卡牌ID": "item-ucs-005",
       "名称": "「幽香的阳伞」",
       "数据": "res://cards/item-ucs-005.json",
       "图片": "res://recourse/数据库/item-ucs-005.jpg",
-      "SHA256": "ADD37BC363D186956586ED3AA7C69872C9808DECE21F7F3EBE7F6F8A4EE5AFBE"
+      "SHA256": "88EFC7E0E5AD2276D742FA29443879C1E03115582C6027077341B8A915FFF276"
     },
     {
       "卡牌ID": "spell-ucs-059",
       "名称": "「承诏必慎」",
       "数据": "res://cards/spell-ucs-059.json",
       "图片": "res://recourse/数据库/spell-ucs-059.jpg",
-      "SHA256": "B468DE402A5E0104D5D0DA702758BBA15C6C80BD2FA9EF41CC1253A5B119923E"
+      "SHA256": "BF95173B7AFE6F4A59BD41996BF8764519A0E9C9A29F6E6A01777FAB0C7B602F"
     },
     {
       "卡牌ID": "spell-fdf-080",
       "名称": "「招雨ノ雨蛙」",
       "数据": "res://cards/spell-fdf-080.json",
       "图片": "res://recourse/数据库/spell-fdf-080.jpg",
-      "SHA256": "23090E54063FB4CC15B1402C05FF25D3CE98F36DE773C380A0BB41999F346B02"
+      "SHA256": "C5D0F10A52918D54A641AF916C37CD046EBA67D57BB2854A2DBA8FAC092F8ED7"
     },
     {
       "卡牌ID": "spell-fdf-039",
       "名称": "「新绿ノ音·延伸ノ景」",
       "数据": "res://cards/spell-fdf-039.json",
       "图片": "res://recourse/数据库/spell-fdf-039.jpg",
-      "SHA256": "CDC0CA3AA68F835A40D594B8C558170EF3E9B70995D287FF7D372451B96FF1EA"
+      "SHA256": "BDBBF5E0B8C54032F4688717673D05AE0EA90739E9EAE99461388F58D6F7A73D"
     },
     {
       "卡牌ID": "spell-fdn-029",
       "名称": "「昼酒」",
       "数据": "res://cards/spell-fdn-029.json",
       "图片": "res://recourse/数据库/spell-fdn-029.jpg",
-      "SHA256": "DB83D15D5CA5C72D42BA1F42703A1EE2E2E22DE2E45CE9BA9FF9E3139E2D03A6"
+      "SHA256": "D25746B63920D307B1D30D6C40723F76C573FE3F0B1AA7B5EEA19AA4B0131281"
     },
     {
       "卡牌ID": "spell-fdf-081",
       "名称": "「最凶&最恶」",
       "数据": "res://cards/spell-fdf-081.json",
       "图片": "res://recourse/数据库/spell-fdf-081.jpg",
-      "SHA256": "68FC4CAD317ED2FE047E1FA00E95D27E0C633C9B1B49C747039BF83D56342F03"
+      "SHA256": "86DFF431C2459A87A7C7916514B523D3C9FFD13ACCE4767625F9022A36C191D5"
     },
     {
       "卡牌ID": "spell-ucs-009",
       "名称": "「月ノ闲暇」",
       "数据": "res://cards/spell-ucs-009.json",
       "图片": "res://recourse/数据库/spell-ucs-009.jpg",
-      "SHA256": "9A80217F541847CFE12FC8ABF718136FEC0543D2B4210FDC3097C4322EE40934"
+      "SHA256": "6B645C61B7F25AB7A46F64000DCCBF4E5920F7D51D96648259C6B457A55CBAAC"
     },
     {
       "卡牌ID": "item-fdf-097",
       "名称": "「月兔制造机」",
       "数据": "res://cards/item-fdf-097.json",
       "图片": "res://recourse/数据库/item-fdf-097.jpg",
-      "SHA256": "6EC305E7123D10DE90F47FB68B08F0184912A7DEC43415828D0F6D718981E785"
+      "SHA256": "B3CB86B758424D31422B21FD055BE43B53501EC0A4419D390D8DD450CD767FC4"
     },
     {
       "卡牌ID": "spell-fdn-030",
       "名称": "「根下」",
       "数据": "res://cards/spell-fdn-030.json",
       "图片": "res://recourse/数据库/spell-fdn-030.jpg",
-      "SHA256": "24B778D85B343735046D8663CAA2DB389D34ED9D6EBAAA4486D65050BB3EC2FA"
+      "SHA256": "81871DBB32FD0AD1C5B01E010F712D1E64B34F18F7040DE9D7E5E7B9E7621A72"
     },
     {
       "卡牌ID": "item-ucs-017",
       "名称": "「死神的大镰」",
       "数据": "res://cards/item-ucs-017.json",
       "图片": "res://recourse/数据库/item-ucs-017.jpg",
-      "SHA256": "9875D9A4923861001CBABD4DD84157CEEEF0FD9C9B982DFFFFE96F0D2A53595B"
+      "SHA256": "A7D95A219CA4D0C3EE0C18FD90816E93124E0BEE6A48E249E6F1EE85CBE90E0F"
     },
     {
       "卡牌ID": "spell-ucs-054",
       "名称": "「永夜归返-丑ノ刻-」",
       "数据": "res://cards/spell-ucs-054.json",
       "图片": "res://recourse/数据库/spell-ucs-054.jpg",
-      "SHA256": "D7693C30DD22D91EF34733FDAED6B72877D9AFAA02566F38223DA5748BA42D54"
+      "SHA256": "A8F27DF66308EA935A419B9AE8DD6DFC273FFBD59DAF81A42FDA0FB250EE879F"
     },
     {
       "卡牌ID": "spell-fdf-060",
       "名称": "「永夜归还-待宵-」",
       "数据": "res://cards/spell-fdf-060.json",
       "图片": "res://recourse/数据库/spell-fdf-060.jpg",
-      "SHA256": "2F196A64EEA436F40A4630DB880C13554D01A4D2D88FD3B124D1EE976FF6FDA2"
+      "SHA256": "1F21AFFE9CC076328E0F186639739919596082298E3B8AE7EB4CCC254AE494B5"
     },
     {
       "卡牌ID": "spell-fdf-071",
       "名称": "「游星弹幕“X”」",
       "数据": "res://cards/spell-fdf-071.json",
       "图片": "res://recourse/数据库/spell-fdf-071.jpg",
-      "SHA256": "1645D37901F1E102979BE5761C5547B6D6988B1EE12594096A0C8D4F54546062"
+      "SHA256": "7981BAF946D3661E73FF630C41DE42082C108D51236BE21D67E8EE3500B20A55"
     },
     {
       "卡牌ID": "spell-fdf-066",
       "名称": "「畜生调服」",
       "数据": "res://cards/spell-fdf-066.json",
       "图片": "res://recourse/数据库/spell-fdf-066.jpg",
-      "SHA256": "7DA69286D60663C34AD990FD51C51272BE091CC094F50E0F2B78008D0C75CA23"
+      "SHA256": "63A59F8085712FBBBB55CD62A2E4AFC41E728C393B9D0734CD53341931C9F4D4"
     },
     {
       "卡牌ID": "spell-fdn-020",
       "名称": "「白玉楼ノ夕」",
       "数据": "res://cards/spell-fdn-020.json",
       "图片": "res://recourse/数据库/spell-fdn-020.jpg",
-      "SHA256": "5F4C0744D004AF3C8578081FA2C3B60EED255E8897A9325D5F6A3143C0C3C9EE"
+      "SHA256": "537E5BDF8E0050EC91F56057921B3618A1FC3B4E1E70F1C8F92B1D86A8D96DCD"
     },
     {
       "卡牌ID": "spell-ucs-015",
       "名称": "「神ノ通径」",
       "数据": "res://cards/spell-ucs-015.json",
       "图片": "res://recourse/数据库/spell-ucs-015.jpg",
-      "SHA256": "96DD128D1B4E2F6B75ED61567048167E584D7DE2883F213BB854E76BBD1005E3"
+      "SHA256": "D7AF0D6B92492872F5B36183F5EEB6324B5CC1CDCFEA3E59FD9D6A03D3FCDDE2"
     },
     {
       "卡牌ID": "spell-ucs-033",
       "名称": "「神明ノ威光」",
       "数据": "res://cards/spell-ucs-033.json",
       "图片": "res://recourse/数据库/spell-ucs-033.jpg",
-      "SHA256": "B1A54B18EEDD922D6D04E68F0C494F5AAAAD1E1CF9D4587E7F17C162E6A251F1"
+      "SHA256": "1507F9D28AA0ECD0D979A9DFDE35436ED0DDCDDD9220066357C00EF45995FAD2"
     },
     {
       "卡牌ID": "spell-ucs-037",
       "名称": "「花ノ都」",
       "数据": "res://cards/spell-ucs-037.json",
       "图片": "res://recourse/数据库/spell-ucs-037.jpg",
-      "SHA256": "1ABB9D35D86C0FA5909CBDFD3D7E96B5E367581408BCB0FAD3F6CEE014912AF9"
+      "SHA256": "D0319530D078F9F2D893AA6F8370DA1AA7C29554563DD524E316740E277E3981"
     },
     {
       "卡牌ID": "character-lof-004",
       "名称": "「花田的妖精」",
       "数据": "res://cards/character-lof-004.json",
       "图片": "res://recourse/数据库/character-lof-004.jpg",
-      "SHA256": "7B04F61CE72FAFB268404DCD64C51CA736CF8653935F5E8C5004ED03E979199E"
+      "SHA256": "F49AFFB93F8DBB5FE40C5E63AD003C4A0C7FB3EE1EF40C0F4E3F4F62F5DAAD09"
     },
     {
       "卡牌ID": "item-fdf-096",
       "名称": "「蓬莱的玉枝」",
       "数据": "res://cards/item-fdf-096.json",
       "图片": "res://recourse/数据库/item-fdf-096.jpg",
-      "SHA256": "6E16CBCB248F0A451DE06FE1B8740057BFECF67152162353E8FF264181374E90"
+      "SHA256": "DA9651ED8BE3F8A815AD51A9A3B79845CAD4F88F9F37AA963C79E35C4BA2653A"
     },
     {
       "卡牌ID": "spell-ucs-004",
       "名称": "「起床ノ地灵殿」",
       "数据": "res://cards/spell-ucs-004.json",
       "图片": "res://recourse/数据库/spell-ucs-004.jpg",
-      "SHA256": "A264B80944F104993B11242D3706973A076B0EF574D842DFD7FA38EFCB015E63"
+      "SHA256": "6D1B17C0D3FF65A2750476FAF584B01951B8A7AE8177A4671B3E1C24D061D72A"
     },
     {
       "卡牌ID": "spell-fdf-003",
       "名称": "「逸脱者ノ光」",
       "数据": "res://cards/spell-fdf-003.json",
       "图片": "res://recourse/数据库/spell-fdf-003.jpg",
-      "SHA256": "27777F346EE9C2D0FCB79C88CAA9145C16DD8D277B1FFB0E2E071EBB3772E084"
+      "SHA256": "48BFBE247641087799A506DFF06C6AEF3C991F1BAFF52B925045B8B029D1D354"
     },
     {
       "卡牌ID": "spell-ucs-052",
       "名称": "「雾川」",
       "数据": "res://cards/spell-ucs-052.json",
       "图片": "res://recourse/数据库/spell-ucs-052.jpg",
-      "SHA256": "ADAE32C0CD090E0F199DDD5FB6D117614751EA2C51506BB2B7258131AFE37651"
+      "SHA256": "3DB80BAC8C43D4B39DCA3BC5B3C1E7FD071E510F86A0CB728DE1693B30E40A33"
     },
     {
       "卡牌ID": "item-ucs-013",
       "名称": "「风祝的头饰」",
       "数据": "res://cards/item-ucs-013.json",
       "图片": "res://recourse/数据库/item-ucs-013.jpg",
-      "SHA256": "075EFE2175D4B16452494E39E5E7BA873793ADF9EA08F2D13E64B3F1A4C43FB7"
+      "SHA256": "1FDDD79B62EC8589F58543EF91415DCC0E7E99C05845F15A6C386D23546D0154"
     },
     {
       "卡牌ID": "spell-fdn-001",
       "名称": "「飘上月球、不死之烟」",
       "数据": "res://cards/spell-fdn-001.json",
       "图片": "res://recourse/数据库/spell-fdn-001.jpg",
-      "SHA256": "658A4606D672C478C80A46A9C58034A914AEB6055C7E80D58AAFDA3F1C3E79F9"
+      "SHA256": "4D93E63F24910AB79F0D162643165277A4953374BF008306C4C2940082C0A590"
     },
     {
       "卡牌ID": "item-htk-008",
       "名称": "「香霖堂的谜之书籍」",
       "数据": "res://cards/item-htk-008.json",
       "图片": "res://recourse/数据库/item-htk-008.jpg",
-      "SHA256": "6B503CD6C478965DFFF2B6522210332DE71ACEF7B4F446E72D992BE38A464427"
+      "SHA256": "8506DC54EF7A1D151E36D571498547F21C7E856F1AE20927A69A32D48B215934"
     },
     {
       "卡牌ID": "spell-ucs-018",
       "名称": "「鲸落」",
       "数据": "res://cards/spell-ucs-018.json",
       "图片": "res://recourse/数据库/spell-ucs-018.jpg",
-      "SHA256": "9F745296BF29F967FE3BA104B37457C12FAE394BCA9C6D0FE6FA60AF8CB85087"
+      "SHA256": "89A5ECBA28F1058CED1776DBF1823BBD2378D2686CEE0326CAABC9E61DE4226D"
     },
     {
       "卡牌ID": "character-fdf-119",
       "名称": "不动的大图书馆「帕秋莉·诺蕾姬」",
       "数据": "res://cards/character-fdf-119.json",
       "图片": "res://recourse/数据库/character-fdf-119.jpg",
-      "SHA256": "6B8F01C98FA279184047A804694522FD6F63192519F5476011C58482EDAE7651"
+      "SHA256": "B1B05ED5648B11721678E67B9FB8B833BB443C4539690C8DF02919CE33F8216D"
     },
     {
       "卡牌ID": "token-fdf-131",
       "名称": "不明物体",
       "数据": "res://cards/token-fdf-131.json",
       "图片": "res://recourse/数据库/token-fdf-131.jpg",
-      "SHA256": "CB14F9BD355912BD0FE059DAEA11AFAB92FA9CD55A3E66336F5B1A0B24581D0A"
+      "SHA256": "30D4CEFA008D8DFF14DC8179D3187AA4DA96F690DAD6D4DF8247C6CE4E7B9F15"
     },
     {
       "卡牌ID": "spell-fdn-003",
       "名称": "不死「火鳥-鳳翼天翔-」",
       "数据": "res://cards/spell-fdn-003.json",
       "图片": "res://recourse/数据库/spell-fdn-003.jpg",
-      "SHA256": "88BB719EC5F0016C8AEA8C875F9D64AC8D5DA34B98814F235BA60EE2C2379876"
+      "SHA256": "5F9499EEC5250672B1F1B348F4EA0F7FB06C902955E017D2A4ABD8BCFB6BC001"
     },
     {
       "卡牌ID": "spell-fdf-047",
       "名称": "亡乡「亡我乡-彷徨ノ灵魂」",
       "数据": "res://cards/spell-fdf-047.json",
       "图片": "res://recourse/数据库/spell-fdf-047.jpg",
-      "SHA256": "1A712F1B459F0A34ECE7161C4FC001E66683F29FB1F1B80B723A8C5B874434D2"
+      "SHA256": "2E64AE88FE0D866545C73A86C47F3C50A883C6D8F5628690A2B6B33831699D36"
     },
     {
       "卡牌ID": "spell-fdf-049",
       "名称": "人鬼「未来永劫斩-樱-」",
       "数据": "res://cards/spell-fdf-049.json",
       "图片": "res://recourse/数据库/spell-fdf-049.jpg",
-      "SHA256": "69329BBE91304521424AB36FB9F7620A8084ABA0122DB91BDE6A7AB0B838C1B4"
+      "SHA256": "AD07096B6DB67DF165364B9E6590F1FF2E67EF2582C0FD29ECC70B16CCF58C00"
     },
     {
       "卡牌ID": "character-fdn-036",
       "名称": "传统的幻想记者 「射命丸文」",
       "数据": "res://cards/character-fdn-036.json",
       "图片": "res://recourse/数据库/character-fdn-036.jpg",
-      "SHA256": "EC12480043B49CE1D088967B505D5676A9633B4FCF296E85F63598C6A5665321"
+      "SHA256": "D23642BC9921FCB681B17A1958E308C2E77996F18C1755A101FCAA04C0A4F648"
     },
     {
       "卡牌ID": "character-htk-005",
       "名称": "使人做梦的妖怪「哆来咪·苏伊特」",
       "数据": "res://cards/character-htk-005.json",
       "图片": "res://recourse/数据库/character-htk-005.jpg",
-      "SHA256": "753EECE8BADB0B6DE9B735BADA3F9A8895348496B1965C0DFCCF466ED32411AA"
+      "SHA256": "927B490BE71AD42631BF1B07A7624420E29F3C78B0F6F321DE2D97E9ECEDB4BF"
     },
     {
       "卡牌ID": "character-fdn-038",
       "名称": "「侦察的天狗」",
       "数据": "res://cards/character-fdn-038.json",
       "图片": "res://recourse/数据库/character-fdn-038.jpg",
-      "SHA256": "7861BCD3583EB775FE23F3E144F179390A04AEFB7B357E277ADED3D60795EFED"
+      "SHA256": "BFA238BB6EBEBA910740348BAC2CE065FC31DA941C7A0134D364A5DDC51CD6D6"
     },
     {
       "卡牌ID": "spell-fdf-122",
       "名称": "光晕「唐伞惊吓闪光」",
       "数据": "res://cards/spell-fdf-122.json",
       "图片": "res://recourse/数据库/spell-fdf-122.jpg",
-      "SHA256": "0E24C245AE6D712FCFA82EA23960138B7F18EE832CD64F039B2D691BF37FE938"
+      "SHA256": "AFBC015640A4976C5FCE89CCAFC1C0EFE1FFB7A79368E59A7FC6C69CF566BD86"
     },
     {
       "卡牌ID": "spell-ucs-057",
       "名称": "光符「最初ノ人形」",
       "数据": "res://cards/spell-ucs-057.json",
       "图片": "res://recourse/数据库/spell-ucs-057.jpg",
-      "SHA256": "59118102B3BFEABDDEFA5891E0A9E49646EE0004C41914964817B65E1536DEC8"
+      "SHA256": "9B67648D54661C075BCFC09686059E37B69A221F64678FB784019CF0EB833FCB"
     },
     {
       "卡牌ID": "field-fdf-089",
       "名称": "再思ノ道",
       "数据": "res://cards/field-fdf-089.json",
       "图片": "res://recourse/数据库/field-fdf-089.jpg",
-      "SHA256": "03C86BB223D7D7AD960CD5050C218E98A05C152CC06C94A597A3B1D8A14997E8"
+      "SHA256": "6A786AEB1E94E84C6742C59DA2CE13803EA9C59C5EE3B0CCFF6FECB107494C21"
     },
     {
       "卡牌ID": "spell-fdf-038",
       "名称": "冥符「虹色ノ冥界」",
       "数据": "res://cards/spell-fdf-038.json",
       "图片": "res://recourse/数据库/spell-fdf-038.jpg",
-      "SHA256": "69AEF9DEEB9CC8B3E178FB7FB46E3D13BD0BB418D687F05AFD2FD7CD560987A0"
+      "SHA256": "9D5E7CFD123B48D1D8F56D4100F41D2218AC6DD5C64B750230DBEEF6481FA645"
     },
     {
       "卡牌ID": "character-ucs-073",
       "名称": "剧毒的死体「宫古芳香」",
       "数据": "res://cards/character-ucs-073.json",
       "图片": "res://recourse/数据库/character-ucs-073.jpg",
-      "SHA256": "FCED9A0D62E9714B905042756A6C175E864904155D3F9E2BA99CFA2A5B511874"
+      "SHA256": "A830EC649EA896058B3D49CD555B2D7B826A477718CB43BEADAF1ABB0843B861"
     },
     {
       "卡牌ID": "character-fdf-110",
       "名称": "华之大江山「星熊勇仪」",
       "数据": "res://cards/character-fdf-110.json",
       "图片": "res://recourse/数据库/character-fdf-110.jpg",
-      "SHA256": "0EA775DD12C184C517867DB6944333A8348403810A4DC8D8DFC7B97FAE7DE22F"
+      "SHA256": "78CA04EB6C9A2E8336482F487146818C378858AEF9BD1FFC0A1DFDB28FD34515"
     },
     {
       "卡牌ID": "spell-fdf-018",
       "名称": "反应「妖怪测谎仪」",
       "数据": "res://cards/spell-fdf-018.json",
       "图片": "res://recourse/数据库/spell-fdf-018.jpg",
-      "SHA256": "F43AD166B32B68560360941E290978DB651A22268854217FECED13EF47F094FF"
+      "SHA256": "0B5E35686FD42F5D62BAEB4E20BEE06B7AD3E8099A2CF9185DAE6499C4E8B46D"
     },
     {
       "卡牌ID": "spell-fdf-002",
       "名称": "名誉「十二阶の色彩」",
       "数据": "res://cards/spell-fdf-002.json",
       "图片": "res://recourse/数据库/spell-fdf-002.jpg",
-      "SHA256": "FF098DE7F67CB525F93FB00A3DC6D4659448EB1FBFECBC115B8551567D38F29B"
+      "SHA256": "8196B08578854CDB8609C2F2E41440120C3308C2BF0BC95A271E6E52A750F048"
     },
     {
       "卡牌ID": "spell-ucs-043",
       "名称": "后符「秘神ノ后光」",
       "数据": "res://cards/spell-ucs-043.json",
       "图片": "res://recourse/数据库/spell-ucs-043.jpg",
-      "SHA256": "B1E349BEDF3F9CD1E6DE33CEC51B11048BFE3163C8BF27BD033E9070635F6908"
+      "SHA256": "6026BEEAAD6C63409E1CABB72B14761600F8769304F82093036D2D841579EFE0"
     },
     {
       "卡牌ID": "spell-fdn-033",
       "名称": "回忆「恐怖催眠术」",
       "数据": "res://cards/spell-fdn-033.json",
       "图片": "res://recourse/数据库/spell-fdn-033.jpg",
-      "SHA256": "A5023A6D3B4A7A5A84A0572A1CB50F7F12026DCF6E5EEFFF6FC29B2CEE2CFF2E"
+      "SHA256": "4747C99D0E8D7B01432CE42D908734A729E8699EBB5F343DFC5FFC3F25921487"
     },
     {
       "卡牌ID": "spell-fdf-076",
       "名称": "土符「Lazy Trilithon」",
       "数据": "res://cards/spell-fdf-076.json",
       "图片": "res://recourse/数据库/spell-fdf-076.jpg",
-      "SHA256": "F71F3445B09BFB6F30F1EDFB4779CCD8B899F72DA52F21FFF7919E1E34B8319B"
+      "SHA256": "A0D604F5E5C08D1C82728A60BF2BDC95E6A2066944BA22D72B2EAA362878E05D"
     },
     {
       "卡牌ID": "character-fdn-024",
       "名称": "「地灵殿的妖精」",
       "数据": "res://cards/character-fdn-024.json",
       "图片": "res://recourse/数据库/character-fdn-024.jpg",
-      "SHA256": "03AB696207C6CFE8B3A17FC2269557022B8C85AA5DDF24135CC7AAB03A5A1865"
+      "SHA256": "A6EC1635FD9ECCE3D9CA9D0BA39759469DBFE9EF4B2C53EA414EF6739EB348C8"
     },
     {
       "卡牌ID": "character-ucs-058",
       "名称": "地狱的口岸神「庭渡久诧歌」",
       "数据": "res://cards/character-ucs-058.json",
       "图片": "res://recourse/数据库/character-ucs-058.jpg",
-      "SHA256": "9C829563358597807DDCED078C00EB68C9FC2E26D24E2399524D3798007947BB"
+      "SHA256": "5E039529791B4CBC39351A600681E38FF28754DFDC54951A133ACABC8B79677B"
     },
     {
       "卡牌ID": "spell-rec-056",
@@ -2401,126 +2401,126 @@
       "名称": "夜王「Deacula Cradle」",
       "数据": "res://cards/spell-fdn-008.json",
       "图片": "res://recourse/数据库/spell-fdn-008.jpg",
-      "SHA256": "672BF876CBD72AF46C668B55104EA99E238C042C58A1BB53A95A7140737B8384"
+      "SHA256": "271A4DCBF8A8069DB4AE3070E6B88DF978C50E376A780FE8C0C67E45CB53CB97"
     },
     {
       "卡牌ID": "spell-fdf-037",
       "名称": "夜符「Queen of Midnight」",
       "数据": "res://cards/spell-fdf-037.json",
       "图片": "res://recourse/数据库/spell-fdf-037.jpg",
-      "SHA256": "A11A88F77040B0FCE7339593E4AF76FAE748C1A52BDA66372834DE217DC2D60B"
+      "SHA256": "024FA9EB3C8F576FBBBF75E319E3F8950EF9117C1BC6FA34BEBC02B97F84CE0D"
     },
     {
       "卡牌ID": "character-ucs-061",
       "名称": "天地上等「比那名居天子」",
       "数据": "res://cards/character-ucs-061.json",
       "图片": "res://recourse/数据库/character-ucs-061.jpg",
-      "SHA256": "4713F9514EA188C52085EF30AB3814A967660E8100F1BCE2E424DD5D20BF6929"
+      "SHA256": "C63060CBD9A84559F875BB1E5AA349CBEE70490E1909AE70966DC740B8D3119B"
     },
     {
       "卡牌ID": "character-fdf-106",
       "名称": "天才的造型神「埴安神袿姬」",
       "数据": "res://cards/character-fdf-106.json",
       "图片": "res://recourse/数据库/character-fdf-106.jpg",
-      "SHA256": "253327C3C8AE6DFF384DAA0D0773C44A6A441F39F921D88ABFEF4EF022C21375"
+      "SHA256": "D6C1ADFBAC2BEAE489E087E8768F1035F1AED4708D0A4AFB573619E2B7B93C59"
     },
     {
       "卡牌ID": "spell-fdn-031",
       "名称": "天符「天道是非ノ剑」",
       "数据": "res://cards/spell-fdn-031.json",
       "图片": "res://recourse/数据库/spell-fdn-031.jpg",
-      "SHA256": "E0323D13289960BE929A145E5B26A4AC670062E39462C722F5DBDCC236C6F6D2"
+      "SHA256": "79C6A3F9DCBFC78160598501DB6FA7614470EBA2B0470C3E9C4B869D3F8B055A"
     },
     {
       "卡牌ID": "spell-fdf-017",
       "名称": "女仆秘技「杀人玩偶」",
       "数据": "res://cards/spell-fdf-017.json",
       "图片": "res://recourse/数据库/spell-fdf-017.jpg",
-      "SHA256": "36B3093130B080A7B5F342CB352983634D811B4BEED1B71801E00437525A9C87"
+      "SHA256": "CC483CB4089EDBEDE18F84716B9254FDB84EC8AA89A108C7A56B1D184B8B7A10"
     },
     {
       "卡牌ID": "spell-fdf-059",
       "名称": "妖剑「辉针剑」",
       "数据": "res://cards/spell-fdf-059.json",
       "图片": "res://recourse/数据库/spell-fdf-059.jpg",
-      "SHA256": "F35D2413E99FE5C1A3295F8BD06CA89AB1C6FDECF78A0D6D177536ABB81C654B"
+      "SHA256": "C6E30AA4AD660A8094B413309C006779665B00A3B7B184E050FA6E642FDF30A8"
     },
     {
       "卡牌ID": "character-ucs-056",
       "名称": "妖怪之山的哨戒「犬走椛」",
       "数据": "res://cards/character-ucs-056.json",
       "图片": "res://recourse/数据库/character-ucs-056.jpg",
-      "SHA256": "92465720BE11DA7B645CF0409457AFE6683F0D318218CEA5B9962AB67329ED2C"
+      "SHA256": "ADFB7D258935883E3F9A150799E5EDA7AA9A2DC7FF3EAC3A1470E2BD2E0EDCAC"
     },
     {
       "卡牌ID": "character-fdn-006",
       "名称": "「妖怪之山的妖精」",
       "数据": "res://cards/character-fdn-006.json",
       "图片": "res://recourse/数据库/character-fdn-006.jpg",
-      "SHA256": "E4AA58059046B65ABF4B973D15ED32D77DA3192961812840413AA1493D7062AB"
+      "SHA256": "4BFF3F70E5CB5AB3C8B5E5A1259BF0D420041A949CB0345DAF2FA87A3492B1F8"
     },
     {
       "卡牌ID": "character-fdn-007",
       "名称": "「妖精们的居所」",
       "数据": "res://cards/character-fdn-007.json",
       "图片": "res://recourse/数据库/character-fdn-007.jpg",
-      "SHA256": "8053214EBAB43D7A0795EA131732BD31A21A84603C2ACBFB952CAEE9D1349B3A"
+      "SHA256": "88FCD292331B95C6FFB4B9CD8E91882AD107471F188F6118271AAE307206145D"
     },
     {
       "卡牌ID": "character-ucs-036",
       "名称": "孤影悄然的妖怪「古明地觉」",
       "数据": "res://cards/character-ucs-036.json",
       "图片": "res://recourse/数据库/character-ucs-036.jpg",
-      "SHA256": "F7347C242AE42ACDA86A72244A55FA8D8639DB87143DB61996B053500792EF41"
+      "SHA256": "70B1A19C22CAAED586F079EAF7C646FF4F5B44147F51DCF142A492C9319FCCAC"
     },
     {
       "卡牌ID": "field-fdf-107",
       "名称": "守矢神社",
       "数据": "res://cards/field-fdf-107.json",
       "图片": "res://recourse/数据库/field-fdf-107.jpg",
-      "SHA256": "39BBD73D4CD63FF858F11067108AE5866EDF10F1196ABAA7612646C804E4781F"
+      "SHA256": "B17B9A961A9A5D508DB8EA336FAF49DC01AFF4B71912601107EC903657D839A5"
     },
     {
       "卡牌ID": "character-fdf-041",
       "名称": "完美而潇洒的从者「十六夜咲夜」",
       "数据": "res://cards/character-fdf-041.json",
       "图片": "res://recourse/数据库/character-fdf-041.jpg",
-      "SHA256": "40B9FCF50E2FF7F3C541BF2A4CF0F93962F248C9CEDA0557592F9D15A1F84BB1"
+      "SHA256": "4F37AD69FD690BEDA1D71A5A67A5BA792A6A848327D0FA3E3E997E490EDD8F0A"
     },
     {
       "卡牌ID": "spell-fdn-046",
       "名称": "实验中「歌莉娅人形」",
       "数据": "res://cards/spell-fdn-046.json",
       "图片": "res://recourse/数据库/spell-fdn-046.jpg",
-      "SHA256": "3A9A24E6174F96A03D66189B7D3C16F4809BA645092E09DC075025E6994D0121"
+      "SHA256": "AFDD00F741BAE95D32E679EC21542D493CD08C254BE17BCEE2B638A4965E9297"
     },
     {
       "卡牌ID": "character-fdn-043",
       "名称": "「富士见之女」",
       "数据": "res://cards/character-fdn-043.json",
       "图片": "res://recourse/数据库/character-fdn-043.jpg",
-      "SHA256": "EDB5E4A9ED26E6BDC79BABC48D175FE333CE2B7A5B9B4DF3E0FD5E90A257576E"
+      "SHA256": "DD5FB790280DE7EF498E58F3B4CD479206AB4A7D06E639BAD2DFBEB9E6034456"
     },
     {
       "卡牌ID": "character-smm05",
       "名称": "小人的公主「少名针妙丸」",
       "数据": "res://cards/character-smm05.json",
       "图片": "res://recourse/数据库/character-smm05.jpg",
-      "SHA256": "BDCA3CC86C0A823EE3E036D9D6D4D9BEDE457137813B78ADDF92E8E358B55D9C"
+      "SHA256": "0EB6514DADD1772DEEC14850A15DB1D8EDF1FA4600A6B85049A6BD0894D06226"
     },
     {
       "卡牌ID": "character-fdf-092",
       "名称": "小小的贤将「纳兹琳」",
       "数据": "res://cards/character-fdf-092.json",
       "图片": "res://recourse/数据库/character-fdf-092.jpg",
-      "SHA256": "0DB31CCB95668BA0F4EA6780AE3015685FF3F1A6708DD7D1386E9DB974F96A53"
+      "SHA256": "67F5FE78BBD321C7688BD4DB874419421BB86F43FEBDE040EE5F233A239505BF"
     },
     {
       "卡牌ID": "spell-fdn-023",
       "名称": "小弹「小人ノ道路」",
       "数据": "res://cards/spell-fdn-023.json",
       "图片": "res://recourse/数据库/spell-fdn-023.jpg",
-      "SHA256": "4712D7342B325287990F5C42139BBC89713F0916D7C90F058EE79FDB4559D949"
+      "SHA256": "589415422B277DDC4D3BD446A930AA449B86EF87FD363735630153A7BF7BC60E"
     },
     {
       "卡牌ID": "spell-rec-054",
@@ -2541,91 +2541,91 @@
       "名称": "少女秘封俱乐部「宇佐见莲子」",
       "数据": "res://cards/character-ucs-020.json",
       "图片": "res://recourse/数据库/character-ucs-020.jpg",
-      "SHA256": "A63018D661699144EC9183CF886027E9FA44144D412B3702D729867900BCBF34"
+      "SHA256": "BD2E47EE3113215BF6175CB71710775D0224F4075E65C515ED1DB085F8701F15"
     },
     {
       "卡牌ID": "character-ucs-021",
       "名称": "少女秘封俱乐部「玛艾露贝莉·赫恩」",
       "数据": "res://cards/character-ucs-021.json",
       "图片": "res://recourse/数据库/character-ucs-021.jpg",
-      "SHA256": "217A80DE009ED399EDAFD739E941F8E7AEF95992CC6E8001D4BBE408FA4593FF"
+      "SHA256": "F057061C3F14B1AE36E0A1B526E4F2152A474017F523B98CADF998E404761A51"
     },
     {
       "卡牌ID": "character-fdf-029",
       "名称": "川雾的引航人「小野冢小町」",
       "数据": "res://cards/character-fdf-029.json",
       "图片": "res://recourse/数据库/character-fdf-029.jpg",
-      "SHA256": "D931D4B7B8F2F690B31D2C3ED9F7491439DEB4426F731E7123B424EE4617A722"
+      "SHA256": "F104B8CFF4D0911862058FB96EE7FC48C36E91553F0C019950F01CCEBB35ECA2"
     },
     {
       "卡牌ID": "character-fdf-098",
       "名称": "巧言令色的白兔「因幡帝」",
       "数据": "res://cards/character-fdf-098.json",
       "图片": "res://recourse/数据库/character-fdf-098.jpg",
-      "SHA256": "F1A8F63637ECD94D38B7DF35452C14117A63E5FDD9418C39A1A7B3BBB1769972"
+      "SHA256": "9ECB5AEA25372BE7EE1700F5BC909F43E98F4560F5284B78F62B12D54BFF5094"
     },
     {
       "卡牌ID": "character-fdf-112",
       "名称": "布加勒斯特的人偶师「爱丽丝·玛格特罗伊德」",
       "数据": "res://cards/character-fdf-112.json",
       "图片": "res://recourse/数据库/character-fdf-112.jpg",
-      "SHA256": "AD7251D7995FD54BAD1837CBC6A2C3866FA2C3135F7C6B3EE4C4D5180C60FF40"
+      "SHA256": "D5C9FDEEBD2406A1524EF61995EF12F47FF289F9B550D97389A9EEE8BD29C5A7"
     },
     {
       "卡牌ID": "character-fdf-117",
       "名称": "平安时代的妖怪「封兽鵺」",
       "数据": "res://cards/character-fdf-117.json",
       "图片": "res://recourse/数据库/character-fdf-117.jpg",
-      "SHA256": "830235E26DE3B3B391F6726B11159291EB3FF381623FADDFB72DA930E6651008"
+      "SHA256": "E7FDFEA0A51D90BE341D7C3027529780F7623A47D7AE66CA820F1EE491C1BDC9"
     },
     {
       "卡牌ID": "spell-fdf-055",
       "名称": "幻在「Clock Corpse」",
       "数据": "res://cards/spell-fdf-055.json",
       "图片": "res://recourse/数据库/spell-fdf-055.jpg",
-      "SHA256": "B19CF5F8E4D54A9A2AA71C0984CEBD04756D31F0F856ED5DF89B46871A887647"
+      "SHA256": "B7799FC4CCFA9A21A9D6AB1608AE576C3CDDF78406910E4C8D7FEC984A2288F4"
     },
     {
       "卡牌ID": "spell-soi-119",
       "名称": "幻巢「飞光虫ノ巢」",
       "数据": "res://cards/spell-soi-119.json",
       "图片": "res://recourse/数据库/spell-soi-119.jpg",
-      "SHA256": "77EFEF0BCB9C7384676BE46274408FC577C9E7A1EB1FD3B716CD5E542E29D2B5"
+      "SHA256": "50F3ED787260DB09FB7C254E9E66EA14BE86B3E5223D5A7EA5919AE345F512F7"
     },
     {
       "卡牌ID": "character-ucs-053",
       "名称": "幻想的策士「八云蓝」",
       "数据": "res://cards/character-ucs-053.json",
       "图片": "res://recourse/数据库/character-ucs-053.jpg",
-      "SHA256": "7D650356AD81F5EEAACFF82E8E3611D5BD35EAFBA4DBB0B8BDCBE822FF673CB3"
+      "SHA256": "676E7ED07CC62E980D3A818B590A0FA951AD8A1AB0800970363A85CAFBB4E29B"
     },
     {
       "卡牌ID": "spell-fdf-052",
       "名称": "幻波「赤眼催眠」",
       "数据": "res://cards/spell-fdf-052.json",
       "图片": "res://recourse/数据库/spell-fdf-052.jpg",
-      "SHA256": "016D071B1F9E564CD4C828650701459D6543282322353D527048E152FA23BE52"
+      "SHA256": "3D97FED860BB3AFCBC83FC8A2002557A75F1F425865242605B8B4C90EA100C0B"
     },
     {
       "卡牌ID": "character-fdf-090",
       "名称": "幻胧的月兔「铃仙·优昙华院·因幡」",
       "数据": "res://cards/character-fdf-090.json",
       "图片": "res://recourse/数据库/character-fdf-090.jpg",
-      "SHA256": "8764383A03F59F7BD19C9258E302B287B5F43A232A330C18F9A1C83752181E12"
+      "SHA256": "3BAD608E335104F9F12FF07AE1635776230633F4E6C06717423D1DF8A3C9DD58"
     },
     {
       "卡牌ID": "spell-fdf-040",
       "名称": "幻葬「夜雾ノ幻影杀人鬼」",
       "数据": "res://cards/spell-fdf-040.json",
       "图片": "res://recourse/数据库/spell-fdf-040.jpg",
-      "SHA256": "91FB315142906201159A0AE4BE45AF81386F313F2B7ED99A68629D8AC7B47B6E"
+      "SHA256": "3DEF29490654BEB5F1C709081EB7C71BBFCC6E8F266B0A44C8EBE3A0A33FAD21"
     },
     {
       "卡牌ID": "character-fdf-102",
       "名称": "幽冥的剑术家「魂魄妖梦」",
       "数据": "res://cards/character-fdf-102.json",
       "图片": "res://recourse/数据库/character-fdf-102.jpg",
-      "SHA256": "4713EE80E2025C516C3C1F8C72DEC9E6D7888C56186466B6DDF17EF2BFE49797"
+      "SHA256": "8E27408300CBB638EE6FC98AB8BA266856F9600F70F63DACD3617734383BC259"
     },
     {
       "卡牌ID": "spell-smm-003",
@@ -2646,378 +2646,378 @@
       "名称": "彼岸的鸡之神「庭渡久侘歌」",
       "数据": "res://cards/character-fdn-021.json",
       "图片": "res://recourse/数据库/character-fdn-021.jpg",
-      "SHA256": "C6A179D3A89A2870194D39C697347C162AEFB92497BE3238FE78EA8CEA3C8F09"
+      "SHA256": "90E4E934872800B1C1280684F9C68C9DDC016F3A7D4314E9FF81FEE4FEFAA5A0"
     },
     {
       "卡牌ID": "spell-fdf-033",
       "名称": "心花「Camera-Shy Rose」",
       "数据": "res://cards/spell-fdf-033.json",
       "图片": "res://recourse/数据库/spell-fdf-033.jpg",
-      "SHA256": "D05643975FFD52E29A34C66BF189FC22564DAE0777DC9A5EBA92BDEC7913F95B"
+      "SHA256": "F989FBE0B3550464DFC5727589FB84F15467AC812E91C12A504771242546C929"
     },
     {
       "卡牌ID": "character-fdn-026",
       "名称": "意识之底「古明地觉&古明地恋」",
       "数据": "res://cards/character-fdn-026.json",
       "图片": "res://recourse/数据库/character-fdn-026.jpg",
-      "SHA256": "7554AF4263E04A9D161272C66B18FBF10BFA2689298A8B70EE6A48C743E56009"
+      "SHA256": "2D0434132F27DBBBB7A0B87A1777DD4E287A4643F0360E06AEAD2D0347F0CDC5"
     },
     {
       "卡牌ID": "character-fdn-004",
       "名称": "战栗的蓬莱人「藤原妹红」",
       "数据": "res://cards/character-fdn-004.json",
       "图片": "res://recourse/数据库/character-fdn-004.jpg",
-      "SHA256": "8800E6F1A76994D20C2C0BD54B013489E68502B5BF4346DA4CE72B7021006926"
+      "SHA256": "2AA975BD89631261358984DEB0CDBBCC2FC3FC5D7879378F30024E78B0496286"
     },
     {
       "卡牌ID": "spell-fdf-073",
       "名称": "执符「御射山御狩神事」",
       "数据": "res://cards/spell-fdf-073.json",
       "图片": "res://recourse/数据库/spell-fdf-073.jpg",
-      "SHA256": "00CE27E9E27C687C055B23E6ABCDD7731111BFF3D4A726401AA70611741E7D7E"
+      "SHA256": "A1188AAE0E669B8FC5412F0C45FE0B687178230891E579157838A4165D6FB8D9"
     },
     {
       "卡牌ID": "spell-fdf-056",
       "名称": "投钱「宵越ノ钱」",
       "数据": "res://cards/spell-fdf-056.json",
       "图片": "res://recourse/数据库/spell-fdf-056.jpg",
-      "SHA256": "DF2CB68AC1CB267B20A5E3D0E587EDCCB7C26AF489A91042467F2BAA187B4CE0"
+      "SHA256": "96110C051088A9CF0454AA0EDB988D3539D9FC6C4B331A50849C0E08DB712D07"
     },
     {
       "卡牌ID": "spell-fdf-016",
       "名称": "换命「不惜身命，可惜身命」",
       "数据": "res://cards/spell-fdf-016.json",
       "图片": "res://recourse/数据库/spell-fdf-016.jpg",
-      "SHA256": "5C72D7E84487BD516B6F438ED773A791BFBF3A1576F68B8947A4A558C10E47A5"
+      "SHA256": "EECEB92AEB1742BA5B7912EFD58F6E5A7F3D6B21458E64E074FBAB5D1185C82C"
     },
     {
       "卡牌ID": "character-fdf-093",
       "名称": "控龙的少女「物部布都」",
       "数据": "res://cards/character-fdf-093.json",
       "图片": "res://recourse/数据库/character-fdf-093.jpg",
-      "SHA256": "B58FC483D71704B0A1D5C2CCE396DCA019958E54CB399F4E6292451B71CC8198"
+      "SHA256": "0112B722FA8D36A8BE75E9C2D013999EE58B17F6E65934204690DB3A736C75D1"
     },
     {
       "卡牌ID": "spell-fdf-030",
       "名称": "操符「乙女文乐」",
       "数据": "res://cards/spell-fdf-030.json",
       "图片": "res://recourse/数据库/spell-fdf-030.jpg",
-      "SHA256": "444483B064E8A78D03A64E199A9BF01B694067B88C70100F6FD9CC8D0217E372"
+      "SHA256": "0D4BFD353AAF4BBA9E316E4B54AB9B267B47DA93BAB803E74CFE9B396591B1E2"
     },
     {
       "卡牌ID": "spell-fdf-050",
       "名称": "断迷剑「迷津慈航斩」",
       "数据": "res://cards/spell-fdf-050.json",
       "图片": "res://recourse/数据库/spell-fdf-050.jpg",
-      "SHA256": "77E38E4E75520D1D0524F2291D2E9F722E0CEF3AD766320CE29E7717C781C71A"
+      "SHA256": "BE39C7DF8659A0376C8744636F35DDF7E9A3B067FD5D122E7BE846469658E415"
     },
     {
       "卡牌ID": "spell-fdf-009",
       "名称": "新史「新幻想史-现代史-」",
       "数据": "res://cards/spell-fdf-009.json",
       "图片": "res://recourse/数据库/spell-fdf-009.jpg",
-      "SHA256": "5264AC659A0C254FE5590A0976CA1977143AD918BD4A7C08F517840ABCEA187D"
+      "SHA256": "1295A11D5486183B1DEAD9D479FBFE14DD1E7AD2ED57CD9A2BE8CC56C19EAFF5"
     },
     {
       "卡牌ID": "token-fdn-082",
       "名称": "新闻素材",
       "数据": "res://cards/token-fdn-082.json",
       "图片": "res://recourse/数据库/token-fdn-082.jpg",
-      "SHA256": "88ABF78D72A03DB33AC11635968818B5CC73C7A2B451F00E89E7A7481B938869"
+      "SHA256": "0C9CE0DD31812085AAB99B4A6A951D85E875C930472D1460252B421AC6303FA8"
     },
     {
       "卡牌ID": "character-fdf-105",
       "名称": "无间之钟「姬海棠果」",
       "数据": "res://cards/character-fdf-105.json",
       "图片": "res://recourse/数据库/character-fdf-105.jpg",
-      "SHA256": "E759D9EBF414A2F0D90A344D0BF420A760D8DA7D7A19BD4CE520FB4A6A315516"
+      "SHA256": "C1DE9E9F235930C2C58FEDB60035A057318A460360EAB999522F6E4DE84E9788"
     },
     {
       "卡牌ID": "spell-ucs-041",
       "名称": "日符「皇家烈焰」",
       "数据": "res://cards/spell-ucs-041.json",
       "图片": "res://recourse/数据库/spell-ucs-041.jpg",
-      "SHA256": "38C5F3661B0609D0962B091AE3BE8699D02C73F1E68AA816D69B76BE3AE81E6D"
+      "SHA256": "DE99408A246B39823767F6D0B0038C000DB06DC117E408D2D57F85A2884AADBE"
     },
     {
       "卡牌ID": "spell-ucs-031",
       "名称": "时符「Private Square」",
       "数据": "res://cards/spell-ucs-031.json",
       "图片": "res://recourse/数据库/spell-ucs-031.jpg",
-      "SHA256": "BF7251A528273A046B5136B4DB0173798BDA89A87FEA3CB97994F14D1026A361"
+      "SHA256": "74C41BDB1C8344FD582630F50B402FBD47D1D630F7FA757A9B9EF40965BAC6EA"
     },
     {
       "卡牌ID": "spell-fdf-024",
       "名称": "月符「静寂ノ月神」",
       "数据": "res://cards/spell-fdf-024.json",
       "图片": "res://recourse/数据库/spell-fdf-024.jpg",
-      "SHA256": "E9AAA10C93BA414BBBBBF63740218ED98CD3127EB99AA7E267DCEF595AC9B72E"
+      "SHA256": "0D01FF8F7384117BAFCA111FB3C39492FA5C85DE4F13869697A82B60A9E2C577"
     },
     {
       "卡牌ID": "spell-fdf-079",
       "名称": "木符「Sylphy Horn」",
       "数据": "res://cards/spell-fdf-079.json",
       "图片": "res://recourse/数据库/spell-fdf-079.jpg",
-      "SHA256": "3C7F357445B0F732068CBB78B1487F576E93F2DB48D734A51CF4761543E5C655"
+      "SHA256": "A44A245DA88A539D89706D1A2E109E3AE6D913EDA2B1412942588F0B5C4AAFD0"
     },
     {
       "卡牌ID": "character-ucs-023",
       "名称": "柳树下的首级「赤蛮奇」",
       "数据": "res://cards/character-ucs-023.json",
       "图片": "res://recourse/数据库/character-ucs-023.jpg",
-      "SHA256": "96A7C963B1C50AA1D471DA4AC4E07FF4B9135E691220CEFCE87C5773361BF30A"
+      "SHA256": "89855B0EC9EC1469C7681F0D3950410D8E5089AAB5BAED88DE911F5950F28082"
     },
     {
       "卡牌ID": "character-fdn-027",
       "名称": "栖息于淡水的人鱼「若鹭姬」",
       "数据": "res://cards/character-fdn-027.json",
       "图片": "res://recourse/数据库/character-fdn-027.jpg",
-      "SHA256": "2CBB39ADDDF5391D645911AEC8F8F343C93DBDD59AF39B975A3041EEA6521750"
+      "SHA256": "1FFF3F865CDB3193BD78EB066D9A2E37447EB0EDD8AB4BDE9FEA8262C93E5017"
     },
     {
       "卡牌ID": "spell-fdf-028",
       "名称": "核热「核反应制御不能」",
       "数据": "res://cards/spell-fdf-028.json",
       "图片": "res://recourse/数据库/spell-fdf-028.jpg",
-      "SHA256": "131C1C44CC412A8E55E2245E0DAB64B3F26713E67FF1CB76FE8837409F141EB9"
+      "SHA256": "DA58CD75F6C59BAC065F5A9136619E657A591BF81B6C0E46EBE813145049D1EA"
     },
     {
       "卡牌ID": "spell-fdf-048",
       "名称": "樱符「Sense of Cherry Blossom」",
       "数据": "res://cards/spell-fdf-048.json",
       "图片": "res://recourse/数据库/spell-fdf-048.jpg",
-      "SHA256": "00AD2EBD21C8EE84771BABBFB5C9E69493F0BC377EADE2A7F6FAC654CCE936C1"
+      "SHA256": "B737692E93AADAC7FE4DEFA4FBC85B4A43D2DECA39475E85757E1EF08B50ECC0"
     },
     {
       "卡牌ID": "spell-fdn-019",
       "名称": "死价「price of life」",
       "数据": "res://cards/spell-fdn-019.json",
       "图片": "res://recourse/数据库/spell-fdn-019.jpg",
-      "SHA256": "11BC0D04E0879DE7276C9C38A839F890640FA59137BB8A14DA2E6558D1470284"
+      "SHA256": "F84171B3E726B7D1482883F6724F6AC03B2033DC2C1F1D775D582CA4921259A5"
     },
     {
       "卡牌ID": "spell-fdn-018",
       "名称": "死歌「八重雾中渡」",
       "数据": "res://cards/spell-fdn-018.json",
       "图片": "res://recourse/数据库/spell-fdn-018.jpg",
-      "SHA256": "3972F512FF00744D504C16AC2D5B6AFA7EF04DB5177AB349722008B183B61585"
+      "SHA256": "80FC4951B719DF343175D3FBD54BD60AAFB8ABF3DD22D8A7F2737E9786E054DF"
     },
     {
       "卡牌ID": "spell-fdf-006",
       "名称": "死灵「死ノ妖精」",
       "数据": "res://cards/spell-fdf-006.json",
       "图片": "res://recourse/数据库/spell-fdf-006.jpg",
-      "SHA256": "A54A621DB95AA68679C03971D42639117678D21CE9B7FB65B473738185333C08"
+      "SHA256": "18BF641248BD21D4F8A6A1B13F6A58EF96D5DD697CAC336B3F487BBE0F6BF063"
     },
     {
       "卡牌ID": "character-ucs-046",
       "名称": "水中的迷彩「河城荷取」",
       "数据": "res://cards/character-ucs-046.json",
       "图片": "res://recourse/数据库/character-ucs-046.jpg",
-      "SHA256": "28691A10A44BB207E287B8E75B7BD12F040D6F13BAA038D71DF40EAC62D4BF8C"
+      "SHA256": "64C835ED8A428A79DF2D4C299E85EBA6E4FD537859E3943172EAD10A94BF3AAC"
     },
     {
       "卡牌ID": "spell-fdf-077",
       "名称": "水符「Princess Undine」",
       "数据": "res://cards/spell-fdf-077.json",
       "图片": "res://recourse/数据库/spell-fdf-077.jpg",
-      "SHA256": "85015655E781827F7FE817A785D89B08AF5D9B9FAD5D63BD6EE696608A07B4E0"
+      "SHA256": "608DC0D7D0D0DE9ACA2BE1C9B83D7470093BF794FDF73605BBDB51FCB8FF7184"
     },
     {
       "卡牌ID": "character-fdf-100",
       "名称": "水难事故的化身「村纱水蜜」",
       "数据": "res://cards/character-fdf-100.json",
       "图片": "res://recourse/数据库/character-fdf-100.jpg",
-      "SHA256": "7C264AFE6E1102ABF148D7B840A09760C7AD6930048337C64E644A1A6F398D69"
+      "SHA256": "1876E586F8F2223F05C8CDE7C07919B43AD5FA323D9DA8F29FC7CBB448F32EA0"
     },
     {
       "卡牌ID": "character-fdf-065",
       "名称": "污秽的有机怪物「天火人血枪」",
       "数据": "res://cards/character-fdf-065.json",
       "图片": "res://recourse/数据库/character-fdf-065.jpg",
-      "SHA256": "21E14B47DAF1B58384C4AB18A30A0387F844EA63D0072194EB1CDDBEDA03372D"
+      "SHA256": "69FC2F295E4E44AF7F55942FDE4E2FA0A94CDCD13B7D102F3D5EDC172DB853CD"
     },
     {
       "卡牌ID": "character-fdn-035",
       "名称": "沉着冷静的人狼「今泉影狼」",
       "数据": "res://cards/character-fdn-035.json",
       "图片": "res://recourse/数据库/character-fdn-035.jpg",
-      "SHA256": "13156D02DA00BB1192B845F82BA5A988076A4103A595EF562D1D522B924F7EA5"
+      "SHA256": "B679020ADE86E364D3ABF4C33E1103F5603B6CED0225E659B99B2242B7C9E437"
     },
     {
       "卡牌ID": "character-ucs-010",
       "名称": "洞窟之网「黑谷山女」",
       "数据": "res://cards/character-ucs-010.json",
       "图片": "res://recourse/数据库/character-ucs-010.jpg",
-      "SHA256": "DF6F869C565C79D43BFF8808C345F72F47A2DD30D6EA4D3C6D66CB63684FC7B0"
+      "SHA256": "8E5BBF87A76E586C4543CBE141F6A4C3E066FC3CF12252CEB61FF1EB63434780"
     },
     {
       "卡牌ID": "character-fdf-094",
       "名称": "深夜食堂店长「米斯蒂娅·萝蕾拉」",
       "数据": "res://cards/character-fdf-094.json",
       "图片": "res://recourse/数据库/character-fdf-094.jpg",
-      "SHA256": "41C8D3CC1B05C86CA6E124D8C6F26E5E2C45561156C87B47164DAED0C0D04203"
+      "SHA256": "ED1DC9FCA57386D3DD7BC7390AA62A21A3F55904B2C769C93B4BDB46DFFFE300"
     },
     {
       "卡牌ID": "spell-fdf-022",
       "名称": "深层「无意识ノ基因」",
       "数据": "res://cards/spell-fdf-022.json",
       "图片": "res://recourse/数据库/spell-fdf-022.jpg",
-      "SHA256": "1F68E2A5CAEB3BAB99D097DDC9C5FBEB23FAF4EA5FE0568A99106E0C5A8C8FA0"
+      "SHA256": "666FBDCDA4C3FAA0628227D93FD1B9BCF1B2A3D98E8EDD5F2035CCB1920AB3B7"
     },
     {
       "卡牌ID": "character-ucs-044",
       "名称": "深山的妖怪「山城高岭」",
       "数据": "res://cards/character-ucs-044.json",
       "图片": "res://recourse/数据库/character-ucs-044.jpg",
-      "SHA256": "AFD25C2CA2EFBFC1FD52EAA03C337C919227FDD25085AB20455560BE7D8143A0"
+      "SHA256": "A87D02F6C044EEF5DFB1F31DF75BD1B4C44250CD6341B176B10C6E9AFEDC84A6"
     },
     {
       "卡牌ID": "spell-fdf-078",
       "名称": "火符「Agni Shine」",
       "数据": "res://cards/spell-fdf-078.json",
       "图片": "res://recourse/数据库/spell-fdf-078.jpg",
-      "SHA256": "65C98B47D372D70A922ADB2029542A38C3FB95EE1A4285153C5A44B5918F9229"
+      "SHA256": "D4A56AD6C3905D7698331373D206AF66453837DC632953417C44307FC28B9E38"
     },
     {
       "卡牌ID": "character-ucs-063",
       "名称": "「灵」",
       "数据": "res://cards/character-ucs-063.json",
       "图片": "res://recourse/数据库/character-ucs-063.jpg",
-      "SHA256": "A92400166A890063E9DC0C676FDBE2A5F1C4223F627786E48B5CCDB5F50BEB0A"
+      "SHA256": "4CB4F984AD6A476CDAECB357E7CEC1DB7F5B0C201771B84E9AF5247A10A5AA77"
     },
     {
       "卡牌ID": "token-fdf-127",
       "名称": "烤八目鳗",
       "数据": "res://cards/token-fdf-127.json",
       "图片": "res://recourse/数据库/token-fdf-127.jpg",
-      "SHA256": "D74213CFC8F914E1473DBDA6D0CD608556AD8DAB7056D305B7601F0BD1E992F6"
+      "SHA256": "579036BAF2059EA58A8A8A74ACAA387C7E8CFA0EFE4EDC90695889427E06FE43"
     },
     {
       "卡牌ID": "spell-fdf-027",
       "名称": "爆符「Mage-Flare」",
       "数据": "res://cards/spell-fdf-027.json",
       "图片": "res://recourse/数据库/spell-fdf-027.jpg",
-      "SHA256": "0C58E13C544BB5B171E5CF351EDB89EA0C4B44091DEEC5BC8E732BAB707F4DCA"
+      "SHA256": "C4E2FA5028C595FEF4BED2C088FD2B63398B076A14EBF459EB6F26AE7236014F"
     },
     {
       "卡牌ID": "character-fdf-113",
       "名称": "狂气的地狱妖精「克劳恩皮丝」",
       "数据": "res://cards/character-fdf-113.json",
       "图片": "res://recourse/数据库/character-fdf-113.jpg",
-      "SHA256": "5A8339BE03D6CA06D9B779E2F0F99951EA4FB08C3C9DC611A661CE6E15FF39FC"
+      "SHA256": "955442D5DD0E06CD425A82777E4B2F476AC252AF3D3041CCE61DB582CD30F073"
     },
     {
       "卡牌ID": "spell-fdf-057",
       "名称": "狂符「幻视调率」",
       "数据": "res://cards/spell-fdf-057.json",
       "图片": "res://recourse/数据库/spell-fdf-057.jpg",
-      "SHA256": "86F644BA5716A17561557C394285E29B2E8F9797F9FBFCFEDBA1647C449DB351"
+      "SHA256": "87E2B3742E81C075D4C1DBC84E1C4812FC0EB35D6E2B9EDEA492F57D164E7037"
     },
     {
       "卡牌ID": "spell-fdf-012",
       "名称": "猫符「Cat’s Walk」",
       "数据": "res://cards/spell-fdf-012.json",
       "图片": "res://recourse/数据库/spell-fdf-012.jpg",
-      "SHA256": "3B996D3CF1D256406E9F20574F614F7EF33D8148CA2576E6300E4EA142E9308F"
+      "SHA256": "77A7EDC5C2D87BC3025A7ACDABC0419A49F7BBAC760C6953F5E946D068338D7A"
     },
     {
       "卡牌ID": "spell-fdn-028",
       "名称": "生药「国士无双ノ药」",
       "数据": "res://cards/spell-fdn-028.json",
       "图片": "res://recourse/数据库/spell-fdn-028.jpg",
-      "SHA256": "B7222963C9CC801638A35178E628046F44B1381F62C168147B05DC7FA5A1C151"
+      "SHA256": "9FD2DEC4B22DA31E8BCA77C9BADAA0EB7D79CFA8D8B69CD7EC9DD4639A10C80F"
     },
     {
       "卡牌ID": "character-ucs-066",
       "名称": "畜生界的藏匿者「吉吊八千慧」",
       "数据": "res://cards/character-ucs-066.json",
       "图片": "res://recourse/数据库/character-ucs-066.jpg",
-      "SHA256": "19A809714EDF0A6800809ECD275E1421B42D8ACEB0F8DEE9A7E6682228FBF6BB"
+      "SHA256": "6620F6A0287801D3DBCB317B8DBD32B8D944F9A7B4EF7A984AE33A46E7A1B6B3"
     },
     {
       "卡牌ID": "field-ucs-064",
       "名称": "白玉ノ阶梯",
       "数据": "res://cards/field-ucs-064.json",
       "图片": "res://recourse/数据库/field-ucs-064.jpg",
-      "SHA256": "4ACFD194F95D2EB4DB3847972D024C396BD488A75314970B3E4B961AACF26D8B"
+      "SHA256": "9CB5835E32C298851E0E9F06D2CB8C5CFBA4C1216DD07A88D9D0C6B5CB9E702C"
     },
     {
       "卡牌ID": "spell-ucs-039",
       "名称": "神志「思兼ノ意志」",
       "数据": "res://cards/spell-ucs-039.json",
       "图片": "res://recourse/数据库/spell-ucs-039.jpg",
-      "SHA256": "5A3030263551D6BF21D5907F7B353E857C074C48D1E786F5CD298723A693C50B"
+      "SHA256": "84C3F2D6FE34257EF0F4B0354B03304A28CB2BE5734C01DF698060E86209095A"
     },
     {
       "卡牌ID": "character-fdf-111",
       "名称": "神明后裔的亡灵「苏我屠自古」",
       "数据": "res://cards/character-fdf-111.json",
       "图片": "res://recourse/数据库/character-fdf-111.jpg",
-      "SHA256": "E6B672C308ADA76D15AC84BD78BFE24DEDBDE86E9CA878A19C2054967C5AF1DB"
+      "SHA256": "298F35F8C85437DBD594FFA1952788B07D3B337274B0BC7499D3FE858B0078E7"
     },
     {
       "卡牌ID": "spell-fdf-074",
       "名称": "神祭「Expanded Onbashira」",
       "数据": "res://cards/spell-fdf-074.json",
       "图片": "res://recourse/数据库/spell-fdf-074.jpg",
-      "SHA256": "31FF660A05D93E6BC1D29E3F6FDECE74FFFEBD13CC483D1650065D6729EDA25E"
+      "SHA256": "48C5B5F280E144BA7606B90BB34476CCCE41CE3388FE2D4E1AA137321B4C3938"
     },
     {
       "卡牌ID": "spell-fdf-015",
       "名称": "神符「天人ノ系谱」",
       "数据": "res://cards/spell-fdf-015.json",
       "图片": "res://recourse/数据库/spell-fdf-015.jpg",
-      "SHA256": "3D81F5DFB259FD49A1BF1D23475B500591A042716E3679EBBE8FED7ADB353055"
+      "SHA256": "20AA07E1EDD7EBF05A91E948F748C938EBB54408D6184273967539BE2D3B1057"
     },
     {
       "卡牌ID": "spell-fdf-051",
       "名称": "禁弹「Catadioptric」",
       "数据": "res://cards/spell-fdf-051.json",
       "图片": "res://recourse/数据库/spell-fdf-051.jpg",
-      "SHA256": "2EA53977B9003C8E17D287459E4C67E60CDCFDDA9DF292A10BB413703692EEFC"
+      "SHA256": "F3989F42BA01C17D2A893A7C2AD95DA96273DE794C0D79E9B8A00DEF0030D342"
     },
     {
       "卡牌ID": "spell-fdf-058",
       "名称": "禁忌「Four of a Kind」",
       "数据": "res://cards/spell-fdf-058.json",
       "图片": "res://recourse/数据库/spell-fdf-058.jpg",
-      "SHA256": "6D3F0B1F7FF21F45C06821F5C5A50941A69C3CA18B225D41022184D365A1B18F"
+      "SHA256": "A8513CF0DC55E7645C2AB77160318717157D3F1E0E527FC935482216B9C1C970"
     },
     {
       "卡牌ID": "character-fdf-046",
       "名称": "禁止通行「云居一轮&云山」",
       "数据": "res://cards/character-fdf-046.json",
       "图片": "res://recourse/数据库/character-fdf-046.jpg",
-      "SHA256": "3CBDDC17F5AD7A8FA39162802C35FECE3D244A2022F1325F7E41B39CD99BAAB8"
+      "SHA256": "4AC7950CE16345ADF86F77B3FEE7311BFE4E430075D8E33D446A534085173606"
     },
     {
       "卡牌ID": "spell-fdf-067",
       "名称": "秘仪「弹幕ノ玉茧」",
       "数据": "res://cards/spell-fdf-067.json",
       "图片": "res://recourse/数据库/spell-fdf-067.jpg",
-      "SHA256": "D31A8FF15F324C0A1C12413E56F4DD2498E2D111C6CBF98C84A1A02281BD4E62"
+      "SHA256": "4B24AEA60FF08B042659DA1CBDDB9C7626473EF30DCC4052D6D845C92660521D"
     },
     {
       "卡牌ID": "spell-fdf-061",
       "名称": "秘术「天文密葬法」",
       "数据": "res://cards/spell-fdf-061.json",
       "图片": "res://recourse/数据库/spell-fdf-061.jpg",
-      "SHA256": "E743B6987CB0EFD05592731FBB08E7EB93CC32EE61D095A709AAAC98F460CBDF"
+      "SHA256": "F2281E90CE8E3B5CD481DBDC35C9A572DD7A795410DE39720E95F6F8EA8AC921"
     },
     {
       "卡牌ID": "spell-fdf-087",
       "名称": "秘术「遗忘ノ祭仪」",
       "数据": "res://cards/spell-fdf-087.json",
       "图片": "res://recourse/数据库/spell-fdf-087.jpg",
-      "SHA256": "173DC97C8A1D46ACC016F519BFC447BDA0DAE961F85F2A19A4D8D18B59368C47"
+      "SHA256": "057147DCFC6CBEE0B41A075C7B8FBF2EBE98FCE8CD651D1F8AAF0146864EAF58"
     },
     {
       "卡牌ID": "spell-fdf-063",
       "名称": "秘法「九字切」",
       "数据": "res://cards/spell-fdf-063.json",
       "图片": "res://recourse/数据库/spell-fdf-063.jpg",
-      "SHA256": "8E58F63021CB12233E322A02AA761C0B045B4A355CAD08B6DF65C2944497CD25"
+      "SHA256": "9A4032FF7D29296123A5DE4D6183AD568E76E767482D5FD86104A6E8F4A198C2"
     },
     {
       "卡牌ID": "character-ucs-068",
@@ -3038,238 +3038,238 @@
       "名称": "空想人格的保持者「古明地恋」",
       "数据": "res://cards/character-ucs-034.json",
       "图片": "res://recourse/数据库/character-ucs-034.jpg",
-      "SHA256": "DC88831B390E46410B2E7B079463DC66D75992F17BA591E6751906D28C519F59"
+      "SHA256": "4AA17F16A48531AE2F8EF79FA150AB82562875AD86CE2920071858607E6151BE"
     },
     {
       "卡牌ID": "spell-fdn-039",
       "名称": "突符「天狗巨漾流」",
       "数据": "res://cards/spell-fdn-039.json",
       "图片": "res://recourse/数据库/spell-fdn-039.jpg",
-      "SHA256": "F16AC074E1135EF449FEE12B78F0F1E2F5991C0FEB33CF9FC9EDA9467F7D79AC"
+      "SHA256": "A6B47C13B30B8EAFA2E61F08D34752FCB021F0E41CECA71C0218A358E8F386DF"
     },
     {
       "卡牌ID": "character-kmo-005",
       "名称": "竹林中的狼人「今泉影狼」",
       "数据": "res://cards/character-kmo-005.json",
       "图片": "res://recourse/数据库/character-kmo-005.jpg",
-      "SHA256": "4DCC2CE0FBC03D215D87DAE76EFBD13670AEFE71D1BDB62293D10399FF6FE11A"
+      "SHA256": "226928C3882BADA152E797FAF397F77624DC9B38C9F9E79395BF36F14BB7BC97"
     },
     {
       "卡牌ID": "character-ucs-003",
       "名称": "繁星的引导者「饭纲丸龙」",
       "数据": "res://cards/character-ucs-003.json",
       "图片": "res://recourse/数据库/character-ucs-003.jpg",
-      "SHA256": "C64E8C296FF7BE00DA44563CE57DB3479E7748EDAF1ADB99C4B4240F3DB154E3"
+      "SHA256": "2902F998BB7E35C72BA65D97803E16CA8C6B360018AF0EC6F0F4DA87656A74CA"
     },
     {
       "卡牌ID": "spell-fdf-035",
       "名称": "红符「不夜城-RED-」",
       "数据": "res://cards/spell-fdf-035.json",
       "图片": "res://recourse/数据库/spell-fdf-035.jpg",
-      "SHA256": "C638DAA608ACE6C2335C927329C1C92AC6845C4A964D64274C19D4966A6DC952"
+      "SHA256": "DAB7DDB882328A57F67060E7E04C357D6C7B01F6CF92F5BAA2F31B740EB62110"
     },
     {
       "卡牌ID": "character-fdn-041",
       "名称": "「红魔馆的吸血鬼女仆」",
       "数据": "res://cards/character-fdn-041.json",
       "图片": "res://recourse/数据库/character-fdn-041.jpg",
-      "SHA256": "01C521CC11F082D699D751FD3F9F64F8A0ED877F53B6348EDFFDD74DD1A188B4"
+      "SHA256": "F2B100D212C87FF1B6C7F71B4847FBD615CCE273699816568A10CC1F146B91B4"
     },
     {
       "卡牌ID": "character-fdn-014",
       "名称": "「红魔馆的吸血鬼妖精」",
       "数据": "res://cards/character-fdn-014.json",
       "图片": "res://recourse/数据库/character-fdn-014.jpg",
-      "SHA256": "4C98984BFEED80154A2E36A84F2FA9FE9D514B32882416027495FB83BE89E280"
+      "SHA256": "6E8D379BE71247293970260A9F3A6F633E5E213E79CF5110DB9735DC2E3B36AD"
     },
     {
       "卡牌ID": "spell-fdf-082",
       "名称": "结界「光与暗ノ网目」",
       "数据": "res://cards/spell-fdf-082.json",
       "图片": "res://recourse/数据库/spell-fdf-082.jpg",
-      "SHA256": "1D49920734EFA1CF7153E4C3160230D6C22C4C9D0CDC8ABA3FFF63DD9B923E5D"
+      "SHA256": "90BBC39EBC277C9C53C7C8FCD2EC6472DF904F221A341AB6A7F7D1863EC649CE"
     },
     {
       "卡牌ID": "spell-fdf-014",
       "名称": "结界「梦境与现实ノ诅咒」",
       "数据": "res://cards/spell-fdf-014.json",
       "图片": "res://recourse/数据库/spell-fdf-014.jpg",
-      "SHA256": "17C2FC38485BA19C1E43912364151CAEB234E84C281A3CC9F89A37126E4A1435"
+      "SHA256": "706640094743F8D5B42D189A7126D3AC631D9017C2BCD7AB218EAF341F67FFA7"
     },
     {
       "卡牌ID": "spell-fdn-011",
       "名称": "结界「魅力ノ四重结界」",
       "数据": "res://cards/spell-fdn-011.json",
       "图片": "res://recourse/数据库/spell-fdn-011.jpg",
-      "SHA256": "F01E0B013D6E07F52BAD013FAEAE332D7002B4DE63BD961EBAF5639BEC874DCC"
+      "SHA256": "3AFC8392B17CD50FABE48AF17DA37F8BD534B13F69138B026874A806562A8104"
     },
     {
       "卡牌ID": "character-ucs-067",
       "名称": "绯红的宵暗「蕾米莉亚·斯卡蕾特」",
       "数据": "res://cards/character-ucs-067.json",
       "图片": "res://recourse/数据库/character-ucs-067.jpg",
-      "SHA256": "E730B844985ED8A7BBECF0B85F75BA0488864AF07F976C06F82F7FA58EDF3BA6"
+      "SHA256": "395CE155ABBFF50DDBB7E6FDA07A3A90759F9C93729BCA17BC6BF8AEA0386643"
     },
     {
       "卡牌ID": "character-fdn-048",
       "名称": "绯红的霄暗「蕾米莉亚·斯卡雷特」",
       "数据": "res://cards/character-fdn-048.json",
       "图片": "res://recourse/数据库/character-fdn-048.jpg",
-      "SHA256": "EC27EB022D3EFB88782C84EF229D7E63940CD3F19EC1829FBD95361AAD4EB5D3"
+      "SHA256": "5EE579DA42EFE54EFD9CF4B069A1F704074FF5FA1F745CA5D257842C96FA62F4"
     },
     {
       "卡牌ID": "character-fdf-114",
       "名称": "耳边低语的邪恶白狐「菅牧典」",
       "数据": "res://cards/character-fdf-114.json",
       "图片": "res://recourse/数据库/character-fdf-114.jpg",
-      "SHA256": "39C3A325C3B60CC869EC61413B3FB6477C1BABA5B6596DAB60ED3F3C70C94EBD"
+      "SHA256": "F3B54969675AC29F89AE24B71839A1BECEA3C566199262D0E49BF91F334BF96E"
     },
     {
       "卡牌ID": "character-fdf-103",
       "名称": "「胆小的小人士兵」",
       "数据": "res://cards/character-fdf-103.json",
       "图片": "res://recourse/数据库/character-fdf-103.jpg",
-      "SHA256": "9919283A7019849EB71A89C9ADCB8C2ADF65275AC47B512A55D82951CF240C96"
+      "SHA256": "E87D898D94DFB5E97371F8DFFCFA0855C9965841573EC9D6D2F9ADBC91C6A915"
     },
     {
       "卡牌ID": "character-fdn-025",
       "名称": "背德的姐妹「蕾米莉亚&芙兰朵露」",
       "数据": "res://cards/character-fdn-025.json",
       "图片": "res://recourse/数据库/character-fdn-025.jpg",
-      "SHA256": "88AF429B11E6C3C2059EBCB8E8608BE25A467E7764169208072BF05AF891BEFE"
+      "SHA256": "6A9A963E082DCC9D3DDA1059BD5082AE0D310157C585E01D74FE92BD9950604A"
     },
     {
       "卡牌ID": "spell-fdf-032",
       "名称": "脑符「Brain Fingerprint」",
       "数据": "res://cards/spell-fdf-032.json",
       "图片": "res://recourse/数据库/spell-fdf-032.jpg",
-      "SHA256": "4AA5B0B62CADD85FA343F208CA2295A9F1594EF8431E681CE235FB956BB514EA"
+      "SHA256": "A040E89D6CAFA149ECE6B23BA926C774117047B1681A1886D254ACD5200C76C7"
     },
     {
       "卡牌ID": "character-ucs-016",
       "名称": "腹黑的人鱼公主「若鹭姬」",
       "数据": "res://cards/character-ucs-016.json",
       "图片": "res://recourse/数据库/character-ucs-016.jpg",
-      "SHA256": "E52B95FD4D6898FF9326F783D81B424DE94A313DC192DD69309FD896CEFC4E36"
+      "SHA256": "8514281FA398A0B12FF3350C6D9356D1C00C1280C244A680E4CD07D06D752473"
     },
     {
       "卡牌ID": "character-fdf-115",
       "名称": "「自异星而来的物体」",
       "数据": "res://cards/character-fdf-115.json",
       "图片": "res://recourse/数据库/character-fdf-115.jpg",
-      "SHA256": "47AFF8611AA579ADFD33E30945D72AA489C937D18C8710D4FDD7B42D246D18EF"
+      "SHA256": "E28D2CC321B54B1CE23EFEF992D184E73DA9A77D3FFED919EEC8C13D95EF79FD"
     },
     {
       "卡牌ID": "character-fdf-109",
       "名称": "花田的新人「梅蒂欣·梅兰可莉」",
       "数据": "res://cards/character-fdf-109.json",
       "图片": "res://recourse/数据库/character-fdf-109.jpg",
-      "SHA256": "0689CCF3E6E8CAA3FCB4F949EC7A78897FF807D5123A12B41543E24636D8BA96"
+      "SHA256": "D2D0155AF7F77B82BD11C5DB80F7482455D64D48F9E9D6437D66430EB04C7C98"
     },
     {
       "卡牌ID": "spell-fdf-031",
       "名称": "花符「Flower Land」",
       "数据": "res://cards/spell-fdf-031.json",
       "图片": "res://recourse/数据库/spell-fdf-031.jpg",
-      "SHA256": "37536AE683053B4C515775E7729A811870D0FEA85689A9089A918F2B2DAB0825"
+      "SHA256": "0F2F3A6D0A97CD355FF305D1BD9269E71A577B6C43AA723A2CC2C6ECF3748B7D"
     },
     {
       "卡牌ID": "spell-ucs-035",
       "名称": "花符「幻想乡ノ开花」",
       "数据": "res://cards/spell-ucs-035.json",
       "图片": "res://recourse/数据库/spell-ucs-035.jpg",
-      "SHA256": "DD7D84BD7B39CCE6A099549F06718229E8CAD249097AA9B3554F4C35D32697EF"
+      "SHA256": "26AFCFA0DDC0DC73AC7764874471183A06A036E3A07D0853497CC190AFA555B7"
     },
     {
       "卡牌ID": "spell-fdf-043",
       "名称": "萃符「户隐山ノ投」",
       "数据": "res://cards/spell-fdf-043.json",
       "图片": "res://recourse/数据库/spell-fdf-043.jpg",
-      "SHA256": "569071AC47EA8D72CBBC0E1647BF22B654168C7F014B421626335A30E1D0D10F"
+      "SHA256": "AD629A4D16F0821EE8B075E6E2806AA30F0CC2951C0B25350052C618E9A3B23B"
     },
     {
       "卡牌ID": "character-fdf-104",
       "名称": "萤火的行踪「莉格露·奈特巴格」",
       "数据": "res://cards/character-fdf-104.json",
       "图片": "res://recourse/数据库/character-fdf-104.jpg",
-      "SHA256": "7CAEEB53B3792C9B27418F44878227E02727C30C3383278D2A47BD8C6F09AFF5"
+      "SHA256": "DE8ABF39C3F07363BB2CAA01773416C22E337055DB042DF23587E292F7EDA00E"
     },
     {
       "卡牌ID": "spell-fdn-002",
       "名称": "蓬莱「凯风快晴-Fujiyama Volcano-」",
       "数据": "res://cards/spell-fdn-002.json",
       "图片": "res://recourse/数据库/spell-fdn-002.jpg",
-      "SHA256": "16AE8EBC30F1A3F1E83C844EF716DDE670503B44B3A50170B9753C35205F7071"
+      "SHA256": "DBA908D1C49D9341F2CEBCDA5C2A727233372C1D84CA3F6330FD0B5D98AFBAA0"
     },
     {
       "卡牌ID": "spell-fdf-010",
       "名称": "虚史「幻想乡传说」",
       "数据": "res://cards/spell-fdf-010.json",
       "图片": "res://recourse/数据库/spell-fdf-010.jpg",
-      "SHA256": "019F0FAE8029D18B8E769219DB6241ECF76332BF9FEA4FC420628904EF5426A0"
+      "SHA256": "7A09A8C3DE6FCC1885D027A2AAB8E756EA9685F62F8D386870E250B2E115C9FE"
     },
     {
       "卡牌ID": "spell-fdf-021",
       "名称": "表象「弹幕偏执狂」",
       "数据": "res://cards/spell-fdf-021.json",
       "图片": "res://recourse/数据库/spell-fdf-021.jpg",
-      "SHA256": "6FFC52B01ACC1D8780A748E2224F251A674B8C4BB7C2AB81F47EEED57D4D3E6F"
+      "SHA256": "461FA977534ACD0BCAA31D0994CF250CBBF93A85DFE58C974B9DAC6448E32CF8"
     },
     {
       "卡牌ID": "character-fdn-037",
       "名称": "「要塞的天狗」",
       "数据": "res://cards/character-fdn-037.json",
       "图片": "res://recourse/数据库/character-fdn-037.jpg",
-      "SHA256": "E38A258783BAB24CD879C5C6234AEF6D54995876B186B415C1A13B96D42CC4A6"
+      "SHA256": "DA671FC26067336AA45EC439A1FEB42B3EB3915C6A9FD5BA7A912513481A0001"
     },
     {
       "卡牌ID": "token-fdf-129",
       "名称": "要石",
       "数据": "res://cards/token-fdf-129.json",
       "图片": "res://recourse/数据库/token-fdf-129.jpg",
-      "SHA256": "79347B5C2D0CC2E5C7D0FD03665120B25BC1661AEEB3769A2DC764064146C9E0"
+      "SHA256": "3903FDE9624CED7F5ED3DD318864661FFD0AD3BF176BF10EA961EDC80D620DDC"
     },
     {
       "卡牌ID": "spell-fdf-013",
       "名称": "要石「天空ノ灵石」",
       "数据": "res://cards/spell-fdf-013.json",
       "图片": "res://recourse/数据库/spell-fdf-013.jpg",
-      "SHA256": "95D1E649EE7A1EF2087CD82A408FAC3511C856FBDB63405CD11626C0D3664EEC"
+      "SHA256": "31E97DCC450BDEEC3D99C77465FF2C285F338091C67845BC3FA38DB675B08942"
     },
     {
       "卡牌ID": "spell-fdf-025",
       "名称": "诅咒「魔光ノ上海人形」",
       "数据": "res://cards/spell-fdf-025.json",
       "图片": "res://recourse/数据库/spell-fdf-025.jpg",
-      "SHA256": "69C07354221D0D767916DEFB84EF046484F7B3F3A45CEC2FDFC16875DB5A0B54"
+      "SHA256": "F73ABB0694B8B89F06A166C23241334D6F6D8A406D1DDDA0BB4161C64E780C4F"
     },
     {
       "卡牌ID": "character-fdn-045",
       "名称": "试作型超巨大人偶「歌莉娅人偶」",
       "数据": "res://cards/character-fdn-045.json",
       "图片": "res://recourse/数据库/character-fdn-045.jpg",
-      "SHA256": "E2E902F4BEB49946F7064C1390D2F4342A91767ADB97CFEA13A2E2C69AFDBCCA"
+      "SHA256": "54BCB65F10CA25EF6C89E83C26A018421BD42BDCF1803AB11A3696FE622E68F1"
     },
     {
       "卡牌ID": "character-fdf-069",
       "名称": "诵经的山彦「幽谷响子」",
       "数据": "res://cards/character-fdf-069.json",
       "图片": "res://recourse/数据库/character-fdf-069.jpg",
-      "SHA256": "5DFB14BEBF528E2A632FA05CA0C0BBEAE8B3B69136D81C6BE1ABEE7487CAAB46"
+      "SHA256": "73F079F230AC7DADFDBBEEB0C6A5DC2241F0C82F69700E8D2890FA89F8A8F174"
     },
     {
       "卡牌ID": "character-ucs-025",
       "名称": "「诹访子与赤口大人」",
       "数据": "res://cards/character-ucs-025.json",
       "图片": "res://recourse/数据库/character-ucs-025.jpg",
-      "SHA256": "CBF7394C13E02BFC4703DF761E892AFFB89776F809683E32557CF283B958BEFD"
+      "SHA256": "3B58080CE0A08B752F45BD900BE71B3527DA139D74AB5FC4CB4F409BF9451825"
     },
     {
       "卡牌ID": "spell-fdf-121",
       "名称": "赎罪「旧地狱的针山」",
       "数据": "res://cards/spell-fdf-121.json",
       "图片": "res://recourse/数据库/spell-fdf-121.jpg",
-      "SHA256": "523CAE3E462789B7D423342BF639F251ADF8DD9A1E5FE02923E5F2F13880F964"
+      "SHA256": "8214A86B24A417BBC0004DC14DF403009C55864E7E0E283EC23A999E0C8AE11A"
     },
     {
       "卡牌ID": "field-rei-013",
@@ -3283,126 +3283,126 @@
       "名称": "辘轳首的怪奇「赤蛮奇」",
       "数据": "res://cards/character-fdn-034.json",
       "图片": "res://recourse/数据库/character-fdn-034.jpg",
-      "SHA256": "6B3A39DF1951CEE249C88B498490843D14A83B4C9358C971ED9C6D4CA4BEBF59"
+      "SHA256": "B2C09D07768A905A2FB4F8932333EFB763D5BF08F3A7AD60CA2AB2E0F8B1E68F"
     },
     {
       "卡牌ID": "character-ucs-065",
       "名称": "逆袭的天邪鬼「鬼人正邪」",
       "数据": "res://cards/character-ucs-065.json",
       "图片": "res://recourse/数据库/character-ucs-065.jpg",
-      "SHA256": "CDA01DB0CAE8E85F7516D4C30ED3AAF39F34FAD37C78487FA64B7DB502D6B9AE"
+      "SHA256": "9C0CCA6FE6AA961F6C22888687782241B03803DB4F80DA0804E1493CE5317467"
     },
     {
       "卡牌ID": "spell-fdf-001",
       "名称": "道符「掌上の天道」",
       "数据": "res://cards/spell-fdf-001.json",
       "图片": "res://recourse/数据库/spell-fdf-001.jpg",
-      "SHA256": "2071A940683F18F6CD63EB1E01D9B87E0F8BEC9E318C7F6F65A80D5C98213CD5"
+      "SHA256": "391C59DE0131FC73AE8C212631CCBD7001EB514C010FB818752554C6BFF950A3"
     },
     {
       "卡牌ID": "spell-fdf-075",
       "名称": "金符「Metal Fatigue」",
       "数据": "res://cards/spell-fdf-075.json",
       "图片": "res://recourse/数据库/spell-fdf-075.jpg",
-      "SHA256": "8A6BC5769DFC2519E2ACBF2DD50BEDCDC3D4958C9A5539B349B96A33ACCB3C08"
+      "SHA256": "015DF04945BD8B0355EE83B32B00B961E044792AE5F3828D0C07B0E31D08CB7C"
     },
     {
       "卡牌ID": "spell-fdf-068",
       "名称": "门符「最后ノ理想国」",
       "数据": "res://cards/spell-fdf-068.json",
       "图片": "res://recourse/数据库/spell-fdf-068.jpg",
-      "SHA256": "AD4DBD6C0D844F06A9978227A716604B898CED9F356BD7A8560474604A10FA63"
+      "SHA256": "066831F1766B46DA057C739CF947F3AC752F730D1F409B5FA351A706CE69D3CE"
     },
     {
       "卡牌ID": "character-fdn-042",
       "名称": "难以驾驭的神之火「灵乌路空」",
       "数据": "res://cards/character-fdn-042.json",
       "图片": "res://recourse/数据库/character-fdn-042.jpg",
-      "SHA256": "E409D8911973253810AC5BE638F1F74C4A9E9F20B10EC0F09248773CC501F7B8"
+      "SHA256": "860A61DDA9299EE3009D11D9B1CAC3F893FA5F3ADE81A895A75ED62BD3955EDE"
     },
     {
       "卡牌ID": "spell-ucs-050",
       "名称": "雨符「虹彩细雨」",
       "数据": "res://cards/spell-ucs-050.json",
       "图片": "res://recourse/数据库/spell-ucs-050.jpg",
-      "SHA256": "AEACC407516DD35BF2FC0D1C2231E9E09AC52A647A89E1200A29C1A1868B205B"
+      "SHA256": "C8C4F38CBAC66D126DF097E352F18B9DD45B6E912478C85C55CFFD14AAF43D36"
     },
     {
       "卡牌ID": "spell-fdf-123",
       "名称": "雨符「雨夜ノ怪谈」",
       "数据": "res://cards/spell-fdf-123.json",
       "图片": "res://recourse/数据库/spell-fdf-123.jpg",
-      "SHA256": "B5846467A3EE25D0B87CE14A6E0ECE0E30B2963CFC0D9B1B9AD5D8786FB56CFD"
+      "SHA256": "D80D8144AF877A1639483ECB30D67D62EB43C02703162649E95717A07398B8EA"
     },
     {
       "卡牌ID": "character-fdf-101",
       "名称": "雪中的天狗「犬走椛」",
       "数据": "res://cards/character-fdf-101.json",
       "图片": "res://recourse/数据库/character-fdf-101.jpg",
-      "SHA256": "8188E431707BC98950DBBA7D4965C320E8E1B98988E6742C99C3D15A0CF523E7"
+      "SHA256": "5FF26BA3CB481019434488A05A87656DAB8E7E98391263B1D0A46AD8C7BCDC8F"
     },
     {
       "卡牌ID": "character-lof-002",
       "名称": "雾之湖公主「大妖精」",
       "数据": "res://cards/character-lof-002.json",
       "图片": "res://recourse/数据库/character-lof-002.jpg",
-      "SHA256": "67453BEAB5B305B8592892B0D844F68783B8E6CADDAABFC2AB9922156154C702"
+      "SHA256": "FC05E215638BF33326802DE872C887A2D7C676F7E74071A35AFA9960B50C9662"
     },
     {
       "卡牌ID": "spell-fdn-015",
       "名称": "雾符「云集雾散」",
       "数据": "res://cards/spell-fdn-015.json",
       "图片": "res://recourse/数据库/spell-fdn-015.jpg",
-      "SHA256": "082BCEEA1E9221B51DAC7DF5CD51B88E218752894C004930333D63815D36C131"
+      "SHA256": "8EA38848AEE8B06040354B26BC90A4115FC91857CBB7DDF3A82FD8CDA6D685A1"
     },
     {
       "卡牌ID": "spell-fdf-062",
       "名称": "鬼群「Imp Swarm」",
       "数据": "res://cards/spell-fdf-062.json",
       "图片": "res://recourse/数据库/spell-fdf-062.jpg",
-      "SHA256": "6C5E63B2D1E4E0B21BF584C6E7D5EAE32F1CB114EA2DB3897F13C48EE078AE76"
+      "SHA256": "CF57EF50BE8E04275754721C98CB765FAD8EC880E49475DEAC4027313B8DA166"
     },
     {
       "卡牌ID": "spell-fdf-045",
       "名称": "魂符「生魂流离ノ镰」",
       "数据": "res://cards/spell-fdf-045.json",
       "图片": "res://recourse/数据库/spell-fdf-045.jpg",
-      "SHA256": "2C3537C3B72746525EC3A58A180C5F91FFD921C770AC94A606CE3E1C0E27EDD0"
+      "SHA256": "D53D057B2CBC32035977A34AD3311950BC2B0AD6BAF33089C5D4E52FD054977D"
     },
     {
       "卡牌ID": "spell-fdn-012",
       "名称": "魂魄「幽冥求闻持聪ノ法」",
       "数据": "res://cards/spell-fdn-012.json",
       "图片": "res://recourse/数据库/spell-fdn-012.jpg",
-      "SHA256": "54C944B4B1B86BF18B6873E0255670584AC7155597223926A7F44DE2A3972895"
+      "SHA256": "2E0A07C229D7808CE9C9DA4AACDB6F97BBDD5E188534B06DE0A6BCCC755FEB7E"
     },
     {
       "卡牌ID": "spell-fdf-053",
       "名称": "魔法「紫云ノ兆」",
       "数据": "res://cards/spell-fdf-053.json",
       "图片": "res://recourse/数据库/spell-fdf-053.jpg",
-      "SHA256": "3C579C4574A5B1F4F453A490C12C8526C6C0694BA82C200D0C438D4C6C3BCDAE"
+      "SHA256": "1A773B5435CE8A4D64D763780719CE4D28ACD506B992682969FADE195B27E3E6"
     },
     {
       "卡牌ID": "character-fdn-013",
       "名称": "「魔法之森的妖精」",
       "数据": "res://cards/character-fdn-013.json",
       "图片": "res://recourse/数据库/character-fdn-013.jpg",
-      "SHA256": "C569D23F176160FE7EA3310CE0163F7BEC642562AF690AB6281F44938F378166"
+      "SHA256": "F741D52D7CC3DCB611151DEE2911C72E80A114B79C5FA50CBBED229F3635DB53"
     },
     {
       "卡牌ID": "spell-fdf-008",
       "名称": "魔炮「Final Master Spark」",
       "数据": "res://cards/spell-fdf-008.json",
       "图片": "res://recourse/数据库/spell-fdf-008.jpg",
-      "SHA256": "21AD3E4A76BCB307B1CD935842BF8DF015C4D8AC6C27EADF475DBAFF5AD5A025"
+      "SHA256": "66FEFCC45FA44D53C8DFC81DBF5FD3FF506DD64882FE0BFCADF28CD0A2DCFB69"
     },
     {
       "卡牌ID": "character-fdf-091",
       "名称": "鲜红的恶魔「蕾米莉亚·斯卡雷特」",
       "数据": "res://cards/character-fdf-091.json",
       "图片": "res://recourse/数据库/character-fdf-091.jpg",
-      "SHA256": "DBD851D4235710793B05B187361DE2412BC3610247B2860A78C80CBA83F03603"
+      "SHA256": "55025A2F9DB2DD532886BE77C0C4107EA4AE30473504C6E54EF3C9242BD1358F"
     },
     {
       "卡牌ID": "new-eto-001",
@@ -3734,14 +3734,14 @@
       "名称": "源符「厌川丿翡翠」",
       "数据": "res://cards/spell-fdf-034.json",
       "图片": "res://recourse/数据库/spell-fdf-034.png",
-      "SHA256": "1E34668AB7BB57943302103D0174750CA592F913D31B3A524AA288586663A90E"
+      "SHA256": "55056F340833290979554B2F56FCF14C655F9AA26A332DCBDC003576617E04E0"
     },
     {
       "卡牌ID": "spell-fdf-124",
       "名称": "风神「风神木叶隐身术」",
       "数据": "res://cards/spell-fdf-124.json",
       "图片": "res://recourse/数据库/spell-fdf-124.png",
-      "SHA256": "F368C6D7AC287F20DF45992535A73130A31436CC758E1F08F67A6FF7579A497E"
+      "SHA256": "ED6CA48F22CF0FD6C45C74F868FB294EFB12C4FA4ED14C094DBE1DCFE0407C9A"
     }
   ]
 }

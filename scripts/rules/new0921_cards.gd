@@ -174,7 +174,7 @@ static func resolve_trigger(e,t):
    e.shuffle(p.deck)
   "LOC-005":
    if a.mode=="防避2":
-    if C.unit(e,a):e.Pack.shield(e,a,[2])
+    if C.unit(e,a):e.Pack.shield(e,a,[2],false,false)
    else:
     e.draw(who);C.continued_move(e,t,p.hand,mini(1,p.hand.size()),1,"grave","弃一张牌")
   "SPX-007":
@@ -249,17 +249,28 @@ static func resolve_trigger(e,t):
     if plan.ways>0:C.pay(e,who,a.get("payment",plan.plan));copy_choose(e,t,d.entry,1)
   "dream_copy":copy_choose(e,t,d.entry,2)
   "copy_finish":
-   var original=d.entry;var c=e.make_card(original.card.card_id,who,"stack");c.stack_copy=true;c.token=true
-   for k in ["cast_x","paid_dolls","exiled_hand","ichirin_paid"]:
+   var original=d.entry;var target=C.retarget_result(a)
+   var c=e.make_card(original.card.card_id,who,"stack");c.stack_copy=true;c.token=true
+   for k in ["cast_x"]:
     if original.card.has(k):c[k]=original.card[k]
-   var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":C.retarget_result(a),"name":e.cards[c.card_id].name,"copy":true}
+   # Each copy pays its own non-color costs before it is put on the stack.
+   if e.Roster.key(e.cards[c.card_id],["discard_draw","door_reveal"])!="":
+    for r in e.Pack.picked(target):e.move_to(e.find_card(r.uid),"grave")
+   c.merge(e.Cat.paid_cast(e,c,target,who),true)
+   if target.has("sacrifice"):e.sacrifice(e.find_card(target.sacrifice.uid))
+   var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":target,"name":e.cards[c.card_id].name,"copy":true}
    e.next_stack+=1;e.stack.append(copy);on_target(e,copy.target);e.note("复制 · "+copy.name,e.history_art(c));e.priority=e.active;e.passes=0
    if d.remaining>1:copy_choose(e,t,original,d.remaining-1)
   "deer_name":
    for c in C.field(e).duplicate():
     if e.cards[c.card_id].kind in ["道具","结界"] and e.cards[c.card_id].name==a.card_name:e.destroy(c)
  return true
-static func copy_choose(e,t,entry,n):choose(e,t,"copy_finish",e.Cat.retarget_options(e,entry,-1,true),{"entry":entry,"remaining":n})
+static func copy_choose(e,t,entry,n):
+ var options=e.Cat.retarget_options(e,entry,-1,true,true)
+ if options.is_empty():
+  e.note("无法支付复制品的额外代价",e.history_art(entry.card))
+  return
+ choose(e,t,"copy_finish",options,{"entry":entry,"remaining":n})
 static func spell_options(e,card_id,who):
  var code=card_id.trim_prefix("new-").to_upper()
  if "n21:"+code not in SPELLS:return null

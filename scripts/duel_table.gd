@@ -82,6 +82,7 @@ var damage_hold_seconds=1.0
 var deferred_sync={}
 var collision_count=0
 var last_collision_targets=[]
+var unit_order={0:[],1:[]}
 
 static func pile_height(count: int) -> float:
  return maxi(count,0)*LAYER_HEIGHT
@@ -281,6 +282,7 @@ func layout() -> Dictionary:
   var groups={"unit":[],"item":[],"support":[],"melody":[]}
   for c in p.field:
    groups[field_group(c)].append(c)
+  groups.unit=ordered_units(who,groups.unit)
   for group in groups:
    var bundles=[];var keys={}
    for c in groups[group]:
@@ -332,6 +334,80 @@ func field_group(c: Dictionary) -> String:
  if duel.is_unit(c):return "unit"
  if duel.is_melody(c):return "melody"
  return "item" if duel.cards[c.card_id].kind=="道具" else "support"
+
+func ordered_units(who: int,units: Array) -> Array:
+ var current: Array=unit_order.get(who,[])
+ var ids=units.map(func(c):return c.uid)
+ var next=[]
+ for uid in current:
+  if uid in ids:next.append(uid)
+ for uid in ids:
+  if uid not in next:next.append(uid)
+ unit_order[who]=next
+ var result=units.duplicate()
+ result.sort_custom(func(a,b):return next.find(a.uid)<next.find(b.uid))
+ return result
+
+func unit_family_name(c: Dictionary) -> String:
+ var name=str(duel.cards[c.card_id].name).strip_edges()
+ for suffix in ["（衍生物）","(衍生物)","【衍生物】","衍生物单位","单位衍生物","衍生物","单位"]:
+  if name.ends_with(suffix):
+   name=name.trim_suffix(suffix).strip_edges()
+   break
+ while not name.is_empty() and name.substr(name.length()-1) in ["·","・","-","—","_","（","("]:
+  name=name.substr(0,name.length()-1).strip_edges()
+ return name
+
+func auto_sort_units():
+ for who in range(2):
+  var units=duel.players[who].field.filter(func(c):return duel.is_unit(c))
+  var family_values={}
+  for c in units:
+   var family=unit_family_name(c)
+   var value=duel.Extra.cost_value(duel,c)
+   var existing=family_values.get(family,{})
+   if existing.is_empty() or (not c.get("token",false) and existing.token) or c.get("token",false)==existing.token and value<existing.value:
+    family_values[family]={"value":value,"token":c.get("token",false)}
+  units.sort_custom(func(a,b):
+   var a_free=duel.Extra.keyword(duel,a,"不占战场格")
+   var b_free=duel.Extra.keyword(duel,b,"不占战场格")
+   if a_free!=b_free:return not a_free
+   var a_name=unit_family_name(a)
+   var b_name=unit_family_name(b)
+   var a_value=family_values[a_name].value
+   var b_value=family_values[b_name].value
+   if a_value!=b_value:return a_value<b_value
+   if a_name!=b_name:return a_name.naturalnocasecmp_to(b_name)<0
+   if a.get("token",false)!=b.get("token",false):return not a.get("token",false)
+   return a.uid<b.uid)
+  unit_order[who]=units.map(func(c):return c.uid)
+
+func reorder_unit(uid: int,point: Vector2) -> bool:
+ var c=duel.find_card(uid)
+ if c.is_empty() or c.zone!="field" or not duel.is_unit(c):return false
+ var origin=camera.project_ray_origin(point)
+ var at=Plane(Vector3.UP,0).intersects_ray(origin,camera.project_ray_normal(point))
+ if at==null:return false
+ var side=1.0 if c.owner==local_seat else -1.0
+ var local=Vector2(at.x*side,at.z*side)
+ var bounds=WIDE_ZONES.unit if wide_playmat else Rect2(-7.5,0.1,15.0,(2.4 if top_down_view else 3.1)-0.1)
+ if not bounds.has_point(local):return false
+ var ordered=ordered_units(c.owner,duel.players[c.owner].field.filter(func(u):return duel.is_unit(u)))
+ var signature=duel.stackable_signature(c)
+ var moving=ordered.filter(func(u):return u.uid==uid or not signature.is_empty() and duel.stackable_signature(u)==signature)
+ var remaining=ordered.filter(func(u):return u not in moving)
+ var target_index=remaining.size()
+ for i in range(remaining.size()):
+  var other=remaining[i]
+  var key="card_"+str(other.uid)
+  if descriptors.has(key) and local.x<descriptors[key].at.x*side:
+   target_index=i
+   break
+ for i in range(moving.size()):remaining.insert(target_index+i,moving[i])
+ var next=remaining.map(func(u):return u.uid)
+ if next==unit_order.get(c.owner,[]):return false
+ unit_order[c.owner]=next
+ return true
 func back_row_bounds(group: String) -> Rect2:
  if wide_playmat:return WIDE_ZONES[group]
  if top_down_view:return Rect2(-7.35,2.05,8.1,2.4) if group=="item" else Rect2(1.2,2.05,6.15,2.4)

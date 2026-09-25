@@ -8,7 +8,7 @@ func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
  app=load("res://main.tscn").instantiate(); root.add_child(app); await process_frame
  app.load_legacy_test_decks(); app.begin_battle(true); view=app.duel_view; view.set_process(false); e=view.engine
- clean(true); var sunny=put("1","deck"); var item=put("165","deck")
+ clean(true); app.debug_drag_to_field=true; var sunny=put("1","deck"); var item=put("165","deck")
  view.render(); await settle(); view.browse_zone(0,"deck"); await process_frame
  var original=e.log.duplicate(); var next=e.next_stack
  await drag(top_art().get_global_rect().get_center(),view.project(Vector3(0,0,2)))

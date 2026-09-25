@@ -42,10 +42,10 @@ static func capture(owner: Control,deck: Dictionary,unsaved: bool=false) -> Dict
  for index in range(deck.main.size()):
   _card(canvas,str(deck.main[index]),Rect2(MAIN_X+(index%10)*CARD_STEP_X,160+floori(float(index)/10.0)*CARD_STEP_Y,CARD_WIDTH,CARD_HEIGHT),thumbnails)
  if deck.main.is_empty():_text(canvas,"主卡组为空",Rect2(MAIN_X,250,680,48),28,Color("#91a5b7"))
- _text(canvas,"副卡组",Rect2(32,side_title_y,600,36),25,Color("#d9b775"))
+ _text(canvas,"副卡组",Rect2(MAIN_X,side_title_y,600,36),25,Color("#d9b775"))
  for index in range(deck.side.size()):
-  _card(canvas,str(deck.side[index]),Rect2(32+index*CARD_STEP_X,side_card_y,CARD_WIDTH,CARD_HEIGHT),thumbnails)
- if deck.side.is_empty():_text(canvas,"副卡组为空",Rect2(32,side_card_y+72,500,42),24,Color("#91a5b7"))
+  _card(canvas,str(deck.side[index]),Rect2(MAIN_X+index*CARD_STEP_X,side_card_y,CARD_WIDTH,CARD_HEIGHT),thumbnails)
+ if deck.side.is_empty():_text(canvas,"副卡组为空",Rect2(MAIN_X,side_card_y+72,500,42),24,Color("#91a5b7"))
  await owner.get_tree().process_frame
  await RenderingServer.frame_post_draw
  var image=viewport.get_texture().get_image()

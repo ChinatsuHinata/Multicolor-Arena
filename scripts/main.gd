@@ -46,6 +46,7 @@ var network_game_open=""
 var status = ""
 var debug_mode=false
 var debug_free_payment=false
+var debug_drag_to_field=false
 var about_code=""
 var fullscreen = false
 var top_down_view = false
@@ -82,6 +83,7 @@ func _ready():
    fullscreen = saved_settings.get("fullscreen", false) == true
    top_down_view = saved_settings.get("top_down_view", false) == true
    show_card_inspection = saved_settings.get("show_card_inspection", true) == true
+   debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  menu()
  if not load_error.is_empty(): alert(load_error)
@@ -157,16 +159,19 @@ func texture(id: String) -> Texture2D:
  if id=="potato": return load("res://assets/potato.svg")
  if id=="token_halfghost" and Store.CARDS.has("token-ucs-099"):return texture("token-ucs-099")
  if id in ["token_ufo","token_halfghost"]: return load("res://assets/"+id+".svg")
+ var image_path=""
  if not Store.CARDS.has(id):
   if is_instance_valid(duel_view) and duel_view.engine.cards.has(id):
    var info=duel_view.engine.cards[id]
    if info.has("copy_source_id"):return texture(info.copy_source_id)
-   if info.get("token",false):return load("res://assets/roster_token.svg")
-  return null
+   image_path=info.get("image","")
+   if image_path.is_empty() and info.get("token",false):return load("res://assets/roster_token.svg")
+  if image_path.is_empty():return null
+ else:image_path=Store.CARDS[id].image
  if textures.has(id):
   var cached=textures[id]; textures.erase(id); textures[id]=cached
   return cached
- var resource = load(Store.CARDS[id].image) as Texture2D
+ var resource = load(image_path) as Texture2D
  if resource == null: return null
  var img = resource.get_image()
  if img.get_width() > img.get_height(): img.rotate_90(CLOCKWISE)
@@ -307,11 +312,18 @@ func settings():
  inspection_cb.button_pressed = show_card_inspection
  inspection_cb.toggled.connect(set_show_card_inspection)
  screen.add_child(inspection_cb)
+ var drag_cb=CheckButton.new()
+ drag_cb.text="测试模式：允许拖动卡牌放入战场"
+ drag_cb.position=Vector2(420,530)
+ drag_cb.size=Vector2(700,60)
+ drag_cb.button_pressed=debug_drag_to_field
+ drag_cb.toggled.connect(set_debug_drag_to_field)
+ screen.add_child(drag_cb)
 
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"debug_drag_to_field":debug_drag_to_field}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -321,6 +333,10 @@ func set_top_down_view(value: bool):
 
 func set_show_card_inspection(value: bool):
  show_card_inspection=value
+ save_settings()
+
+func set_debug_drag_to_field(value: bool):
+ debug_drag_to_field=value
  save_settings()
  
 
@@ -586,7 +602,8 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
  if term.is_empty():return true
  if term=="衍生物":return info.get("token",false)
  if term=="梦违":return not info.get("constructible",false) and not info.get("token",false) and ("梦违" in info.name or "梦违" in info.get("rules_text","") or "梦违" in info.get("keywords",[]))
- var role_spell=info.kind=="符卡" and "角色" in str(info.get("spell_type","")) and info.get("requires_character","") in role_characters
+ var required_character=str(info.get("requires_character",""))
+ var role_spell=info.kind=="符卡" and not required_character.is_empty() and role_characters.any(func(character):return character==required_character or str(character).begins_with(required_character+"·") or str(character).begins_with(required_character+"・"))
  if not filters.is_empty():
   var race_match=filters.race=="" or filters.race in info.get("race",[]) or library_related_to_race(info,filters.race,race_characters)
   var color_match=library_kind_matches(info,filters.kind) and race_match and (not filters.single or info.colors.size()==1) and filters.colors.all(func(color):return color in info.colors)

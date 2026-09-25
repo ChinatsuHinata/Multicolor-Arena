@@ -162,7 +162,7 @@ static func emotions(e,entry,remaining:Array):
      return
 static func rewritten_resolve(e,entry):
  var id="mask_fairy_"+str(e.next_uid)
- e.cards[id]={"name":"妖精衍生物","kind":"单位","character":"妖精","title":"","race":["妖精"],"colors":["蓝","绿"],"cost":{},"power":3,"health":3,"spirit":3,"keywords":["不占战场格"],"abilities":[],"fast":false,"requires_character":"","rules_text":"不计战场格","token":true,"constructible":false}
+ e.cards[id]={"name":"妖精衍生物","kind":"单位","character":"妖精","title":"","race":["妖精"],"colors":["蓝","绿"],"cost":{},"power":3,"health":3,"spirit":3,"keywords":["不占战场格"],"abilities":[],"fast":false,"requires_character":"","rules_text":"不计战场格","token":true,"constructible":false,"image":"res://assets/token_cards/fairy.jpg"}
  e.enter_field(e.make_card(id,entry.owner,"token"),entry.owner)
  var info=e.cards[entry.card.card_id]
  if "时符" in info.get("spell_type","") or "乐章" in info.get("spell_type",""):

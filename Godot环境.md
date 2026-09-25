@@ -17,6 +17,8 @@
 - **Godot: 打开编辑器**：打开本项目的 Godot 编辑器。进入编辑器后按 Godot 的 `F6` 可运行当前场景，按 `F5` 可运行整个项目。
 - **Godot: 运行当前测试脚本**：先在 VS Code 打开 `tests/` 下要运行的 `.gd` 测试文件，再执行该任务。它以无界面模式运行，测试结果和退出码显示在终端中。
 - **Windows: 创建安装包**：重新导入、导出并创建安装程序。安装任务现在从任务列表选择，不再占用 `Ctrl+Shift+B`。
+- **Windows: 创建差分补丁**：输入要升级的旧版本号，导出当前版本并制作、验证差分安装器。
+- **Windows: 仅重新打包差分补丁**：输入旧版本号，复用 `builds/installer-staging/<当前版本>/` 中已有的 EXE/PCK。
 
 如果经常运行当前测试脚本，可在 VS Code 的 **Preferences: Open Keyboard Shortcuts (JSON)（首选项: 打开键盘快捷方式(JSON)）** 中添加以下个人快捷键：
 
@@ -43,6 +45,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-installer.ps
 安装程序按固定 AppId 检测此前由本安装包安装的版本，自动选用原安装目录并覆盖更新 EXE/PCK。默认安装在当前用户的 `%LOCALAPPDATA%\Programs\MulticolorArena`，无需管理员权限。更新不打包也不删除安装目录中的 `deck`、`replay`，用户目录中的设置与联机身份也不受影响。旧版 ZIP 便携包没有安装记录，无法自动定位；若要在原文件夹覆盖，请在首次运行安装程序时手动选中该文件夹，并确保该文件夹可写。
 
 编译脚本会检查 Godot 版本、Git LFS 图片是否仍为指针、导入错误、导出错误以及 EXE/PCK 是否生成。日志位于 `.godot-toolchain/logs/`。
+
+## 在 VS Code 创建差分补丁
+
+运行“终端 → 运行任务”，选择 **Windows: 创建差分补丁**，输入要升级的旧版本号，例如 `1.2.1`。任务从 `project.godot` 读取新版本号，要求旧版 EXE/PCK 位于 `builds/installer-staging/<旧版本>/`，随后导出新版、验证差分并编译安装器。已有当前版本导出文件时，可选 **Windows: 仅重新打包差分补丁**；它跳过 Godot 导出，但仍验证新旧文件和差分结果。产物位于 `builds/installers/MulticolorArena-<旧版本>-to-<新版本>-win64-patch.exe`。详细前提及自定义旧版目录的方法见 `docs/修复补丁安装包.md`。
 
 ## 素材说明
 

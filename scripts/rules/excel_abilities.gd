@@ -152,8 +152,9 @@ static func invalidate(e,t: Dictionary,who: int,spell: bool) -> Dictionary:
  return out
 static func extra_cost(e,id: String,who: int,options: Array) -> Array:
  if key(e.cards[id],["discard_draw","door_reveal"]).is_empty(): return options
- var pool=refs(e,e.players[who].hand.filter(func(c): return c.card_id!=id or e.players[who].hand.filter(func(other): return other.card_id==id).size()>1))
- # Source UID is excluded again during commit, even when copies share a name.
+ # Exclude the source by UID in targets_for/commit_cast. A copy on the stack
+ # may legally discard the last card in hand even when it has the same name.
+ var pool=refs(e,e.players[who].hand)
  if pool.is_empty(): return []
  var g=e.Pack.group(pool,1,1,"弃置一张手牌"); g.cost=true
  return e.Pack.selection([g],"additional_discard")
@@ -839,6 +840,8 @@ static func register_tokens(e):
  for kind in ["imp","pillar","kobito","ghost","bat","frog"]:
   var names={"imp":"小鬼","pillar":"御柱","kobito":"小人","ghost":"亡灵","bat":"蝙蝠","frog":"青蛙"}
   e.cards["roster_token_"+kind]={"name":names[kind],"kind":"单位","character":names[kind],"title":"","race":[names[kind]],"colors":["黑"],"cost":{},"power":1,"health":1,"spirit":1,"keywords":[],"abilities":[],"fast":false,"requires_character":"","rules_text":"","token":true,"constructible":false}
+  if kind in ["bat","kobito"]:e.cards["roster_token_"+kind].copy_source_id="token-kmo-027" if kind=="bat" else "token-smm-025"
+  if kind in ["pillar","frog"]:e.cards["roster_token_"+kind].image="res://assets/token_cards/"+kind+".jpg"
 static func create_token(e,who: int,kind: String,n: int,colors: Array,keywords: Array=[]) -> Dictionary:
  var id="roster_token_"+kind+"_"+str(e.next_uid);var info=e.cards["roster_token_"+kind].duplicate(true)
  info.power=n;info.health=n;info.spirit=n;info.colors=colors;info.keywords=keywords.duplicate()
@@ -850,6 +853,7 @@ static func create_token(e,who: int,kind: String,n: int,colors: Array,keywords: 
 static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  var id="roster_copy_"+str(e.next_uid);var info=e.cards[source.card_id].duplicate(true)
  info.name="偶像";info.character="偶像";info.title="";info.race=["埴轮"];info.token=true;info.constructible=false;info.copy_source_id=source.card_id
+ info.copy_marker="keiki"
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
  return c if e.enter_field(c,who) else {}
@@ -894,4 +898,3 @@ static func tax_options(e,who: int) -> Array:
    else:t.merge(e.Pack.ref(e,e.find_card(resource.uid)))
    result.append(t)
  return result
-

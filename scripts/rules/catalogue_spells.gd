@@ -114,7 +114,7 @@ static func resolve(e,t):
    C.damage(e,{"player":foe},n)
    for u in e.units(foe):C.damage(e,e.ref_target(u),n)
   "spell-fdf-088":
-   for u in e.units(who):C.buff(e,u,0,0,0,["防避5"])
+   for u in e.units(who):C.buff(e,u,0,0,0,["防避5"],false)
   "spell-fdf-005":p.leader.timer=0
   "spell-fdf-039":e.gain_life(who,p.palette.size())
   "spell-fdf-033":C.random_discard(e,foe,1);e.players[foe].life-=3
@@ -389,7 +389,7 @@ static func resolve_complex(e,t):
     if u.zone=="field":C.buff(e,u,0,1,1,["不能被阻挡"])
   "spell-ucs-057":
    var one=C.selected(e,a);var two=C.selected(e,a,1)
-   if not one.is_empty() and not two.is_empty() and one[0].uid!=two[0].uid:C.copy_unit(e,one[0],two[0],true)
+   if not one.is_empty() and not two.is_empty() and one[0].uid!=two[0].uid:C.copy_unit(e,one[0],two[0],true,"alice")
   "spell-fdf-006":pass # Graveyard static ability; resolution sends this card to the grave.
   "spell-fdn-018":
    C.choose(e,t,"cat:death_song_mode",[{"none":true,"mode":"自机区"},{"none":true,"mode":"牌库"}])
@@ -441,7 +441,7 @@ static func resolve_complex_choice(e,t):
    var c=d.card;var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":C.retarget_result(a),"name":e.cards[c.card_id].name,"copy":true};e.next_stack+=1;e.stack.append(copy);e.Roster.New.on_target(e,copy.target);e.priority=e.active;e.passes=0
    if d.get("rewritten_fairy",false):copy.rewritten_fairy=true
   "cat:copy_exile":
-   for u in C.selected(e,a):C.copy_token(e,who,u)
+   for u in C.selected(e,a):C.copy_token(e,who,u,false,"yukari")
   "cat:four_search":
    var list=[]
    for r in e.Pack.flatten(a):

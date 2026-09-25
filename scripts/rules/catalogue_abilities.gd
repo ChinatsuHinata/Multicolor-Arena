@@ -37,10 +37,10 @@ static func choose(e,t,k,options,data={},owner=-1):
  e.Roster.continue_choice(e,t,k,options,data,false,owner)
  if not e.pending.is_empty() and e.pending.has("trigger") and not e.pending.trigger.has("ability_text"):
   e.pending.trigger.ability_text=t.get("ability_text",t.get("name",e.cards[t.get("source",t.get("card",{})).get("card_id",e.DB.IDS[0])].name))
-static func buff(e,c,p=0,h=0,s=0,words=[]):
+static func buff(e,c,p=0,h=0,s=0,words=[],this_turn=true):
  var d={"攻击力":p,"血量":h,"灵力":s}
  for k in words:
-  if k.begins_with("防避"):e.Pack.shield(e,e.ref_target(c),[int(k.trim_prefix("防避"))])
+  if k.begins_with("防避"):e.Pack.shield(e,e.ref_target(c),[int(k.trim_prefix("防避"))],false,this_turn)
   else:d[k]=true
  e.apply_turn_buff(e.ref_target(c),d)
 static func damage(e,t,n):return e.damage_target(t,n)
@@ -58,6 +58,12 @@ static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art=""):
  var id="catalogue_token_"+str(e.next_uid)
  var info={"name":name,"kind":"单位","character":name,"title":"","race":[name],"colors":colors,"cost":{},"power":p,"health":h,"spirit":s,"keywords":words,"abilities":abilities,"fast":false,"requires_character":"","rules_text":"、".join(words),"token":true,"constructible":false}
  if not art.is_empty():info.copy_source_id=art
+ else:
+  var printed_art={"月兔":"token-fdf-132","幻象":"token-fdn-085","蝙蝠":"token-kmo-027","鬼":"token-fdf-130"}
+  var card_art={"飞头":"flying_head","青蛙":"frog","虫群":"swarm","人偶":"doll"}
+  if name in printed_art:info.copy_source_id=printed_art[name]
+  elif name=="吸血鬼":info.image="res://assets/token_cards/vampire_fdf.jpg" if p==3 else "res://assets/token_cards/vampire_fdn.jpg"
+  elif name in card_art:info.image="res://assets/token_cards/"+card_art[name]+".jpg"
  e.cards[id]=info;var c=e.make_card(id,who,"token")
  return c if e.enter_field(c,who) else {}
 static func printed_token(e,who,id):
@@ -164,13 +170,18 @@ static func grant_cast(e,c,who,free=false,cost_override={}):
  if choices.is_empty() or not error.is_empty():return
  var source={"owner":who,"source":c.duplicate(true),"effect":"cat:grant","name":e.cards[c.card_id].name,"optional":true}
  e.Roster.continue_choice(e,source,"cat:grant",choices,{"ref":ref(e,c),"free":free,"cost":cost_override,"ignore":false},true)
-static func copy_unit(e,c,template,keep_name=false):
+static func copy_unit(e,c,template,keep_name=false,copy_marker=""):
  var old=e.cards[c.card_id];var id="catalogue_copy_"+str(c.uid)+"_"+str(e.revision);var info=e.cards[template.card_id].duplicate(true)
  info.copy_source_id=template.card_id
+ info.erase("copy_marker")
+ if not copy_marker.is_empty():info.copy_marker=copy_marker
  if keep_name:info.name=old.name;info.character=old.character;info.title=old.title
  c.copy_original=c.get("copy_original",c.card_id);e.cards[id]=info;c.card_id=id
-static func copy_token(e,who,template,copy_counters=false):
- var id="catalogue_clone_"+str(e.next_uid);var info=e.cards[template.card_id].duplicate(true);info.token=true;info.constructible=false;info.copy_source_id=template.card_id;e.cards[id]=info
+static func copy_token(e,who,template,copy_counters=false,copy_marker=""):
+ var id="catalogue_clone_"+str(e.next_uid);var info=e.cards[template.card_id].duplicate(true);info.token=true;info.constructible=false;info.copy_source_id=template.card_id
+ info.erase("copy_marker")
+ if not copy_marker.is_empty():info.copy_marker=copy_marker
+ e.cards[id]=info
  var c=e.make_card(id,who,"token")
  if not e.enter_field(c,who):return {}
  if copy_counters:c.plus_counters=int(template.get("plus_counters",0))
@@ -313,13 +324,13 @@ static func milled(e,c):
  for u in field(e):
   if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":1,"milled_owner":c.owner})
 
-static func retarget_options(e,entry,x=-1,change_modes=false):
+static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false):
  var old=entry.target;var options=[]
- e.catalogue_retargeting=true
+ e.catalogue_retargeting=not repay_cost
  if entry.kind=="card":
   # These spells paid their sacrifice when cast. The paid unit is no longer
   # available to build fresh cast options, but only the recipient may change.
-  if entry.card.card_id in ["94","163"] and old.has("sacrifice"):
+  if not repay_cost and entry.card.card_id in ["94","163"] and old.has("sacrifice"):
    var recipients=e.Pack.all_units(e) if entry.card.card_id=="94" else e.Extra.zone_refs(e,"grave",entry.owner).filter(func(r):return e.is_unit(e.find_card(r.uid)) and e.Extra.cost_value(e,e.find_card(r.uid))<=int(old.get("sacrifice_value",0)))
    for recipient in recipients:
     var option=recipient.duplicate(true)
@@ -344,6 +355,16 @@ static func retarget_options(e,entry,x=-1,change_modes=false):
   if not matches or not change_modes and not retarget_modes_match(old,option):continue
   var candidate=option.duplicate(true)
   if candidate.has("selection"):
+   if repay_cost:
+    # A dream copy makes a new declaration: its cost groups need fresh picks.
+    # Keep the original count of non-cost targets when the mode is unchanged.
+    if not mode_changed and x<0 and candidate.get("selection_id","")!=old.get("selection_id",""):continue
+    if not mode_changed and old.has("picks") and candidate.selection.size()==old.picks.size():
+     for i in range(candidate.selection.size()):
+      if candidate.selection[i].get("cost",false):continue
+      candidate.selection[i].min=old.picks[i].size();candidate.selection[i].max=old.picks[i].size()
+    result.append(candidate)
+    continue
    if mode_changed and not candidate.selection.any(func(g):return g.get("cost",false)):
     result.append(candidate)
     continue
@@ -357,7 +378,11 @@ static func retarget_options(e,entry,x=-1,change_modes=false):
    candidate.selection=groups;candidate.retarget_indices=indexes;candidate.retarget_base=old.duplicate(true)
    if x>=0:candidate.retarget_base.x=x
   result.append(candidate)
- return result if not result.is_empty() else [old.duplicate(true)]
+ if not result.is_empty():return result
+ if repay_cost and entry.kind=="card":
+  var cost_groups=entry.get("target_spec",{}).get("selection",[])
+  if old.has("sacrifice") or cost_groups.any(func(g):return g.get("cost",false)) or e.Roster.key(e.cards[entry.card.card_id],["discard_draw","door_reveal"])!="":return []
+ return [old.duplicate(true)]
 static func retarget_modes_match(old: Dictionary,candidate: Dictionary) -> bool:
  for k in ["mode","n21_modes"]:
   if old.has(k) and candidate.get(k)!=old[k]:return false
