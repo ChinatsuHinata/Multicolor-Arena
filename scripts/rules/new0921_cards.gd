@@ -182,8 +182,7 @@ static func resolve_trigger(e,t):
    for r in e.Pack.picked(a):
     if C.unit(e,r):
      var u=e.find_card(r.uid);var controller=u.owner;var health=maxi(0,e.stat(u,"health")-u.damage)
-     var dealt=e.damage_target(r,n)
-     if dealt>health:e.damage_target({"player":controller},dealt-health)
+     e.damage_with_overflow(r,n,controller,health)
   "SPX-005":e.Roster.field_many(e,p.grave.filter(func(c):return e.cards[c.card_id].kind in ["结界","道具"] and e.cards[c.card_id].name==a.card_name),who)
   "SPX-003:self":C.token(e,who,"青蛙",4,4,2,["蓝","绿"],["不占战场格"])
   "SPX-001:self":
@@ -260,7 +259,7 @@ static func resolve_trigger(e,t):
    for c in C.field(e).duplicate():
     if e.cards[c.card_id].kind in ["道具","结界"] and e.cards[c.card_id].name==a.card_name:e.destroy(c)
  return true
-static func copy_choose(e,t,entry,n):choose(e,t,"copy_finish",e.Cat.retarget_options(e,entry),{"entry":entry,"remaining":n})
+static func copy_choose(e,t,entry,n):choose(e,t,"copy_finish",e.Cat.retarget_options(e,entry,-1,true),{"entry":entry,"remaining":n})
 static func spell_options(e,card_id,who):
  var code=card_id.trim_prefix("new-").to_upper()
  if "n21:"+code not in SPELLS:return null

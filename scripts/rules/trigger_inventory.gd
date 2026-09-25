@@ -24,7 +24,7 @@ static func force(e,who):
   # These properties may be granted to a unit by another resolved card.
   if c.get("drunk_counters",0)>0:templates.append({"family":"roster","effect":"n21:drunk_bottom"})
   if c.get("imp_growth",false):templates.append({"family":"roster","effect":"cat:imp_growth"})
-  if c.has("rank_target"):templates.append({"family":"roster","effect":"cat:rank_death","data":{"owner":c.rank_target.owner}})
+  if c.has("rank_target"):templates.append({"family":"roster","effect":"cat:rank_death"})
   for repeat in range(2 if e.Cat.character(e,c,"秦心") else 1):
    for template in templates:
     var k=template.get("effect","")

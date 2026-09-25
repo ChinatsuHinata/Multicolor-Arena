@@ -36,8 +36,11 @@ func send_to(id: int,message: Dictionary,heartbeat: bool=false,channel_override:
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  var data=var_to_bytes(message)
  if data.size()>MAX_BYTES:failed.emit("同步数据超过限制");return
- if throttled:
-  data=var_to_bytes({"compressed":data.compress(FileAccess.COMPRESSION_ZSTD),"raw_size":data.size()})
+ # Large state snapshots are sent after every action. The receiver already
+ # accepts this wrapper, so compress them before reliable-channel chunking.
+ if data.size()>CHUNK:
+  var packed=var_to_bytes({"compressed":data.compress(FileAccess.COMPRESSION_ZSTD),"raw_size":data.size()})
+  if packed.size()<data.size():data=packed
  packet_serial+=1
  var hash_value=data.hex_encode().sha256_text()
  var channel=channel_override if channel_override>=0 else 1 if heartbeat else 0

@@ -72,7 +72,7 @@ static func resolve_trigger(e,t) -> bool:
   "emotion_pay":
    var payer=t.owner;var plan=[{"uid":aim.get("uid",-100-payer),"color":aim.get("color","")}] if aim.has("color") else []
    if e.stack.any(func(s):return s.id==data.id):
-    if not e.payment_valid(payer,{"红/蓝/绿/黄/黑":1},plan):e.counter_entry(data.id)
+    if plan.is_empty() or not e.payment_valid(payer,{"红/蓝/绿/黄/黑":1},plan):e.counter_entry(data.id)
     elif plan[0].uid<0:e.players[payer].potato=false
     else:e.tap_card(e.find_card(plan[0].uid))
    emotions(e,data.entry,data.remaining)
@@ -87,7 +87,8 @@ static func spell_options(e,id,who) -> Variant:
  var k=e.Roster.key(e.cards[id],SPELLS)
  match k:
   "peach_modes":return e.Extra.add_mode(e.Pack.all_units(e),"指示物翻倍")+[{"mode":"回复并抓牌","none":true},{"mode":"牌库顶放入颜色盘","none":true}]
-  "fairy_rewrite","blue_flower":return spells(e)
+  "fairy_rewrite":return e.Pack.none()
+  "blue_flower":return spells(e)
   "night_sakura":return e.Pack.none()
   "icicle_tide":return e.Roster.pick(e,e.Pack.all_units(e),0,2,"选择至多两个单位",k)
   "angry_mask":return e.ability_targets()

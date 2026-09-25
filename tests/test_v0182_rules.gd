@@ -25,6 +25,21 @@ func finish_deaths():
   else:return
  expect(false,"death resolution terminates")
 
+func ranked_combat(home: bool):
+ fresh()
+ var victim=e.players[1].leader
+ e.detach(victim);e.enter_field(victim,1);e.pending={};e.triggers.clear()
+ var spell=e.make_card("spell-fdf-002",0,"stack")
+ expect(e.Cat.spell_resolve(e,{"card":spell,"owner":0,"target":e.ref_target(victim)}),"twelve-rank spell marks opposing leader")
+ var attacker=put("54")
+ e.attack(0,attacker.uid,e.ref_target(victim));one();one()
+ expect(victim.zone=="return_pending" and e.pending.get("kind")=="leader_return","ranked leader dies in combat")
+ e.choose_return(home)
+ expect(e.triggers.any(func(t):return t.effect=="cat:rank_death") or e.stack.any(func(t):return t.effect=="cat:rank_death"),"granted death ability triggers after return choice")
+ finish_deaths()
+ expect(victim.zone==("leader" if home else "grave"),"ranked leader follows return choice")
+ expect(e.players[0].life==20 and e.players[1].life==17,"ranked leader controller loses three life, not spell caster")
+
 func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
  fresh();var a=yuyuko();kill(a)
@@ -104,6 +119,17 @@ func run():
  expect(a.zone=="grave" and b.zone=="palette","crystal rechecks that the selected palette card is still tapped")
  fresh();a=put("15");kill(a);settle()
  expect(a.zone=="palette" and a.tapped,"Rumia's different explicitly tapped entry is unchanged")
+ ranked_combat(true)
+ ranked_combat(false)
+ fresh();a=e.players[1].leader;e.detach(a);e.enter_field(a,1);e.pending={};e.triggers.clear()
+ var rank_spell=e.make_card("spell-fdf-002",0,"stack")
+ e.Cat.spell_resolve(e,{"card":rank_spell,"owner":0,"target":e.ref_target(a)})
+ e.move_to(a,"hand");e.pump_choices();e.choose_return(true);finish_deaths()
+ expect(a.zone=="leader" and e.players[0].life==20 and e.players[1].life==20,"ranked leader returning without death does not trigger")
+ fresh();a=put("53","field",1);rank_spell=e.make_card("spell-fdf-002",0,"stack")
+ e.Cat.spell_resolve(e,{"card":rank_spell,"owner":0,"target":e.ref_target(a)})
+ kill(a);finish_deaths()
+ expect(a.zone=="grave" and e.players[0].life==20 and e.players[1].life==17,"ordinary marked unit has same death recipient")
  expect(FileAccess.get_file_as_string(Store.SAVE_PATH)==saved,"saved decks unchanged")
  print("V0182_RULES: %d checks; %d failures\n%s" % [checks,failures.size(),"\n".join(failures)])
  quit(0 if failures.is_empty() else 1)

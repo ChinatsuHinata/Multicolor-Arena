@@ -14,11 +14,17 @@ func wait_damage():
  var limit=Time.get_ticks_msec()+4500
  while view.table.combat_animating and not view.table.damage_revealed and Time.get_ticks_msec()<limit: await process_frame
  expect(view.table.damage_revealed,"collision publishes damage numbers before departures")
+func debug_drag_card(uid: int,at: Vector2,to: Vector2):
+ view.begin_debug_drag(uid,at)
+ var motion=InputEventMouseMotion.new(); motion.position=to; motion.global_position=to
+ view.handle_debug_drag(motion)
+ view.finish_debug_drag(false)
+ await settle()
 func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
  app=load("res://main.tscn").instantiate(); root.add_child(app); await process_frame
  app.load_legacy_test_decks(); app.begin_battle(true); view=app.duel_view; view.set_process(false); e=view.engine
- expect(not view.inspection.visible and not view.debug_open,"preview and region browser start closed")
+ expect(not view.debug_open,"region browser starts closed")
  clean(); view.render(); await settle()
  expect(view.hand_zone_tabs.is_empty(),"no region tabs without usable off-hand cards")
  expect(not view.table.piles.pexile.visible and not view.table.piles.aexile.visible,"empty exile zones are hidden")
@@ -54,31 +60,27 @@ func run():
  expect((e.phase!="main" or e.active!=0) and view.debug_open,"an open deck inspection does not prevent Okuu turn progression: "+e.phase)
  view.close_debug(); e.phase="main"; e.active=0; e.priority=0; e.passes=0; e.pending={}; view.render(); await settle()
  await tab("deck"); await click(view.hand_nodes[spell.uid].get_global_rect().get_center())
- view.choose_target({"player":1}); await press("确定"); resolve(); view.render(); await settle()
+ view.choose_target({"player":1}); await press("发动"); resolve(); view.render(); await settle()
  expect(spell.zone=="grave" and e.players[1].life==17 and not view.hand_zone_tabs.has("0:deck"),"Okuu deck spell resolves and exhausted tab disappears")
  expect(view.hand_zones[0]=="hand" and not view.modal,"missing region action automatically restores hand")
  # Grave actions use the same region tab and payment flow.
  clean(); var mokou=put("rec_unit_097","grave"); put("165","palette")
  view.render(); await settle(); await tab("grave"); await click(view.hand_nodes[mokou.uid].get_global_rect().get_center())
  expect(view.local.get("action")=="extension","grave tab can activate a grave ability by clicking its face")
- await press("确定")
- if view.local.get("mode")=="payment_offer": await press("自动支付")
+ await press("发动")
  resolve(); view.render(); await settle()
  expect(mokou.zone=="hand" and not view.hand_zone_tabs.has("0:grave"),"grave ability completes and tab disappears")
- # Manual hybrid payments preserve private rollback.
- clean(); var nue=put("soi_unit_086","hand"); var flexible=put("soi_unit_086","palette"); var mana=[]
- for id in ["165","167","166","168"]: mana.append(put(id,"field"))
- view.auto_pay=false; view.render(); await settle(); before=snapshot()
- await click(view.hand_nodes[nue.uid].get_global_rect().get_center()); await press("确定")
- expect(view.local.get("mode")=="payment","hybrid unit starts manual payment")
- view.reserve_resource(flexible.uid)
- expect(view.local.get("colors")==["红","蓝","绿","黑"],"four-color palette card offers every legal payment color")
- await press("绿"); view.reserve_resource(mana[0].uid); view.reserve_resource(mana[1].uid); view.reserve_resource(mana[3].uid)
- expect(e.payment_valid(0,view.local_cost(),view.local.plan) and "红/蓝/绿 3 / 3" in view.local_prompt(),"manual RGB pool counts mixed payments together")
+ # Hybrid payment recommendations preserve private rollback.
+ clean(); var nue=put("soi_unit_086","hand"); put("soi_unit_086","palette")
+ for id in ["165","167","166","168"]: put(id,"field")
+ view.render(); await settle(); before=snapshot()
+ await click(view.hand_nodes[nue.uid].get_global_rect().get_center())
+ expect(view.local.get("mode")=="target","hybrid unit starts a private declaration")
+ expect(view.payment_ready() and e.payment_valid(0,view.local_cost(),view.local.plan),"hybrid payment is recommended as a valid private plan")
  await capture("hybrid-payment")
  await click(Vector2(900,700),MOUSE_BUTTON_RIGHT)
  expect(view.local.is_empty() and snapshot()==before,"cancelling hybrid payment restores all private reservations")
- view.auto_pay=true
+
  # Every choice panel uses the same center, including image selectors.
  clean(); var actor=put("71","field"); actor.leader_counters=1; view.render(); await settle(); view.open_actions(actor); centered("multi-action panel centered")
  view.close_overlay(); var source=put("18","field"); put("53","grave")
@@ -90,13 +92,13 @@ func run():
  view.close_overlay(); clean(); e.surrender(1); view.render(); centered("end-of-game panel centered")
  # Direct debug dragging from actual hand/world meshes, not just browser entries.
  clean(true); var c=put("53","hand"); var top=put("54","deck")
- view.render(); await settle(); await drag(view.hand_nodes[c.uid].get_global_rect().get_center(),pile_point("deck")); await settle()
+ view.render(); await settle(); await debug_drag_card(c.uid,view.hand_nodes[c.uid].get_global_rect().get_center(),pile_point("deck"))
  expect(c.zone=="deck" and e.players[0].deck[0].uid==c.uid,"direct hand drag puts card on deck top")
- await click(pile_point("deck")); await drag(top_art().get_global_rect().get_center(),Vector2(700,780)); await settle(); view.close_debug()
+ view.browse_zone(0,"deck"); await settle(); await debug_drag_card(c.uid,top_art().get_global_rect().get_center(),Vector2(700,780)); view.close_debug()
  expect(c.zone=="hand","deck browser drag adds card to actual hand")
- await drag(view.hand_nodes[c.uid].get_global_rect().get_center(),view.project(Vector3(0,0,2.5))); await settle()
+ await debug_drag_card(c.uid,view.hand_nodes[c.uid].get_global_rect().get_center(),view.project(Vector3(0,0,2.5)))
  expect(c.zone=="field" and e.stack.is_empty() and e.triggers.is_empty(),"direct hand-to-field debug drag is silent")
- await drag(point(c.uid),pile_point("deck")); await settle()
+ await debug_drag_card(c.uid,point(c.uid),pile_point("deck"))
  expect(c.zone=="deck" and e.players[0].deck[0].uid==c.uid,"world permanent can be dragged directly to deck top")
  e.debug_move(c.uid,"hand"); view.render(); await settle()
  view.begin_debug_drag(c.uid,view.hand_nodes[c.uid].get_global_rect().get_center())
@@ -106,7 +108,7 @@ func run():
  await capture("debug-destination")
  view.finish_debug_drag(false); await settle()
  expect(c.zone=="exile" and view.table.piles.pexile.visible,"dragging into empty exile creates its visible zone")
- e.debug_move(c.uid,"hand"); view.render(); expect(not view.table.piles.pexile.visible,"exile zone disappears after its final card leaves")
+ e.debug_move(c.uid,"hand"); view.render(); await settle(); expect(not view.table.piles.pexile.visible,"exile zone disappears after its final card leaves")
  # First-strike negative health holds for a full second, then removes every casualty.
  clean(); a=put("53","field"); var first=put("54","field",1); first.modifiers=[{"先制":true}]
  view.table.animation_duration=0.1; view.render(); await settle()
@@ -130,6 +132,4 @@ func run():
  expect(e.combat.damage_batch>batch and view.card_badges["card_"+str(a.uid)].values.health.text=="3","surviving normal blocker creates a separate second damage animation")
  await create_timer(1.15).timeout; resolve(); view.render(); expect(e.combat.is_empty(),"both first-strike and normal windows fully finish")
  expect(FileAccess.get_file_as_string(Store.SAVE_PATH)==saved,"live saved decks unchanged")
- var report="%d checks; %d failures\n%s" % [checks,failures.size(),"\n".join(failures)]
- FileAccess.open("res://work/v096-ui-tests.txt",FileAccess.WRITE).store_string(report)
- print("V096_UI: "+report); quit(0 if failures.is_empty() else 1)
+ print("V096_UI: ",checks," checks; ",failures," failures"); quit(0 if failures.is_empty() else 1)

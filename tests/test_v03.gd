@@ -19,7 +19,7 @@ func run():
  app.editor()
  await process_frame
  await process_frame
- expect(app.main_card_rect(18).position.x==4 and app.main_card_rect(18).position.y>=200,"third row fills space beneath leader")
+ expect(app.main_card_rect(20).position.x>=154 and app.main_card_rect(20).position.y>=200,"third row stays beside the independent leader slot")
  var overlap=false
  for i in range(70):
   var rect=app.main_card_rect(i)
@@ -83,6 +83,23 @@ func run():
  app.filter_kind="自机单位"
  expect(app.library_ids().all(func(id):return Store.CARDS[id].kind=="自机"),"leader unit category excludes ordinary units")
  app.filter_kind="全部"
+ var kind_filter=app.screen.get_node("LibraryKindFilter")
+ var ordinary_index=-1
+ for index in range(kind_filter.item_count):
+  if kind_filter.get_item_text(index)=="普通符卡":ordinary_index=index
+ expect(ordinary_index>=0,"ordinary spell category is available")
+ if ordinary_index>=0:
+  kind_filter.select(ordinary_index)
+  kind_filter.item_selected.emit(ordinary_index)
+  expect(app.library_ids().has("145") and app.library_ids().all(func(id):return Store.CARDS[id].kind=="符卡" and Store.CARDS[id].get("requires_character","")=="" and "角色" not in Store.CARDS[id].get("spell_type","")),"ordinary spell category excludes all character spells")
+  kind_filter.select(0)
+  kind_filter.item_selected.emit(0)
+ for example in [["普通符卡","145"],["红蓝普通符卡","138"],["单蓝普通符卡","145"]]:
+  search.text=example[0]
+  search.text_changed.emit(search.text)
+  var ordinary_ids=app.library_ids()
+  expect(ordinary_ids.has(example[1]) and ordinary_ids.all(func(id):return Store.CARDS[id].kind=="符卡" and Store.CARDS[id].get("requires_character","")=="" and "角色" not in Store.CARDS[id].get("spell_type","")),"ordinary spell search filters %s" % example[0])
+ expect(app.library_ids().all(func(id):return Store.CARDS[id].colors==["蓝"]) and not app.library_ids().has("new-loc-002"),"single blue ordinary spells match exactly one color and exclude character restricted spells")
  search.text="黄"
  search.text_changed.emit(search.text)
  expect(app.library_ids().has("item-htk-008"),"color-only search includes multicolor cards")
@@ -191,12 +208,10 @@ func run():
  await process_frame
  var scroll=app.preview.get_node("CardTextScroll")
  var column=scroll.get_child(0)
- expect(column.get_child(1).text==app.card_description("68") and "自机能力" in column.get_child(1).text and "1点伤害" in column.get_child(1).text,"complete workbook ability text in preview")
+ expect(column.get_child(2).text==app.card_description("68") and "自机能力" in column.get_child(2).text and "1点伤害" in column.get_child(2).text,"complete workbook ability text in preview")
  scroll.scroll_vertical=10000
  await process_frame
  expect(column.size.y-scroll.scroll_vertical<=scroll.size.y+1,"preview footer remains reachable by scrolling")
  expect(FileAccess.get_file_as_string(Store.SAVE_PATH)==before,"player saved decks unchanged")
- var report=FileAccess.open("res://work/v03-test.txt",FileAccess.WRITE)
- report.store_string("%d checks, %d failures\n%s" % [checks,failures.size(),"\n".join(failures)])
  print("V03_TEST: %d checks, %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

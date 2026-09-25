@@ -215,7 +215,7 @@ func welcome(id: int):
  metrics.reset();last_heartbeat=0
  remote_peer=id;connected=true;paused=true;joining=false;remote_last_seen=Time.get_ticks_msec();notice="同步中";retry_at=0
  transport.send_to(id,{"type":"welcome","room_id":room_id,"token":guest.token,"match_id":series.state.match_id,"room":series.public_state(1),"sequence":sequence,"ack_id":receipts[1]})
- if authority!=null:transport.send_to(id,make_snapshot(1,[],true))
+ if authority!=null and series.state.status!="choosing":transport.send_to(id,make_snapshot(1,[],true))
  else:transport.send_to(id,{"type":"room","room":series.public_state(1),"sequence":sequence,"ack_id":receipts[1]})
  changed.emit()
 func authorized(id: int) -> bool:return is_host and connected and id==remote_peer or not is_host and id==1
@@ -268,15 +268,18 @@ func receive(id: int,m: Dictionary):
   "rejected":rejected=true;joining=false;connected=false;paused=true;notice=str(m.get("message","加入被拒绝"));transport.close();error_raised.emit(notice);changed.emit()
   "welcome":
    metrics.reset();last_heartbeat=0
+   reset_match_view(m.room)
    connected=true;joining=false;paused=true;busy=false;inflight={};room_id=m.room_id;room=m.room;sequence=m.sequence;notice="同步中"
    if recording.frames.is_empty():recording.begin_capture(storage+"/capture.bin",m.match_id if resume_requested else "")
    identity.resume={"room_id":room_id,"token":m.token,"match_id":m.match_id,"address":address,"port":port,"sequence":sequence,"deadline":disconnect_deadline_unix};save_identity();changed.emit()
   "room":
    if is_host:return
+   reset_match_view(m.room)
    room=m.room;sequence=m.sequence;view_sequence=sequence;finish_receipt(m);remember_sequence();transport.send_to(1,{"type":"ack","sequence":sequence});changed.emit()
   "state":
    if is_host:return
    if m.get("room_id","")!=room_id:return
+   reset_match_view(m.room)
    sequence=m.sequence;room=m.room;finish_receipt(m);remember_sequence();enqueue_snapshot(m)
    transport.send_to(1,{"type":"ack","sequence":sequence});changed.emit()
   "ack":
@@ -399,7 +402,7 @@ func reject(actor: int,message: String):
  if actor==0:busy=false;inflight={};error_raised.emit(message)
  else:
   transport.send_to(remote_peer,{"type":"error","message":message,"ack_id":replying[1]})
-  if authority!=null:transport.send_to(remote_peer,make_snapshot(1,[],true))
+  if authority!=null and series.state.status!="choosing":transport.send_to(remote_peer,make_snapshot(1,[],true))
   else:transport.send_to(remote_peer,{"type":"room","room":series.public_state(1),"sequence":sequence,"ack_id":replying[1]})
 func room_action(action: Dictionary):
  if not can_act():error_raised.emit("等待双方连接完成");return
@@ -410,9 +413,10 @@ func room_action(action: Dictionary):
 func handle_room_action(actor: int,action: Dictionary):
  replying[actor]=str(action.get("_request_id",""))
  if paused or not connected:return reject(actor,"等待双方连接完成")
+ if action.has("_game") and action._game!=series.state.game_id:return reject(actor,"对局已变化，请重新操作")
  if str(action.get("name","")).begins_with("undo_"):
   handle_undo_action(actor,action);return
- var previous_series=series.state.duplicate(true);var old_engine=authority;var old_sequence=sequence;var previous_undo=undo_history.entries.duplicate()
+ var previous_series=series.state.duplicate(true);var old_engine=authority;var old_sequence=sequence;var previous_undo=undo_history.entries.duplicate();var previous_rewinds=rewind_events.duplicate(true);var previous_request=undo_request.duplicate(true)
  var error="";var name=action.get("name","")
  match name:
   "deck":
@@ -422,15 +426,22 @@ func handle_room_action(actor: int,action: Dictionary):
   "unready":
    if series.state.status in ["lobby","between"]:series.state.ready[actor]=false
    else:error="当前不能取消准备"
-  "first":error="先后手由每局开始时的硬币决定"
+  "rematch":
+   error=series.rematch()
+   if error.is_empty():
+    authority=null;undo_history.entries.clear();undo_request={};rewind_events.clear()
+  "first":
+   if not action.get("first") is bool:error="请选择先手或后手"
+   else:error=series.choose_first(actor,action.first)
   "concede_series":error="投降只结束当前单局，请从战场设置操作"
   _:error="未知房间操作"
  if not error.is_empty():reject(actor,error);return
  var old_receipt=receipts[actor];receipts[actor]=replying[actor]
+ series.prepare_choice()
  if series.start_game():
   undo_history.entries.clear();undo_request={}
   authority=Duel.new();authority.player_names=series.state.names.duplicate();authority.start(series.state.decks[0],series.state.decks[1],series.state.first)
-  authority.show_result(series.coin_text())
+  authority.show_result(series.opening_text())
   authority.presentation_events.push_front(authority.presentation_events.pop_back())
  sequence+=1
  var events=[]
@@ -439,8 +450,19 @@ func handle_room_action(actor: int,action: Dictionary):
  refresh_undo_status()
  if not persist():
   undo_history.entries=previous_undo
-  series.state=previous_series;authority=old_engine;sequence=old_sequence;receipts[actor]=old_receipt;return
+  undo_request=previous_request;rewind_events=previous_rewinds
+  series.state=previous_series;authority=old_engine;sequence=old_sequence;receipts[actor]=old_receipt;return reject(actor,notice)
+ if name=="rematch":
+  finish_recording()
+  recording=preload("res://scripts/replay_archive.gd").new()
+  snapshots.clear();latest_snapshot={};local_game_id=""
+  if is_instance_valid(spectator_hub):spectator_hub.pending_events.clear()
  publish(events)
+func reset_match_view(next_room: Dictionary):
+ if room.is_empty() or room.get("match_id","")==next_room.get("match_id",""):return
+ finish_recording()
+ recording=preload("res://scripts/replay_archive.gd").new()
+ snapshots.clear();latest_snapshot={};local_game_id=""
 func refresh_undo_status():
  series.state.undo_request=undo_request.duplicate(true)
  series.state.undo_available=series.state.status=="playing" and undo_request.is_empty() and undo_history.available(authority,series.state.game_id)
@@ -479,7 +501,7 @@ func make_snapshot(for_seat: int,events: Array=[],recovery: bool=false) -> Dicti
  return {"type":"state","room_id":room_id,"sequence":sequence,"game_id":series.state.game_id,"room":series.public_state(for_seat),"recovery":recovery,"ack_id":receipts[for_seat],"rewinds":rewind_events.duplicate(true),"projection":SeatView.build(authority,for_seat,events)}
 func publish(events: Array=[],remote_only: bool=false,recovery: bool=false):
  room=series.public_state(0);finish_receipt({"ack_id":receipts[0]})
- if authority!=null:
+ if authority!=null and series.state.status!="choosing":
   if not remote_only:enqueue_snapshot(make_snapshot(0,events,recovery))
   if connected:transport.send_to(remote_peer,make_snapshot(1,events,recovery))
  else:
@@ -511,6 +533,7 @@ func receive_observer(id: int,m: Dictionary):
  if m.get("type","")=="pong":metrics.accept_pong(m,Time.get_ticks_msec());remote_last_seen=Time.get_ticks_msec();return
  if m.get("type","")!="watch_state" or not m.get("room") is Dictionary:return
  connected=true;joining=false;paused=m.get("paused",false);remote_last_seen=Time.get_ticks_msec()
+ reset_match_view(m.room)
  room_id=m.room_id;room=m.room;sequence=m.sequence
  transport.send_to(1,{"type":"watch_ack","sequence":sequence},true)
  if m.has("projection"):enqueue_snapshot(m)

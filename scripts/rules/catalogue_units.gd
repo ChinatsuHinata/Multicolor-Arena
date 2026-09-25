@@ -56,7 +56,7 @@ static func on_death(e,c,before):
  if C.enabled(e,before,"character-fdf-029:self"):C.events(e,before,"character-fdf-029:self",true)
  if C.has(e,before,"character-fdn-042") and before.get("noncombat_damage_turn",-1)==e.turn:
   C.events(e,before,"cat:utsuho_return",false,{"ref":C.ref(e,c)})
- if before.has("rank_target"):C.events(e,before,"cat:rank_death",false,{"owner":before.rank_target.owner})
+ if before.has("rank_target"):C.events(e,before,"cat:rank_death",false,{"owner":before.owner})
  for u in C.with_key(e,1-who,"spell-fdf-040"):C.events(e,u,"cat:night_timer")
 static func on_cast(e,c,who,old_zone):
  var C=e.Cat;var p=e.players[who]

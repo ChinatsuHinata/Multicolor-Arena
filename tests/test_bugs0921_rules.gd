@@ -1,4 +1,6 @@
 extends "res://tests/test_v09_rules.gd"
+const SeatView=preload("res://net/seat_projection.gd")
+const ObserverView=preload("res://net/observer_projection.gd")
 func plain(who=0,power=1,health=1):
  var id="test_plain_"+str(e.next_uid)
  e.cards[id]=e.cards["27"].duplicate(true)
@@ -13,6 +15,13 @@ func use(id,target,who=0):
  var c=put(id,"hand",who);e.priority=who
  var error=e.commit_cast(who,c.uid,target,e.payment(who,e.cast_cost(who,c,target)).plan)
  expect(error.is_empty(),"实际使用 "+id+" "+error)
+ return c
+func miracle_triggered() -> bool:
+ return e.triggers.any(func(t):return t.get("effect","")=="sanae_miracle") or e.stack.any(func(t):return t.get("effect","")=="sanae_miracle") or e.pending.get("trigger",{}).get("effect","")=="sanae_miracle"
+func draw_miracle(id:String) -> Dictionary:
+ fresh();var sanae=put("character-lof-003");sanae.leader=true
+ var c=put(id,"deck");e.players[0].deck.erase(c);e.players[0].deck.push_front(c)
+ e.phase="prepare";e.history.clear();e.log.clear();e.presentation_events.clear();e.advance_phase()
  return c
 func run():
  fresh()
@@ -110,6 +119,31 @@ func run():
  fresh();var new_sanae=put("character-lof-003");new_sanae.leader=true;var miracle=put("106","hand")
  e.Extra.event(e,miracle,"miracle",true);e.pump_choices();e.choose_effect({"none":true});one()
  expect(e.stack.any(func(s):return s.get("effect")=="sanae_miracle"),"奇迹使用彼岸神想触发新早苗自机效果")
+ var miracle_ids=[]
+ for id in e.cards:
+  if "奇迹" in e.cards[id].get("keywords",[]):miracle_ids.append(id)
+ miracle_ids.sort();expect(miracle_ids.size()>5,"卡库列出全部奇迹牌")
+ for id in miracle_ids:
+  var drawn=draw_miracle(id)
+  expect(e.pending.get("kind","")=="effect_choice" and e.stack.is_empty(),"抽到奇迹牌时先私有询问 "+id)
+  e.choose_effect({"none":true})
+  expect(drawn.zone=="stack" and miracle_triggered(),"奇迹使用触发五谷丰穰之神德 "+id)
+ fresh();new_sanae=put("character-lof-003");new_sanae.leader=true;many_mana(0)
+ for id in ["106","9"]:
+  miracle=put(id,"hand");e.priority=0
+  var choice_target={"none":true} if e.cards[id].kind=="符卡" else {}
+  expect(e.commit_cast(0,miracle.uid,choice_target,e.payment(0,e.cast_cost(0,miracle)).plan).is_empty() and miracle_triggered(),"正常使用奇迹牌触发神德 "+id)
+  e.stack.clear();e.triggers.clear();e.pending={};e.priority=0
+ miracle=draw_miracle("106")
+ var enemy_projection=SeatView.build(e,1,e.presentation_events);var watcher_projection=ObserverView.build(e,e.presentation_events)
+ for projection in [enemy_projection,watcher_projection]:
+  expect(projection.state.stack.is_empty() and projection.state.players[0].hand[0].card_id=="back" and not projection.definitions.has("106") and not JSON.stringify(projection.state.history).contains(e.cards["106"].name) and not JSON.stringify(projection.state.log).contains(e.cards["106"].name),"未发动的奇迹不向对手或观众公开")
+  expect(projection.state.presentation_events.all(func(event):return event.get("card",{}).get("card_id","")!="106"),"抽牌动画隐藏奇迹牌身份")
+ e.choose_effect({})
+ enemy_projection=SeatView.build(e,1,e.presentation_events)
+ expect(miracle.zone=="hand" and e.stack.is_empty() and not miracle_triggered() and not enemy_projection.definitions.has("106") and not JSON.stringify(enemy_projection.state.history).contains(e.cards["106"].name),"拒绝奇迹后仍不入堆叠、不触发神德或泄露牌名")
+ miracle=draw_miracle("106");e.choose_effect({"none":true});enemy_projection=SeatView.build(e,1,e.presentation_events)
+ expect(miracle.zone=="stack" and enemy_projection.definitions.has("106") and enemy_projection.state.stack.any(func(s):return s.get("kind","")=="card" and s.card.uid==miracle.uid),"确认发动后奇迹牌才公开进入堆叠")
  fresh();var fairy=put("character-fdn-006");fairy.plus_counters=3;var copy=e.Cat.copy_token(e,0,fairy,true)
  expect(copy.plus_counters==3 and e.stat(copy,"health")==e.stat(fairy,"health"),"妖怪山妖精复制保留111指示物")
  var ordinary=e.Cat.copy_token(e,0,fairy)

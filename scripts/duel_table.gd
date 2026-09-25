@@ -18,22 +18,27 @@ const PERSPECTIVE_FOV=46.0
 const CAMERA_MIN_DISTANCE=0.58
 const CAMERA_MAX_DISTANCE=1.3
 const TOP_DOWN_CAMERA_SIZE=14.0
+const WIDE_TOP_DOWN_CAMERA_SIZE=15.6
 const TOP_DOWN_CAMERA_MIN_SIZE=8.5
 const TOP_DOWN_CAMERA_MAX_SIZE=20.0
 const CAMERA_ZOOM_STEP=0.9
 const TOP_DOWN_PALETTE_Z=5.75
 const BOARD_SIZE=Vector2(23,16)
-const TOP_DOWN_BOARD_SIZE=BOARD_SIZE
+const WIDE_BOARD_SIZE=Vector2(23,18.4)
+const TOP_DOWN_BOARD_SIZE=WIDE_BOARD_SIZE
 const PRINTED_MAT_SIZE=Vector2(16,16)
 const WIDE_PLAYMAT_PATH="res://recourse/垫子3.png"
 const LEFT_STRETCH_CUT=0.35
 const RIGHT_STRETCH_CUT=0.65
+const FIELD_EXTENSION=1.2
+const FIELD_TOP_CUT=0.375
+const FIELD_BOTTOM_CUT=0.625
 const WIDE_BACK_ROW_SPLIT=0.9
 const WIDE_ZONES={
- "unit":Rect2(-8.85,0.0,17.7,2.15),
- "item":Rect2(-8.85,2.15,8.85+WIDE_BACK_ROW_SPLIT,2.15),
- "support":Rect2(WIDE_BACK_ROW_SPLIT,2.15,8.85-WIDE_BACK_ROW_SPLIT,2.15),
- "palette":Rect2(-8.85,4.42,17.7,3.36),
+ "unit":Rect2(-8.85,0.0,17.7,2.15+FIELD_EXTENSION),
+ "item":Rect2(-8.85,2.15+FIELD_EXTENSION,8.85+WIDE_BACK_ROW_SPLIT,2.15),
+ "support":Rect2(WIDE_BACK_ROW_SPLIT,2.15+FIELD_EXTENSION,8.85-WIDE_BACK_ROW_SPLIT,2.15),
+ "palette":Rect2(-8.85,4.42+FIELD_EXTENSION,17.7,3.36),
  "melody":Rect2(9.0,-1.05,2.3,2.1)
 }
 # Normalized centers measured from the printed zones on playmat 3.
@@ -62,6 +67,7 @@ var chosen=[]
 var highlighted=[]
 var targetable_stacks=[]
 var selected_stacks=[]
+var stack_target_uids=[]
 var inspect_root: Node3D
 var inspect_page=0
 var animation_count=0
@@ -121,6 +127,7 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
  var mat: Material
  var mat_texture=load(mat_path) as Texture2D
  wide_playmat=mat_path==WIDE_PLAYMAT_PATH and mat_texture!=null
+ top_down_camera_size=WIDE_TOP_DOWN_CAMERA_SIZE if wide_playmat else TOP_DOWN_CAMERA_SIZE
  if wide_playmat:
   var wide_mat=ShaderMaterial.new()
   wide_mat.shader=preload("res://assets/playmat_wide.gdshader")
@@ -129,13 +136,17 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
   wide_mat.set_shader_parameter("insert_width",(BOARD_SIZE.x-PRINTED_MAT_SIZE.x)*0.5/BOARD_SIZE.x)
   wide_mat.set_shader_parameter("left_cut",LEFT_STRETCH_CUT)
   wide_mat.set_shader_parameter("right_cut",RIGHT_STRETCH_CUT)
+  wide_mat.set_shader_parameter("source_height",PRINTED_MAT_SIZE.y/WIDE_BOARD_SIZE.y)
+  wide_mat.set_shader_parameter("insert_height",FIELD_EXTENSION/WIDE_BOARD_SIZE.y)
+  wide_mat.set_shader_parameter("top_cut",FIELD_TOP_CUT)
+  wide_mat.set_shader_parameter("bottom_cut",FIELD_BOTTOM_CUT)
   mat=wide_mat
  else:
   var plain_mat=StandardMaterial3D.new()
   plain_mat.albedo_texture=mat_texture; plain_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
   plain_mat.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
   mat=plain_mat
- board=plane(self,Vector3.ZERO,BOARD_SIZE,mat); board.name="Playmat3"
+ board=plane(self,Vector3.ZERO,displayed_board_size(),mat); board.name="Playmat3"
  if wide_playmat:add_wide_zone_guides()
  sync(payment_reservations,selection,[],false)
 
@@ -162,12 +173,12 @@ func add_wide_zone_guides():
  var palette_guide=guide_material(Color(0.72,0.66,0.83,0.48))
  for who in range(2):
   var side=1.0 if who==local_seat else -1.0
-  guide_horizontal(-8.85,8.85,2.15*side,field_guide)
-  guide_vertical(WIDE_BACK_ROW_SPLIT*side,minf(2.15*side,4.3*side),maxf(2.15*side,4.3*side),field_guide)
-  guide_horizontal(-8.85,8.85,4.42*side,palette_guide)
-  guide_horizontal(-8.85,8.85,7.78*side,palette_guide)
+  guide_horizontal(-8.85,8.85,(2.15+FIELD_EXTENSION)*side,field_guide)
+  guide_vertical(WIDE_BACK_ROW_SPLIT*side,minf((2.15+FIELD_EXTENSION)*side,(4.3+FIELD_EXTENSION)*side),maxf((2.15+FIELD_EXTENSION)*side,(4.3+FIELD_EXTENSION)*side),field_guide)
+  guide_horizontal(-8.85,8.85,(4.42+FIELD_EXTENSION)*side,palette_guide)
+  guide_horizontal(-8.85,8.85,(7.78+FIELD_EXTENSION)*side,palette_guide)
   for x in [-8.85,8.85]:
-   guide_vertical(x,minf(0.0,7.78*side),maxf(0.0,7.78*side),field_guide)
+   guide_vertical(x,minf(0.0,(7.78+FIELD_EXTENSION)*side),maxf(0.0,(7.78+FIELD_EXTENSION)*side),field_guide)
   var melody=wide_zone_bounds("melody",who)
   guide_horizontal(melody.position.x,melody.end.x,melody.position.y,field_guide)
   guide_horizontal(melody.position.x,melody.end.x,melody.end.y,field_guide)
@@ -200,13 +211,13 @@ func pan_camera(from: Vector2,to: Vector2):
 
 func reset_camera():
  camera_distance=NEAREST_CAMERA
- top_down_camera_size=TOP_DOWN_CAMERA_SIZE
+ top_down_camera_size=WIDE_TOP_DOWN_CAMERA_SIZE if wide_playmat else TOP_DOWN_CAMERA_SIZE
  camera_offset=Vector3.ZERO
  set_camera()
 
 func displayed_board_size() -> Vector2:
  if top_down_view:return TOP_DOWN_BOARD_SIZE if wide_playmat else PRINTED_MAT_SIZE
- return BOARD_SIZE
+ return WIDE_BOARD_SIZE if wide_playmat else BOARD_SIZE
 
 # Keep unit slots at the same printed horizontal positions on both mat sizes.
 func board_x(x: float) -> float:
@@ -231,12 +242,12 @@ func zone_position(zone: String, who: int) -> Vector3:
  if MAT_SLOTS.has(slot):
   var uv=MAT_SLOTS[slot]
   if wide_playmat:
-   return Vector3(playmat_x(uv.x)*side,0.035,(uv.y-0.5)*PRINTED_MAT_SIZE.y*side)
+   return Vector3(playmat_x(uv.x)*side,0.035,((uv.y-0.5)*PRINTED_MAT_SIZE.y+FIELD_EXTENSION*signf(uv.y-0.5))*side)
   var size=displayed_board_size()
   return Vector3((uv.x-0.5)*size.x*side,0.035,(uv.y-0.5)*size.y*side)
  match zone:
   "hand": return Vector3(0,1,10*side)
-  "palette": return Vector3(0,0.035,(TOP_DOWN_PALETTE_Z if top_down_view or wide_playmat else 6.8)*side)
+  "palette": return Vector3(0,0.035,((TOP_DOWN_PALETTE_Z+FIELD_EXTENSION) if wide_playmat else TOP_DOWN_PALETTE_Z if top_down_view else 6.8)*side)
  return Vector3.ZERO
 
 func card_snapshot() -> Dictionary:
@@ -274,18 +285,27 @@ func layout() -> Dictionary:
    var bundles=[];var keys={}
    for c in groups[group]:
     var signature=""
-    if c.uid not in chosen and not reserved.any(func(r):return r.uid==c.uid):
+    if c.uid not in chosen and c.uid not in stack_target_uids and not reserved.any(func(r):return r.uid==c.uid):
      signature=duel.stackable_signature(c)
     if not signature.is_empty() and keys.has(signature):bundles[keys[signature]].append(c)
     else:
      if not signature.is_empty():keys[signature]=bundles.size()
      bundles.append([c])
    var list=bundles.map(func(b):return b[0])
+   var duplicate_totals={};var duplicate_seen={}
+   if group in ["item","support"]:
+    for c in list:
+     if not duel.cards[c.card_id].get("stackable",false):duplicate_totals[c.card_id]=duplicate_totals.get(c.card_id,0)+1
    for i in range(list.size()):
-    var c=list[i];var at=field_position(group,i,list.size(),who)
-    var d=description(c,at,FIELD_SCALE)
+    var c=list[i]
+    var placement=back_row_placement(group,i,list.size(),who) if group in ["item","support"] else {"at":field_position(group,i,list.size(),who),"scale":FIELD_SCALE}
+    var d=description(c,placement.at,placement.scale)
     d.group=group;d.members=bundles[i].map(func(u):return u.uid)
     if group in ["support","melody"]:d.rotation.y+=PI/2
+    if group in ["item","support"]:d.fanned=placement.fanned
+    if duplicate_totals.get(c.card_id,0)>1:
+     duplicate_seen[c.card_id]=duplicate_seen.get(c.card_id,0)+1
+     d.copy_index=duplicate_seen[c.card_id];d.copy_total=duplicate_totals[c.card_id]
     if c.uid in chosen:d.at.y+=0.055
     result[d.key]=d
   for i in range(p.palette.size()):
@@ -312,26 +332,50 @@ func field_group(c: Dictionary) -> String:
  if duel.is_unit(c):return "unit"
  if duel.is_melody(c):return "melody"
  return "item" if duel.cards[c.card_id].kind=="道具" else "support"
+func back_row_bounds(group: String) -> Rect2:
+ if wide_playmat:return WIDE_ZONES[group]
+ if top_down_view:return Rect2(-7.35,2.05,8.1,2.4) if group=="item" else Rect2(1.2,2.05,6.15,2.4)
+ return Rect2(-7.1,3.12,7.5,2.38) if group=="item" else Rect2(0.35,3.12,7.1,2.38)
+func support_bounds() -> Rect2:return back_row_bounds("support")
+func support_placement(index: int,count: int,who: int) -> Dictionary:return back_row_placement("support",index,count,who)
+func item_placement(index: int,count: int,who: int) -> Dictionary:return back_row_placement("item",index,count,who)
+func back_row_placement(group: String,index: int,count: int,who: int) -> Dictionary:
+ var bounds=back_row_bounds(group);var margin=0.05;var gap=0.08
+ var width=CARD_SIZE.y
+ var depth=CARD_SIZE.y if group=="item" else CARD_SIZE.x
+ var columns=1;var scale=0.0
+ for candidate in range(1,count+1):
+  var rows=ceili(float(count)/candidate)
+  var fit=minf(FIELD_SCALE,minf((bounds.size.x-2*margin-(candidate-1)*gap)/(width*candidate),(bounds.size.y-2*margin-(rows-1)*gap)/(depth*rows)))
+  if fit>scale+0.001:columns=candidate;scale=fit
+ # Large groups form two shallow fans so every card keeps a clickable edge.
+ if scale<0.45:
+  columns=count if group=="item" else ceili(float(count)/2.0);scale=0.45
+ var rows=ceili(float(count)/columns)
+ var row=int(index/columns);var column=index%columns
+ var row_count=mini(columns,count-row*columns)
+ var card_width=width*scale;var card_depth=depth*scale
+ var x_step=minf(card_width+gap,(bounds.size.x-2*margin-card_width)/maxi(1,columns-1))
+ var row_width=card_width+(row_count-1)*x_step
+ var x=bounds.position.x+(bounds.size.x-row_width)*0.5+card_width*0.5+column*x_step
+ var z=bounds.position.y+(bounds.size.y-(rows*card_depth+(rows-1)*gap))*0.5+card_depth*0.5+row*(card_depth+gap)
+ var side=1.0 if who==local_seat else -1.0
+ return {"at":Vector3(x*side,0.035+index*0.001,z*side),"scale":scale,"fanned":x_step<card_width}
 func field_position(group: String,index: int,count: int,who: int) -> Vector3:
+ if group=="item":return item_placement(index,count,who).at
  var side=1.0 if who==local_seat else -1.0
  var at=Vector3.ZERO
  if wide_playmat:
   match group:
-   "unit":at=Vector3(-7.5+index*minf(3.0,15.0/maxi(1,count-1)),0.035+index*0.002,1.07)
-   "item":at=Vector3(-7.55+(index%4)*2.4,0.035+(index/4)*0.025,3.23)
-   "support":at=Vector3(3.0+(index%2)*3.4,0.035+(index/2)*0.025,3.23)
+   "unit":at=Vector3(-7.5+index*minf(3.0,15.0/maxi(1,count-1)),0.035+index*0.002,1.07+FIELD_EXTENSION*0.5)
    "melody":at=Vector3(10.1,0.04+index*0.025,0)
  elif top_down_view:
   match group:
    "unit":at=Vector3(board_x(-6.4+index*minf(2.56,12.8/maxi(1,count-1))),0.035+index*0.002,0.9)
-   "item":at=Vector3(-4.5+(index%4)*1.6,0.035+(index/4)*0.025,3.0+(index/4)*0.22)
-   "support":at=Vector3(2.1+(index%2)*2.15,0.035+(index/2)*0.025,3.0+(index/2)*0.22)
    "melody":at=Vector3(9.2,0.04,0)
  else:
   match group:
    "unit":at=Vector3(-6.4+index*minf(2.56,12.8/maxi(1,count-1)),0.035+index*0.002,1.55)
-   "item":at=Vector3(-6.35+(index%4)*1.76,0.035+(index/4)*0.025,4.3+(index/4)*0.22)
-   "support":at=Vector3(1.35+(index%3)*2.3,0.035+(index/3)*0.025,4.3+(index/3)*0.22)
    "melody":at=Vector3(9.2,0.04,0)
  at.x*=side;at.z*=side
  return at
@@ -575,6 +619,24 @@ func debug_drop_zone(point: Vector2,owner: int) -> String:
   if depth>=5.65 and depth<=7.95: return "palette"
   if depth>=0.1 and depth<5.65: return "field"
  return ""
+
+func debug_field_group(point: Vector2) -> Dictionary:
+ var origin=camera.project_ray_origin(point)
+ var intersection=Plane(Vector3.UP,0).intersects_ray(origin,camera.project_ray_normal(point))
+ if intersection==null:return {}
+ var at: Vector3=intersection
+ for who in range(2):
+  var side=1.0 if who==local_seat else -1.0
+  var position=Vector2(at.x*side,at.z*side)
+  if wide_playmat:
+   for group in ["unit","item","support"]:
+    if WIDE_ZONES[group].has_point(position):return {"owner":who,"group":group}
+  else:
+   var split=2.4 if top_down_view else 3.1
+   if Rect2(-7.5,0.1,15.0,split-0.1).has_point(position):return {"owner":who,"group":"unit"}
+   if Rect2(-7.5,split,8.0,5.65-split).has_point(position):return {"owner":who,"group":"item"}
+   if Rect2(0.5,split,7.0,5.65-split).has_point(position):return {"owner":who,"group":"support"}
+ return {}
 
 func inspect_cards(ids: Array):
  if is_instance_valid(inspect_root): inspect_root.queue_free(); inspect_page+=1

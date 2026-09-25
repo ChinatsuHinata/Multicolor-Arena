@@ -1,6 +1,9 @@
 {
   "_说明": "普通别名填卡名片段数组；可给同一别名填多个片段。修改后在组卡器重新输入搜索词即可生效。",
-  "_特殊规则": "card_name_or_alias 匹配卡名及卡牌自带别名；group 的 mono_two_cost_tap_mana_item 匹配2费单色横置产色道具；only 只显示规则匹配的卡牌。",
+  "_特殊规则": "card_name_or_alias 匹配卡名及卡牌自带别名；card_ids 精确匹配卡牌ID；group 的 mono_two_cost_tap_mana_item 匹配2费单色横置产色道具；only 只显示规则匹配的卡牌。",
+  "密封": {"card_ids": ["new-eto-003", "spell-ucs-022", "character-ucs-020", "character-ucs-021"], "only": true},
+  "密封符卡": {"card_ids": ["new-eto-007", "new-eto-008", "new-eto-009", "new-eto-010", "new-eto-011", "new-eto-012"], "only": true},
+  "530": {"card_ids": ["spell-fdf-085"], "only": true},
   "西瓜": ["伊吹萃香"],
   "老师": ["上白泽慧音"],
   "小五": ["古明地觉"],

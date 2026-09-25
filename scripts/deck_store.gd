@@ -5,6 +5,7 @@ const BUNDLED_DECKS_PATH = "res://data/bundled_decks.json"
 const Paths=preload("res://scripts/portable_paths.gd")
 const EXTENSION="mdeck"
 static var file_paths={}
+static var migration_warnings: Array=[]
 
 static func active_save_path() -> String:
  return folder()
@@ -204,12 +205,45 @@ static func load_decks(path: String = "") -> Dictionary:
  if not data is Dictionary or data.get("version") != 1 or not data.get("decks") is Array:
   return {"error":"卡组文件损坏，原文件已保留。", "decks":[]}
  var ids = {}
- for d in data.decks:
+ for i in range(data.decks.size()):
+  var d=data.decks[i]
   var error = validate(d)
-  if not error.is_empty() or not d.get("id") is String or ids.has(d.id):
-   return {"error":"卡组文件包含无效数据，原文件已保留。", "decks":[]}
+  if error.is_empty() and (not d.get("id") is String or d.id.is_empty()):error="卡组标识无效。"
+  if error.is_empty() and ids.has(d.id):error="卡组标识重复。"
+  if not error.is_empty():
+   return {"error":"卡组文件包含无效数据，原文件已保留。第 %d 副：%s" % [i+1,error], "decks":[]}
   ids[d.id] = true
  return {"decks":data.decks}
+static func recover_legacy_decks(path: String) -> Dictionary:
+ var result={"decks":[],"warnings":[]}
+ var original_path=ProjectSettings.globalize_path(path)
+ var f=FileAccess.open(path,FileAccess.READ)
+ if f==null:
+  result.warnings.append("旧卡组文件无法读取，原文件已保留："+original_path)
+  return result
+ var parser=JSON.new()
+ if parser.parse(f.get_as_text())!=OK:
+  result.warnings.append("旧卡组文件不是有效 JSON，原文件已保留："+original_path)
+  return result
+ var data=parser.data
+ if not data is Dictionary or data.get("version")!=1 or not data.get("decks") is Array:
+  result.warnings.append("旧卡组文件格式错误，原文件已保留："+original_path)
+  return result
+ var ids={}
+ for i in range(data.decks.size()):
+  var d=data.decks[i]
+  var error=validate(d)
+  if not error.is_empty():
+   result.warnings.append("旧卡组第 %d 副未迁移：%s" % [i+1,error])
+   continue
+  var recovered=d.duplicate(true)
+  if not d.get("id") is String or d.id.is_empty() or ids.has(d.id):
+   recovered.id="legacy_"+str(i)+"_"+path.sha256_text().left(12)
+   result.warnings.append("旧卡组第 %d 副标识无效或重复，已用新标识迁移。" % [i+1])
+  ids[recovered.id]=true
+  result.decks.append(clean_deck(recovered))
+ if not result.warnings.is_empty():result.warnings.append("旧文件未修改："+original_path)
+ return result
 static func persist(decks: Array, path: String = "") -> String:
  if path.is_empty():
   for deck in decks:
@@ -250,6 +284,7 @@ static func scan_files(directory: String,depth: int=0) -> Array:
  dir.list_dir_end();result.sort()
  return result
 static func initialize_portable() -> String:
+ migration_warnings.clear()
  var error=Paths.initialize()
  if not error.is_empty():return error
  var marker=folder().path_join(".initialized")
@@ -266,8 +301,8 @@ static func initialize_portable() -> String:
  file_paths.clear()
  var seeds=seed.decks.duplicate(true)
  if not OS.has_feature("editor") and FileAccess.file_exists(USER_SAVE_PATH):
-  var legacy=load_decks(USER_SAVE_PATH)
-  if legacy.has("error"):return legacy.error
+  var legacy=recover_legacy_decks(USER_SAVE_PATH)
+  migration_warnings.append_array(legacy.warnings)
   for d in legacy.decks:
    var replaced=false
    for i in range(seeds.size()):
@@ -302,7 +337,7 @@ static func load_portable() -> Dictionary:
  var error=initialize_portable()
  if not error.is_empty():return {"decks":[],"error":error}
  file_paths.clear()
- var decks=[];var warnings=[];var seen={}
+ var decks=[];var warnings=migration_warnings.duplicate();var seen={}
  for path in scan_files(folder()):
   var parsed=read_file(path)
   if parsed.has("error"):warnings.append(path.get_file()+"："+parsed.error);continue

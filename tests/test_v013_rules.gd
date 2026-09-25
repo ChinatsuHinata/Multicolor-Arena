@@ -1,4 +1,5 @@
 extends "res://tests/test_v012_rules.gd"
+const DuelView=preload("res://scripts/duel_view.gd")
 func choose_groups(options: Array,picks: Array,index: int=0) -> Dictionary:
  var t=options[index].duplicate(true);t.erase("selection");t.picks=picks;return t
 func cat_trigger(c: Dictionary,k: String,t: Dictionary={"none":true},data: Dictionary={}):
@@ -6,8 +7,30 @@ func cat_trigger(c: Dictionary,k: String,t: Dictionary={"none":true},data: Dicti
  e.damage_context={"source":source,"combat":false,"single":true}
  expect(e.Cat.resolve_trigger(e,{"source":source,"effect":k,"owner":c.owner,"target":t,"data":data,"optional":false,"name":e.cards[c.card_id].name}),"trigger contract "+k)
  e.damage_context={}
+func check_needle_wait():
+ fresh();var needle_view=DuelView.new();needle_view.engine=e
+ var needle_discard_a=put("164","hand",1);var needle_discard_b=put("164","hand",1)
+ var needle_big=put("50","field",1);var needle_small=put("51","field",1)
+ expect(needle_view.free_main(),"needle fixture starts in free main phase")
+ resolve_spell("spell-fdf-121")
+ expect(e.pending.get("kind","")=="effect_choice" and e.pending.owner==1 and e.pending.trigger.effect=="cat:atonement_discard","needle waits for opponent discard")
+ expect(not needle_view.free_main(),"needle discard hides end main phase")
+ e.phase="end";e.cleanup_end()
+ expect(not e.cleanup_done and e.pending.trigger.effect=="cat:atonement_discard","end cleanup waits for opponent choice")
+ e.phase="main"
+ var needle_turn=e.turn;e.pass_priority(0);e.finish_turn()
+ expect(e.turn==needle_turn and e.phase=="main","needle discard blocks turn end")
+ e.choose_effect(choose_groups(e.pending.options,[[e.Cat.ref(e,needle_discard_a),e.Cat.ref(e,needle_discard_b)]]))
+ expect(e.pending.get("kind","")=="effect_choice" and e.pending.owner==1 and e.pending.trigger.effect=="cat:move","needle waits for opponent sacrifice")
+ expect(not needle_view.free_main(),"needle sacrifice hides end main phase")
+ e.pass_priority(0);e.finish_turn()
+ expect(e.turn==needle_turn and needle_big.zone=="field","needle sacrifice blocks turn end")
+ e.choose_effect(choose_groups(e.pending.options,[[e.ref_target(needle_big)]]))
+ expect(e.pending.is_empty() and needle_big.zone=="grave" and needle_small.zone=="field" and needle_view.free_main(),"needle resumes only after opponent finishes")
+ needle_view.free()
 func run():
  var saved=FileAccess.get_file_as_string(Store.SAVE_PATH)
+ check_needle_wait()
  fresh();var a=put("character-fdf-100");var sp=e.stat(a,"spirit");var pw=e.stat(a,"power");var hp=e.stat(a,"health")
  put("99","grave",1);put("96","grave",1);put("50","grave",1)
  expect(e.stat(a,"spirit")==sp+2 and e.stat(a,"power")==pw and e.stat(a,"health")==hp,"Murasa +X modifies spirit only, counts opposing spells")

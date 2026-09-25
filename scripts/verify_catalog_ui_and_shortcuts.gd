@@ -23,6 +23,10 @@ func run():
  app.editor()
  await process_frame
  var all_cards=app.library_ids()
+ check(all_cards.has("field-smm-004") and not all_cards.has("field-rei-013") and Store.CARDS["field-rei-013"].canonical_id=="field-smm-004","castle alternate printing appears once in editor library")
+ app.query="辉光ノ城"
+ check(app.library_ids().filter(func(id):return id in ["field-smm-004","field-rei-013"])==["field-smm-004"],"castle alternate name finds the retained card")
+ app.query=""
  var read_only=all_cards.filter(func(id):return not Store.CARDS[id].constructible or Store.CARDS[id].token)
  check(read_only.size()==23 and all_cards.has("character-ucs-020") and all_cards.has("character-ucs-021") and all_cards.has("token-ucs-099"),"library includes all dream and token cards")
  app.query="梦违"

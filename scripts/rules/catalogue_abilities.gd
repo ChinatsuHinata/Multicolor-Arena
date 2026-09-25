@@ -178,7 +178,7 @@ static func copy_token(e,who,template,copy_counters=false):
 static func copy_spell(e,t,x=-1,copy_menu=false):
  var source=t.get("card",t.get("source",{}));var c=e.make_card(source.card_id,t.owner,"stack");c.stack_copy=true;c.token=true;c.cast_x=int(source.get("cast_x",0)) if x<0 else x
  e.catalogue_x_override=maxi(0,x)
- var choices=retarget_options(e,t,x);e.catalogue_x_override=0
+ var choices=retarget_options(e,t,x,true);e.catalogue_x_override=0
  for property in ["paid_dolls","exiled_hand","ichirin_paid"]:
   if source.has(property):c[property]=source[property]
  var wrapper=t.duplicate(true);wrapper.source=source
@@ -313,10 +313,20 @@ static func milled(e,c):
  for u in field(e):
   if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":1,"milled_owner":c.owner})
 
-static func retarget_options(e,entry,x=-1):
+static func retarget_options(e,entry,x=-1,change_modes=false):
  var old=entry.target;var options=[]
  e.catalogue_retargeting=true
- if entry.kind=="card":options=e.targets_for(entry.card.card_id,entry.owner)
+ if entry.kind=="card":
+  # These spells paid their sacrifice when cast. The paid unit is no longer
+  # available to build fresh cast options, but only the recipient may change.
+  if entry.card.card_id in ["94","163"] and old.has("sacrifice"):
+   var recipients=e.Pack.all_units(e) if entry.card.card_id=="94" else e.Extra.zone_refs(e,"grave",entry.owner).filter(func(r):return e.is_unit(e.find_card(r.uid)) and e.Extra.cost_value(e,e.find_card(r.uid))<=int(old.get("sacrifice_value",0)))
+   for recipient in recipients:
+    var option=recipient.duplicate(true)
+    option.retarget_paid_base={"sacrifice":old.sacrifice.duplicate(true),"sacrifice_value":old.get("sacrifice_value",0)}
+    options.append(option)
+   options=e.Roster.filter_options(e,options,entry.owner,true)
+  else:options=e.targets_for(entry.card.card_id,entry.owner)
  elif entry.get("activation",false):options=e.Extra.activation_options(e,entry.source,entry.effect)
  elif entry.get("generic_activation",false):
   var previous=e.priority;e.priority=entry.owner;options=e.ability_targets();e.priority=previous
@@ -325,15 +335,20 @@ static func retarget_options(e,entry,x=-1):
  var result=[]
  for option in options:
   if x>=0 and int(option.get("x",0))!=x:continue
+  var mode_changed=change_modes and (option.get("mode")!=old.get("mode") or option.get("n21_modes")!=old.get("n21_modes"))
   var matches=true
   for k in ["mode","x","ignore_color","pitch","counter_payment"]:
+   if change_modes and k=="mode":continue
    if x>=0 and k in ["mode","x"]:continue
    if old.has(k) and option.get(k)!=old[k]:matches=false
-  if not matches:continue
+  if not matches or not change_modes and not retarget_modes_match(old,option):continue
   var candidate=option.duplicate(true)
   if candidate.has("selection"):
+   if mode_changed and not candidate.selection.any(func(g):return g.get("cost",false)):
+    result.append(candidate)
+    continue
    if not old.has("picks") or candidate.selection.size()!=old.picks.size():continue
-   if x<0 and candidate.get("selection_id","")!=old.get("selection_id",""):continue
+   if not mode_changed and x<0 and candidate.get("selection_id","")!=old.get("selection_id",""):continue
    var groups=[];var indexes=[]
    for i in range(candidate.selection.size()):
     if candidate.selection[i].get("cost",false):continue
@@ -343,7 +358,19 @@ static func retarget_options(e,entry,x=-1):
    if x>=0:candidate.retarget_base.x=x
   result.append(candidate)
  return result if not result.is_empty() else [old.duplicate(true)]
+static func retarget_modes_match(old: Dictionary,candidate: Dictionary) -> bool:
+ for k in ["mode","n21_modes"]:
+  if old.has(k) and candidate.get(k)!=old[k]:return false
+ if old.has("parts"):
+  if not candidate.has("parts") or candidate.parts.size()!=old.parts.size():return false
+  for i in range(old.parts.size()):
+   if not retarget_modes_match(old.parts[i],candidate.parts[i]):return false
+ return true
 static func retarget_result(a):
+ if a.has("retarget_paid_base"):
+  var paid=a.retarget_paid_base;var result=a.duplicate(true)
+  result.erase("retarget_paid_base");result.merge(paid,true)
+  return result
  if not a.has("retarget_indices"):return a
  var result=a.retarget_base.duplicate(true)
  for i in range(a.retarget_indices.size()):result.picks[a.retarget_indices[i]]=a.picks[i]

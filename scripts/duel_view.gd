@@ -4,6 +4,7 @@ const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
+const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const STAGE=Rect2(0,0,1600,900)
 const HAND=Rect2(246,663,1108,232)
 const OPPONENT_HAND_COUNT=Rect2(1070,78,170,30)
@@ -14,12 +15,16 @@ const COLOR_INK={"红":Color("#cf5b60"),"蓝":Color("#4d94d5"),"绿":Color("#489
 var debug_mode=false
 var debug_controls: Control
 var debug_button: Button
+var debug_help_button: Button
+var debug_free_checkbox: CheckButton
 var debug_root: Control
 var debug_open=false
 var history_open=false
 var history_root: Control
 var history_panel: Panel
 var region_selected: Dictionary={}
+var region_batch: Array=[]
+var region_batch_key=""
 var region_tiles={}
 var inspection_text: RichTextLabel
 const ZONE_NAMES={"deck":"牌库","grave":"墓地","exile":"除外区","field":"战场","palette":"颜色盘","hand":"手牌","leader":"自机区","stack":"堆叠"}
@@ -69,6 +74,8 @@ var life_last={}
 var life_flashes={}
 var life_flash_tweens={}
 var arrow_layer: Control
+var grave_target_layer: Control
+var grave_target_tiles={}
 var local: Dictionary={}
 var selection: Array=[]
 enum ResponseMode { DEFAULT, ON, OFF }
@@ -122,7 +129,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   var packet=session.pop_snapshot();engine.apply_snapshot(packet.projection)
   session.error_raised.connect(network_error)
  else:
-  debug_mode=host.debug_mode;engine=Duel.new();engine.debug_enabled=debug_mode;engine.start(a,b,first,seed_value)
+  debug_mode=host.debug_mode;engine=Duel.new();engine.debug_enabled=debug_mode;engine.debug_free_payment=debug_mode and host.debug_free_payment;engine.start(a,b,first,seed_value)
  viewport=SubViewport.new(); viewport.own_world_3d=true
  viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  viewport.render_target_clear_mode=SubViewport.CLEAR_MODE_ALWAYS
@@ -156,6 +163,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
  effects=layer(ui)
  stack_panel=preload("res://scripts/duel_stack.gd").new(); ui.add_child(stack_panel); stack_panel.build(self)
+ grave_target_layer=layer(ui)
  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
  banner=layer(ui)
  if session!=null and not session.read_only and not session.replay_mode:
@@ -167,8 +175,21 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  reset_view_button.tooltip_text="复原战场缩放和位置"
  if debug_mode:
   debug_controls=layer(ui)
+  debug_help_button=btn("测试说明",Rect2(1020,57,120,34),open_debug_help,false,debug_controls)
+  debug_help_button.tooltip_text="查看测试模式的区域操作与快捷键"
   debug_button=btn("调试",Rect2(1460,57,116,34),debug_menu,false,debug_controls)
   debug_button.toggle_mode=true
+  debug_free_checkbox=CheckButton.new()
+  debug_free_checkbox.text="无需付费"
+  debug_free_checkbox.position=Vector2(1160,57)
+  debug_free_checkbox.size=Vector2(145,34)
+  debug_free_checkbox.button_pressed=engine.debug_free_payment
+  debug_free_checkbox.tooltip_text="跳过出牌、异能与攻击的颜色费用"
+  debug_free_checkbox.toggled.connect(func(value):
+   engine.debug_free_payment=value
+   host.debug_free_payment=value
+   render())
+  debug_controls.add_child(debug_free_checkbox)
  get_viewport().size_changed.connect(resize_world)
  if session!=null:
   was_network_locked=network_locked();was_network_ended=session.ended();session.changed.connect(network_changed)
@@ -230,9 +251,14 @@ func stage_input(event: InputEvent):
  if event is InputEventMouseButton:
   var converted=event.duplicate()
   converted.position=event.position/STAGE.size*Vector2(viewport.size)
+  if event.pressed and event.button_index==MOUSE_BUTTON_LEFT and can_debug_add() and table.card_at(converted.position)==0:
+   var spot=table.debug_field_group(converted.position)
+   if not spot.is_empty():
+    open_debug_card_picker(int(spot.owner),"field",spot.group)
+    return
   table.pointer(converted)
 func free_main() -> bool:
- return engine.active==acting_player() and engine.phase=="main" and engine.stack.is_empty() and engine.combat.is_empty()
+ return engine.active==acting_player() and engine.phase=="main" and engine.pending.is_empty() and engine.stack.is_empty() and engine.combat.is_empty()
 func in_response_window() -> bool:
  return engine!=null and engine.winner==-2 and engine.priority==acting_player() and engine.phase!="mulligan" and engine.pending.is_empty() and not free_main()
 func should_ask_response() -> bool:
@@ -365,9 +391,11 @@ func render():
  var available=highlights()
  table.targetable_stacks=picker.available_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id) if picker_active() else []
  table.selected_stacks=picker.selected_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id)
+ table.stack_target_uids=interactive_stack_target_uids()
  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
  render_hands(available)
  stack_panel.sync()
+ render_grave_targets()
  table.presented_moves.clear()
  rebuild_badges()
  for mode in [ResponseMode.ON,ResponseMode.OFF]:
@@ -405,6 +433,7 @@ func render():
  if network_locked():pass
  elif engine.winner!=-2 and not table.combat_animating: result_overlay()
  elif engine.pending.get("kind","")=="damage_assignment" and engine.pending.owner==acting_player() and not table.combat_animating: damage_dialog()
+ elif engine.pending.get("kind","")=="ward_order" and engine.pending.owner==acting_player() and not table.combat_animating: ward_order_menu()
  elif engine.pending.get("kind","")=="trigger_order" and engine.pending.owner==acting_player() and not table.combat_animating: trigger_order_menu()
  elif region_picker_needed() and not table.combat_animating: region_picker()
  refresh_observation()
@@ -520,6 +549,12 @@ func rebuild_badges():
    count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;count.add_theme_color_override("font_outline_color",Color("#081019"));count.add_theme_constant_override("outline_size",6)
    count.visible=d.members.size()>1
    parts.token_count=count
+  if d.get("copy_total",0)>1:
+   var fanned=d.get("fanned",false)
+   var number=txt(str(d.copy_index) if fanned else "%d/%d" % [d.copy_index,d.copy_total],Rect2(0,0,28 if fanned else 48,22),12 if fanned else 14,host.GOLD,root)
+   number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   number.add_theme_color_override("font_outline_color",Color("#081019"));number.add_theme_constant_override("outline_size",5)
+   parts.copy_number=number;parts.fanned=fanned
   card_badges[key]=parts
  for key in table.piles:
   if "exile" in key and engine.players[0 if key.begins_with("p") else 1].exile.is_empty(): continue
@@ -539,7 +574,8 @@ func refresh_stackable_badges():
   var d=table.descriptors[key]
   var c=engine.find_card(d.uid)
   if c.is_empty() or c.zone!="field" or not engine.cards[c.card_id].get("stackable",false):continue
-  var count=engine.stackable_members(c).size()
+  var isolated=d.uid in table.chosen or d.uid in table.stack_target_uids or table.reserved.any(func(r):return r.uid==d.uid)
+  var count=1 if isolated else engine.stackable_members(c).filter(func(u):return u.uid not in table.chosen and u.uid not in table.stack_target_uids and not table.reserved.any(func(r):return r.uid==u.uid)).size()
   parts.token_count.text="×%d" % count
   parts.token_count.visible=count>1
 func projected_card_rect(node: Node3D) -> Rect2:
@@ -562,6 +598,7 @@ func update_badge_positions():
    if parts.has("courage"):parts.courage.position=Vector2(-rect.size.x/2,-rect.size.y/2-20)
    if parts.has("counters"):parts.counters.position=Vector2(-50,rect.size.y/2-58 if parts.has("stats") else -rect.size.y/2+12)
    if parts.has("token_count"):parts.token_count.position=Vector2(-40,rect.size.y/2-33)
+   if parts.has("copy_number"):parts.copy_number.position=Vector2(-rect.size.x/2+2 if parts.fanned else rect.size.x/2-46,rect.size.y/2-25)
    if parts.has("marker"): parts.marker.position=Vector2(rect.size.x/2-32,-rect.size.y/2-10)
    if parts.has("sick"): parts.sick.position=Vector2(-49,rect.size.y/2+1)
    if parts.has("caption"):
@@ -600,7 +637,7 @@ func inspect_card(id: String,uid: int=0,caption: String=""):
 func update_inspection():
  var current=engine.find_card(inspect_uid)
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
- inspection.visible=not inspect_id.is_empty()
+ inspection.visible=host.show_card_inspection and not inspect_id.is_empty()
  var counters=counter_lines(current)
  var signature=inspect_id+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))
  if signature==inspection_signature: return
@@ -695,6 +732,7 @@ func render_prompt():
   match engine.pending.kind:
    "effect_choice":
     var t=engine.pending.trigger
+    if t.effect=="fairy_rewrite_resolution":text="妖精ノ巡礼：选择要改写的其他符卡"
     if t.effect=="cat:grant" and t.data.get("free",false) and not t.data.get("payment_chosen",false):
      text="是否支付颜色使用？"
      btn("不支付颜色使用",Rect2(1330,675,237,49),func(): engine.set_granted_payment(false);picker.reset();render(),true)
@@ -704,6 +742,7 @@ func render_prompt():
      render_inline_picker(confirm_trigger,t.optional)
      if t.optional: optional_trigger_prompt()
    "trigger_order": pass
+   "ward_order": text="选择先损失的防避"
    "timer":
     text=engine.pending.change.get("source_name","")+" · 计时替代"
     for i in range(3):
@@ -737,6 +776,8 @@ func render_prompt():
     b.disabled=selection.size()!=engine.pending.count
    "damage_assignment":
     text="分配战斗伤害"
+ elif not engine.pending.is_empty():
+  text="等待对手完成选择"
  elif engine.priority==acting_player() and engine.winner==-2:
   if attack_preview_uid!=0:
    var attack_button=btn("攻击",Rect2(1330,770,237,55),confirm_attack,true)
@@ -816,6 +857,11 @@ func _input(event: InputEvent):
   return
  if debug_open and event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
   close_debug(); get_viewport().set_input_as_handled(); return
+ if event is InputEventKey and event.pressed and not event.echo and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed and can_debug_add():
+  var destination={KEY_Z:"hand",KEY_X:"palette",KEY_C:"grave"}.get(event.keycode,"")
+  if not destination.is_empty():
+   open_debug_card_picker(engine.active,destination)
+   get_viewport().set_input_as_handled();return
  if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and modal:
   var at=make_input_local(event).position
   for uid in region_tiles:
@@ -832,7 +878,7 @@ func _input(event: InputEvent):
  if observing and event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
   var point=make_input_local(event).position
   var on_debug_toggle=is_instance_valid(debug_button) and debug_button.get_global_rect().has_point(point)
-  if not on_debug_toggle and not observe_button.get_global_rect().has_point(point) and not STAGE.has_point(point) and not inspection.get_global_rect().has_point(point):
+  if not on_debug_toggle and not observe_button.get_global_rect().has_point(point) and not STAGE.has_point(point) and not (inspection.visible and inspection.get_global_rect().has_point(point)):
    get_viewport().set_input_as_handled(); return
  if not observing and drag_uid==0 and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:
   if not local.is_empty(): cancel_cast()
@@ -1024,6 +1070,30 @@ func trigger_order_menu():
   var label=txt(AbilityCaption.text(t),Rect2(at+Vector2(-4,251),Vector2(194,78)),17,host.WHITE,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   label.size=Vector2(194,78)
+func ward_order_menu():
+ if engine.pending.get("kind","")!="ward_order":return
+ var target=engine.find_card(engine.pending.target.uid)
+ if target.is_empty():return
+ var panel=overlay("选择先损失的防避")
+ panel.size=Vector2(650,465);center_panel(panel)
+ var art=host.card(panel,target.card_id,Rect2(28,80,180,251),func():inspect_card(target.card_id,target.uid))
+ art.tooltip_text="右键查看单位"
+ var name=txt(engine.cards[target.card_id].name,Rect2(25,342,190,74),17,host.WHITE,panel)
+ name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ txt("将受到 %d 点伤害。请选择优先消耗的防避。" % engine.pending.incoming,Rect2(233,81,390,56),18,host.WHITE,panel).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var scroll=ScrollContainer.new();scroll.position=Vector2(232,146);scroll.size=Vector2(391,269)
+ panel.add_child(scroll)
+ var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+ for index in engine.pending.options:
+  var ward=target.wards[index]
+  var expiry="持续" if int(ward.get("turn",engine.turn))==-1 else "本回合"
+  if ward.get("next",false):expiry+=" · 下一次伤害"
+  var button=Button.new();button.text="防避 %d  ·  %s" % [int(ward.get("amount",0)),expiry]
+  button.custom_minimum_size=Vector2(365,48);rows.add_child(button)
+  button.pressed.connect(func():
+   if observing or engine.pending.get("kind","")!="ward_order":return
+   engine.choose_ward(index);render())
+ refresh_observation()
 func optional_trigger_prompt():
  var inline_rows=picker.available().any(func(atom):
   if atom.kind!="target": return true
@@ -1219,15 +1289,23 @@ func network_changed():
  render()
 func settings_menu():
  var panel=overlay("对战设置")
- panel.position=Vector2(475,285)
+ panel.position=Vector2(475,255)
+ panel.size.y=390
  txt("卡牌视角",Rect2(30,68,560,28),18,host.MUTED,panel).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("3D 斜视",Rect2(30,100,260,48),func():set_card_view(false),not table.top_down_view,panel)
  btn("2D 上方俯视",Rect2(330,100,260,48),func():set_card_view(true),table.top_down_view,panel)
- btn("继续游戏",Rect2(30,180,260,48),func(): modal=false; render(),true,panel)
+ var inspection_cb=CheckButton.new()
+ inspection_cb.text="显示左侧卡牌效果说明栏"
+ inspection_cb.position=Vector2(30,165)
+ inspection_cb.size=Vector2(560,48)
+ inspection_cb.button_pressed=host.show_card_inspection
+ inspection_cb.toggled.connect(func(value): host.set_show_card_inspection(value); update_inspection())
+ panel.add_child(inspection_cb)
+ btn("继续游戏",Rect2(30,230,260,48),func(): modal=false; render(),true,panel)
  if network_session!=null and not network_session.replay_mode:
-  btn("返回联机房间",Rect2(195,250,260,48),func():host.online(),false,panel)
+  btn("返回联机房间",Rect2(195,305,260,48),func():host.online(),false,panel)
  if network_session!=null and network_session.read_only:return
- btn("本局投降",Rect2(330,180,260,48),func():
+ btn("本局投降",Rect2(330,230,260,48),func():
   var confirm=overlay("确认本局投降")
   confirm.position=Vector2(475,285)
   btn("本局投降",Rect2(35,155,260,50),func(): modal=false; local={}; engine.surrender(local_seat); render(),true,confirm)
@@ -1335,6 +1413,10 @@ func refresh_observation():
  if is_instance_valid(debug_button):
   debug_button.set_pressed_no_signal(debug_open)
   debug_button.tooltip_text="收起调试，返回对局" if debug_open else "查看或移动区域卡牌"
+ if is_instance_valid(debug_free_checkbox):
+  debug_free_checkbox.set_pressed_no_signal(engine.debug_free_payment)
+  debug_free_checkbox.disabled=modal or not local.is_empty() or not engine.pending.is_empty()
+ if is_instance_valid(debug_help_button):debug_help_button.disabled=modal
  observe_button.visible=choice_active() or observing
  observe_button.text="返回选择" if observing else "观察战场"
  ui.move_child(inspection,-1)
@@ -1494,6 +1576,75 @@ func debug_menu():
  if not debug_mode or history_open or table.combat_animating: return
  if debug_open: close_debug()
  else: browse_zone(acting_player(),"deck")
+
+func open_debug_help():
+ if not debug_mode or modal or history_open or table.combat_animating:return
+ var panel=overlay("测试操作说明")
+ panel.size=Vector2(790,610);center_panel(panel)
+ var guide=RichTextLabel.new()
+ guide.position=Vector2(35,72);guide.size=Vector2(720,454)
+ guide.bbcode_enabled=true;guide.scroll_active=true
+ guide.add_theme_font_size_override("normal_font_size",18)
+ guide.add_theme_color_override("default_color",host.WHITE)
+ guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\nC：加入当前回合玩家的墓地，包括梦违牌。\n\n[b]移动已有卡牌[/b]\n点击「调试」打开区域列表，按住列表、手牌或场上的卡面，拖到所属玩家的目标区域。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
+ panel.add_child(guide)
+ btn("返回对局",Rect2(535,544,220,46),close_overlay,false,panel)
+
+func can_debug_add() -> bool:
+ return debug_mode and network_session==null and engine!=null and engine.debug_enabled and engine.winner==-2 and engine.phase!="mulligan" and engine.stack.is_empty() and engine.combat.is_empty() and engine.pending.is_empty() and local.is_empty() and not history_open and not debug_open and not observing and not modal and not table.combat_animating and debug_drag_uid==0
+
+func debug_card_matches(id: String,group: String) -> bool:
+ var info=engine.cards[id]
+ match group:
+  "unit":return info.kind in ["自机","单位"]
+  "item":return info.kind=="道具"
+  "support":return info.kind=="结界"
+ return true
+
+func open_debug_card_picker(who: int,destination: String,group: String=""):
+ if not can_debug_add():return
+ var title=player_caption(who)+" · 加入"+({"field":{"unit":"单位区域","item":"道具区域","support":"结界区域"}.get(group,"战场"),"hand":"手牌","palette":"颜色盘（竖直）","grave":"墓地"}.get(destination,destination))
+ var panel=overlay(title)
+ panel.size=Vector2(760,650);center_panel(panel)
+ var search=LineEdit.new();search.position=Vector2(24,70);search.size=Vector2(712,43)
+ search.placeholder_text="输入卡名、编号或别名搜索（包含梦违与衍生物）"
+ panel.add_child(search)
+ var count=txt("",Rect2(28,119,700,28),16,host.MUTED,panel)
+ var scroll=ScrollContainer.new();scroll.position=Vector2(24,151);scroll.size=Vector2(712,423)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
+ var rows=VBoxContainer.new();rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(rows)
+ search.text_changed.connect(func(query): fill_debug_card_picker(rows,count,scroll,query,who,destination,group))
+ fill_debug_card_picker(rows,count,scroll,"",who,destination,group)
+ btn("取消",Rect2(520,590,210,43),close_overlay,false,panel)
+ search.grab_focus()
+
+func fill_debug_card_picker(rows: VBoxContainer,count: Label,scroll: ScrollContainer,query: String,who: int,destination: String,group: String):
+ clear_children(rows)
+ var term=query.strip_edges().to_lower()
+ var alias_rule=SearchAliases.find_rule(SearchAliases.load_rules(),term) if not term.is_empty() else null
+ var alias_only=alias_rule is Dictionary and alias_rule.get("only",false)==true
+ var matches=[]
+ for id in engine.cards:
+  if not debug_card_matches(id,group):continue
+  var info=engine.cards[id]
+  var alias_match=SearchAliases.card_matches(info,alias_rule,id)
+  if alias_only and not alias_match:continue
+  if not term.is_empty() and not alias_match and term not in str(id).to_lower() and term not in str(info.name).to_lower() and not info.get("aliases",[]).any(func(alias):return term in str(alias).to_lower()):continue
+  matches.append(id)
+ matches.sort_custom(func(a,b):return str(engine.cards[a].name)<str(engine.cards[b].name))
+ count.text="找到 %d 张 · 点击加入%s" % [matches.size(),"（请继续输入以缩小范围）" if matches.size()>80 else ""]
+ for id in matches.slice(0,80):
+  var chosen_id: String=id
+  var info=engine.cards[id]
+  var suffix=" · 梦违" if "梦违" in info.get("keywords",[]) or "梦违" in info.get("rules_text","") else " · 衍生物" if info.get("token",false) else ""
+  var row=Button.new();row.text="%s  [%s]  %s%s" % [info.name,id,info.kind,suffix]
+  row.alignment=HORIZONTAL_ALIGNMENT_LEFT;row.custom_minimum_size=Vector2(680,42)
+  rows.add_child(row)
+  row.pressed.connect(func():
+   close_overlay()
+   message=engine.debug_add(chosen_id,who,destination)
+   render())
+ scroll.scroll_vertical=0
 func begin_debug_drag(uid: int,at: Vector2):
  if not debug_mode or observing: return
  var c=engine.find_card(uid)
@@ -1607,6 +1758,13 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
  var choice_parent=hud
  var wide_choices=false
  if not picker.prompt().is_empty(): txt(picker.prompt(),Rect2(1330,610,237,48),17,host.GOLD)
+ elif picker.ready():
+  var chosen=picker.option()
+  if chosen.get("selection_id","")=="emotions":
+   var effects=engine.Pack.flatten(chosen)
+   var counters=effects.filter(func(effect):return str(effect.get("mode","")).begins_with("反制")).size()
+   var summary=txt("已选反制 %d 项 · 其他 %d 项" % [counters,effects.size()-counters],Rect2(1330,610,237,48),16,host.GOLD)
+   summary.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var options=[]
  for atom in picker.available():
   if atom.kind!="target" or not atom.value.has("uid") and not atom.value.has("player") and not atom.value.has("stack_id") or atom.value.has("counter"): options.append(atom); continue
@@ -1740,6 +1898,9 @@ func target_rect(target: Dictionary) -> Rect2:
  if target.has("uid"):
   var c=engine.find_card(target.uid)
   if c.is_empty() or c.epoch!=target.get("epoch",-1): return Rect2()
+  if c.zone=="grave" and grave_target_tiles.has(c.uid):
+   var tile=grave_target_tiles[c.uid]
+   return tile.get_global_rect().intersection(tile.get_meta("target_scroll").get_global_rect())
   if c.zone=="stack": return stack_panel.card_rect(c.uid)
   var key="card_"+str(c.uid)
   if table.visuals.has(key): return projected_card_rect(table.visuals[key])
@@ -1763,6 +1924,75 @@ func arrow_targets(target: Dictionary) -> Array:
  for field in ["uid","epoch","zone","player","stack_id"]:
   if target.has(field): actual[field]=target[field]
  return [actual] if not actual.is_empty() else []
+
+func interactive_stack_target_uids() -> Array:
+ var result=[]
+ for entry in engine.stack:
+  for ref in arrow_targets(entry.get("target",{})):
+   if not ref.has("uid"):continue
+   var c=engine.find_card(ref.uid)
+   if c.is_empty() or c.zone!="field" or c.epoch!=ref.get("epoch",-1):continue
+   if not engine.cards[c.card_id].get("stackable",false):continue
+   if engine.cards[c.card_id].kind not in ["道具","结界"]:continue
+   if c.uid not in result:result.append(c.uid)
+ return result
+
+func stack_grave_targets() -> Dictionary:
+ var targets={0:[],1:[]}
+ for entry in engine.stack:
+  for ref in arrow_targets(entry.get("target",{})):
+   if not ref.has("uid"):continue
+   var c=engine.find_card(ref.uid)
+   if c.is_empty() or c.zone!="grave" or c.epoch!=ref.get("epoch",-1):continue
+   if not targets[c.owner].any(func(other):return other.uid==c.uid):targets[c.owner].append(ref)
+ return targets
+
+func exposed_grave_choice() -> bool:
+ var atoms=region_atoms()
+ if atoms.is_empty() or not atoms.all(func(atom):return engine.find_card(atom.value.uid).zone=="grave"):return false
+ return atoms.any(func(atom):return grave_target_tiles.has(atom.value.uid))
+
+func render_grave_targets():
+ clear_children(grave_target_layer);grave_target_tiles={}
+ var targets=stack_grave_targets()
+ var available=picker.available_refs() if picker_active() else []
+ var selected=picker.selected_refs() if picker_active() else []
+ for who in [1-local_seat,local_seat]:
+  var refs=targets[who]
+  if refs.is_empty():continue
+  var width=maxf(190.0,minf(600.0,26.0+refs.size()*126.0))
+  var at=Vector2(250,159 if who!=local_seat else 411)
+  var panel=host.box(grave_target_layer,Rect2(at,Vector2(width,249)),Color("#101c28e8"),Color("#8c7242"))
+  panel.name="GraveTargets%d" % who
+  txt(player_caption(who)+"墓地 · 堆叠目标",Rect2(12,7,width-24,27),17,host.GOLD,panel)
+  var scroll=ScrollContainer.new();scroll.position=Vector2(10,37);scroll.size=Vector2(width-20,178)
+  scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
+  var row=HBoxContainer.new();row.add_theme_constant_override("separation",8);scroll.add_child(row)
+  for ref in refs:
+   var c=engine.find_card(ref.uid)
+   var cell=Control.new();cell.custom_minimum_size=Vector2(118,174);row.add_child(cell)
+   var legal=available.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
+   var chosen=selected.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
+   var art=host.card(cell,c.card_id,Rect2(4,0,110,153),func():
+    if legal:choose_target(ref)
+    else:inspect_card(c.card_id,c.uid))
+   art.name="GraveTargetCard";art.set_meta("target_uid",c.uid)
+   art.set_meta("target_scroll",scroll)
+   art.tooltip_text=engine.cards[c.card_id].name+" · "+player_caption(who)+"墓地"
+   art.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+   var style=host.style(Color("#172936"),Color("#ffd65c") if chosen else Color("#359bff") if legal else Color("#8c7242"))
+   style.set_border_width_all(3 if legal or chosen else 1)
+   art.add_theme_stylebox_override("panel",style)
+   art.gui_input.connect(func(event):
+    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(c.card_id,c.uid))
+   var name=txt(engine.cards[c.card_id].name,Rect2(0,155,118,19),13,host.WHITE,cell)
+   name.clip_text=true;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   grave_target_tiles[c.uid]=art
+  if picker_active() and not region_atoms().is_empty() and exposed_grave_choice():
+   var others=region_atoms().any(func(atom):return not grave_target_tiles.has(atom.value.uid))
+   if others and who==local_seat or others and targets[local_seat].is_empty():
+    var browse=btn("选择其他墓地牌",Rect2(width-169,218,157,27),region_picker,false,panel)
+    browse.add_theme_font_size_override("font_size",13)
 func rect_edge(rect: Rect2,toward: Vector2) -> Vector2:
  var direction=(toward-rect.get_center()).normalized()
  var distance=minf(rect.size.x*0.5/maxf(0.001,absf(direction.x)),rect.size.y*0.5/maxf(0.001,absf(direction.y)))
@@ -1823,10 +2053,26 @@ func region_atoms() -> Array:
   var c=engine.find_card(atom.value.uid)
   return not c.is_empty() and c.zone in ["deck","grave","exile","hand"])
 func region_picker_needed() -> bool:
- return picker_active() and not picker.ready() and not region_atoms().is_empty()
+ return picker_active() and not picker.ready() and not region_atoms().is_empty() and (not exposed_grave_choice() or not region_batch_group().is_empty())
+func region_batch_group() -> Dictionary:
+ if picker.specs.is_empty() or picker.ready():return {}
+ var state=picker.dynamic_state()
+ if state.index<0 or state.group>=picker.specs[state.index].get("selection",[]).size():return {}
+ var group=picker.specs[state.index].selection[state.group]
+ if int(group.max)<=1 or group.pool.is_empty() or group.get("distinct_names",false) or group.has("sum_max"):return {}
+ for ref in group.pool:
+  if not ref.has("uid"):return {}
+  var card=engine.find_card(ref.uid)
+  if card.is_empty() or card.zone not in ["deck","grave","exile","hand"]:return {}
+ return group
 func region_picker():
  var atoms=region_atoms()
  if atoms.is_empty(): return
+ var batch_group=region_batch_group()
+ var batch_key=picker.key+JSON.stringify(picker.path)
+ if region_batch_key!=batch_key:
+  region_batch=[];region_batch_key=batch_key
+ region_batch=region_batch.filter(func(atom):return atom in atoms)
  if region_selected not in atoms: region_selected={}
  var panel=overlay(picker.prompt() if not picker.prompt().is_empty() else "选择卡牌")
  panel.size=Vector2(895,460); center_panel(panel); panel.set_meta("region_picker",true)
@@ -1845,26 +2091,51 @@ func region_picker():
   var name=txt(engine.cards[c.card_id].name,Rect2(0,237,142,54),15,host.WHITE,tile)
   name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; name.size=Vector2(142,54)
   region_tiles[c.uid]=art
+ if not batch_group.is_empty():
+  var count_label=txt("",Rect2(22,396,575,32),17,host.GOLD,panel)
+  count_label.name="RegionCount"
  var confirm=btn("确定",Rect2(624,392,243,48),confirm_region_atom,true,panel)
- confirm.name="RegionConfirm"; confirm.disabled=region_selected.is_empty() and not picker.available().any(func(a): return a.kind=="finish_group")
+ confirm.name="RegionConfirm"
  update_region_styles()
 func select_region_atom(atom: Dictionary):
  if observing: return
- region_selected=atom if region_selected!=atom else {}
+ var group=region_batch_group()
+ if group.is_empty():region_selected=atom if region_selected!=atom else {}
+ elif atom in region_batch:region_batch.erase(atom)
+ elif picker.dynamic_state().current.size()+region_batch.size()<int(group.max):region_batch.append(atom)
  update_region_styles()
 func update_region_styles():
  for uid in region_tiles:
-  var selected=region_selected.get("value",{}).get("uid",-1)==uid
+  var selected=region_selected.get("value",{}).get("uid",-1)==uid or region_batch.any(func(atom):return atom.value.uid==uid)
   var style=host.style(Color("#172936"),Color("#ffd65c") if selected else Color("#359bff")); style.set_border_width_all(4)
   region_tiles[uid].add_theme_stylebox_override("panel",style)
  if is_instance_valid(modal_root):
   var confirm=modal_root.find_child("RegionConfirm",true,false)
   if confirm:
+   var group=region_batch_group()
+   if not group.is_empty():
+    var count=picker.dynamic_state().current.size()+region_batch.size()
+    var count_label=modal_root.find_child("RegionCount",true,false)
+    if count_label:count_label.text="点击卡牌多选 · 已选 %d / 最多 %d 张" % [count,int(group.max)]
+    confirm.disabled=count<int(group.min) or count>int(group.max)
+    confirm.text="确认选择（%d）" % count if count>0 else "跳过此项"
+    return
    var finish=picker.available().filter(func(a): return a.kind=="finish_group")
    confirm.disabled=region_selected.is_empty() and finish.is_empty()
    confirm.text=finish[0].value if region_selected.is_empty() and not finish.is_empty() else "确定"
 func confirm_region_atom():
  if observing: return
+ var group=region_batch_group()
+ if not group.is_empty():
+  var count=picker.dynamic_state().current.size()+region_batch.size()
+  if count<int(group.min) or count>int(group.max):return
+  for atom in region_batch:
+   if not picker.select(atom):return
+  var finish=picker.available().filter(func(a):return a.kind=="finish_group")
+  if finish.is_empty():return
+  picker.select(finish[0]);region_batch=[];region_batch_key="";region_selected={}
+  if not local.is_empty():local.target=picker.option()
+  render();return
  if region_selected.is_empty():
   for a in picker.available():
    if a.kind=="finish_group": inline_pick(a); return

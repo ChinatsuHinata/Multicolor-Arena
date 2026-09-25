@@ -12,12 +12,13 @@ static func find_rule(rules: Dictionary,alias: String) -> Variant:
   if str(key).to_lower()==alias.to_lower():return rules[key]
  return null
 
-static func card_matches(info: Dictionary,rule: Variant) -> bool:
+static func card_matches(info: Dictionary,rule: Variant,card_id: String="") -> bool:
  if rule is Array:
   for part in rule:
    if part is String and not part.is_empty() and part.to_lower() in info.name.to_lower():return true
   return false
  if not rule is Dictionary:return false
+ if rule.has("card_ids"):return card_id in rule.card_ids
  if rule.has("card_name_or_alias"):
   var name=str(rule.card_name_or_alias)
   return info.name==name or name in info.get("aliases",[])

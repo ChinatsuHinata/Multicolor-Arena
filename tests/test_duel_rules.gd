@@ -40,12 +40,10 @@ func run():
  e.phase="end"; e.cleanup_end()
  expect(leader.timer==1,"own end phase reduces leader timer once")
  e=fixture()
- var reimu=put(e,0,"70","field"); reimu.tapped=true; reimu.attacked=true
+ var reimu=put(e,0,"70","field"); reimu.tapped=true; reimu.attacked=true; reimu.brave_attack_turn=e.turn
  e.advance_phase()
- expect(e.phase=="end" and reimu.tapped and e.stack.size()==1,"brave enters stack before untapping")
+ expect(e.phase=="end" and not reimu.tapped and e.stack.is_empty(),"brave untaps during the end phase")
  expect(e.targets_for("100").is_empty(),"card counter cannot target triggered ability")
- resolve(e)
- expect(not reimu.tapped,"brave untaps only when its trigger resolves")
  e=fixture()
  var marisa=put(e,0,"68","field")
  expect(not e.has_leader_ability(marisa),"ordinary Marisa does not automatically gain leader ability")
@@ -54,7 +52,7 @@ func run():
  for i in range(3): put(e,0,"164","palette")
  var fire=put(e,0,"99","hand"); var enemy=put(e,1,"70","field")
  e.commit_cast(0,fire.uid,{"player":1},e.payment(0,{"黄":3}).plan)
- expect(e.pending.get("kind","")=="trigger" and e.stack.size()==1,"spell use pauses to choose Marisa trigger target")
+ expect(e.pending.get("kind","")=="trigger" and e.stack.size()==2 and e.stack.back().get("awaiting_target",false),"spell use queues a provisional Marisa trigger while choosing its target")
  e.choose_trigger(e.ref_target(enemy))
  expect(e.stack.size()==2 and e.stack.back().kind=="ability","Marisa trigger sits above original spell")
  e.players[0].field.erase(marisa); e.to_grave(marisa)
@@ -115,7 +113,5 @@ func run():
  expect(not Store.validate(deck,false).is_empty(),"test mode still refuses construction-banned card")
  expect(not Store.add_card(deck,"99","main").is_empty(),"editor refuses construction-banned card")
  Store.CARDS["99"].constructible=true
- var file=FileAccess.open("res://work/duel-rules-test.txt",FileAccess.WRITE)
- file.store_string("%d checks; %d failures\n%s" % [checks,failed.size(),"\n".join(failed)])
  print("DUEL_RULES_TEST: %d checks; %d failures" % [checks,failed.size()])
  quit(0 if failed.is_empty() else 1)
