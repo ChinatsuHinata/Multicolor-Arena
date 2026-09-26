@@ -1,5 +1,6 @@
 extends RefCounted
 const Codec=preload("res://net/state_codec.gd")
+const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
 const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names"]
 static func hidden_card(who: int,zone: String,index: int) -> Dictionary:
  return {"card_id":"back","uid":-1000000-who*100000-(10000 if zone=="deck" else 0)-index,"epoch":0,"owner":who,"original_owner":who,"zone":zone,"leader":false,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false,"network_hidden":true}
@@ -21,6 +22,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  # The authority alone needs declaration-time choice pools for retargeting.
  # A paid discard could otherwise disclose private hand choices in a snapshot.
  state.stack=public_stack(state.stack)
+ q.pending_keystones=SpellDamagePreview.public_keystone_estimates(e)
  q.resources=e.source_resources(seat).duplicate(true);q.response=e.has_response(seat);q.blockers=e.legal_blockers().map(func(c):return c.uid) if e.pending.get("kind","")=="block" and e.pending.owner==seat else []
  q.ability_targets=e.ability_targets().duplicate(true)
  q.legal=e.legal_casts(seat).map(func(c):return c.uid);q.fast_legal=e.legal_casts(seat,true).map(func(c):return c.uid)
@@ -86,7 +88,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
   state.presentation_events.append(event)
  for event in state.history:
   for art in event.art:
-   if art.get("hidden",false) and art.owner!=seat:art.card_id="back"
+   if art.get("hidden",false) and art.owner!=seat:art.card_id="back";art.erase("art_id")
  var definitions={}
  for c in all+q.lookup.values():
   if not c.is_empty():definitions[c.card_id]=e.cards[c.card_id]

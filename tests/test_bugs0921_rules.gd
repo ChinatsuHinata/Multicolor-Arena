@@ -1,4 +1,4 @@
-extends "res://tests/test_v09_rules.gd"
+extends "res://tests/support/rules_base.gd"
 const SeatView=preload("res://net/seat_projection.gd")
 const ObserverView=preload("res://net/observer_projection.gd")
 func plain(who=0,power=1,health=1):

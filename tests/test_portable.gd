@@ -1,4 +1,4 @@
-extends "res://tests/test_v0181_series.gd"
+extends "res://tests/support/network_base.gd"
 const Archive=preload("res://scripts/replay_archive.gd")
 const Observer=preload("res://net/observer_projection.gd")
 var spectator
@@ -90,11 +90,12 @@ func run():
  host.create_room(3,false,47981,"127.0.0.1")
  host.series.state.status="playing";host.series.state.scores=[0,1];host.room=host.series.public_state(0)
  host.disconnected_at=1;host.disconnect_deadline_unix=Time.get_unix_time_from_system()-1
- check(host.check_reconnect_timeout(Time.get_ticks_msec()) and host.room.winner==0 and host.room.status=="complete","30 second timeout awards entire BO3 to remaining host")
- check(host.room.scores==[0,1] and host.room.forfeit==1,"forfeit preserves played scores, marks actual loser")
+ check(not host.check_reconnect_timeout(Time.get_ticks_msec()) and host.wait_choice_pending and host.room.status=="playing","30 seconds offers a wait choice without awarding the BO3")
+ check(host.room.scores==[0,1] and not host.room.has("forfeit"),"waiting preserves played scores without a forfeit")
  guest.room={"status":"playing","names":["房主","客机"],"ready":[false,false],"winner":-2,"format":3,"scores":[1,0]};guest.room_id="local-record"
+ guest.disconnected_at=1
  guest.end_disconnected_match()
- check(guest.room.winner==1 and guest.room.local_record and "本地记录" in guest.connection_status(),"host timeout is labeled local guest win")
+ check(guest.room.status=="aborted" and guest.room.winner==-2 and not guest.room.has("forfeit"),"choosing to leave ends locally without a winner")
  for net in [host,guest,spectator]:net.leave(false);net.queue_free()
  print("PORTABLE: ",checks," checks; ",failures.size()," failures")
  quit(0 if failures.is_empty() else 1)

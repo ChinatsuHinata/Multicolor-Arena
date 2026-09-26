@@ -3,6 +3,7 @@ const SeatView=preload("res://net/seat_projection.gd")
 ## Cheap read-only projection: never calculates legal actions or exposes private choices.
 static func build(e,events: Array=[],perspective: int=-1) -> Dictionary:
  var state={};var q={"stats":{},"leader":{},"sick":{},"haste":{}}
+ q.pending_keystones=SeatView.SpellDamagePreview.public_keystone_estimates(e)
  for key in SeatView.PUBLIC_FIELDS:
   var v=e.get(key);state[key]=v.duplicate(true) if v is Array or v is Dictionary else v
  state.stack=SeatView.public_stack(state.stack)
@@ -31,7 +32,7 @@ static func build(e,events: Array=[],perspective: int=-1) -> Dictionary:
   if e.cards.has(id):definitions[id]=e.cards[id]
  for entry in state.history:
   for art in entry.art:
-   if art.get("hidden",false) and art.owner!=perspective:art.card_id="back"
+   if art.get("hidden",false) and art.owner!=perspective:art.card_id="back";art.erase("art_id")
  collect_definitions(state.stack,e,definitions)
  return {"state":state,"queries":q,"definitions":definitions}
 

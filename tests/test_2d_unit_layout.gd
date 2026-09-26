@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 
 func fits_zone(group: String,at: Vector3,who: int,half: Vector2) -> bool:
  var footprint=Rect2(Vector2(at.x,at.z)-half,half*2.0)

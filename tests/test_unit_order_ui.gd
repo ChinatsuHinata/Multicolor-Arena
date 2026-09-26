@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 
 func add_unit(id: String,name: String,value: int,free: bool=false,token: bool=false) -> Dictionary:
  var info=e.cards["53"].duplicate(true)

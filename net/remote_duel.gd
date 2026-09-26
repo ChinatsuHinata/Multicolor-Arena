@@ -61,5 +61,6 @@ func choose_timer(delta: int):request("choose_timer",[delta])
 func commit_cast(_who: int,uid: int,target: Dictionary,plan: Array) -> String:return request("commit_cast",[uid,target,plan])
 func commit_ability(_who: int,uid: int,index: int,target: Dictionary,plan: Array) -> String:return request("commit_ability",[uid,index,target,plan])
 func commit_extension(_who: int,uid: int,target: Dictionary,plan: Array,key: String="") -> String:return request("commit_extension",[uid,target,plan,key])
+func toggle_ran_discount(_who: int,uid: int) -> String:return request("toggle_ran_discount",[uid])
 func ai_step(_who: int=1):pass
 func debug_move(_uid: int,_destination: String) -> String:return "联网对局不开放调试移牌"

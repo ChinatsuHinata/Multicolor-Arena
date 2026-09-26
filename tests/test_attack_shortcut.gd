@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 
 func press_a(echoed: bool=false):
  var event=InputEventKey.new()

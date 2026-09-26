@@ -1,4 +1,4 @@
-extends "res://tests/test_v013_rules.gd"
+extends "res://tests/support/catalogue_rules_base.gd"
 
 func option_for(options: Array,color: String) -> int:
  for i in range(options.size()):

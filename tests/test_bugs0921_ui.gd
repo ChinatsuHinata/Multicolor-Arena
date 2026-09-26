@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 func nodes_of_type(node,type):
  var out=[]
  if node.is_class(type):out.append(node)

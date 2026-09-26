@@ -12,6 +12,7 @@ static func active_save_path() -> String:
 
 const Database = preload("res://scripts/card_database.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
+const Art = preload("res://scripts/card_art.gd")
 static var CARDS: Dictionary = Database.load_cards()
 
 static func blank(title: String = "未命名卡组") -> Dictionary:
@@ -49,6 +50,8 @@ static func validate(d: Variant, strict: bool = false, rule_set: String = "") ->
  if not d.get("name") is String or d.get("name", "").strip_edges().is_empty(): return "请输入卡组名称。"
  if d.name.length() > 40: return "卡组名称不能超过 40 个字符。"
  if not d.get("main") is Array or not d.get("side") is Array: return "主卡组或副卡组格式错误。"
+ var art_error=Art.validate(d.get("art_overrides",{}),CARDS)
+ if not art_error.is_empty():return art_error
  if not d.get("rule_set",RuleSet.UNRESTRICTED) in RuleSet.IDS:return "卡组规则集无效。"
  if not rule_set.is_empty() and rule_set not in RuleSet.IDS:return "规则集无效。"
  var selected_rule=rule_set if not rule_set.is_empty() else str(d.get("rule_set",RuleSet.UNRESTRICTED))
@@ -144,7 +147,8 @@ static func _base64_short(bytes: PackedByteArray) -> String:
 static func encode(d: Dictionary) -> String:
  if not validate(d).is_empty(): return ""
  var parts=[d.name,d.leader,_pack_cards(d.main),_pack_cards(d.side)]
- if d.get("rule_set",RuleSet.UNRESTRICTED)!=RuleSet.UNRESTRICTED:parts.append(d.rule_set)
+ if d.get("rule_set",RuleSet.UNRESTRICTED)!=RuleSet.UNRESTRICTED or not d.get("art_overrides",{}).is_empty():parts.append(d.get("rule_set",RuleSet.UNRESTRICTED))
+ if not d.get("art_overrides",{}).is_empty():parts.append(d.art_overrides)
  var payload=JSON.stringify(parts)
  var plain="MA1:"+payload
  var bytes=payload.to_utf8_buffer()
@@ -181,13 +185,14 @@ static func decode(code: String) -> Dictionary:
  if parser.parse(code) != OK: return {"error":"卡组代码不是有效 JSON。"}
  var d = parser.data
  if compact:
-  if not d is Array or d.size() not in [4,5] or not d[0] is String or not d[1] is String:
+  if not d is Array or d.size() not in [4,5,6] or not d[0] is String or not d[1] is String:
    return {"error":"卡组代码格式错误。"}
   var main_cards=_unpack_cards(d[2],70)
   if main_cards.has("error"): return {"error":main_cards.error}
   var side_cards=_unpack_cards(d[3],10)
   if side_cards.has("error"): return {"error":side_cards.error}
-  d={"name":d[0],"leader":d[1],"main":main_cards.cards,"side":side_cards.cards,"rule_set":d[4] if d.size()==5 else RuleSet.UNRESTRICTED}
+  var overrides=d[5] if d.size()==6 else {}
+  d={"name":d[0],"leader":d[1],"main":main_cards.cards,"side":side_cards.cards,"rule_set":d[4] if d.size()>=5 else RuleSet.UNRESTRICTED,"art_overrides":overrides}
  var error = validate(d)
  if not error.is_empty(): return {"error":error}
  var clean = blank(d.name + "（副本）" if d.name.length() < 35 else d.name)
@@ -195,6 +200,7 @@ static func decode(code: String) -> Dictionary:
  clean.side = d.side.duplicate()
  clean.leader = d.leader
  clean.rule_set=d.get("rule_set",RuleSet.UNRESTRICTED)
+ if not d.get("art_overrides",{}).is_empty():clean.art_overrides=d.art_overrides.duplicate(true)
  return {"deck":clean}
 static func load_decks(path: String = "") -> Dictionary:
  if path.is_empty():return load_portable()
@@ -268,7 +274,9 @@ static func persist(decks: Array, path: String = "") -> String:
  return ""
 
 static func clean_deck(d: Dictionary) -> Dictionary:
- return {"id":d.id,"name":d.name,"leader":d.leader,"main":d.main.duplicate(),"side":d.side.duplicate(),"rule_set":d.get("rule_set",RuleSet.UNRESTRICTED)}
+ var clean={"id":d.id,"name":d.name,"leader":d.leader,"main":d.main.duplicate(),"side":d.side.duplicate(),"rule_set":d.get("rule_set",RuleSet.UNRESTRICTED)}
+ if not d.get("art_overrides",{}).is_empty():clean.art_overrides=d.art_overrides.duplicate(true)
+ return clean
 static func folder() -> String:return Paths.root().path_join("deck")
 static func scan_files(directory: String,depth: int=0) -> Array:
  var result=[]

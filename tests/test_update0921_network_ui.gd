@@ -1,4 +1,4 @@
-extends "res://tests/test_v0181_ui.gd"
+extends "res://tests/support/network_ui_base.gd"
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/update0921/net-ui/"+str(Time.get_ticks_usec()))
  app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame

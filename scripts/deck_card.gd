@@ -1,6 +1,7 @@
 extends Panel
 signal preview_requested(id: String)
 signal clicked(id: String, zone: String, index: int, right: bool)
+signal art_requested(id: String)
 var card_id=""
 var source_zone=""
 var source_index=-1
@@ -14,6 +15,9 @@ func _ready():
 func _gui_input(event):
  if event is InputEventMouseButton:
   if event.pressed: dragged=false
+  elif not dragged and event.button_index==MOUSE_BUTTON_MIDDLE:
+   art_requested.emit(card_id)
+   accept_event()
   elif not dragged and event.button_index in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]:
    clicked.emit(card_id,source_zone,source_index,event.button_index==MOUSE_BUTTON_RIGHT)
 func _get_drag_data(_at):
@@ -28,4 +32,3 @@ func _get_drag_data(_at):
  ghost.modulate.a=0.85
  set_drag_preview(ghost)
  return {"card_id":card_id,"source_zone":source_zone,"source_index":source_index}
-

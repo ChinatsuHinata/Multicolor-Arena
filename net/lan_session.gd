@@ -14,13 +14,14 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Transport=preload("res://net/lan_transport.gd")
 const Discovery=preload("res://net/lan_discovery.gd")
 const Metrics=preload("res://net/connection_metrics.gd")
-const VERSION="1.2"
+const VERSION="1.2.3-wait"
 const RECONNECT_LIMIT_MS=30000
 var transport
 var discovery
 var identity={}
 var storage=""
 var fingerprint=""
+var legacy_fingerprint=""
 var is_host=false
 var seat=0
 var room_id=""
@@ -49,6 +50,8 @@ var inflight={}
 var remote_last_seen=0
 var disconnected_at=0
 var disconnect_deadline_unix=0.0
+var wait_choice_pending=false
+var wait_choice_confirmed=false
 var last_heartbeat=0
 var retry_at=0
 var joining=false
@@ -91,6 +94,8 @@ func connection_status() -> String:
  if ended():return room.get("end_reason","对局结束")
  if read_only:return "观战 · "+("等待对局开始" if latest_snapshot.is_empty() else "连接已断开" if not connected else "对局已暂停" if paused else "公开视角")
  if disconnected_at>0:
+  if wait_choice_pending:return "连接中断\n30 秒已过，是否继续等待？"
+  if wait_choice_confirmed:return "连接中断\n持续等待对方重新连接\n可查看战场"
   var remaining=float(RECONNECT_LIMIT_MS-(Time.get_ticks_msec()-disconnected_at))/1000.0
   if disconnect_deadline_unix>0:remaining=minf(remaining,disconnect_deadline_unix-Time.get_unix_time_from_system())
   return "连接中断\n等待重连：%d 秒\n可查看战场" % maxi(0,ceili(remaining))
@@ -99,7 +104,9 @@ func initialize(directory: String=""):
  storage=directory if not directory.is_empty() else ("res://saves/lan" if OS.has_feature("editor") else "user://lan")
  identity=Identity.load_identity(storage+"/identity.bin")
  var manifest=FileAccess.get_file_as_string("res://net/rules_manifest.json")
- fingerprint=(VERSION+manifest+JSON.stringify(Duel.DB.load_cards())).sha256_text()
+ var cards=JSON.stringify(Duel.DB.load_cards())
+ fingerprint=(VERSION+manifest+cards).sha256_text()
+ legacy_fingerprint=("1.2"+manifest+cards).sha256_text()
  transport=Transport.new();add_child(transport)
  discovery=Discovery.new();add_child(discovery)
  transport.connected.connect(on_connect);transport.disconnected.connect(on_disconnect)
@@ -146,17 +153,16 @@ func resume_guest(new_address: String="") -> String:
  var saved=identity.get("resume",{})
  if saved.is_empty():return "没有可恢复的客机连接"
  if saved.get("room_id","") in identity.get("ended_rooms",[]):return "该对局已结束，不能重连"
- if float(saved.get("deadline",0.0))>0 and Time.get_unix_time_from_system()>=float(saved.deadline):
-  room_id=saved.room_id;end_disconnected_match();return "重连超时，该对局已结束"
  room_id=saved.room_id
  if disconnected_at==0 and float(saved.get("deadline",0.0))>0:
   disconnect_deadline_unix=float(saved.deadline)
   disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
+  wait_choice_pending=Time.get_unix_time_from_system()>=disconnect_deadline_unix
  return join_room(saved.address if new_address.is_empty() else new_address,int(saved.port),true)
 func restore_host() -> String:
  var data=Journal.load_from(storage+"/host.bin")
  if data.is_empty():return "没有保存的房主对局"
- if data.get("fingerprint","")!=fingerprint:return "保存对局的规则版本与当前版本不一致"
+ if data.get("fingerprint","") not in [fingerprint,legacy_fingerprint]:return "保存对局的规则版本与当前版本不一致"
  if data.series.get("status","")=="aborted" or data.room_id in identity.get("ended_rooms",[]):return "该对局已结束，不能恢复"
  leave(false);is_host=true;seat=0
  room_id=data.room_id;port=data.port;bind_address=data.get("bind_address","*");guest=data.guest
@@ -171,10 +177,9 @@ func restore_host() -> String:
  disconnect_deadline_unix=float(data.get("disconnect_deadline_unix",0.0))
  if disconnect_deadline_unix<=0:disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
  disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
+ wait_choice_pending=series.state.status!="complete" and Time.get_unix_time_from_system()>=disconnect_deadline_unix
  start_spectators()
  discovery.start(true,metadata(),bind_address)
- if series.state.status!="complete" and Time.get_unix_time_from_system()>=disconnect_deadline_unix:
-  end_disconnected_match();return "重连超时，该对局已结束"
  if authority!=null:enqueue_snapshot(make_snapshot(0,[],true))
  changed.emit();return ""
 func persist() -> bool:
@@ -193,7 +198,7 @@ func leave(forget: bool=true):
  if transport and connected:transport.send_to(remote_peer,{"type":"leave"})
  if transport:transport.close()
  if discovery:discovery.start()
- connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;rejected=false
+ connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;rejected=false
  chat_log.clear();last_chat_send=0;last_remote_chat=0;chat_received.emit()
  if forget:identity.resume={};save_identity()
 func on_connect(id: int):
@@ -286,13 +291,13 @@ func receive(id: int,m: Dictionary):
    if not is_host:return
    if int(m.get("sequence",-1))==sequence:
     var recovered=disconnected_at>0
-    acknowledged=sequence;paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0
+    acknowledged=sequence;paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false
     if recovered and not persist():return
     transport.send_to(id,{"type":"ready_state","sequence":sequence})
     if is_instance_valid(spectator_hub):spectator_hub.changed()
     changed.emit()
   "ready_state":
-   if not is_host:paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;identity.resume.erase("deadline");save_identity();changed.emit()
+   if not is_host:paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;identity.resume.erase("deadline");save_identity();changed.emit()
   "command":
    if is_host:handle_command(1,m)
   "room_action":
@@ -315,6 +320,7 @@ func on_disconnect(id: int):
   connected=false;paused=true;notice="观战连接已断开";changed.emit();return
  if id!=remote_peer or ended() or rejected:return
  undo_request={}
+ if room.has("undo_request"):room.undo_request={}
  if is_host:refresh_undo_status()
  if not is_host and room_id.is_empty():
   on_failure("房主在确认加入前断开了连接，请确认房间仍开启后重试。");return
@@ -339,21 +345,28 @@ func on_failure(message: String):
 func start_disconnect_wait():
  if disconnected_at>0 or room_id.is_empty() or room.get("status","")=="complete":return
  disconnected_at=maxi(1,Time.get_ticks_msec());disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
+ wait_choice_pending=false;wait_choice_confirmed=false
  if is_host:persist()
  elif not identity.get("resume",{}).is_empty():identity.resume.deadline=disconnect_deadline_unix;save_identity()
 func check_reconnect_timeout(now: int) -> bool:
  if ended():return true
- if disconnected_at>0 and room.get("status","")!="complete" and (now-disconnected_at>=RECONNECT_LIMIT_MS or disconnect_deadline_unix>0 and Time.get_unix_time_from_system()>=disconnect_deadline_unix):
-  end_disconnected_match();return true
+ if disconnected_at>0 and room.get("status","")!="complete" and not wait_choice_pending and not wait_choice_confirmed and (now-disconnected_at>=RECONNECT_LIMIT_MS or disconnect_deadline_unix>0 and Time.get_unix_time_from_system()>=disconnect_deadline_unix):
+  wait_choice_pending=true;changed.emit()
  return false
+func continue_waiting():
+ if not wait_choice_pending or ended():return
+ wait_choice_pending=false;wait_choice_confirmed=true;changed.emit()
+func stop_waiting():
+ if disconnected_at==0 or ended():return
+ end_disconnected_match();leave()
 func end_disconnected_match():
- if ended() or room.get("status","")=="complete":return
+ if ended() or room.get("status","")=="complete" or disconnected_at==0:return
  if room.is_empty():room=Series.new().public_state(seat)
  connected=false;paused=true;busy=false;joining=false;inflight={};rejected=true;metrics.reset()
  if is_host:
-  series.forfeit(1);room=series.public_state(0);sequence+=1;persist()
+  series.abort();room=series.public_state(0);sequence+=1;persist()
  else:
-  var result=Series.new();result.state=room.duplicate(true);result.forfeit(0,true);room=result.state
+  var result=Series.new();result.state=room.duplicate(true);result.abort();room=result.state
  var ended_rooms=identity.get("ended_rooms",[])
  if room_id not in ended_rooms:ended_rooms.append(room_id)
  identity.ended_rooms=ended_rooms.slice(maxi(0,ended_rooms.size()-64));identity.resume={};save_identity()
@@ -362,7 +375,7 @@ func end_disconnected_match():
   var last=latest_snapshot.duplicate(true);last.room=room;last.sequence=sequence+1;last.projection.state.presentation_events=[];recording.record(last,seat)
  finish_recording()
  if is_instance_valid(spectator_hub):spectator_hub.changed()
- notice=room.end_reason;changed.emit()
+ notice=room.end_reason;wait_choice_pending=false;wait_choice_confirmed=false;changed.emit()
 func can_act(in_match: bool=false) -> bool:return not read_only and not ended() and connected and not paused and not busy and (not in_match or sequence==view_sequence and room.get("undo_request",{}).is_empty())
 func submit(command: Dictionary) -> String:
  if not can_act(true):return "等待连接或同步完成"
@@ -555,6 +568,6 @@ func _process(_delta):
  if connected:
   if now-last_heartbeat>2000:last_heartbeat=now;transport.send_to(remote_peer,metrics.make_ping(now),true)
   if now-remote_last_seen>6500:on_disconnect(remote_peer);transport.drop(remote_peer)
- elif not is_host and not rejected and not identity.get("resume",{}).is_empty() and disconnected_at>0 and now-disconnected_at<RECONNECT_LIMIT_MS and now-retry_at>3000:
+ elif not is_host and not rejected and not identity.get("resume",{}).is_empty() and disconnected_at>0 and now-retry_at>3000:
   retry_at=now;resume_guest()
  if is_host and not applicant.is_empty() and now-applicant.at>30000:accept_applicant(false)

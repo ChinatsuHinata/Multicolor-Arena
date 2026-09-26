@@ -1,4 +1,4 @@
-extends "res://tests/test_v0181_series.gd"
+extends "res://tests/support/network_base.gd"
 func run():
  var real_decks=JSON.parse_string(FileAccess.get_file_as_string(Store.SAVE_PATH)).decks
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/bugs0921-network/"+str(Time.get_ticks_usec()))

@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 const Session=preload("res://net/lan_session.gd")
 func capture(name: String):
  if DisplayServer.get_name()=="headless":return

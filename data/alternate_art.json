@@ -1,0 +1,861 @@
+{
+  "version": 1,
+  "source": "D:\\极彩单卡",
+  "groups": {
+    "100": [
+      {
+        "id": "100",
+        "image": "res://recourse/数据库/100.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_150900",
+        "image": "res://recourse/异画/tts_150900.jpg",
+        "label": "UCS-077 · SR · YOYO麻薯",
+        "source": "cards/tts_150900__unmatched.jpg",
+        "printed_code": "UCS-077",
+        "artist": "YOYO麻薯",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "109": [
+      {
+        "id": "109",
+        "image": "res://recourse/数据库/109.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154500",
+        "image": "res://recourse/异画/tts_154500.jpg",
+        "label": "SOI-112 · R · A-XII",
+        "source": "cards/tts_154500__unmatched.jpg",
+        "printed_code": "SOI-112",
+        "artist": "A-XII",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "114": [
+      {
+        "id": "114",
+        "image": "res://recourse/数据库/114.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155123",
+        "image": "res://recourse/异画/tts_155123.jpg",
+        "label": "FDN-063 · SR · 星光",
+        "source": "cards/tts_155123__unmatched.jpg",
+        "printed_code": "FDN-063",
+        "artist": "星光",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "169": [
+      {
+        "id": "169",
+        "image": "res://recourse/数据库/169.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154400",
+        "image": "res://recourse/异画/tts_154400.jpg",
+        "label": "SOI-102 · SR · A-XII",
+        "source": "cards/tts_154400__unmatched.jpg",
+        "printed_code": "SOI-102",
+        "artist": "A-XII",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "170": [
+      {
+        "id": "170",
+        "image": "res://recourse/数据库/170.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154300",
+        "image": "res://recourse/异画/tts_154300.jpg",
+        "label": "SOI-103 · R · Noa",
+        "source": "cards/tts_154300__unmatched.jpg",
+        "printed_code": "SOI-103",
+        "artist": "Noa",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "21": [
+      {
+        "id": "21",
+        "image": "res://recourse/数据库/21.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "rec_unit_097",
+        "image": "res://recourse/数据库/rec_unit_097.jpg",
+        "label": "已有异版 · rec_unit_097",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "25": [
+      {
+        "id": "25",
+        "image": "res://recourse/数据库/25.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152300",
+        "image": "res://recourse/异画/tts_152300.png",
+        "label": "UCS-EX03 · FR · 小北",
+        "source": "cards/tts_152300__unmatched.png",
+        "printed_code": "UCS-EX03",
+        "artist": "小北",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "39": [
+      {
+        "id": "39",
+        "image": "res://recourse/数据库/39.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_153900",
+        "image": "res://recourse/异画/tts_153900.jpg",
+        "label": "SOI-041 · C · OOZ",
+        "source": "cards/tts_153900__unmatched.jpg",
+        "printed_code": "SOI-041",
+        "artist": "OOZ",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "48": [
+      {
+        "id": "48",
+        "image": "res://recourse/数据库/48.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152900",
+        "image": "res://recourse/异画/tts_152900.png",
+        "label": "UCS-EX04 · FR · 穰雀",
+        "source": "cards/tts_152900__unmatched.png",
+        "printed_code": "UCS-EX04",
+        "artist": "穰雀",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "56": [
+      {
+        "id": "56",
+        "image": "res://recourse/数据库/56.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154617",
+        "image": "res://recourse/异画/tts_154617.jpg",
+        "label": "SOI-058 · C · 矢田丰",
+        "source": "cards/tts_154617__unmatched.jpg",
+        "printed_code": "SOI-058",
+        "artist": "矢田丰",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "6": [
+      {
+        "id": "6",
+        "image": "res://recourse/数据库/6.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_153800",
+        "image": "res://recourse/异画/tts_153800.jpg",
+        "label": "REC-114 · NR · 小金刚",
+        "source": "cards/tts_153800__unmatched.jpg",
+        "printed_code": "REC-114",
+        "artist": "小金刚",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "61": [
+      {
+        "id": "61",
+        "image": "res://recourse/数据库/61.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_151100",
+        "image": "res://recourse/异画/tts_151100.jpg",
+        "label": "UCS-080 · NR · 瓜子",
+        "source": "cards/tts_151100__unmatched.jpg",
+        "printed_code": "UCS-080",
+        "artist": "瓜子",
+        "identification": "printed_code_workbook"
+      },
+      {
+        "id": "tts_154200",
+        "image": "res://recourse/异画/tts_154200.jpg",
+        "label": "SOI-063 · R · 橘子",
+        "source": "cards/tts_154200__unmatched.jpg",
+        "printed_code": "SOI-063",
+        "artist": "橘子",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "62": [
+      {
+        "id": "62",
+        "image": "res://recourse/数据库/62.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154100",
+        "image": "res://recourse/异画/tts_154100.jpg",
+        "label": "SOI-064 · R · 橘子",
+        "source": "cards/tts_154100__unmatched.jpg",
+        "printed_code": "SOI-064",
+        "artist": "橘子",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "63": [
+      {
+        "id": "63",
+        "image": "res://recourse/数据库/63.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_150600",
+        "image": "res://recourse/异画/tts_150600.jpg",
+        "label": "UCS-081 · NR · 萨诺",
+        "source": "cards/tts_150600__unmatched.jpg",
+        "printed_code": "UCS-081",
+        "artist": "萨诺",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "68": [
+      {
+        "id": "68",
+        "image": "res://recourse/数据库/68.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149403",
+        "image": "res://recourse/异画/tts_149403.jpg",
+        "label": "SOI-070 · SR · Munchem",
+        "source": "cards/tts_149403__unmatched.jpg",
+        "printed_code": "SOI-070",
+        "artist": "Munchem",
+        "identification": "face_rules_workbook"
+      },
+      {
+        "id": "tts_151500",
+        "image": "res://recourse/异画/tts_151500.jpg",
+        "label": "UCS-076 · SR · Kanta",
+        "source": "cards/tts_151500__unmatched.jpg",
+        "printed_code": "UCS-076",
+        "artist": "Kanta",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "7": [
+      {
+        "id": "7",
+        "image": "res://recourse/数据库/7.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_151300",
+        "image": "res://recourse/异画/tts_151300.jpg",
+        "label": "UCS-083 · C · 乌贼",
+        "source": "cards/tts_151300__unmatched.jpg",
+        "printed_code": "UCS-083",
+        "artist": "乌贼",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "70": [
+      {
+        "id": "70",
+        "image": "res://recourse/数据库/70.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_151600",
+        "image": "res://recourse/异画/tts_151600.jpg",
+        "label": "UCS-075 · SR · Kanta",
+        "source": "cards/tts_151600__unmatched.jpg",
+        "printed_code": "UCS-075",
+        "artist": "Kanta",
+        "identification": "printed_code_workbook"
+      },
+      {
+        "id": "tts_151700",
+        "image": "res://recourse/异画/tts_151700.jpg",
+        "label": "UCS-001 · THR · 花本无名㐅",
+        "source": "cards/tts_151700__unmatched.jpg",
+        "printed_code": "UCS-001",
+        "artist": "花本无名㐅",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "74": [
+      {
+        "id": "74",
+        "image": "res://recourse/数据库/74.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149900",
+        "image": "res://recourse/异画/tts_149900.jpg",
+        "label": "SOI-117 · THR · 绫缪",
+        "source": "cards/tts_149900__unmatched.jpg",
+        "printed_code": "SOI-117",
+        "artist": "绫缪",
+        "identification": "face_rules_workbook"
+      },
+      {
+        "id": "tts_153700",
+        "image": "res://recourse/异画/tts_153700.jpg",
+        "label": "SOI-075 · SR · A-XII",
+        "source": "cards/tts_153700__unmatched.jpg",
+        "printed_code": "SOI-075",
+        "artist": "A-XII",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "77": [
+      {
+        "id": "77",
+        "image": "res://recourse/数据库/77.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_151000",
+        "image": "res://recourse/异画/tts_151000.jpg",
+        "label": "UCS-074 · THR · 半节",
+        "source": "cards/tts_151000__unmatched.jpg",
+        "printed_code": "UCS-074",
+        "artist": "半节",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "78": [
+      {
+        "id": "78",
+        "image": "res://recourse/数据库/78.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152800",
+        "image": "res://recourse/异画/tts_152800.png",
+        "label": "SOI-080 · SR · Tumes",
+        "source": "cards/tts_152800__unmatched.png",
+        "printed_code": "SOI-080",
+        "artist": "Tumes",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "8": [
+      {
+        "id": "8",
+        "image": "res://recourse/数据库/8.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_150700",
+        "image": "res://recourse/异画/tts_150700.jpg",
+        "label": "UCS-084 · C · 乌贼",
+        "source": "cards/tts_150700__unmatched.jpg",
+        "printed_code": "UCS-084",
+        "artist": "乌贼",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "85": [
+      {
+        "id": "85",
+        "image": "res://recourse/数据库/85.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155161",
+        "image": "res://recourse/异画/tts_155161.jpg",
+        "label": "FDN-059 · NR · 五月子",
+        "source": "cards/tts_155161__unmatched.jpg",
+        "printed_code": "FDN-059",
+        "artist": "五月子",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "86": [
+      {
+        "id": "86",
+        "image": "res://recourse/数据库/86.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152400",
+        "image": "res://recourse/异画/tts_152400.png",
+        "label": "UCS-EX01 · PR · 起重机",
+        "source": "cards/tts_152400__unmatched.png",
+        "printed_code": "UCS-EX01",
+        "artist": "起重机",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "93": [
+      {
+        "id": "93",
+        "image": "res://recourse/数据库/93.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155132",
+        "image": "res://recourse/异画/tts_155132.jpg",
+        "label": "FDN-049 · THR · 安徽小骸",
+        "source": "cards/tts_155132__unmatched.jpg",
+        "printed_code": "FDN-049",
+        "artist": "安徽小骸",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "99": [
+      {
+        "id": "99",
+        "image": "res://recourse/数据库/99.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_151200",
+        "image": "res://recourse/异画/tts_151200.jpg",
+        "label": "UCS-078 · SR · YOYO麻薯",
+        "source": "cards/tts_151200__unmatched.jpg",
+        "printed_code": "UCS-078",
+        "artist": "YOYO麻薯",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-fdf-116": [
+      {
+        "id": "character-fdf-116",
+        "image": "res://recourse/数据库/character-fdf-116.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_150507",
+        "image": "res://recourse/异画/tts_150507.jpg",
+        "label": "UCS-070 · SR · 半节",
+        "source": "cards/tts_150507__unmatched.jpg",
+        "printed_code": "UCS-070",
+        "artist": "半节",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-fdf-ex05": [
+      {
+        "id": "character-fdf-ex05",
+        "image": "res://recourse/数据库/character-fdf-ex05.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149415",
+        "image": "res://recourse/异画/tts_149415.jpg",
+        "label": "FDF-EX05 · PR · 还敢不敢喝咸汽水",
+        "source": "cards/tts_149415__unmatched.jpg",
+        "printed_code": "FDF-EX05",
+        "artist": "还敢不敢喝咸汽水",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "character-fdn-048": [
+      {
+        "id": "character-fdn-048",
+        "image": "res://recourse/数据库/character-fdn-048.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "character-ucs-067",
+        "image": "res://recourse/数据库/character-ucs-067.jpg",
+        "label": "已有异版 · character-ucs-067",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "character-mar-024": [
+      {
+        "id": "character-mar-024",
+        "image": "res://recourse/数据库/character-mar-024.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149234",
+        "image": "res://recourse/异画/tts_149234.jpg",
+        "label": "SOI-039 · R · 降旗原",
+        "source": "cards/tts_149234__unmatched.jpg",
+        "printed_code": "SOI-039",
+        "artist": "降旗原",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "character-mar-ex01": [
+      {
+        "id": "character-mar-ex01",
+        "image": "res://recourse/数据库/character-mar-ex01.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154917",
+        "image": "res://recourse/异画/tts_154917.jpg",
+        "label": "MAR-EX01 · FR · 不群之芳",
+        "source": "cards/tts_154917__unmatched.jpg",
+        "printed_code": "MAR-EX01",
+        "artist": "不群之芳",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-rei-022": [
+      {
+        "id": "character-rei-022",
+        "image": "res://recourse/数据库/character-rei-022.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149239",
+        "image": "res://recourse/异画/tts_149239.jpg",
+        "label": "SOI-067 · R · 雾理",
+        "source": "cards/tts_149239__unmatched.jpg",
+        "printed_code": "SOI-067",
+        "artist": "雾理",
+        "identification": "face_rules_workbook"
+      },
+      {
+        "id": "tts_151400",
+        "image": "res://recourse/异画/tts_151400.jpg",
+        "label": "UCS-082 · NR · 萨诺",
+        "source": "cards/tts_151400__unmatched.jpg",
+        "printed_code": "UCS-082",
+        "artist": "萨诺",
+        "identification": "printed_code_workbook"
+      },
+      {
+        "id": "tts_154000",
+        "image": "res://recourse/异画/tts_154000.jpg",
+        "label": "SOI-067 · R · 雾理",
+        "source": "cards/tts_154000__unmatched.jpg",
+        "printed_code": "SOI-067",
+        "artist": "雾理",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-rei-026": [
+      {
+        "id": "character-rei-026",
+        "image": "res://recourse/数据库/character-rei-026.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "character-smm07",
+        "image": "res://recourse/数据库/character-smm07.jpg",
+        "label": "已有异版 · character-smm07",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "character-rei-ex01": [
+      {
+        "id": "character-rei-ex01",
+        "image": "res://recourse/数据库/character-rei-ex01.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_154614",
+        "image": "res://recourse/异画/tts_154614.jpg",
+        "label": "LOF-005 · SR · Uroam",
+        "source": "cards/tts_154614__unmatched.jpg",
+        "printed_code": "LOF-005",
+        "artist": "Uroam",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "character-soi-018": [
+      {
+        "id": "character-soi-018",
+        "image": "res://recourse/数据库/character-soi-018.png",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_150800",
+        "image": "res://recourse/异画/tts_150800.jpg",
+        "label": "UCS-085 · NR · Kanta",
+        "source": "cards/tts_150800__unmatched.jpg",
+        "printed_code": "UCS-085",
+        "artist": "Kanta",
+        "identification": "printed_code_workbook"
+      },
+      {
+        "id": "tts_154908",
+        "image": "res://recourse/异画/tts_154908.jpg",
+        "label": "REI-024 · R · OOZ",
+        "source": "cards/tts_154908__unmatched.jpg",
+        "printed_code": "REI-024",
+        "artist": "OOZ",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-ucs-032": [
+      {
+        "id": "character-ucs-032",
+        "image": "res://recourse/数据库/character-ucs-032.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155142",
+        "image": "res://recourse/异画/tts_155142.jpg",
+        "label": "FDN-052 · NR · 深蓝杰克",
+        "source": "cards/tts_155142__unmatched.jpg",
+        "printed_code": "FDN-052",
+        "artist": "深蓝杰克",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-ucs-038": [
+      {
+        "id": "character-ucs-038",
+        "image": "res://recourse/数据库/character-ucs-038.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155125",
+        "image": "res://recourse/异画/tts_155125.jpg",
+        "label": "FDN-053 · NR · Erlge二戈",
+        "source": "cards/tts_155125__unmatched.jpg",
+        "printed_code": "FDN-053",
+        "artist": "Erlge二戈",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "character-ucs-068": [
+      {
+        "id": "character-ucs-068",
+        "image": "res://recourse/数据库/character-ucs-068.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "character-fdn-071",
+        "image": "res://recourse/数据库/character-fdn-071.jpg",
+        "label": "已有异版 · character-fdn-071",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "character-ucs-071": [
+      {
+        "id": "character-ucs-071",
+        "image": "res://recourse/数据库/character-ucs-071.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_155158",
+        "image": "res://recourse/异画/tts_155158.jpg",
+        "label": "FDN-051 · NR · 安徽小骸",
+        "source": "cards/tts_155158__unmatched.jpg",
+        "printed_code": "FDN-051",
+        "artist": "安徽小骸",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "field-fdf-108": [
+      {
+        "id": "field-fdf-108",
+        "image": "res://recourse/数据库/field-fdf-108.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152033",
+        "image": "res://recourse/异画/tts_152033.jpg",
+        "label": "UCS-062 · R · Noa",
+        "source": "cards/tts_152033__unmatched.jpg",
+        "printed_code": "UCS-062",
+        "artist": "Noa",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "field-smm-004": [
+      {
+        "id": "field-smm-004",
+        "image": "res://recourse/数据库/field-smm-004.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "field-rei-013",
+        "image": "res://recourse/数据库/field-rei-013.jpg",
+        "label": "已有异版 · field-rei-013",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "soi_unit_004": [
+      {
+        "id": "soi_unit_004",
+        "image": "res://recourse/数据库/soi_unit_004.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149231",
+        "image": "res://recourse/异画/tts_149231.jpg",
+        "label": "SOI-004 · C · 成XX",
+        "source": "cards/tts_149231__unmatched.jpg",
+        "printed_code": "SOI-004",
+        "artist": "成XX",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "spell-fdf-ex05": [
+      {
+        "id": "spell-fdf-ex05",
+        "image": "res://recourse/数据库/spell-fdf-ex05.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152056",
+        "image": "res://recourse/异画/tts_152056.jpg",
+        "label": "UCS-024 · MR · 薪",
+        "source": "cards/tts_152056__unmatched.jpg",
+        "printed_code": "UCS-024",
+        "artist": "薪",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "spell-htk-018": [
+      {
+        "id": "spell-htk-018",
+        "image": "res://recourse/数据库/spell-htk-018.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149264",
+        "image": "res://recourse/异画/tts_149264.jpg",
+        "label": "SOI-121 · SR · Noa",
+        "source": "cards/tts_149264__unmatched.jpg",
+        "printed_code": "SOI-121",
+        "artist": "Noa",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "spell-kmo-003": [
+      {
+        "id": "spell-kmo-003",
+        "image": "res://recourse/数据库/spell-kmo-003.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "spell-rec-056",
+        "image": "res://recourse/数据库/spell-rec-056.jpg",
+        "label": "已有异版 · spell-rec-056",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "spell-mar-012": [
+      {
+        "id": "spell-mar-012",
+        "image": "res://recourse/数据库/spell-mar-012.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_152039",
+        "image": "res://recourse/异画/tts_152039.jpg",
+        "label": "UCS-049 · R · PPP",
+        "source": "cards/tts_152039__unmatched.jpg",
+        "printed_code": "UCS-049",
+        "artist": "PPP",
+        "identification": "printed_code_workbook"
+      }
+    ],
+    "spell-mar-013": [
+      {
+        "id": "spell-mar-013",
+        "image": "res://recourse/数据库/spell-mar-013.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "tts_149061",
+        "image": "res://recourse/异画/tts_149061.jpg",
+        "label": "SOI-111 · C · 降旗原",
+        "source": "cards/tts_149061__unmatched.jpg",
+        "printed_code": "SOI-111",
+        "artist": "降旗原",
+        "identification": "face_rules_workbook"
+      }
+    ],
+    "spell-rec-054": [
+      {
+        "id": "spell-rec-054",
+        "image": "res://recourse/数据库/spell-rec-054.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "spell-smm-002",
+        "image": "res://recourse/数据库/spell-smm-002.jpg",
+        "label": "已有异版 · spell-smm-002",
+        "source": "项目保留的同卡异版"
+      }
+    ],
+    "spell-rec-055": [
+      {
+        "id": "spell-rec-055",
+        "image": "res://recourse/数据库/spell-rec-055.jpg",
+        "label": "默认卡面",
+        "source": "当前卡牌数据库"
+      },
+      {
+        "id": "spell-smm-003",
+        "image": "res://recourse/数据库/spell-smm-003.jpg",
+        "label": "已有异版 · spell-smm-003",
+        "source": "项目保留的同卡异版"
+      }
+    ]
+  }
+}

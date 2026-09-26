@@ -3,6 +3,7 @@ extends Control
 @export_file("*.png", "*.jpg", "*.webp") var battlefield_background: String = "res://recourse/垫子3.png"
 const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
+const CardArt=preload("res://scripts/card_art.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
 const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const DeckImage=preload("res://scripts/deck_image_export.gd")
@@ -154,22 +155,27 @@ func button(parent: Node, text: String, rect: Rect2, action: Callable, accent: b
  parent.add_child(b)
  return b
 
-func texture(id: String) -> Texture2D:
+func editor_art_id(id: String) -> String:
+ return CardArt.selected(draft,id,Store.CARDS) if page in ["editor","sideboard"] else ""
+func texture(id: String,art_id: String="") -> Texture2D:
  if id=="back": return load(CARD_BACK_PATH)
- if id=="potato": return load("res://assets/potato.svg")
+ if id=="potato": return load("res://assets/potato_tts_149404.jpg")
  if id=="token_halfghost" and Store.CARDS.has("token-ucs-099"):return texture("token-ucs-099")
  if id in ["token_ufo","token_halfghost"]: return load("res://assets/"+id+".svg")
  var image_path=""
  if not Store.CARDS.has(id):
   if is_instance_valid(duel_view) and duel_view.engine.cards.has(id):
    var info=duel_view.engine.cards[id]
-   if info.has("copy_source_id"):return texture(info.copy_source_id)
+   if info.has("copy_source_id"):return texture(info.copy_source_id,art_id)
    image_path=info.get("image","")
    if image_path.is_empty() and info.get("token",false):return load("res://assets/roster_token.svg")
   if image_path.is_empty():return null
  else:image_path=Store.CARDS[id].image
- if textures.has(id):
-  var cached=textures[id]; textures.erase(id); textures[id]=cached
+ if art_id.is_empty():art_id=editor_art_id(id)
+ if Store.CARDS.has(id):image_path=CardArt.image_path(id,art_id,Store.CARDS)
+ var key=image_path
+ if textures.has(key):
+  var cached=textures[key]; textures.erase(key); textures[key]=cached
   return cached
  var resource = load(image_path) as Texture2D
  if resource == null: return null
@@ -180,26 +186,27 @@ func texture(id: String) -> Texture2D:
  var tex = ImageTexture.create_from_image(img)
  # Keep the growing library lazy and bound CPU/GPU cache residency.
  if textures.size()>=48: textures.erase(textures.keys()[0])
- textures[id] = tex
+ textures[key] = tex
  return tex
 
 func landscape_card(id: String) -> bool:
  var info=Store.CARDS.get(id,{})
  return info.get("landscape",info.get("kind","") in ["符卡","结界"])
-func preview_texture(id: String) -> Texture2D:
- var original=texture(id)
+func preview_texture(id: String,art_id: String="") -> Texture2D:
+ if art_id.is_empty():art_id=editor_art_id(id)
+ var original=texture(id,art_id)
  if original==null or not landscape_card(id):return original
- var key="preview:"+id
+ var key="preview:"+id+":"+art_id
  if textures.has(key):return textures[key]
  var img=original.get_image();img.rotate_90(COUNTERCLOCKWISE)
  var result=ImageTexture.create_from_image(img)
  if textures.size()>=48:textures.erase(textures.keys()[0])
  textures[key]=result;return result
-func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable()) -> Control:
+func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable(),art_id: String="") -> Control:
  var p = box(parent,rect,Color("#172936"),GOLD if id in ["68","70"] else Color("#416078"))
  var art = TextureRect.new()
  art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
- art.texture = texture(id)
+ art.texture = texture(id,art_id)
  art.position = Vector2(5,5)
  art.size = rect.size - Vector2(10,10)
  art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -553,12 +560,60 @@ func update_library():
   library_rows[id]={"row":row,"remaining_label":remaining_label}
   var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
   row.tooltip_text=info.name if available else info.name+"\n"+reason
+  if CardArt.options(id,Store.CARDS).size()>1:row.tooltip_text+="\n鼠标中键：更换当前卡组的异画"
   row.preview_requested.connect(func(card_id): selected=card_id; update_preview())
+  row.art_requested.connect(open_art_picker)
   row.clicked.connect(func(card_id,_from,_index,right):
    selected=card_id
    update_preview()
    if not right and RuleSet.allowed(card_id,Store.CARDS[card_id],rule_set): add_to("side" if zone=="side" else "main"))
   row.set_drag_forwarding(row._get_drag_data,can_return_card,return_card_to_library)
+
+func choose_card_art(id: String,art_id: String):
+ if sideboard_session!=null and sideboard_locked():return
+ if not CardArt.valid(id,art_id,Store.CARDS):return
+ var key=CardArt.canonical(id,Store.CARDS)
+ if draft.get("art_overrides",{}).get(key,"")==art_id:return
+ if not draft.has("art_overrides"):draft.art_overrides={}
+ draft.art_overrides[key]=art_id
+ selected=id;dirty=true
+ update_preview();update_deck_rows()
+
+func open_art_picker(id: String):
+ if sideboard_session!=null and sideboard_locked():return
+ selected=id;update_preview()
+ var variants=CardArt.options(id,Store.CARDS)
+ if variants.size()<2:
+  alert("这张牌暂无可选异画。","更换异画")
+  return
+ var dialog=AcceptDialog.new()
+ dialog.name="CardArtPicker"
+ dialog.title="更换异画 · "+Store.CARDS[id].name
+ var rows=ceili(variants.size()/3.0)
+ var gallery_height=mini(480,rows*244)
+ dialog.size=Vector2i(870,gallery_height+100)
+ dialog.get_ok_button().text="关闭"
+ dialog.confirmed.connect(dialog.queue_free);dialog.canceled.connect(dialog.queue_free)
+ var content=VBoxContainer.new();dialog.add_child(content)
+ var notice=Label.new();notice.text="仅应用于当前卡组中所有对应牌 · 点击卡面选择";content.add_child(notice)
+ var scroll=ScrollContainer.new();scroll.custom_minimum_size=Vector2(840,gallery_height)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;content.add_child(scroll)
+ var grid=GridContainer.new();grid.columns=3;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ grid.add_theme_constant_override("h_separation",16);grid.add_theme_constant_override("v_separation",16);scroll.add_child(grid)
+ var current=CardArt.selected(draft,id,Store.CARDS)
+ if current.is_empty():current=id
+ for variant in variants:
+  var cell=VBoxContainer.new();cell.custom_minimum_size=Vector2(258,226);grid.add_child(cell)
+  var pick=Button.new();pick.name="Art_"+variant.id;pick.custom_minimum_size=Vector2(250,190)
+  pick.tooltip_text=variant.label;cell.add_child(pick)
+  pick.add_theme_stylebox_override("normal",style(Color("#142737"),GOLD if current==variant.id else MUTED))
+  var face=TextureRect.new();face.texture=preview_texture(id,variant.id);face.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+  face.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;face.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  pick.add_child(face);face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);face.offset_left=5;face.offset_top=5;face.offset_right=-5;face.offset_bottom=-5
+  var caption=Label.new();caption.text=("✓ " if current==variant.id else "")+variant.label
+  caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size=Vector2(250,38);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;cell.add_child(caption)
+  pick.pressed.connect(func():choose_card_art(id,variant.id);dialog.queue_free())
+ add_child(dialog);dialog.popup_centered()
 
 func refresh_library_limits():
  var rule_set=str(draft.get("rule_set",RuleSet.OFFICIAL))
@@ -635,48 +690,13 @@ func library_related_to_race(info: Dictionary,race: String,characters: Array) ->
  return characters.any(func(candidate):return character in candidate or candidate in character)
 
 func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
- var text=term.strip_edges().to_lower()
- var rule=SearchAliases.find_rule(rules,text)
- var kind=""
- if rule==null:
-  for suffix in ["自机单位","普通单位","普通符卡","单位","自机","符卡","道具","结界"]:
-   if not text.ends_with(suffix):continue
-   var alias=text.substr(0,text.length()-suffix.length()).strip_edges()
-   rule=SearchAliases.find_rule(rules,alias)
-   if rule==null:continue
-   kind=suffix
-   break
- if rule==null:return {"exclusive":false,"ids":{}}
- var matches={}
- for id in Store.CARDS:
-  var info=Store.CARDS[id]
-  if library_kind_matches(info,kind) and SearchAliases.card_matches(info,rule,id):matches[id]=true
- return {"exclusive":rule is Dictionary and rule.get("only",false)==true,"ids":matches}
+ return SearchAliases.alias_ids(Store.CARDS,term,rules)
 
 func library_role_spell_characters(term: String,rules: Dictionary) -> Array:
- var text=term.strip_edges().to_lower()
- if not text.ends_with("符卡"):return []
- var leader_name=text.substr(0,text.length()-"符卡".length()).strip_edges()
- if leader_name.is_empty():return []
- var alias_rule=SearchAliases.find_rule(rules,leader_name)
- var characters=[]
- for leader_id in Store.CARDS:
-  var leader=Store.CARDS[leader_id]
-  var name_match=leader.kind=="自机" and leader_name in leader.name.to_lower()
-  var alias_match=alias_rule!=null and leader.kind in ["单位","自机"] and SearchAliases.card_matches(leader,alias_rule,leader_id)
-  if not name_match and not alias_match:continue
-  var character=leader.get("character","")
-  if not character.is_empty() and character not in characters:characters.append(character)
- return characters
+ return SearchAliases.role_spell_characters(Store.CARDS,term,rules)
 
 func library_kind_matches(info: Dictionary, wanted: String) -> bool:
- var kind=str(info.kind)
- if wanted in ["","全部"]:return true
- if wanted=="单位":return kind in ["单位","自机"]
- if wanted=="普通单位":return kind=="单位"
- if wanted in ["自机单位","自机"]:return kind=="自机"
- if wanted=="普通符卡":return kind=="符卡" and str(info.get("requires_character","")).is_empty() and "角色" not in str(info.get("spell_type",""))
- return kind==wanted
+ return SearchAliases.kind_matches(info,wanted)
 
 func library_query_filters(term: String) -> Dictionary:
  var remaining=term.strip_edges().to_lower().replace(" ","").replace("\t","").replace("\n","")
@@ -841,11 +861,12 @@ func show_deck_tutorial():
 
 [color=#d9b775][b]搜索与筛选[/b][/color]
 搜索框可输入卡名、卡牌编号或别名，例如“西瓜”“530”；输入“天子符卡”可找对应角色的符卡。“密封”显示命定的重逢、大空魔术与两张梦违单位，“密封符卡”显示六张关联符卡。
+“小妖梦”“小猫车”分别显示3费妖梦、3费猫车；“炸弹人”指灵乌路空，“夜雀”指米斯蒂娅。“饼”显示2费单色产费道具，可加颜色，如“红饼”“蓝饼”。自机选择、调试选牌及鹿射、八云紫、椛等名称选择也支持这些别名。
 可把颜色、类别和种族写在一起：如“红蓝单位”“单蓝普通符卡”“红黑人类”。搜索中的颜色表示“包含这些颜色”；开头加“单”限定单色牌。“普通单位”和“自机单位”分别筛选两类单位，“普通符卡”排除角色符卡。
 颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。
 
 [color=#d9b775][b]保存与使用[/b][/color]
-右下角可保存、使用、清空或删除卡组，也可导出代码到剪贴板、从代码导入新卡组。顶部“卡组截图”将当前卡组保存为 PNG，并提示完整路径；“打开 deck 文件夹”可查看卡组文件和 image 截图目录。名称后的 * 表示有未保存的修改。保存需要设置自机；正常对战还要求主卡组恰好 50 张。"""
+右下角可保存、使用、清空或删除卡组，也可导出代码到剪贴板、从代码导入新卡组。鼠标中键点击仓库、主副卡组或自机位的牌可更换异画，仅影响当前卡组的所有对应牌，并同步用于联机显示。顶部“卡组截图”将当前卡组保存为 PNG，并提示完整路径；“打开 deck 文件夹”可查看卡组文件和 image 截图目录。名称后的 * 表示有未保存的修改。保存需要设置自机；正常对战还要求主卡组恰好 50 张。"""
  dialog.add_child(guide)
  add_child(dialog)
  dialog.popup_centered()
@@ -1127,10 +1148,10 @@ func leader_picker_thumb(id: String,cache: Dictionary) -> Texture2D:
 
 func populate_leader_picker(grid: GridContainer,dialog: AcceptDialog,term: String,cache: Dictionary):
  free_children(grid)
- var needle=term.strip_edges().to_lower()
+ var search_query=SearchAliases.prepare_query(Store.CARDS,term,SearchAliases.load_rules())
  for id in leader_picker_ids():
   var info=Store.CARDS[id]
-  if not needle.is_empty() and needle not in info.name.to_lower() and needle not in id.to_lower() and needle not in str(info.get("character","")).to_lower():continue
+  if not SearchAliases.matches_query(info,id,search_query):continue
   var tile=Panel.new()
   tile.custom_minimum_size=Vector2(218,334)
   tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if id==draft.leader else Color("#536b7b")))
@@ -1165,7 +1186,7 @@ func open_leader_picker():
  dialog.canceled.connect(dialog.queue_free)
  var search=LineEdit.new()
  search.name="LeaderPickerSearch"
- search.placeholder_text="按自机名称筛选"
+ search.placeholder_text="按自机名称、编号或别名筛选"
  search.position=Vector2(20,16)
  search.size=Vector2(936,42)
  dialog.add_child(search)
@@ -1200,6 +1221,8 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  tile.face_texture=texture(id)
  tile.source_zone=source
  tile.source_index=index
+ tile.tooltip_text=Store.CARDS[id].name
+ if CardArt.options(id,Store.CARDS).size()>1:tile.tooltip_text+="\n鼠标中键：更换当前卡组的异画"
  tile.position=rect.position
  tile.size=rect.size
  tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if source=="leader" else Color("#677585")))
@@ -1213,6 +1236,7 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  tile.add_child(art)
  tile.preview_requested.connect(func(card_id): selected=card_id; update_preview())
+ tile.art_requested.connect(open_art_picker)
  tile.clicked.connect(func(card_id,from,index_in_deck,right):
   selected=card_id
   zone=from

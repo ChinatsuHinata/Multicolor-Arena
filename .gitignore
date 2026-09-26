@@ -10,16 +10,33 @@
 # 本地 Inno Setup 制作套件（98 个文件 / 约 50 MB，含 exe+dll，不入库）
 MulticolorArena-Installer-Tool/
 
-# 测试脚本：已跟踪的 tests/*.gd 不受影响（忽略规则不作用于已跟踪文件），此规则只忽略新增文件
+# 当前功能测试与公共辅助脚本
 tests/
 !tests/
 tests/*
+!tests/*.gd
+!tests/*.gd.uid
+!tests/README.md
+!tests/AGENTS.md
+!tests/support/
+!tests/support/*.gd
+!tests/support/*.gd.uid
 !tests/test_rematch.gd
 !tests/test_dream_copy_targets.gd
 !tests/test_unit_order_ui.gd
 !tests/test_fairy_habitat.gd
 !tests/test_fairy_habitat_ui.gd
 !tests/test_fairy_habitat_keywords.gd
+!tests/test_disconnect_wait_ui.gd
+!tests/test_momiji.gd
+!tests/test_momiji_ui.gd
+!tests/test_spell_damage_preview.gd
+!tests/test_spell_damage_preview_ui.gd
+!tests/test_card_condition_hints.gd
+!tests/test_card_condition_hints_ui.gd
+!tests/test_rain_fire_mill.gd
+!tests/test_ran_discount.gd
+!tests/test_ran_discount_ui.gd
 
 # Installer packages and local packaging automation
 *-setup.exe

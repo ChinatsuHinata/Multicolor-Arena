@@ -91,7 +91,7 @@ static func spell_options(e,id,who) -> Variant:
   "blue_flower":return spells(e)
   "night_sakura":return e.Pack.none()
   "icicle_tide":return e.Roster.pick(e,e.Pack.all_units(e),0,2,"选择至多两个单位",k)
-  "angry_mask":return e.ability_targets()
+  "angry_mask":return e.Pack.all_units(e)
   "emotions":
    var pool=e.Extra.add_mode(e.stack.filter(func(s):return s.kind=="card").map(func(s):return {"stack_id":s.id}),"反制，除非支付1点")
    pool.append_array(e.Extra.add_mode(e.Roster.refs(e,e.players[who].grave.filter(func(u):return e.is_unit(u) or e.cards[u.card_id].kind=="道具")),"移回手牌"))

@@ -1,4 +1,4 @@
-extends "res://tests/test_update0921_cards.gd"
+extends "res://tests/support/card_rules_base.gd"
 func drain():
  for i in range(80):
   if not e.pending.is_empty():

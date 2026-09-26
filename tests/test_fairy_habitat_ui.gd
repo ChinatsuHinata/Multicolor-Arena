@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 
 func run():
  app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame

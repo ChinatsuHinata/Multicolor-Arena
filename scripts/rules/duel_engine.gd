@@ -62,6 +62,8 @@ var presentation_events: Array=[]
 var reveal_serial=0
 # Private declaration preference; cleared on commit/cancel, never a paid action.
 var paid_cast_uid=-1
+var deck_art_overrides: Array=[{},{}]
+const CardArt=preload("res://scripts/card_art.gd")
 func _init():
  cards=DB.load_cards()
  Extra.register_tokens(self)
@@ -92,9 +94,11 @@ func present_move(c: Dictionary,destination: String,to_owner: int=-1):
  var before=c.duplicate(true);before.owner=c.get("motion_from_owner",c.owner);before.erase("motion_from_owner");c.erase("motion_from_owner")
  presentation_events.append({"type":"move","card":before,"from":c.zone,"to":destination,"to_owner":c.owner if to_owner<0 else to_owner})
 func history_art(c: Dictionary) -> Array:
- return [{"card_id":c.card_id,"owner":c.owner,"hidden":false}] if c.has("card_id") else []
+ return [{"card_id":c.card_id,"art_id":c.get("art_id",""),"owner":c.owner,"hidden":false}] if c.has("card_id") else []
 func make_card(id: String, owner: int, location: String, leader: bool=false) -> Dictionary:
  var c={"original_owner":owner,"token":cards[id].get("token",false),"uid":next_uid,"epoch":0,"card_id":id,"owner":owner,"zone":location,"leader":leader,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false}
+ var art_id=deck_art_overrides[owner].get(CardArt.canonical(id,cards),"") if owner in [0,1] else ""
+ if not art_id.is_empty():c.art_id=art_id
  next_uid+=1
  return c
 func flip_coin(who: int) -> bool:
@@ -116,6 +120,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  next_damage_batch=1
  next_buff_order=0
  players.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); combat.clear(); log.clear(); history.clear()
+ deck_art_overrides=[a.get("art_overrides",{}).duplicate(true),b.get("art_overrides",{}).duplicate(true)]
  next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
  if seed_value==0: rng.randomize()
  else: rng.seed=seed_value
@@ -142,10 +147,11 @@ func shift(c: Dictionary, location: String):
   var hidden=old in ["hand","deck"] and location in ["hand","deck"]
   var caption=player_names[c.owner]+" · "+names.get(old,old)+" → "+names.get(location,location)
   if not hidden: caption+="\n"+cards[c.card_id].name
-  record_history(caption,[{"card_id":c.card_id,"owner":c.owner,"hidden":hidden}])
+  var art=history_art(c);art[0].hidden=hidden
+  record_history(caption,art)
  c.zone=location; c.epoch+=1; c.tapped=false; c.damage=0; c.timer=0; c.attacked=false; c.modifiers=[]; c.plus_counters=0; c.poverty=0; c.spell_damage=false
  c.leader_counters=0
- for k in ["sanae_used","brave_attack_turn","locked_name","rank_target","imp_growth","reisen_illusion","catalogue_access","catalogue_castle","dream","madness","noncombat_damage_turn"]:c.erase(k)
+ for k in ["sanae_used","brave_attack_turn","locked_name","ran_discount_disabled","rank_target","imp_growth","reisen_illusion","catalogue_access","catalogue_castle","dream","madness","noncombat_damage_turn"]:c.erase(k)
  if old!="stack" or location!="field":
   for k in ["ichirin_paid","top_free_damage","haste_on_enter","exiled_hand","paid_dolls"]:c.erase(k)
  for key in ["wards","color_counters","free_exile_owner","devour_owner","base_override","lock_sources","castle_exiles","medicine","skip_reset","tapped_turn"]: c.erase(key)
@@ -230,7 +236,7 @@ func source_resources(who: int) -> Array:
   if Cat.enabled(self,c,"character-fdf-098") and not c.tapped and not summoning_sick(c) and not Cat.State.activation_locked(self,c) and not Roster.Batch.locked(self,c):
    # This unit pays yellow and green together. It is one tap, never two separate sources.
    sources.append({"uid":c.uid,"colors":["黄/绿"],"pair":["黄","绿"],"weight":18,"kind":"unit"})
-  elif not c.tapped and DB.has_ability(cards[c.card_id],"mana"):
+  elif not c.tapped and DB.has_ability(cards[c.card_id],"mana") and not Cat.State.activation_locked(self,c):
    sources.append({"uid":c.uid,"colors":[DB.ability(cards[c.card_id],"mana")["颜色"]],"weight":8,"kind":"item"})
  sources.append_array(players[who].get("mana",[]))
  if players[who].potato: sources.append({"uid":-100-who,"colors":COLORS,"weight":1000,"kind":"potato"})
@@ -394,6 +400,9 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  if not target_spec.is_empty():stack.back().target_spec=target_spec
  next_stack+=1; passes=0; priority=1-who
  note(player_names[who]+"使用 "+info.name,history_art(c))
+ if old_zone=="deck" and Extra.has(info,"deck_damage"):
+  shuffle(players[who].deck)
+  note(player_names[who]+"洗牌")
  Roster.on_cast(self,c,who,old_zone)
  Pack.on_cast(self,c,who,target);Roster.New.on_target(self,target)
  if info.kind=="符卡": Effects.spell_used(self,who)
@@ -1175,6 +1184,24 @@ func activation_error(who: int,uid: int,index: int) -> String:
  if payment(who,params.get("费用",{}),excluded).ways==0: return "可用颜色费用不足"
  return ""
 
+func ran_discount_toggle_error(who: int,uid: int) -> String:
+ if winner!=-2 or phase=="mulligan" or not pending.is_empty():return "当前不能切换减费"
+ if priority!=who:return "等待执行权"
+ if Pack.response_locked(self):return "该牌不能被响应"
+ var c=find_card(uid)
+ if c.is_empty() or c.owner!=who or c.zone!="field":return "需要操控该永久物"
+ if not Roster.has(cards[c.card_id],"ran_discount"):return "该牌没有常驻减费"
+ return ""
+
+func toggle_ran_discount(who: int,uid: int) -> String:
+ var error=ran_discount_toggle_error(who,uid)
+ if not error.is_empty():return error
+ var c=find_card(uid)
+ if c.get("ran_discount_disabled",false):c.erase("ran_discount_disabled")
+ else:c.ran_discount_disabled=true
+ note(player_names[who]+" · "+cards[c.card_id].name+" · "+("关闭" if c.get("ran_discount_disabled",false) else "开启")+"常驻减费",history_art(c))
+ return ""
+
 func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
  var result=[]
  var c=find_card(uid)
@@ -1188,6 +1215,11 @@ func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
   var reason=extension_activation_error(who,c,k)
   if reason.is_empty() or include_disabled:result.append({"type":"extension","uid":uid,"key":k,"label":Roster.text(cards[c.card_id],k),"enabled":reason.is_empty(),"reason":reason})
  if c.zone!="field": return result
+ if Roster.has(cards[c.card_id],"ran_discount"):
+  var reason=ran_discount_toggle_error(who,uid)
+  if reason.is_empty() or include_disabled:
+   var disabled=c.get("ran_discount_disabled",false)
+   result.append({"type":"ran_discount","uid":uid,"label":"开启常驻减费（当前已关闭）" if disabled else "关闭常驻减费（当前已开启）","enabled":reason.is_empty(),"reason":reason})
  if (Pack.direct_attack(self,c) or units(1-who).any(func(u):return u.has("rank_target"))) and not units(1-who).is_empty() and can_attack(who,c.uid):
   result.append({"type":"direct_attack","uid":uid,"label":"攻击对手单位","enabled":true})
  if is_unit(c):
@@ -1298,7 +1330,17 @@ func detach(c: Dictionary):
   for zone in ["deck","hand","field","palette","grave","exile"]: p[zone].erase(c)
  for entry in stack.duplicate():
   if entry.kind=="card" and entry.card.uid==c.uid: stack.erase(entry)
-func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacement: bool=true):
+func mill_cards(top_cards: Array):
+ # A choice among inspected top cards is one mill event even if the first
+ # card is kept. Count only cards that actually reach their owner's grave.
+ var amounts={}
+ for c in top_cards:
+  if c.is_empty() or c.zone!="deck":continue
+  var who=c.owner
+  move_to(c,"grave",true,true,false)
+  if c.zone=="grave":amounts[who]=int(amounts.get(who,0))+1
+ for who in amounts:Cat.milled(self,who,amounts[who])
+func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacement: bool=true,notify_mill: bool=true):
  if c.is_empty(): return
  if c.get("stack_copy",false) and c.zone=="stack" and zone!="field":detach(c);shift(c,"void");return
  if allow_replacement and c.zone=="grave" and zone=="hand" and not grave_replacement_sources(c).is_empty():
@@ -1328,7 +1370,7 @@ func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacemen
  if not presentation_events.is_empty() and presentation_events.back().type=="move":presentation_events.back().card.owner=from_owner
  if zone not in ["leader","outside"]: players[c.owner][zone].append(c)
  if zone=="palette":Cat.State.on_palette(self,c);Roster.New.on_palette(self,c,before.zone)
- if from_top and zone=="grave":Cat.milled(self,c)
+ if notify_mill and from_top and zone=="grave":Cat.milled(self,c.owner,1)
  if before.zone=="field" and zone=="grave": Extra.on_death(self,c,before)
  if before.zone=="field":Roster.on_leave(self,before,c)
 func grave_replacement_sources(c: Dictionary) -> Array:

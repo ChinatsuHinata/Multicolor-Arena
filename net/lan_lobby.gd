@@ -19,7 +19,10 @@ var chat_open=false
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  session.changed.connect(refresh);session.error_raised.connect(show_error)
- app.header("局域网联机",func():session.leave(false);app.menu())
+ app.header("局域网联机",func():
+  if session.disconnected_at>0:session.stop_waiting()
+  else:session.leave(false)
+  app.menu())
  status_label=app.label(self,"",Rect2(70,118,1460,65),20,app.GOLD);status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  body=Control.new();add_child(body);refresh(true)
 func show_error(message: String):
@@ -30,7 +33,7 @@ func _process(_delta):
  if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
 func refresh(force: bool=false):
  status_label.text=last_error if not last_error.is_empty() else session.notice if not session.notice.is_empty() else session.discovery.error
- var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused])
+ var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed])
  if force or next!=signature:
   signature=next
   for child in body.get_children():body.remove_child(child);child.queue_free()
@@ -180,6 +183,10 @@ func build_room():
   app.button(body,"重连",Rect2(1070,650,355,52),func():
    var error=session.resume_guest()
    if not error.is_empty():show_error(error),true)
- app.button(body,"离开房间",Rect2(1070,714,355,48),func():session.leave(false);refresh(true))
+ if session.wait_choice_pending:app.button(body,"继续等待",Rect2(1070,590,355,48),func():session.continue_waiting(),true)
+ app.button(body,"不再等待，离开对局" if session.disconnected_at>0 else "离开房间",Rect2(1070,714,355,48),func():
+  if session.disconnected_at>0:session.stop_waiting()
+  else:session.leave(false)
+  refresh(true))
 func open_sideboard():
  app.open_sideboard(session)

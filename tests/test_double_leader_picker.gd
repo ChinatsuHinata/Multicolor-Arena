@@ -1,4 +1,4 @@
-extends "res://tests/test_v092.gd"
+extends "res://tests/support/ui_base.gd"
 
 func choice_tile(uid: int) -> Control:
  if not is_instance_valid(view.modal_root):return null

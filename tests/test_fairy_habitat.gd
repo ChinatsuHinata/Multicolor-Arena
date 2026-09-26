@@ -1,4 +1,4 @@
-extends "res://tests/test_v09_rules.gd"
+extends "res://tests/support/rules_base.gd"
 
 const DuelView=preload("res://scripts/duel_view.gd")
 

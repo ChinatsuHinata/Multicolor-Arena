@@ -35,16 +35,16 @@ static func capture(owner: Control,deck: Dictionary,unsaved: bool=false) -> Dict
  _text(canvas,"主卡组",Rect2(MAIN_X,118,500,36),25,Color("#d9b775"))
  var thumbnails={}
  if not str(deck.leader).is_empty():
-  _card(canvas,str(deck.leader),Rect2(32,160,210,294),thumbnails)
+  _card(canvas,str(deck.leader),Rect2(32,160,210,294),thumbnails,deck)
  else:
   _block(canvas,Rect2(32,160,210,294),Color("#13232f"),Color("#3b5060"))
   _text(canvas,"尚未选择自机",Rect2(42,278,190,42),22,Color("#91a5b7"))
  for index in range(deck.main.size()):
-  _card(canvas,str(deck.main[index]),Rect2(MAIN_X+(index%10)*CARD_STEP_X,160+floori(float(index)/10.0)*CARD_STEP_Y,CARD_WIDTH,CARD_HEIGHT),thumbnails)
+  _card(canvas,str(deck.main[index]),Rect2(MAIN_X+(index%10)*CARD_STEP_X,160+floori(float(index)/10.0)*CARD_STEP_Y,CARD_WIDTH,CARD_HEIGHT),thumbnails,deck)
  if deck.main.is_empty():_text(canvas,"主卡组为空",Rect2(MAIN_X,250,680,48),28,Color("#91a5b7"))
  _text(canvas,"副卡组",Rect2(MAIN_X,side_title_y,600,36),25,Color("#d9b775"))
  for index in range(deck.side.size()):
-  _card(canvas,str(deck.side[index]),Rect2(MAIN_X+index*CARD_STEP_X,side_card_y,CARD_WIDTH,CARD_HEIGHT),thumbnails)
+  _card(canvas,str(deck.side[index]),Rect2(MAIN_X+index*CARD_STEP_X,side_card_y,CARD_WIDTH,CARD_HEIGHT),thumbnails,deck)
  if deck.side.is_empty():_text(canvas,"副卡组为空",Rect2(MAIN_X,side_card_y+72,500,42),24,Color("#91a5b7"))
  await owner.get_tree().process_frame
  await RenderingServer.frame_post_draw
@@ -84,13 +84,13 @@ static func _text(parent: Control,value: String,rect: Rect2,font_size: int,color
  parent.add_child(line)
  return line
 
-static func _card(parent: Control,id: String,rect: Rect2,cache: Dictionary):
+static func _card(parent: Control,id: String,rect: Rect2,cache: Dictionary,deck: Dictionary={}):
  var frame=_block(parent,rect,Color("#142737"),Color("#617887"))
  if not Store.CARDS.has(id):
   _text(frame,"未知卡牌\n"+id,Rect2(8,8,rect.size.x-16,rect.size.y-16),20,Color("#e8edf0"))
   return
  if not cache.has(id):
-  var source=load(Store.CARDS[id].image) as Texture2D
+  var source=load(Store.Art.image_path(id,Store.Art.selected(deck,id,Store.CARDS),Store.CARDS)) as Texture2D
   if source==null:return
   var image=source.get_image()
   if image.get_width()>image.get_height():image.rotate_90(CLOCKWISE)

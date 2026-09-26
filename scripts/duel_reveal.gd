@@ -69,7 +69,7 @@ func next_card():
  elif current.get("edge","")=="bottom":face.position.y+=12
  # One tween timeline prevents extra frame delays between flip/hold steps.
  var origin=face.position;var destination=center-large/2
- var texture=view.host.texture(c.card_id);var opened=[false];var concealed=[false]
+ var texture=view.card_texture(c);var opened=[false];var concealed=[false]
  sequence=create_tween()
  sequence.tween_method(func(time:float):
   var travel=clampf(time/0.07,0,1)
@@ -135,7 +135,7 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
 func show_move():
  var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
  var hidden=current.from in ["hand","deck"] and current.to in ["hand","deck"] and (c.owner!=view.local_seat or current.from=="deck" and current.to=="deck") and not view.debug_mode
- var texture=view.host.texture("back") if hidden else view.host.texture(c.card_id)
+ var texture=view.host.texture("back") if hidden else view.card_texture(c)
  create_face(from.size,from.get_center(),texture)
  var stack_rect=view.stack_panel.card_rect(c.uid)
  if current.from=="stack" and stack_rect.has_area():
@@ -158,7 +158,7 @@ func show_move():
 func show_public():
  shown_at=Time.get_ticks_msec();public_uids=[current.card.uid]
  if is_instance_valid(hand_node):
-  hand_node.hidden_card=false;hand_node.art.texture=view.host.texture(current.card.card_id);hand_node.tooltip_text=view.engine.cards[current.card.card_id].name
+  hand_node.hidden_card=false;hand_node.art.texture=view.card_texture(current.card);hand_node.tooltip_text=view.engine.cards[current.card.card_id].name
  card_shown.emit(current.serial)
 func hide_public():
  public_uids.clear()

@@ -1,4 +1,4 @@
-extends "res://tests/test_v0181_series.gd"
+extends "res://tests/support/network_base.gd"
 const Replay=preload("res://scripts/replay_archive.gd")
 var watcher
 func send(seat:int,command:Dictionary):

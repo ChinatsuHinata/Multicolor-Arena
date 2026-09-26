@@ -50,8 +50,7 @@ static func fight(e,a,b):
  e.damage_context={"source":x,"combat":false,"single":true};damage(e,b,xp)
  e.damage_context={"source":y,"combat":false,"single":true};damage(e,a,yp);e.damage_context=context
 static func mill(e,who,n):
- var amount=mini(n,e.players[who].deck.size())
- for i in range(amount):e.move_to(e.players[who].deck[0],"grave")
+ e.mill_cards(e.players[who].deck.slice(0,maxi(0,n)))
 static func random_discard(e,who,n):
  for i in range(mini(n,e.players[who].hand.size())):e.move_to(e.players[who].hand[e.rng.randi_range(0,e.players[who].hand.size()-1)],"grave")
 static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art=""):
@@ -247,12 +246,12 @@ static func enqueue(e,t):
  if e.stack.any(func(s):return s.kind=="card" and has(e,s.card,"spell-fdn-008")):return
  if has(e,c,"character-fdn-045") and not e.units(who).any(func(u):return character(e,u,"爱丽丝")):return
  t.catalogue_serial=e.catalogue_serial
- if t.get("effect","") in ["character-htk-005","cat:nuclear_return","cat:god_damage","spell-fdf-123","character-ucs-044"]:
+ if t.get("effect","") in ["character-htk-005","cat:nuclear_return","cat:god_damage","character-ucs-044"]:
   var coalesced=false
   for queued in e.triggers:
-   if queued.get("catalogue_serial",-1)==e.catalogue_serial and queued.source.uid==c.uid and queued.get("effect")==t.effect and (t.effect!="spell-fdf-123" or queued.data.get("milled_owner",-1)==t.data.get("milled_owner",-1)):
+   if queued.get("catalogue_serial",-1)==e.catalogue_serial and queued.source.uid==c.uid and queued.get("effect")==t.effect:
     coalesced=true
-    if t.effect in ["cat:god_damage","spell-fdf-123"]:queued.data.amount+=t.data.amount
+    if t.effect=="cat:god_damage":queued.data.amount+=t.data.amount
   if coalesced:return
  var count=1
  if e.catalogue_death_depth>0:
@@ -320,9 +319,9 @@ static func target_tax(e,who,target):
  return 3*with_key(e,1-who,"spell-fdn-015").size()
 static func may_peek(e,who):return not with_key(e,who,"character-ucs-068").is_empty() or not with_key(e,who,"character-fdn-071").is_empty()
 
-static func milled(e,c):
+static func milled(e,who,amount):
  for u in field(e):
-  if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":1,"milled_owner":c.owner})
+  if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":amount,"milled_owner":who})
 
 static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false):
  var old=entry.target;var options=[]

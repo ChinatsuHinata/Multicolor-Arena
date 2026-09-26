@@ -6,7 +6,9 @@ var entries: Array=[]
 func settled(engine) -> bool:
  # A popped spell can still be resolving a search, a payment or a return choice.
  # Do not split that single stack chain into several undo checkpoints.
- return engine!=null and engine.winner==-2 and engine.stack.is_empty() and engine.pending.get("kind","") in ["","possession","discard","block","damage_assignment"] and engine.triggers.is_empty() and engine.returns.is_empty() and engine.timer_changes.is_empty() and engine.zone_replacements.is_empty()
+ # Combat responses, blocks and damage belong to the same undo operation.
+ # Replay snapshots remain independent and still record every command.
+ return engine!=null and engine.winner==-2 and engine.combat.is_empty() and engine.combat_queue.is_empty() and engine.stack.is_empty() and engine.pending.get("kind","") in ["","possession","discard"] and engine.triggers.is_empty() and engine.returns.is_empty() and engine.timer_changes.is_empty() and engine.zone_replacements.is_empty()
 func remember(engine,game: String,sequence: int):
  if not settled(engine):return
  if not entries.is_empty() and entries.back().game!=game:entries.clear()

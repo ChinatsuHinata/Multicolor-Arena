@@ -120,7 +120,7 @@ static func cost(e,c: Dictionary,who: int,base: Dictionary) -> Dictionary:
  if has(e.cards[c.card_id],"end_turn") and e.active==who: return {"蓝":1}
  if enabled(e,c,"miko_discount"):result["黄"]=maxi(0,int(result.get("黄",0))-(e.units(0).size()+e.units(1).size())/2)
  if int(result.get("蓝",0))>0:
-  var discount=e.units(who).filter(func(u): return has(e.cards[u.card_id],"ran_discount")).size()
+  var discount=e.units(who).filter(func(u): return has(e.cards[u.card_id],"ran_discount") and not u.get("ran_discount_disabled",false)).size()
   result["蓝"]=maxi(0,int(result.get("蓝",0))-discount)
  return New.cost(e,c,who,Batch.cost(e,c,who,result))
 static func protected(e,t: Dictionary,who: int,spell: bool) -> bool:
@@ -431,11 +431,9 @@ static func resolve_trigger(e,t: Dictionary):
   "nether_ghost":create_token(e,who,"ghost",1,["黄"])
   "satori_scry":begin_scry(e,t,aim.player,3,false)
   "scry_grave":
-   var rest=[]
-   for r in data.top:
-    if not valid(e,r):continue
-    if r in e.Pack.picked(aim):e.move_to(e.find_card(r.uid),"grave")
-    else:rest.append(r)
+   var chosen=e.Pack.picked(aim)
+   var rest=data.top.filter(func(r):return valid(e,r) and r not in chosen)
+   e.mill_cards(data.top.filter(func(r):return valid(e,r) and r in chosen).map(func(r):return e.find_card(r.uid)))
    if rest.size()<=1:finish_scry(e,t,rest,data)
    else:continue_choice(e,t,"scry_order",pick(e,rest,rest.size(),rest.size(),"按牌库顶到底的顺序点选"),data)
   "scry_order":finish_scry(e,t,e.Pack.picked(aim),data)
@@ -859,6 +857,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  return c if e.enter_field(c,who) else {}
 static func target_survives(e,id: String,t: Dictionary) -> bool:
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
+ if has(e.cards[id],"angry_mask"):return unit(e,t)
  if has(e.cards[id],"emotions") and e.Pack.flatten(t).is_empty():return true
  if key(e.cards[id],["discard_draw","door_reveal"])!="":return true
  var targets=e.Pack.flatten(t)

@@ -1,4 +1,4 @@
-extends "res://tests/test_v082.gd"
+extends "res://tests/support/response_ui_base.gd"
 const Store=preload("res://scripts/deck_store.gd")
 
 func press_q(echoed: bool=false):

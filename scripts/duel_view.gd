@@ -1,6 +1,11 @@
 extends Control
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const PaymentDraft=preload("res://scripts/payment_draft.gd")
+const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
+const RemoteDuel=preload("res://net/remote_duel.gd")
+const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
+const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
+const CurseWarning=preload("res://scripts/duel_curse_warning.gd")
 const AbilityCaption=preload("res://scripts/rules/ability_caption.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
@@ -47,6 +52,7 @@ var debug_drag_pointer=Vector2.ZERO
 var debug_drag_art: Control
 var debug_drop_hint: Label
 var attack_preview_uid=0
+var stage_hover_uid=0
 var host
 var local_seat=0
 var replay_recording=preload("res://scripts/replay_archive.gd").new()
@@ -55,6 +61,8 @@ var network_status_label: Label
 var network_latency_label: Label
 var chat_panel: Panel
 var was_network_locked=false
+var was_network_disconnected=false
+var was_network_wait_choice=false
 var was_network_ended=false
 var engine
 var table
@@ -65,6 +73,8 @@ var ui: Control
 var hud: Control
 var hand_layer: Control
 var opponent_layer: Control
+var deck_cast_layer: Control
+var deck_cast_tiles={}
 var badges: Control
 var inspection: Control
 var hand_nodes={}
@@ -97,6 +107,7 @@ var banner: Control
 var banner_tween: Tween
 var banner_until=0
 var inspect_id=""
+var inspect_art_id=""
 var inspect_uid=0
 var inspect_caption=""
 var inspection_signature=""
@@ -150,6 +161,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  stage.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; stage.texture=viewport.get_texture()
  stage.stretch_mode=TextureRect.STRETCH_SCALE; add_child(stage)
  stage.gui_input.connect(stage_input)
+ stage.mouse_exited.connect(func():stage_hover_uid=0;stage.tooltip_text="")
  table=preload("res://scripts/duel_table.gd").new(); viewport.add_child(table)
  table.external_stack=true;table.local_seat=local_seat
  table.build(engine,host.texture,host.battlefield_background)
@@ -169,6 +181,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   elif zone in ["pdeck","adeck"]: browse_zone(0 if zone=="pdeck" else 1,"deck"))
  ui=layer(self); badges=layer(ui)
  arrow_layer=preload("res://scripts/stack_arrows.gd").new(); arrow_layer.view=self; arrow_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE; ui.add_child(arrow_layer)
+ deck_cast_layer=layer(ui)
  hand_layer=layer(ui); opponent_layer=layer(ui); hud=layer(ui)
  ui.move_child(arrow_layer,-1)
  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
@@ -203,7 +216,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   debug_controls.add_child(debug_free_checkbox)
  get_viewport().size_changed.connect(resize_world)
  if session!=null:
-  was_network_locked=network_locked();was_network_ended=session.ended();session.changed.connect(network_changed)
+  was_network_locked=network_locked();was_network_ended=session.ended();was_network_disconnected=not session.connected;was_network_wait_choice=not session.replay_mode and session.wait_choice_pending;session.changed.connect(network_changed)
  render()
 
 func resize_world():
@@ -245,6 +258,12 @@ func reset_camera_view():
  table.reset_camera()
  update_badge_positions()
 func stage_input(event: InputEvent):
+ if event is InputEventMouseMotion:
+  stage_hover_uid=0
+  if not revealing() and not table.combat_animating and not history_open and (not modal or observing):
+   stage_hover_uid=table.card_at(event.position/STAGE.size*Vector2(viewport.size))
+  refresh_stage_tooltip()
+  return
  if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
   if history_open or (modal and not observing) or dragging or debug_drag_uid!=0:return
   var wheel=event.duplicate()
@@ -353,7 +372,7 @@ func txt(text: String,rect: Rect2,font: int=18,color: Color=Color("#e8edf0"),par
  return label
 func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: Node=null):
  if parent==null and rect.position.y>=90:rect=right_rect(rect)
- var inspection_action=text in ["设置","对局记录","单位自动排序","聊天","继续游戏","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
+ var inspection_action=text in ["设置","对局记录","单位自动排序","聊天","继续游戏","继续等待","不再等待，离开对局","返回联机房间","观察战场","返回选择","视角复原","×","同意悔棋","拒绝悔棋","取消请求","3D 斜视","2D 上方俯视"]
  var button=host.button(hud if parent==null else parent,text,rect,func():
   if not network_locked() or inspection_action:action.call(),accent)
  if network_locked() and not inspection_action:button.disabled=true
@@ -416,7 +435,9 @@ func render():
  table.selected_stacks=picker.selected_refs().filter(func(t): return t.has("stack_id")).map(func(t): return t.stack_id)
  table.stack_target_uids=interactive_stack_target_uids()
  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
+ render_deck_casts()
  render_hands(available)
+ refresh_stage_tooltip()
  stack_panel.sync()
  render_grave_targets()
  table.presented_moves.clear()
@@ -501,22 +522,56 @@ func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array
    tile.position=project(table.zone_position(old.get("zone","deck"),who)) if not previous_snapshot.is_empty() else target+Vector2(0,65 if who==local_seat else -65)
    tile.modulate.a=0.1
   var node=nodes[c.uid]
-  if node.card_id!=c.card_id:
+  if node.card_id!=c.card_id or node.art_id!=c.get("art_id",""):
    node.card_id=c.card_id
+   node.art_id=c.get("art_id","")
    if who==local_seat or debug_mode:
     var info=engine.cards[c.card_id]
-    node.art.texture=host.texture(c.card_id); node.tooltip_text=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X" if not info.variable_cost.is_empty() else "")
+    node.art.texture=card_texture(c)
     node.update_cost(info.cost,info.get("variable_cost",""))
+  if not node.hidden_card:node.tooltip_text=hand_card_tooltip(c)
   node.show()
   if table.presented_moves.has(c.uid):
    node.position=target;node.modulate.a=1;node.set_meta("target",target);fresh=false
-  node.update_style(c.uid in available or (c.zone!="hand" and can_use_region_card(c)),c.uid in selected_uids())
+  node.update_style(c.uid in available or (c.zone!="hand" and can_use_region_card(c)),c.uid in selected_uids(),ConditionHints.active(engine,c))
   if fresh or node.get_meta("target",Vector2(-999,-999))!=target:
    if hand_tweens.has(c.uid) and hand_tweens[c.uid].is_valid(): hand_tweens[c.uid].kill()
    var tween=create_tween().set_parallel(true)
    tween.tween_property(node,"position",target,0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
    tween.tween_property(node,"modulate:a",1.0,0.3)
    hand_tweens[c.uid]=tween; node.set_meta("target",target)
+
+func render_deck_casts():
+ clear_children(deck_cast_layer); deck_cast_tiles={}
+ if response_disabled() or not free_main():return
+ for who in range(2):
+  if who!=acting_player() or who!=local_seat and not debug_mode:continue
+  var cards=engine.legal_casts(who).filter(func(c):return c.zone=="deck" and engine.Extra.has(engine.cards[c.card_id],"deck_damage"))
+  # Display copies independently without revealing their order in the library.
+  cards.sort_custom(func(a,b):return a.uid<b.uid)
+  for c in cards:
+   var tile=preload("res://scripts/duel_hand_card.gd").new()
+   tile.size=Vector2(62,87);deck_cast_layer.add_child(tile);tile.build(self,c)
+   tile.tooltip_text="可从牌库使用 · "+hand_card_tooltip(c)
+   tile.update_style(true,c.uid in selected_uids())
+   deck_cast_tiles[c.uid]=tile
+ update_deck_cast_positions()
+
+func update_deck_cast_positions():
+ if not is_instance_valid(deck_cast_layer):return
+ var indices={0:0,1:0}
+ for uid in deck_cast_tiles:
+  var tile=deck_cast_tiles[uid]
+  var c=engine.find_card(uid)
+  var key="pdeck" if c.get("owner",0)==0 else "adeck"
+  if c.is_empty() or not table.piles.has(key):tile.hide();continue
+  var top=table.piles[key].get_node("Top")
+  var half=table.CARD_SIZE*table.SLOT_SCALE/2.0
+  var rect=Rect2(project(top.to_global(Vector3(-half.x,0,-half.y))),Vector2.ZERO)
+  for corner in [Vector3(half.x,0,-half.y),Vector3(-half.x,0,half.y),Vector3(half.x,0,half.y)]:rect=rect.expand(project(top.to_global(corner)))
+  tile.position=Vector2(rect.end.x+10,rect.position.y+indices[c.owner]*28)
+  tile.visible=c.zone=="deck" and free_main() and not response_disabled() and STAGE.intersects(Rect2(tile.position,tile.size)) and not table.combat_animating and not revealing()
+  indices[c.owner]+=1
 
 func rebuild_badges():
  clear_children(badges); card_badges={}
@@ -636,6 +691,7 @@ func position_card_icons(icons: Array, rect: Rect2):
   icons[index].position=Vector2(right-row_width+column*(CARD_ICON_SIZE+CARD_ICON_GAP),top+row*(CARD_ICON_SIZE+CARD_ICON_GAP))
 func update_badge_positions():
  if not is_instance_valid(table): return
+ update_deck_cast_positions()
  var stack_rects=[]
  var caption_rects=[]
  for key in table.descriptors:
@@ -685,10 +741,51 @@ func show_phase_banner():
  banner_tween.tween_property(banner,"modulate:a",0.0,0.3)
  banner_until=Time.get_ticks_msec()+1050
 
-func inspect_card(id: String,uid: int=0,caption: String=""):
+func card_texture(c: Dictionary,preview: bool=false) -> Texture2D:
+ return host.preview_texture(c.card_id,c.get("art_id","")) if preview else host.texture(c.card_id,c.get("art_id",""))
+func card_tile(parent: Node,c: Dictionary,rect: Rect2,clickable: Callable=Callable()) -> Control:
+ return host.card(parent,c.card_id,rect,clickable,c.get("art_id",""))
+func inspect_card(id: String,uid: int=0,caption: String="",art_id: String=""):
+ inspect_art_id=art_id
  inspect_id=id; inspect_uid=uid; inspect_caption=caption; update_inspection()
+func declaration_caption(c: Dictionary) -> String:
+ if c.is_empty() or c.get("zone","")!="field" or not engine.Cat.has(engine,c,"character-fdf-101"):return ""
+ var declared=String(c.get("locked_name",""))
+ return "宣称："+declared if not declared.is_empty() else "宣称：尚未宣称"
+func damage_caption(c: Dictionary) -> String:
+ var draft=local
+ if local.get("uid",0)==c.get("uid",-1) and local.get("mode","")=="target" and local.get("target",{}).is_empty():
+  var refs=picker.selected_refs()
+  if not refs.is_empty():
+   draft=local.duplicate();draft.target={"parts":refs}
+  if not picker.specs.is_empty():
+   var state=picker.dynamic_state()
+   if state.group==1 and not state.current.is_empty():
+    draft=local.duplicate();draft.preview_exiled_hand=state.current.size()
+ return SpellDamagePreview.caption(engine,c,draft,engine.queries.get("pending_keystones",{}) if engine is RemoteDuel else {})
+func card_context_caption(c: Dictionary) -> String:
+ var lines=[]
+ if not c.is_empty() and c.get("zone","")=="field" and engine.Roster.has(engine.cards[c.card_id],"ran_discount"):
+  lines.append("常驻减费：已关闭" if c.get("ran_discount_disabled",false) else "常驻减费：已开启（蓝色费用减少 1）")
+ for caption in [declaration_caption(c),damage_caption(c),ConditionHints.caption(engine,c)]:
+  if not caption.is_empty():lines.append(caption)
+ return "\n".join(lines)
+func hand_card_tooltip(c: Dictionary) -> String:
+ var info=engine.cards[c.card_id]
+ var result=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X" if not info.variable_cost.is_empty() else "")
+ var context=card_context_caption(c)
+ return result+("\n"+context if not context.is_empty() else "")
+func refresh_stage_tooltip():
+ stage.tooltip_text=""
+ if revealing() or table.combat_animating or history_open or modal and not observing:return
+ var c=engine.find_card(stage_hover_uid)
+ var context=card_context_caption(c)
+ if not context.is_empty():stage.tooltip_text=engine.cards[c.card_id].name+"\n"+context
+func inspect_declaring_unit(c: Dictionary):
+ if not declaration_caption(c).is_empty() or not c.is_empty() and c.get("zone","")=="field" and engine.Roster.has(engine.cards[c.card_id],"ran_discount"):inspect_card(c.card_id,c.uid)
 func update_inspection():
  var current=engine.find_card(inspect_uid)
+ var declared=card_context_caption(current) if inspect_id not in ["back","potato"] else ""
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
  inspection.visible=host.show_card_inspection and not inspect_id.is_empty()
  var counters=counter_lines(current)
@@ -711,7 +808,8 @@ func update_inspection():
    if ability not in base_info.get("abilities",[]):
     var ability_text=String(ability.get("名称",""))
     if not ability_text.is_empty() and ability_text not in inherited_abilities:inherited_abilities.append(ability_text)
- var signature=inspect_id+shown_id+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))+str(inherited_keywords)+str(inherited_abilities)
+ var shown_art=current.get("art_id","") if not current.is_empty() else inspect_art_id
+ var signature=inspect_id+shown_id+shown_art+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))+str(inherited_keywords)+str(inherited_abilities)+declared
  if signature==inspection_signature: return
  inspection_signature=signature
  clear_children(inspection)
@@ -719,7 +817,7 @@ func update_inspection():
  var bg=Control.new(); bg.size=INSPECTION.size; bg.mouse_filter=Control.MOUSE_FILTER_IGNORE; inspection.add_child(bg)
  var image=TextureRect.new(); image.position=Vector2(10,10); image.size=Vector2(198,277)
  image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
- image.texture=host.preview_texture(inspect_id)
+ image.texture=host.preview_texture(shown_id,shown_art)
  var landscape=host.landscape_card(inspect_id)
  if landscape:image.size=Vector2(198,142)
  image.mouse_filter=Control.MOUSE_FILTER_IGNORE; bg.add_child(image)
@@ -736,6 +834,8 @@ func update_inspection():
  inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
+ if not declared.is_empty():
+  inspection_text.push_color(host.GOLD);inspection_text.add_text(declared+"\n\n");inspection_text.pop()
  if info.get("fast",false): inspection_text.add_text("高速\n")
  var at=rules.find("自机能力：")
  if at>=0:
@@ -780,10 +880,14 @@ func counter_lines(c: Dictionary) -> Array:
 
 func render_prompt():
  if network_session!=null and network_session.replay_mode:return
- if network_session!=null and not network_session.room.get("undo_request",{}).is_empty():return
+ if network_session!=null and not network_session.room.get("undo_request",{}).is_empty() and network_session.connected and not network_session.paused:return
  if network_session!=null and not network_session.can_act(true):
-  network_status_label=txt(network_session.connection_status(),Rect2(1290,660,294,100),18,host.GOLD)
+  network_status_label=txt(network_session.connection_status(),Rect2(1290,630,294,110),18,host.GOLD)
   network_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  if network_session.wait_choice_pending:
+   btn("继续等待",Rect2(1300,750,267,49),func():network_session.continue_waiting(),true)
+  if network_session.disconnected_at>0:
+   btn("不再等待，离开对局",Rect2(1300,810,267,49),func():network_session.stop_waiting();host.online())
   if network_session.ended() or network_session.read_only and not network_session.replay_mode:btn("返回联机房间",Rect2(1330,799,237,49),func():host.online(),true)
   return
  if table.combat_animating: return
@@ -933,7 +1037,7 @@ func handle_unit_drag(event: InputEvent) -> bool:
    unit_dragging=true
    var c=engine.find_card(unit_drag_uid)
    if c.is_empty():finish_unit_drag(true);return true
-   unit_drag_art=host.card(ui,c.card_id,Rect2(unit_drag_pointer-Vector2(70,97),Vector2(140,195)))
+   unit_drag_art=card_tile(ui,c,Rect2(unit_drag_pointer-Vector2(70,97),Vector2(140,195)))
    unit_drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE;unit_drag_art.modulate.a=0.82
   if unit_dragging and is_instance_valid(unit_drag_art):unit_drag_art.position=unit_drag_pointer-Vector2(70,97)
   get_viewport().set_input_as_handled()
@@ -1014,7 +1118,7 @@ func _input(event: InputEvent):
    if engine.pending.is_empty() and engine.phase!="mulligan":
     selection=[drag_uid]
     if hand_nodes.has(drag_uid): hand_nodes[drag_uid].update_style(true,true)
-   drag_art=host.card(ui,engine.find_card(drag_uid).card_id,Rect2(at-Vector2(82,115),Vector2(164,230)))
+   drag_art=card_tile(ui,engine.find_card(drag_uid),Rect2(at-Vector2(82,115),Vector2(164,230)))
    drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE; drag_art.modulate.a=0.9
    var drag_style=host.style(Color("#27313d"),Color("#ffd65c")); drag_style.set_border_width_all(5)
    drag_art.add_theme_stylebox_override("panel",drag_style)
@@ -1080,6 +1184,7 @@ func right_cancel():
  elif engine.pending.get("kind","")=="possession": selection=[]; render()
  elif is_instance_valid(table.inspect_root): table.inspect_root.queue_free()
 func object_clicked(uid: int):
+ inspect_declaring_unit(engine.find_card(uid))
  if network_locked():
   var object=engine.find_card(uid)
   if not object.is_empty():inspect_card(object.card_id,uid)
@@ -1123,7 +1228,7 @@ func leader_zone_clicked(who: int):
   var choose_leader=func():
    close_overlay()
    request_cast(leader.uid)
-  var tile=host.card(content,leader.card_id,Rect2(at,Vector2(173,241)),choose_leader if error.is_empty() else Callable())
+  var tile=card_tile(content,leader,Rect2(at,Vector2(173,241)),choose_leader if error.is_empty() else Callable())
   tile.gui_input.connect(func(event):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(leader.card_id,leader.uid))
   tile.set_meta("leader_choice_uid",leader.uid)
@@ -1135,9 +1240,10 @@ func leader_zone_clicked(who: int):
    reason.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;reason.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  btn("取消",Rect2(480,420,220,42),close_overlay,false,panel)
 func open_actions(c: Dictionary):
+ inspect_declaring_unit(c)
  if network_locked():return
  if response_disabled(): return
- var actions=engine.available_actions(acting_player(),c.uid,true).filter(func(action):return action.enabled or action.type in ["ability","extension"])
+ var actions=engine.available_actions(acting_player(),c.uid,true).filter(func(action):return action.enabled or action.type in ["ability","extension","ran_discount"])
  if actions.size()==1 and actions[0].type=="attack":
   clear_attack_preview(); attack_preview_uid=c.uid; selection=[c.uid]; render(); return
  clear_attack_preview()
@@ -1150,7 +1256,8 @@ func open_actions(c: Dictionary):
  for i in range(actions.size()):
   var action=actions[i]
   var at=choice_card_position(i,actions.size())
-  var tile=host.card(content,c.card_id,Rect2(at,Vector2(173,241)),func(): execute_action(action))
+  var tile=card_tile(content,c,Rect2(at,Vector2(173,241)),func(): execute_action(action))
+  tile.set_meta("action_type",action.type)
   if action.type=="attack":tile.tooltip_text="快捷键：A"
   if not action.enabled:
    tile.modulate=Color(0.55,0.55,0.55)
@@ -1177,7 +1284,7 @@ func trigger_order_menu():
  var content=choice_card_content(panel,options.size(),Vector2(688,395))
  for i in range(options.size()):
   var t=options[i]; var at=choice_card_position(i,options.size())
-  var tile=host.card(content,t.source.card_id,Rect2(at,Vector2(173,241)),func():
+  var tile=card_tile(content,t.source,Rect2(at,Vector2(173,241)),func():
    if observing or engine.pending.get("kind","")!="trigger_order": return
    engine.choose_trigger_order(i); picker.reset(); render())
   tile.set_meta("trigger_index",i)
@@ -1190,7 +1297,7 @@ func ward_order_menu():
  if target.is_empty():return
  var panel=overlay("选择先损失的防避")
  panel.size=Vector2(650,465);center_panel(panel)
- var art=host.card(panel,target.card_id,Rect2(28,80,180,251),func():inspect_card(target.card_id,target.uid))
+ var art=card_tile(panel,target,Rect2(28,80,180,251),func():inspect_card(target.card_id,target.uid))
  art.tooltip_text="右键查看单位"
  var name=txt(engine.cards[target.card_id].name,Rect2(25,342,190,74),17,host.WHITE,panel)
  name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -1220,6 +1327,10 @@ func optional_trigger_prompt():
  label.set_meta("optional_trigger_prompt",true)
 func execute_action(action: Dictionary):
  if response_disabled() or not action.enabled: return
+ if action.type=="ran_discount":
+  close_overlay();clear_attack_preview()
+  message=engine.toggle_ran_discount(acting_player(),action.uid)
+  render();return
  if action.type in ["ability","extension"]:
   var c=engine.find_card(action.uid)
   var can_batch=not c.is_empty() and (action.type=="ability" and engine.cards[c.card_id].get("stackable",false) or action.type=="extension" and engine.can_batch_stackable_sacrifice(c,action.key))
@@ -1330,6 +1441,7 @@ func request_cast(uid: int):
  if not error.is_empty(): message=error; render(); return
  engine.paid_cast_uid=-1
  local={"uid":uid,"target":{},"plan":[],"mode":"free_offer" if engine.offers_free_cast(acting_player(),engine.find_card(uid)) else "target"}
+ if not damage_caption(engine.find_card(uid)).is_empty():inspect_card(engine.find_card(uid).card_id,uid)
  picker.reset(); region_selected={}; selection=[]; message=""; render()
 
 func choose_cast_payment(pay_colors: bool):
@@ -1395,8 +1507,10 @@ func network_locked() -> bool:
 func network_changed():
  var locked=network_locked()
  var ended=network_session.ended()
- if locked==was_network_locked and ended==was_network_ended:return
- was_network_locked=locked;was_network_ended=ended
+ var disconnected=not network_session.connected
+ var wait_choice=not network_session.replay_mode and network_session.wait_choice_pending
+ if locked==was_network_locked and ended==was_network_ended and disconnected==was_network_disconnected and wait_choice==was_network_wait_choice:return
+ was_network_locked=locked;was_network_ended=ended;was_network_disconnected=disconnected;was_network_wait_choice=wait_choice
  if locked:
   local={};selection=[];picker.reset();attack_preview_uid=0;engine.paid_cast_uid=-1
   close_overlay()
@@ -1467,7 +1581,7 @@ func damage_dialog():
   var c=engine.find_card(targets[i].uid); var key=str(c.uid)
   var at=choice_card_position(i,count,150)
   var art=TextureRect.new(); art.position=at; art.size=Vector2(150,210)
-  art.texture=host.texture(c.card_id); art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+  art.texture=card_texture(c); art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   art.set_meta("damage_card",c.uid); content.add_child(art)
   art.gui_input.connect(func(event):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT: inspect_card(c.card_id,c.uid))
@@ -1664,9 +1778,10 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
   var card_hidden=hidden and not (zone=="deck" and who==acting_player() and not cards.is_empty() and cards[0].uid==c.uid and engine.Cat.may_peek(engine,who))
   var tile=Control.new(); tile.custom_minimum_size=Vector2(91,129); browser_cards.add_child(tile)
   tile.set_meta("display_id","back" if card_hidden else c.card_id)
-  var art=host.card(tile,"back" if card_hidden else c.card_id,Rect2(0,0,91,128)); art.name="PileCard"
+  var art=host.card(tile,"back",Rect2(0,0,91,128)) if card_hidden else card_tile(tile,c,Rect2(0,0,91,128)); art.name="PileCard"
+  art.set_script(preload("res://scripts/live_tooltip_panel.gd"))
   art.set_meta("browser_uid",c.uid); art.set_meta("hidden",card_hidden)
-  art.tooltip_text="未公开" if card_hidden else engine.cards[c.card_id].name
+  art.tooltip_text="未公开" if card_hidden else hand_card_tooltip(c)
   art.gui_input.connect(func(event):
    if not event is InputEventMouseButton or not event.pressed: return
    if event.button_index==MOUSE_BUTTON_RIGHT: inspect_card("back",0,"未公开") if card_hidden else inspect_card(c.card_id,c.uid)
@@ -1684,10 +1799,13 @@ func update_browser_styles():
   if art==null or art.get_meta("hidden",true): continue
   var c=engine.find_card(art.get_meta("browser_uid",0))
   if c.is_empty(): continue
+  art.tooltip_text=hand_card_tooltip(c)
   var selected=c.uid in selected_uids()
   var legal=(c.owner==acting_player() or engine.Pack.cast_from(engine,c,acting_player())) and not response_disabled() and (engine.cast_error(acting_player(),c.uid).is_empty() or not engine.extra_action(c).is_empty() and engine.extension_activation_error(c.owner,c).is_empty())
   var style=host.style(Color("#172936"),Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#304657"))
-  style.set_border_width_all(4 if selected or legal else 1); art.add_theme_stylebox_override("panel",style)
+  var conditional=ConditionHints.active(engine,c)
+  style.set_border_width_all(4 if selected or legal or conditional else 1); art.add_theme_stylebox_override("panel",style)
+  ConditionalFrame.apply(art,style,conditional and not selected)
 func browse_card_action(c: Dictionary):
  inspect_card(c.card_id,c.uid)
  if network_locked():return
@@ -1746,16 +1864,12 @@ func open_debug_card_picker(who: int,destination: String,group: String=""):
 
 func fill_debug_card_picker(rows: VBoxContainer,count: Label,scroll: ScrollContainer,query: String,who: int,destination: String,group: String):
  clear_children(rows)
- var term=query.strip_edges().to_lower()
- var alias_rule=SearchAliases.find_rule(SearchAliases.load_rules(),term) if not term.is_empty() else null
- var alias_only=alias_rule is Dictionary and alias_rule.get("only",false)==true
+ var search_query=SearchAliases.prepare_query(engine.cards,query,SearchAliases.load_rules())
  var matches=[]
  for id in engine.cards:
   if not debug_card_matches(id,group):continue
   var info=engine.cards[id]
-  var alias_match=SearchAliases.card_matches(info,alias_rule,id)
-  if alias_only and not alias_match:continue
-  if not term.is_empty() and not alias_match and term not in str(id).to_lower() and term not in str(info.name).to_lower() and not info.get("aliases",[]).any(func(alias):return term in str(alias).to_lower()):continue
+  if not SearchAliases.matches_query(info,id,search_query):continue
   matches.append(id)
  matches.sort_custom(func(a,b):return str(engine.cards[a].name)<str(engine.cards[b].name))
  count.text="找到 %d 张 · 点击加入%s" % [matches.size(),"（请继续输入以缩小范围）" if matches.size()>80 else ""]
@@ -1799,7 +1913,7 @@ func handle_debug_drag(event: InputEvent):
   if not debug_dragging and debug_drag_pointer.distance_to(debug_drag_origin)>10:
    debug_dragging=true
    if is_instance_valid(browser_panel): browser_panel.hide()
-   debug_drag_art=host.card(ui,engine.find_card(debug_drag_uid).card_id,Rect2(debug_drag_pointer-Vector2(70,97),Vector2(140,195)))
+   debug_drag_art=card_tile(ui,engine.find_card(debug_drag_uid),Rect2(debug_drag_pointer-Vector2(70,97),Vector2(140,195)))
    debug_drag_art.mouse_filter=Control.MOUSE_FILTER_IGNORE; debug_drag_art.modulate.a=0.82
    debug_drop_hint=txt("",Rect2(0,0,170,38),22,host.GOLD,debug_drag_art)
    debug_drop_hint.position=Vector2(-15,-43); debug_drop_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -1891,6 +2005,18 @@ func inline_pick(atom: Dictionary):
  if picker.select(atom):
   if not local.is_empty(): local.target=picker.option()
   render()
+func choice_matches_query(atom: Dictionary,caption: String,query: Dictionary,names: Dictionary,card_name: String="") -> bool:
+ if query.term.is_empty():return true
+ if not card_name.is_empty():return names.has(card_name)
+ var value=atom.value
+ if atom.kind=="target" and value is Dictionary:
+  if value.has("card_name"):return names.has(value.card_name)
+  var id=str(value.get("outside_id",""))
+  if value.has("uid"):
+   var c=engine.find_card(value.uid)
+   id=str(c.get("card_id",""))
+  if engine.cards.has(id):return SearchAliases.matches_query(engine.cards[id],id,query) or not query.exclusive and query.term in caption.to_lower()
+ return query.term in caption.to_lower()
 func render_inline_picker(confirm: Callable,optional: bool=false):
  var choice_parent=hud
  var wide_choices=false
@@ -1903,6 +2029,9 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
    var summary=txt("已选反制 %d 项 · 其他 %d 项" % [counters,effects.size()-counters],Rect2(1330,610,237,48),16,host.GOLD)
    summary.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var options=[]
+ var declared_names={}
+ for entry in picker.entries:
+  if entry.option.has("card_name"):declared_names[entry.option.card_name]=true
  for atom in picker.available():
   if atom.kind!="target" or not atom.value.has("uid") and not atom.value.has("player") and not atom.value.has("stack_id") or atom.value.has("counter"): options.append(atom); continue
   if atom.value.has("uid"):
@@ -1915,17 +2044,21 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
   var column=VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; scroll.add_child(column)
   var search: LineEdit
   if options.size()>16:
-   var panel=overlay("选择名称" if options.any(func(a):return a.value is Dictionary and a.value.has("card_name")) else "选择效果")
+   var panel=overlay("选择名称" if not declared_names.is_empty() else "选择效果")
    panel.size=Vector2(850,650);center_panel(panel);panel.set_meta("name_picker",true)
    hud.remove_child(scroll);panel.add_child(scroll)
    scroll.position=Vector2(24,70);scroll.size=Vector2(802,480)
    choice_parent=panel;wide_choices=true
-   search=LineEdit.new(); search.placeholder_text="检索名称"; search.custom_minimum_size=Vector2(215,36); column.add_child(search)
+   search=LineEdit.new(); search.placeholder_text="输入卡名、编号或别名检索"; search.custom_minimum_size=Vector2(215,36); column.add_child(search)
    search.text_changed.connect(func(value):
+    var search_query=SearchAliases.prepare_query(engine.cards,value,SearchAliases.load_rules())
+    var names=SearchAliases.matching_names(engine.cards,search_query)
     for child in column.get_children():
-     if child is Button: child.visible=value.is_empty() or value.to_lower() in child.text.to_lower())
+     if child is Button: child.visible=choice_matches_query(child.get_meta("choice_atom"),child.text,search_query,names,str(child.get_meta("search_card_name",""))))
   for atom in options:
    var row=Button.new(); row.custom_minimum_size=Vector2(215,45); column.add_child(row)
+   row.set_meta("choice_atom",atom)
+   if atom.kind=="mode" and declared_names.has(atom.value):row.set_meta("search_card_name",atom.value)
    row.text=(engine.cards[atom.value.outside_id].name if atom.value.has("outside_id") else target_caption(atom.value)) if atom.kind=="target" else str(atom.value)
    if atom.kind=="target" and atom.value.has("counter"):row.text+=" · "+str(atom.value.counter)+" "+str(atom.value.counter_index+1)
    row.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; row.add_theme_font_size_override("font_size",17)
@@ -2015,7 +2148,9 @@ func render_life(who: int,rect: Rect2):
  var legal=picker_active() and picker.available_refs().any(func(t): return t.get("player",-1)==who)
  var color=Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#486376")
  var button=btn(player_caption(who)+"  %d" % engine.players[who].life,rect,func(): choose_target({"player":who}))
- button.tooltip_text=player_buffs(who) if not player_buffs(who).is_empty() else "当前没有玩家指示物或增益"
+ var curse=ConditionHints.curse_caption(engine,who)
+ button.tooltip_text="\n".join([player_buffs(who),curse].filter(func(line):return not line.is_empty()))
+ if button.tooltip_text.is_empty():button.tooltip_text="当前没有玩家指示物或增益"
  var panel=host.style(Color("#192a38"),color); panel.set_border_width_all(4 if selected or legal else 1)
  for state in ["normal","hover","pressed","focus"]: button.add_theme_stylebox_override(state,panel)
  var bar=ProgressBar.new(); bar.position=Vector2(10,rect.size.y-15)
@@ -2026,6 +2161,10 @@ func render_life(who: int,rect: Rect2):
  bar.add_theme_stylebox_override("background",background); bar.add_theme_stylebox_override("fill",fill); button.add_child(bar)
  bar.add_theme_font_size_override("font_size",1); bar.size=Vector2(rect.size.x-20,7)
  life_widgets[who]={"button":button,"bar":bar,"legal":legal,"selected":selected}
+ if not curse.is_empty():
+  var warning=CurseWarning.new();warning.name="CurseWarning";warning.size=Vector2(26,24)
+  warning.position=Vector2(rect.size.x-34,9);warning.tooltip_text=curse
+  button.add_child(warning);life_widgets[who].curse_warning=warning
  var status=txt(player_buffs_compact(who),Rect2(rect.end.x+8,rect.position.y,160,rect.size.y),16,host.GOLD)
  status.mouse_filter=Control.MOUSE_FILTER_IGNORE;status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  life_widgets[who].buffs=status
@@ -2110,7 +2249,7 @@ func render_grave_targets():
    var cell=Control.new();cell.custom_minimum_size=Vector2(118,174);row.add_child(cell)
    var legal=available.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
    var chosen=selected.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
-   var art=host.card(cell,c.card_id,Rect2(4,0,110,153),func():
+   var art=card_tile(cell,c,Rect2(4,0,110,153),func():
     if legal:choose_target(ref)
     else:inspect_card(c.card_id,c.uid))
    art.name="GraveTargetCard";art.set_meta("target_uid",c.uid)
@@ -2173,10 +2312,10 @@ func open_history():
   var left=0
   if not entry.art.is_empty():
    var art=entry.art[0]; var hidden=art.get("hidden",false) and art.owner!=local_seat and not debug_mode
-   var card=host.card(content,"back" if hidden else art.card_id,Rect2(0,28,62,87))
+   var card=host.card(content,"back",Rect2(0,28,62,87)) if hidden else card_tile(content,art,Rect2(0,28,62,87))
    card.set_meta("history_display_id","back" if hidden else art.card_id); left=74
    card.gui_input.connect(func(event):
-    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and not hidden: inspect_card(art.card_id))
+    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT and not hidden: inspect_card(art.card_id,0,"",art.get("art_id","")))
   var label=txt(entry.text,Rect2(left,29,398-left,74),17,host.WHITE,content)
   label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.size=Vector2(398-left,74)
  refresh_observation()
@@ -2221,7 +2360,7 @@ func region_picker():
   var tile=Control.new(); tile.custom_minimum_size=Vector2(142,292); row.add_child(tile)
   var title=txt((player_caption(c.owner)+" · ")+ZONE_NAMES[c.zone],Rect2(0,0,142,28),16,host.GOLD,tile)
   title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-  var art=host.card(tile,c.card_id,Rect2(0,33,142,198),func(): select_region_atom(atom))
+  var art=card_tile(tile,c,Rect2(0,33,142,198),func(): select_region_atom(atom))
   art.set_meta("region_uid",c.uid)
   art.gui_input.connect(func(event):
    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT: inspect_card(c.card_id,c.uid))

@@ -1,4 +1,6 @@
 extends Node3D
+const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
+const ConditionShader=preload("res://assets/conditional_frame.gdshader")
 var local_seat=0
 ## One persistent world per duel. Moving cards reuse their meshes and collision objects.
 signal object_selected(uid: int)
@@ -55,6 +57,7 @@ var duel
 var external_stack=false
 var texture_provider: Callable
 var materials={}
+var condition_materials={}
 var visuals={}
 var descriptors={}
 var piles={}
@@ -87,8 +90,9 @@ var unit_order={0:[],1:[]}
 static func pile_height(count: int) -> float:
  return maxi(count,0)*LAYER_HEIGHT
 
-func material(id: String) -> StandardMaterial3D:
- if materials.has(id): return materials[id]
+func material(id: String,art_id: String="") -> StandardMaterial3D:
+ var key=id+":"+art_id
+ if materials.has(key): return materials[key]
  var m=StandardMaterial3D.new()
  m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
  m.cull_mode=BaseMaterial3D.CULL_DISABLED
@@ -96,8 +100,8 @@ func material(id: String) -> StandardMaterial3D:
  if id.begins_with("#"):
   m.albedo_color=Color(id)
  elif id=="back": m.albedo_texture=texture_provider.call("back")
- else: m.albedo_texture=texture_provider.call(id)
- materials[id]=m
+ else: m.albedo_texture=texture_provider.call(id,art_id) if not art_id.is_empty() else texture_provider.call(id)
+ materials[key]=m
  return m
 
 func plane(parent: Node3D, at: Vector3, dimensions: Vector2, mat: Material) -> MeshInstance3D:
@@ -263,7 +267,7 @@ func card_snapshot() -> Dictionary:
 
 func description(c: Dictionary, at: Vector3, scale_value: float=1.0) -> Dictionary:
  var tapping=c.tapped
- return {"key":"card_"+str(c.uid),"card_id":c.card_id,"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid)}
+ return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":ConditionHints.active(duel,c)}
 
 func layout() -> Dictionary:
  var result={}
@@ -485,13 +489,15 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   var prev=descriptors.get(key,{})
   var can_possess=duel.pending.get("kind","")=="possession" and duel.pending.get("owner",-1)==d.owner and d.zone=="palette" and d.uid>0 and not duel.find_card(d.uid).tapped and duel.can_possess(duel.find_card(d.uid))
   var outline=node.get_node("Outline")
-  outline.visible=d.gold or d.blue or can_possess
-  outline.material_override=material("#ffd65c" if d.gold else "#359bff")
+  var conditional=d.get("conditional",false) and not d.gold
+  outline.visible=d.gold or d.blue or can_possess or conditional
+  outline.material_override=conditional_material(false) if conditional else material("#ffd65c" if d.gold else "#359bff")
   var halo=node.get_node("Halo")
   halo.visible=outline.visible
-  halo.material_override=material("#785415" if d.gold else "#184878")
-  if not fresh and prev.get("card_id","")!=d.card_id:
-   node.get_node("Face").material_override=material(d.card_id).duplicate()
+  halo.material_override=conditional_material(true) if conditional else material("#785415" if d.gold else "#184878")
+  node.set_meta("conditional_frame",conditional)
+  if not fresh and (prev.get("card_id","")!=d.card_id or prev.get("art_id","")!=d.get("art_id","")):
+   node.get_node("Face").material_override=material(d.card_id,d.get("art_id","")).duplicate()
   var face_mat=node.get_node("Face").material_override
   face_mat.albedo_color=Color(0.43,0.46,0.51) if d.tapped and d.zone in ["field","palette"] else Color.WHITE
   node.get_node("SummoningMist").visible=d.zone=="field" and duel.summoning_sick(duel.find_card(d.uid))
@@ -540,11 +546,17 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
  descriptors=next
  old_cards=now
 
+func conditional_material(halo: bool) -> ShaderMaterial:
+ if not condition_materials.has(halo):
+  var result=ShaderMaterial.new();result.shader=ConditionShader;result.set_shader_parameter("halo",halo)
+  condition_materials[halo]=result
+ return condition_materials[halo]
+
 func create_visual(d: Dictionary) -> Node3D:
  var root=Node3D.new(); root.name=d.key; add_child(root)
  plane(root,Vector3(0,-0.015,0),CARD_SIZE+Vector2(0.48,0.48),material("#785415")).name="Halo"
  plane(root,Vector3(0,-0.009,0),CARD_SIZE+Vector2(0.27,0.27),material("#ffd65c")).name="Outline"
- plane(root,Vector3.ZERO,CARD_SIZE,material(d.card_id).duplicate()).name="Face"
+ plane(root,Vector3.ZERO,CARD_SIZE,material(d.card_id,d.get("art_id","")).duplicate()).name="Face"
  var mist=ShaderMaterial.new(); mist.shader=preload("res://assets/summoning_mist.gdshader")
  plane(root,Vector3(0,0.018,0),CARD_SIZE+Vector2(1.85,2.3),mist).name="SummoningMist"
  var hit=area(root,Vector3.ZERO,Vector3(CARD_SIZE.x,0.12,CARD_SIZE.y)); hit.name="Hit"
@@ -623,7 +635,7 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
   for i in range(count): mm.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(0,LAYER_HEIGHT*(i+0.5),0)))
  root.get_node("Top").position.y=height+0.003
  root.get_node("Top").visible=count>0
- root.get_node("Top").material_override=material(cards.back().card_id if face_up and count>0 else "back")
+ root.get_node("Top").material_override=material(cards.back().card_id,cards.back().get("art_id","")) if face_up and count>0 else material("back")
  var hit=root.get_node("Hit"); hit.position.y=maxf(0.1,height)/2
  hit.get_child(0).shape.size.y=maxf(0.2,height)
  hit.set_meta("card_id",cards.back().card_id if face_up and count>0 else "back")
