@@ -45,6 +45,12 @@ foreach ($dir in @($oldDir, $newDir)) {
     }
 }
 
+if ($SkipExport) {
+    # Check only the new PCK. The old PCK must remain the original released bytes.
+    & (Join-Path $PSScriptRoot 'check-release-package.ps1') -PckPath (Join-Path $newDir 'MulticolorArena.pck')
+    if (-not $?) { throw 'Release package check failed.' }
+}
+
 if (-not $IsccPath) {
     $command = Get-Command ISCC.exe -ErrorAction SilentlyContinue
     if ($command) { $IsccPath = $command.Source }

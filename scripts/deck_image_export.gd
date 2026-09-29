@@ -9,9 +9,12 @@ const CARD_HEIGHT=224
 const CARD_STEP_X=169
 const CARD_STEP_Y=234
 
+static func folder() -> String:
+ return Store.folder().path_join("image")
+
 static func capture(owner: Control,deck: Dictionary,unsaved: bool=false) -> Dictionary:
- var folder=Store.folder().path_join("image")
- var directory_error=DirAccess.make_dir_recursive_absolute(folder)
+ var image_folder=folder()
+ var directory_error=DirAccess.make_dir_recursive_absolute(image_folder)
  if directory_error!=OK:return {"error":"无法创建截图文件夹："+error_string(directory_error)}
  var main_rows=maxi(5,ceili(float(deck.main.size())/10.0))
  var side_title_y=140+main_rows*CARD_STEP_Y+24
@@ -55,7 +58,7 @@ static func capture(owner: Control,deck: Dictionary,unsaved: bool=false) -> Dict
  if title.is_empty():title="卡组"
  var timestamp=Time.get_datetime_string_from_system().replace(":","-").replace("T","_")
  var filename=title.left(40)+"_"+str(deck.id).sha256_text().left(8)+"_"+timestamp+"_"+str(Time.get_ticks_msec()%1000).pad_zeros(3)+".png"
- var path=folder.path_join(filename)
+ var path=image_folder.path_join(filename)
  var write_error=image.save_png(path)
  if write_error!=OK:return {"error":"截图保存失败："+error_string(write_error)}
  return {"path":path}

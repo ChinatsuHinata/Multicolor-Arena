@@ -10,6 +10,10 @@ var art_id=""
 var hidden_card=false
 var art: TextureRect
 var cost_icons: Control
+var touch_down=false
+var touch_origin=Vector2.ZERO
+var inspected=false
+var hold_timer: Timer
 func build(owner_view,instance: Dictionary,hidden: bool=false):
  view=owner_view; uid=instance.uid; card_id=instance.card_id; hidden_card=hidden
  art_id=instance.get("art_id","")
@@ -20,11 +24,18 @@ func build(owner_view,instance: Dictionary,hidden: bool=false):
  art.texture=view.host.texture("back") if hidden else view.card_texture(instance)
  add_child(art)
  if not hidden:
-  cost_icons=HexCost.new();cost_icons.position=Vector2(3,5);cost_icons.z_index=2;add_child(cost_icons)
+  cost_icons=HexCost.new();cost_icons.position=Vector2(3,5);add_child(cost_icons)
   update_cost(view.engine.cards[card_id].cost,view.engine.cards[card_id].get("variable_cost",""))
  if hidden: tooltip_text="对手手牌 · 未公开"
  else: tooltip_text=view.hand_card_tooltip(instance)
  gui_input.connect(input_card)
+ focus_mode=Control.FOCUS_ALL
+ if view.is_android:
+  mouse_filter=Control.MOUSE_FILTER_PASS
+  hold_timer=Timer.new();hold_timer.one_shot=true;hold_timer.wait_time=0.55;add_child(hold_timer)
+  hold_timer.timeout.connect(func():
+   if touch_down and get_global_mouse_position().distance_to(touch_origin)<12:
+    inspected=true;view.inspect_card(card_id,uid))
 func update_cost(cost: Dictionary,variable_color: String=""):
  if is_instance_valid(cost_icons):cost_icons.configure(cost,true,size.x,minf(38.0,size.x*0.24),variable_color)
 func update_style(ready: bool,selected: bool,conditional: bool=false):
@@ -43,7 +54,21 @@ func update_style(ready: bool,selected: bool,conditional: bool=false):
  if not is_instance_valid(art): return
  art.position=Vector2.ZERO; art.size=size
 func input_card(event: InputEvent):
- if not event is InputEventMouseButton or not event.pressed: return
+ if view.is_android and event is InputEventMouseMotion and touch_down:
+  if get_global_mouse_position().distance_to(touch_origin)>12:
+   touch_down=false
+   if is_instance_valid(hold_timer):hold_timer.stop()
+ if not event is InputEventMouseButton:return
+ if view.is_android and event.button_index==MOUSE_BUTTON_LEFT:
+  if event.pressed:
+   touch_down=true;inspected=false;touch_origin=get_global_transform()*event.position
+   if is_instance_valid(hold_timer):hold_timer.start()
+   return
+  if is_instance_valid(hold_timer):hold_timer.stop()
+  var activate=touch_down and not inspected and (get_global_transform()*event.position).distance_to(touch_origin)<12
+  touch_down=false
+  if not activate:return
+ elif not event.pressed:return
  if event.button_index==MOUSE_BUTTON_RIGHT:
   view.inspect_card("back" if hidden_card else card_id,0 if hidden_card else uid,"对手手牌 · 未公开" if hidden_card else "")
   accept_event()

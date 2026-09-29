@@ -126,15 +126,15 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
    return Rect2(view.project(destination.at)-dimensions/2,dimensions)
  if zone=="hand":
   var cards=view.engine.players[owner].hand;var index=cards.map(func(c):return c.uid).find(uid);index=maxi(0,index)
-  var dimensions=Vector2(146,204) if owner==view.local_seat else Vector2(70,98) if view.debug_mode else Vector2(54,75)
-  var stride=minf(154,(view.HAND.size.x-80)/maxi(1,cards.size())) if owner==view.local_seat else minf(74 if view.debug_mode else 52,750.0/maxi(1,cards.size()))
+  var dimensions=Vector2(146,204) if owner==view.local_seat else Vector2(70,98) if view.debug_mode or view.replay_view() else Vector2(54,75)
+  var stride=minf(154,(view.HAND.size.x-80)/maxi(1,cards.size())) if owner==view.local_seat else minf(74 if view.debug_mode or view.replay_view() else 52,750.0/maxi(1,cards.size()))
   var at=Vector2(view.HAND.position.x+15+index*stride,680) if owner==view.local_seat else Vector2(view.STAGE.get_center().x-dimensions.x/2-(cards.size()-1)*stride/2+index*stride,64)
   return Rect2(at,dimensions)
  var dimensions=Vector2(66,92)
  return Rect2(view.project(view.table.zone_position(zone,owner))-dimensions/2,dimensions)
 func show_move():
  var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
- var hidden=current.from in ["hand","deck"] and current.to in ["hand","deck"] and (c.owner!=view.local_seat or current.from=="deck" and current.to=="deck") and not view.debug_mode
+ var hidden=c.card_id=="back" or current.from in ["hand","deck"] and current.to in ["hand","deck"] and (c.owner!=view.local_seat and not view.replay_view() or current.from=="deck" and current.to=="deck") and not view.debug_mode
  var texture=view.host.texture("back") if hidden else view.card_texture(c)
  create_face(from.size,from.get_center(),texture)
  var stack_rect=view.stack_panel.card_rect(c.uid)

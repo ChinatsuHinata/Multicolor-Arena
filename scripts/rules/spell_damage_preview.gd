@@ -11,7 +11,9 @@ static func caption(e,c: Dictionary,draft: Dictionary={},keystones: Dictionary={
  var heaven=e.Cat.has(e,c,"spell-fdf-086")
  var cherry=e.Cat.has(e,c,"spell-fdf-048")
  var moon=e.Pack.has(info,"shoot_moon")
- if not (noon or royal or orbs or lake or unknown or heaven or cherry or moon):return ""
+ var red=e.Cat.has(e,c,"spell-fdf-035")
+ var wandering=e.Cat.has(e,c,"spell-fdf-071")
+ if not (noon or royal or orbs or lake or unknown or heaven or cherry or moon or red or wandering):return ""
  var who=c.owner;var stack_index=-1;var target={}
  for i in range(e.stack.size()):
   var entry=e.stack[i]
@@ -23,6 +25,13 @@ static func caption(e,c: Dictionary,draft: Dictionary={},keystones: Dictionary={
  var p=e.players[who]
  var leaves_hand=p.hand.any(func(u):return u.uid==c.uid) and stack_index<0
  var leaves_palette=p.palette.any(func(u):return u.uid==c.uid) and stack_index<0
+ if wandering:
+  var count=e.units(who).filter(func(u):return e.Cat.is_unknown(e,u)).size()
+  return "预计伤害：%d 点（每个目标，至多 3 个不同目标）\n己方不明物体：%d 个；基础伤害：2 点\n以结算时数量为准" % [2+count,count]
+ if red:
+  var gained=int(p.get("life_gained",{}).get(str(e.turn),0))
+  var bonus=3 if e.Cat.with_key(e,-1,"spell-fdn-002").is_empty() else 0
+  return "预计伤害：%d 点\n本回合已获得生命：%d 点\n%s；以结算时数量为准" % [gained+bonus,gained,"含此牌先获得的 3 点生命" if bonus>0 else "当前不能获得生命，此牌不增加回血"]
  if moon:
   var count=p.grave.filter(func(u):return e.Pack.name_is(e.cards[u.card_id],info.name) and (u.uid!=c.uid or c.zone!="grave")).size()
   var requested=count+1;var available=mini(requested,p.deck.size())

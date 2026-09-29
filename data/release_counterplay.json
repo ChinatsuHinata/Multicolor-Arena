@@ -1,0 +1,1401 @@
+{
+  "schema": "multicolor.ai.release_counterplay.v1",
+  "origin": "hand_authored",
+  "own_leaders": [
+    "74"
+  ],
+  "generic": {
+    "target_bonus": 0,
+    "night_bonus": 0,
+    "castle_bonus": 0,
+    "queen_bonus": 0,
+    "life_loss_threshold": 12
+  },
+  "entries": {
+    "74::68": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "68"
+      ],
+      "label": "魔理沙·入场伤害／符卡连发",
+      "plan": "先恢复并保护蕾米，拆掉在场的符卡连发核心。雏转移实际指向蕾米的伤害；不能把尚未使用的隐藏符卡当成已知响应。",
+      "policy": {
+        "target_bonus": 1200,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::70": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "70"
+      ],
+      "label": "灵梦·退治",
+      "plan": "神枪只用于能实际击杀的灵梦，当前剩余血量超过4时禁止直接打枪；先用蝙蝠等低价值小单位试探，按实际阻挡与战斗伤害重新判断补枪，未阻挡则继续小单位压血。夜王强化蕾米后，若所有能杀死蕾米的阻挡组合都会损失灵梦或核心自机，允许直接交换；也可先小单位试探，再让蕾米进攻。神枪、雾川、秋意之溪等有效解牌仍可先处理灵梦；神枪不能被对手响应。不夜城不再作为优先解灵梦的开场牌，已验证的玩家斩杀先于不夜城解场。小蕾米在场且不夜城可支付时，先用能实际造成战斗伤害的低价值小单位吸血；每次战斗后按真实回血、核心剩余血量与防伤重新判断，达到击杀线后及时解核心，避免继续白送小单位。阻挡未发生、先制击杀或伤害被完全防止时，不虚构核心受伤或吸血。灵梦仍在场且对方有未知或已知梦想封印及可支付两黄时，暂缓四费及以上展开牌，雾川等有效四费解场照常使用；对方留费较多时，凭依优先取回可支付夜王并在凭依窗口指向蕾米封锁响应。系紧阵锁住非蕾米友军且对方有可被五点伤害击杀的四至五血核心时，优先秋意之溪牺牲被锁单位。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 0,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12,
+        "reimu_seal": true,
+        "reimu_probe": true
+      }
+    },
+    "74::71": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "71"
+      ],
+      "label": "幽幽子·牺牲／死亡伤害",
+      "plan": "先拆幽幽子，再处理普通牺牲素材。有有效进攻路线时提高夜王封锁死亡触发的价值；通常保护蕾米；夜王强化后若所有致死阻挡都会损失灵梦或核心自机，可直接交换或先小单位试探。",
+      "policy": {
+        "target_bonus": 1800,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::73": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "73"
+      ],
+      "label": "恋·不可阻挡",
+      "plan": "拆在场的不可阻挡核心，避免把普通阻挡当成防线。六费起提高有真实攻击窗口的红魔馆和四蝙蝠压血优先度。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 0,
+        "castle_bonus": 120,
+        "queen_bonus": 120,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::74": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "74"
+      ],
+      "label": "蕾米·黑色光环／吸血",
+      "plan": "先拆对方蕾米，使黑色单位失去光环。神枪保留给可击杀的光环核心；六费起在薄阻挡场面推进红魔馆与四蝙蝠。",
+      "policy": {
+        "target_bonus": 1800,
+        "night_bonus": 0,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::75": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "75"
+      ],
+      "label": "咲夜·疾行／计时",
+      "plan": "核对公开计时和入场后不可阻挡的实际窗口。拆已登场的计时核心，有压力路线时考虑夜王封锁能力，六费起争取主动压血。",
+      "policy": {
+        "target_bonus": 1000,
+        "night_bonus": 100,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::76": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "76"
+      ],
+      "label": "觉·检视／弃牌",
+      "plan": "拆在场的弃牌核心；有进攻路线时提高夜王封锁启动能力的价值。只依据己方实际手牌规划，不推定对方知道或持有任何隐藏牌。 本轮复盘：凭依先核对战场颜色、角色、称号、格数和实际支付；空场时封兽与大蕾米都可能无法登场，应改取可用颜色来源。 优先恢复蕾米和吸血压力；空场先拿妖精、宵暗之翼、莉莉黑或红魔馆建立颜色，再使用自机牌。 依据公开回血单位重新计算直伤，已压到低血时争取当回合收尾；不推定未知手牌含弃牌或反制。",
+      "policy": {
+        "target_bonus": 1000,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12,
+        "support_targets": {
+          "character-fdf-116": 1700,
+          "18": 900,
+          "character-fdn-048": 1400
+        }
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "弃牌消耗／清场后重建",
+        "tags": [
+          "手牌压缩",
+          "复用入场效果",
+          "后期回血"
+        ],
+        "observed_traits": [
+          "恐怖催眠术与Brain Fingerprint反复压缩手牌；空场时要保留真正能登场的红黑来源。",
+          "永琳回收符卡、文回收单位和大蕾米吸血构成后期续航，不能只盯着已离场的觉。"
+        ],
+        "responses": [
+          "凭依先核对战场颜色、角色、称号、格数和实际支付；空场时封兽与大蕾米都可能无法登场，应改取可用颜色来源。",
+          "优先恢复蕾米和吸血压力；空场先拿妖精、宵暗之翼、莉莉黑或红魔馆建立颜色，再使用自机牌。",
+          "依据公开回血单位重新计算直伤，已压到低血时争取当回合收尾；不推定未知手牌含弃牌或反制。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T17-47-59 你 vs 人机_444337669 觉负蕾米.mreply",
+            "sha256": "a86326292329bd4695c99efede0f815a683029a12b6b01d58b9244c2f5cece88",
+            "frames": 179,
+            "recorded_ai_winner": true,
+            "ending": "你投降",
+            "result_usable": false
+          },
+          {
+            "file": "2026-09-27T17-55-54 你 vs 人机_1751243626 觉胜蕾米.mreply",
+            "sha256": "eb47d67c5a076a18576464bf781e302978c5a35f5f7cf3a09a8f65bf43efee74",
+            "frames": 480,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          },
+          {
+            "file": "2026-09-27T18-16-38 你 vs 人机_3049609025 觉胜蕾米.mreply",
+            "sha256": "43e57f4008caa97271e07c54cc908273d2a7c254f070413ef699fb19fe8ef572",
+            "frames": 450,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "repeated_samples",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::77": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "77"
+      ],
+      "label": "爱丽丝·人偶展开／循环",
+      "plan": "优先处理持续搜寻人偶的核心，避免把神枪花在普通人偶上。夜王在有效进攻中提高封锁搜寻与循环的价值；联合阻挡按当前真实场面计算。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::78": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "78"
+      ],
+      "label": "空·死亡清场／符卡重生",
+      "plan": "不能把普通符卡消灭视为永久解场；空死亡会清场且可能重生。提高夜王封锁死亡触发与极光失去生命路线的价值，牺牲只在没有低价值垫牌时可靠。",
+      "policy": {
+        "target_bonus": 600,
+        "night_bonus": 200,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::79": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "79"
+      ],
+      "label": "文·高速登场／回手",
+      "plan": "拆公开在场的回手核心，有有效进攻时提高夜王封锁回手的价值。实际回手后重新规划，不把已经失效的目标或伤害路线继续执行。",
+      "policy": {
+        "target_bonus": 1200,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::80": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "80"
+      ],
+      "label": "琪露诺·妖精光环／零计时",
+      "plan": "先拆妖精增伤光环，再比较当前阻挡。返回自机区后计时为零，继续按公开颜色与区域核对下一次登场，不能把一次消灭当作长久停机。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 0,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::82": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "82"
+      ],
+      "label": "神奈子·御柱／伤害",
+      "plan": "优先拆持续生产御柱的核心，御柱数量与伤害能力只看公开战场。夜王提高封锁御柱牺牲启动的价值，不让低价值素材压过可击杀的核心。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::85": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "85"
+      ],
+      "label": "辉夜·不灭／结束回合",
+      "plan": "不对不会被消灭的辉夜浪费普通消灭或伤害。薄场比较极光牺牲；有垫牌时提高极光失去生命压血和夜王封锁结束回合能力的价值。",
+      "policy": {
+        "target_bonus": 200,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::86": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "86"
+      ],
+      "label": "幽香·攻击成长",
+      "plan": "在公开资源允许时优先拆成长核心，防止持续进攻加速。威吓与联合阻挡仍按真实规则验证，不虚构牌库顶或后续成长身份。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 0,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::87": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "87"
+      ],
+      "label": "妖梦·疾行半灵／战斗移除",
+      "plan": "优先拆可击杀的妖梦；疾行半灵与战斗移除按真实战斗模拟。保持蕾米安全攻击限制，有有效路线时提高夜王封锁战斗触发的价值。",
+      "policy": {
+        "target_bonus": 1800,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::90": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "90"
+      ],
+      "label": "萃香·攻击成长／指示物",
+      "plan": "优先处理正在成长的在场核心。夜王提高封锁攻击触发及指示物分配的价值；移除前仍核对实际血量和防伤，不按基础属性假定神枪必杀。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::91": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "91"
+      ],
+      "label": "燐·墓地回收／替换",
+      "plan": "先拆循环回收核心，再处理普通墓地素材。有实际进攻时提高夜王封锁回收触发的价值；墓地与手牌记忆随公开移动更新。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::93": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "93"
+      ],
+      "label": "诹访子·绿色疾行",
+      "plan": "先拆绿色疾行光环，六费起在薄阻挡场面提高红魔馆与四蝙蝠的压血价值。云山只在自机、记住的明牌或已宣告堆叠中预测，不凭诹访子身份猜隐藏云山。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 0,
+        "castle_bonus": 120,
+        "queen_bonus": 120,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-029": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-029"
+      ],
+      "label": "小町·墓地角色／死亡回收",
+      "plan": "夜王在有效进攻中提高封锁死亡回收的价值。小町进墓仍能提供角色约束，不能把移出战场等同于关闭所有角色符卡。",
+      "policy": {
+        "target_bonus": 700,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-041": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-041"
+      ],
+      "label": "咲夜·时符／防避",
+      "plan": "拆时符倍增与退治核心，伤害计算包含防避3。提高极光失去生命路线的价值；有效进攻时考虑夜王封锁时符触发，不把四点神枪当作必杀。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-fdf-090": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-090"
+      ],
+      "label": "铃仙·先制／幻象",
+      "plan": "先拆幻象生产核心，阻挡与先制按真实模拟。夜王提高封锁被阻挡触发的价值；不让保护蕾米的限制被围攻权重绕过。 本轮复盘：在能实际击杀的高速窗口先解铃仙，减少被迫阻挡和幻象连锁。 必须阻挡时履行合法选择；危及生命时用完整规则寻找能存活的组合。 夜王只在有效进攻中封锁触发，不把先制击杀的小单位计入吸血铺垫。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "先制强制阻挡／幻象铺场",
+        "tags": [
+          "先制",
+          "强制阻挡",
+          "被阻挡产幻象",
+          "吸血对攻"
+        ],
+        "observed_traits": [
+          "强制阻挡与先制会消耗小单位并制造幻象；同局妹红与红魔馆继续施压。"
+        ],
+        "responses": [
+          "在能实际击杀的高速窗口先解铃仙，减少被迫阻挡和幻象连锁。",
+          "必须阻挡时履行合法选择；危及生命时用完整规则寻找能存活的组合。",
+          "夜王只在有效进攻中封锁触发，不把先制击杀的小单位计入吸血铺垫。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T23-11-31 你 vs 人机_1776157800.mreply",
+            "sha256": "a02fdeeeed24801cb383184f1acb19901a452fe3c74066382f45a8da8bfd71ce",
+            "frames": 352,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::character-fdf-102": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-102"
+      ],
+      "label": "妖梦·颜色盘免费符卡",
+      "plan": "优先拆免费施放核心，公开颜色盘中的角色符卡属于可见风险。夜王在有实际进攻路线时提高封锁能力的价值，费用与区域权限仍交给引擎。",
+      "policy": {
+        "target_bonus": 1700,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-116": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-116"
+      ],
+      "label": "永琳·药／复活",
+      "plan": "优先拆持续供给恢复的核心，但不把已经存在的蓬莱之药随之视为消失。夜王提高封锁牺牲药与死亡恢复触发的价值，重新检查实际结算后的战场。",
+      "policy": {
+        "target_bonus": 1200,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-117": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-117"
+      ],
+      "label": "鵺·威吓光环",
+      "plan": "先拆威吓增伤核心，再比较联合阻挡与安全进攻。夜王提高封锁不明物体转化触发的价值；单位转化后重新规划。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-119": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-119"
+      ],
+      "label": "帕秋莉·角色符伤害／防避",
+      "plan": "拆符卡伤害和补牌核心，神枪必须核对防避3。有效进攻时提高夜王封锁符卡触发的价值；极光失去生命可绕过单位防伤。 本轮复盘：核对实血与当前防避，优先有效雾川、薄场极光牺牲，或吸血后达到真实击杀线的不夜城。 普通灵梦在场、手牌证据与两黄均满足时，先用不可响应神枪关闭角色窗口，再进行高费展开。 夜王封锁响应与符卡触发必须以真实时机和费用验证；先制、防避与追加伤害由规则引擎结算。 清场后优先取回可用的颜色来源；极光失去生命可绕过伤害防避，但不能当成不可反制。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15,
+        "support_targets": {
+          "70": 1600,
+          "character-rei-001": 1600,
+          "60": 1000
+        }
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "防避控制／角色符连动",
+        "tags": [
+          "防避3",
+          "角色符触发伤害",
+          "反制窗口",
+          "持续补牌"
+        ],
+        "observed_traits": [
+          "帕秋莉防避3使基础四伤神枪不等于击杀四血本体；静寂之月神还能给全队追加防避。",
+          "普通灵梦同样提供梦想封印角色条件；灵梦是否注册为自机不影响这一公开风险。",
+          "两局都有水符回手、拆除颜色来源和村纱施压，反复失去蕾米后容易断角色。"
+        ],
+        "responses": [
+          "核对实血与当前防避，优先有效雾川、薄场极光牺牲，或吸血后达到真实击杀线的不夜城。",
+          "普通灵梦在场、手牌证据与两黄均满足时，先用不可响应神枪关闭角色窗口，再进行高费展开。",
+          "夜王封锁响应与符卡触发必须以真实时机和费用验证；先制、防避与追加伤害由规则引擎结算。",
+          "清场后优先取回可用的颜色来源；极光失去生命可绕过伤害防避，但不能当成不可反制。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-28T00-19-06 你 vs 人机_7716768165 大帕胜蕾米.mreply",
+            "sha256": "a71644103ae241e5d26fa7b20ce8eb2b2d47dc5afbcc3ee3ac1cf6c000c4f22a",
+            "frames": 352,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          },
+          {
+            "file": "2026-09-28T00-31-35 你 vs 人机_8741264825 大帕胜蕾米.mreply",
+            "sha256": "6fe41ba685f198682b16ddd928a6444e12e2d8209e7cd9e066b141402a3cb24d",
+            "frames": 456,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "repeated_samples",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::character-fdf-ex01": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-ex01"
+      ],
+      "label": "芙兰·疾行／直接攻击单位",
+      "plan": "公开自机可合法登场且能被神枪击杀时留费。先拆直接攻击蕾米的核心；检查先制、歼灭和实际可用自机能力，不猜隐藏副本。",
+      "policy": {
+        "target_bonus": 1800,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-ex02": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-ex02"
+      ],
+      "label": "紫·入场移除／闪回",
+      "plan": "先拆在场闪回核心，有有效进攻时提高夜王封锁启动能力的价值。公开移除与回场后重新校验路线，不沿用旧目标或旧阻挡数量。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-ex03": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-ex03"
+      ],
+      "label": "白莲·成长／回血／退治",
+      "plan": "实际指示物与血量决定伤害能否击杀；不可将基础属性用于假斩杀。薄阻挡场面提高红魔馆与四蝙蝠压血，极光失去生命辅助追赶回血。",
+      "policy": {
+        "target_bonus": 1300,
+        "night_bonus": 0,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-fdf-ex04": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-ex04"
+      ],
+      "label": "天子·横置／伤害",
+      "plan": "优先拆横置联动核心，避免蕾米攻击进入不安全组合。有效进攻时提高夜王封锁攻击和横置触发的价值，伤害目标仍实际验证。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdf-ex05": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdf-ex05"
+      ],
+      "label": "慧音·吞食／跨区使用",
+      "plan": "先拆吞食核心，再处理普通牺牲素材。夜王提高封锁牺牲启动能力的价值；不能假定被吞食的牌只能按普通手牌费用和区域使用。",
+      "policy": {
+        "target_bonus": 1800,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdn-004": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-004"
+      ],
+      "label": "妹红·死亡回手／低血折扣",
+      "plan": "不能将普通消灭视为永久处理；有效进攻时提高夜王封锁死亡回手的价值。注意公开低血折扣，薄阻挡场面用组合压血，仍不放弃蕾米保护。",
+      "policy": {
+        "target_bonus": 900,
+        "night_bonus": 180,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-fdn-007": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-007"
+      ],
+      "label": "妖精居所·能力继承／不计格",
+      "plan": "按原自机身份分类，战斗数值和继承能力按实际战场计算。夜王提高封锁公开继承触发的价值；不假定拆掉居所会取消妖精不计战场格规则。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-fdn-025": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-025"
+      ],
+      "label": "背德姐妹·吸血／衍生物",
+      "plan": "优先拆生产吸血鬼与支援的核心。夜王提高封锁角色符触发的价值；六费起在薄阻挡场面以红魔馆、四蝙蝠和失去生命压血追赶吸血。",
+      "policy": {
+        "target_bonus": 1700,
+        "night_bonus": 160,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-fdn-026": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-026"
+      ],
+      "label": "觉恋·不可阻挡／双角色",
+      "plan": "拆不可阻挡与能力授予核心，神枪计算两次防避1。有效进攻时提高夜王封锁战斗触发的价值；六费起争取组合压血，不把阻挡作为可靠防线。",
+      "policy": {
+        "target_bonus": 1700,
+        "night_bonus": 160,
+        "castle_bonus": 120,
+        "queen_bonus": 120,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-fdn-036": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-036"
+      ],
+      "label": "文·天狗回手／新闻素材",
+      "plan": "先拆天狗回手核心，夜王提高封锁回手和新闻素材触发的价值。场上已生产的道具仍继续计入实际战斗属性，回手后重新规划。 本轮复盘：优先拆仍在场的回手核心和姬海棠果支援，神枪以当前血量和防避核对，不按印刷血量。 有合法进攻时用夜王关闭回手窗口，再按实际阻挡重新规划。 凭依取回可支付直伤和合法角色来源，避免反复取回无法登场的大单位。 只按公开取回牌记忆追加阻挡；致命进攻前允许经规则模拟证实能保命的牺牲阻挡。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12,
+        "support_targets": {
+          "25": 1800
+        }
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "回手展开／新闻素材成长",
+        "tags": [
+          "反复回手",
+          "天狗入场效果",
+          "新闻素材累积"
+        ],
+        "observed_traits": [
+          "文与姬海棠果连续回手展开；已生成的新闻素材会持续提高天狗实战数值。",
+          "败局曾把对手压到3血，后续天狗灵力仍能迅速完成反杀；不能按基础灵力判断安全。"
+        ],
+        "responses": [
+          "优先拆仍在场的回手核心和姬海棠果支援，神枪以当前血量和防避核对，不按印刷血量。",
+          "有合法进攻时用夜王关闭回手窗口，再按实际阻挡重新规划。",
+          "凭依取回可支付直伤和合法角色来源，避免反复取回无法登场的大单位。",
+          "只按公开取回牌记忆追加阻挡；致命进攻前允许经规则模拟证实能保命的牺牲阻挡。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T22-23-23 你 vs 人机_926300127 新文负蕾米.mreply",
+            "sha256": "d045742374344ba35eb27ef63ec79c1660f544e98ec59ae2786b29646de8b89b",
+            "frames": 298,
+            "recorded_ai_winner": true,
+            "ending": "你生命归零",
+            "result_usable": true
+          },
+          {
+            "file": "2026-09-27T22-39-13 你 vs 人机_2488367608 新文胜蕾米.mreply",
+            "sha256": "16737c75eb008b0f2cb0a651cb85a1cac2203a612fa424deed788b04ff7dc99c",
+            "frames": 512,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          },
+          {
+            "file": "2026-09-27T23-21-10 你 vs 人机_4492211154 新文负蕾米.mreply",
+            "sha256": "450cd5b59903ce4261c0073c906c11d01ca613d8da58d1c43f0ec9d1f1f0b94f",
+            "frames": 384,
+            "recorded_ai_winner": true,
+            "ending": "你生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "repeated_samples",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::character-fdn-048": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-fdn-048"
+      ],
+      "label": "大蕾米·疾行吸血／入场牺牲",
+      "plan": "按当前血量处理疾行吸血核心，不能把五血以上目标当成神枪可击杀。薄阻挡场面提高组合压血与极光失去生命价值，入场牺牲按真实场面结算。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 100,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-htk-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-htk-001"
+      ],
+      "label": "秦心·面具积累",
+      "plan": "优先拆持续生产面具的核心，夜王提高封锁面具触发的价值。已生成道具保留实际效果，不把移除秦心当作清除所有面具。",
+      "policy": {
+        "target_bonus": 1000,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-htk-002": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-htk-002"
+      ],
+      "label": "朱鹭子·道具复制／减费",
+      "plan": "先拆道具复制与减费核心，夜王提高封锁复制启动能力的价值。复制道具与到期牺牲按实际规则计算，不从自机推断隐藏道具。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-kmo-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-kmo-001"
+      ],
+      "label": "小町·铜钱胜负／减指示物",
+      "plan": "最高一档处理铜钱胜负核心，防线按先制和负指示物真实计算。仍保留灵梦神枪最高优先级；夜王仅在实际进攻中提高封锁战斗触发的价值。 本轮复盘：第三枚铜钱与生命归零都触发保命阻挡；用真实战斗验证负指示物、歼灭和死亡触发。 普通解场先模拟灵乌路空死亡后的双方损失；亏掉己方光环与全场时等待夜王封锁或其他解法。 敌方损失更多的清场仍可采用，完整规则验证的斩杀不受普通交换限制。 保留给实际核心的解牌；对已展示的复活与直伤跟踪区域和费用，不读取未来抽牌。",
+      "policy": {
+        "target_bonus": 2000,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "铜钱终结／死亡清场",
+        "tags": [
+          "铜钱败北",
+          "先制负指示物",
+          "灵乌路空死亡清场",
+          "墓地续航"
+        ],
+        "observed_traits": [
+          "小町先制伤害后的负指示物可能在后续伤害前杀死阻挡者；两枚铜钱时不能用高生命推断安全。",
+          "第24回合神枪击杀灵乌路空，死亡六伤同时扫掉己方蕾米、妖精和莉莉黑。",
+          "录像名称注明特胜bug，终局标签仅作原始记录，不作为策略胜率或训练成败标签。"
+        ],
+        "responses": [
+          "第三枚铜钱与生命归零都触发保命阻挡；用真实战斗验证负指示物、歼灭和死亡触发。",
+          "普通解场先模拟灵乌路空死亡后的双方损失；亏掉己方光环与全场时等待夜王封锁或其他解法。",
+          "敌方损失更多的清场仍可采用，完整规则验证的斩杀不受普通交换限制。",
+          "保留给实际核心的解牌；对已展示的复活与直伤跟踪区域和费用，不读取未来抽牌。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T23-50-49 你 vs 人机_6955077557 大町胜蕾米（特胜bug）.mreply",
+            "sha256": "e750c54aba6be97daddb77998e2a297c7e3a85ee00fd3a3d06036399863b3452",
+            "frames": 591,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": false
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::character-lof-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-lof-001"
+      ],
+      "label": "琪露诺·勇气／横置伤害",
+      "plan": "优先拆公开勇气与伤害核心，夜王提高封锁启动能力的价值。骰子未知结果不当作必然伤害，神枪仍按当前有效血量判断。",
+      "policy": {
+        "target_bonus": 1300,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-lof-003": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-lof-003"
+      ],
+      "label": "早苗·指示物／奇迹补牌",
+      "plan": "先拆指示物增殖与补牌核心，夜王提高封锁奇迹触发的价值。已有指示物不因移除早苗而消失，解牌重新核对当前血量。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-mar-ex": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-mar-ex"
+      ],
+      "label": "魔理沙·火花搜寻／回收",
+      "plan": "优先拆公开的火花循环核心，有有效进攻时提高夜王封锁回收的价值。仅记忆实际展示或公开取得的火花，不能由卡组类别读取真实隐藏手牌。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-mar-ex01": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-mar-ex01"
+      ],
+      "label": "帕秋莉·极彩符卡",
+      "plan": "先拆使符卡极彩的核心，颜色风险与已公开符卡按实际权限计算。夜王在有进攻路线时提高封锁施放窗口的价值，不把极彩视为无需支付费用。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-rei-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-rei-001"
+      ],
+      "label": "灵梦·结界搜寻／疾行",
+      "plan": "神枪只用于能实际击杀的灵梦，当前剩余血量超过4时禁止直接打枪；先用蝙蝠等低价值小单位试探，按实际阻挡与战斗伤害重新判断补枪，未阻挡则继续小单位压血。夜王强化蕾米后，若所有能杀死蕾米的阻挡组合都会损失灵梦或核心自机，允许直接交换；也可先小单位试探，再让蕾米进攻。神枪、雾川、秋意之溪等有效解牌仍可先处理灵梦；神枪不能被对手响应。不夜城不再作为优先解灵梦的开场牌，已验证的玩家斩杀先于不夜城解场。小蕾米在场且不夜城可支付时，先用能实际造成战斗伤害的低价值小单位吸血；每次战斗后按真实回血、核心剩余血量与防伤重新判断，达到击杀线后及时解核心，避免继续白送小单位。阻挡未发生、先制击杀或伤害被完全防止时，不虚构核心受伤或吸血。灵梦仍在场且对方有未知或已知梦想封印及可支付两黄时，暂缓四费及以上展开牌，雾川等有效四费解场照常使用；对方留费较多时，凭依优先取回可支付夜王并在凭依窗口指向蕾米封锁响应。系紧阵锁住非蕾米友军且对方有可被五点伤害击杀的四至五血核心时，优先秋意之溪牺牲被锁单位。 本轮复盘：沿用灵梦专用神枪、吸血补不夜城、系缚阵牺牲与夜王封锁规则。 解除颜色和角色断档优先于拿回暂时不能使用的大单位；已公开的老虎、境界要核对共享费用。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12,
+        "reimu_seal": true,
+        "reimu_probe": true
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "结界控制／横置与封印",
+        "tags": [
+          "结界检索",
+          "横置压制",
+          "梦想封印角色",
+          "疾行"
+        ],
+        "observed_traits": [
+          "两局均由大结界灵梦展开；扩散结界或连续控制会放大蕾米离场后的空转。"
+        ],
+        "responses": [
+          "沿用灵梦专用神枪、吸血补不夜城、系缚阵牺牲与夜王封锁规则。",
+          "解除颜色和角色断档优先于拿回暂时不能使用的大单位；已公开的老虎、境界要核对共享费用。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T17-17-56 你 vs 人机_3358717852.mreply",
+            "sha256": "761e7a8e389ef6903d2813d4124b14def5cd146df6a0d7d7413c8fdd8c99684d",
+            "frames": 197,
+            "recorded_ai_winner": false,
+            "ending": "结界「扩散结界」结算",
+            "result_usable": true
+          },
+          {
+            "file": "2026-09-27T17-22-24 你 vs 人机_3854712240.mreply",
+            "sha256": "09281008b60b875d71651991d03d39cc4e9b93d0680d08ef7a2b56376a719820",
+            "frames": 424,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "repeated_samples",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::character-rei-026": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-rei-026"
+      ],
+      "label": "早苗·成长／绿色检索",
+      "plan": "优先拆结束阶段持续成长核心，夜王提高封锁检索启动能力的价值。已展示的检索牌只在仍公开或有效记忆时使用，不读未知牌库顺序。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 120,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-smm01": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-smm01"
+      ],
+      "label": "针妙丸·小人铺场／指示物",
+      "plan": "先拆小人生产与指示物核心，避免消耗神枪清普通小人。夜王提高封锁使用单位和入场触发的价值，四蝙蝠优先度仍受实际阻挡数量限制。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-ucs-061": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-ucs-061"
+      ],
+      "label": "天子·高速目标保护",
+      "plan": "高速解牌必须通过真实目标合法性，不能把神枪视为可用。比较非高速解场与薄场极光牺牲，并提高极光失去生命路线价值。",
+      "policy": {
+        "target_bonus": 1200,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::character-ucs-068": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-ucs-068"
+      ],
+      "label": "隐岐奈·牌库顶权限",
+      "plan": "优先拆公开的牌库顶使用核心，夜王在有效进攻中提高封锁使用牌的价值。即使对方能看顶牌，己方仍不能读取未向己方公开的牌库顺序。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-ucs-069": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-ucs-069"
+      ],
+      "label": "神子·分配伤害／单位数减费",
+      "plan": "优先拆当前核心，登场费用按公开单位数量检查。清场预测不假定隐藏神子或X数值；蕾米与雏仍按实际目标和可支付费用保护。",
+      "policy": {
+        "target_bonus": 1300,
+        "night_bonus": 0,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-ucs-071": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-ucs-071"
+      ],
+      "label": "小伞·惊吓／追击",
+      "plan": "拆积累惊吓和灵力的核心，阻挡权限按当前指示物判断。夜王提高封锁结束触发的价值；六费起在薄阻挡场面主动组合压血。",
+      "policy": {
+        "target_bonus": 1400,
+        "night_bonus": 140,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::character-ucs-072": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "character-ucs-072"
+      ],
+      "label": "神奈子·四御柱／十单位成长",
+      "plan": "先拆全队成长核心，再比较实际衍生物阻挡。夜王提高封锁十单位触发的价值，不能凭战场格上限假定御柱数量受普通单位限制。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 140,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::new-eto-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-eto-001"
+      ],
+      "label": "堇子·灵异珠供应",
+      "plan": "单自机记录仅匹配这个完整分类；实际开局的二重身组合使用独立对策。供应出的灵异珠只有公开展示或移动时才记忆，不读取隐藏库存。",
+      "policy": {
+        "target_bonus": 1300,
+        "night_bonus": 100,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::new-eto-002": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-eto-002"
+      ],
+      "label": "二重身·灵异珠清场／计时",
+      "plan": "按公开灵异珠与实际宣告的X结算清场，死亡后检查计时变化。夜王提高封锁死亡触发的价值，不把未公开手牌中的灵异珠当作已知。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::new-eto-003": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-eto-003"
+      ],
+      "label": "莲子梅莉·梦违减费",
+      "plan": "先拆公开梦违减费核心，检索结果按真实展示与移动更新记忆。六费起在薄阻挡场面推进组合压血，不假定所有梦违符卡都无需费用。 本轮复盘：拆当前在场的梦违减费核心，采用引擎计算的实际费用和目标。 保持前期颜色来源和压力，重建时不因昂贵手牌的名义分数放弃合法展开。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 0,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "梦违减费／符卡资源链",
+        "tags": [
+          "梦违减费",
+          "多色资源",
+          "单位与符卡连动"
+        ],
+        "observed_traits": [
+          "公开梦违符卡与魔理沙、蓝等支援形成连续展开，单凭资源总数无法判断其真实费用。"
+        ],
+        "responses": [
+          "拆当前在场的梦违减费核心，采用引擎计算的实际费用和目标。",
+          "保持前期颜色来源和压力，重建时不因昂贵手牌的名义分数放弃合法展开。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T16-28-17 你 vs 人机_680467055.mreply",
+            "sha256": "f0949eadfffe5700ae1c3b6647060e4ae911142595dff8bcc380591ec93463b5",
+            "frames": 378,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::new-loc-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-loc-001"
+      ],
+      "label": "琪露诺·指示物横置／成长",
+      "plan": "先拆指示物横置联动核心，当前勇气与其他指示物进入战斗数值。夜王提高封锁攻击与放置指示物触发的价值，不用基础血量判断神枪。 本轮复盘：优先在实际可击杀时移除公开核心，神枪核对成长后的实血。 横置和攻击费用按规则处理，不能把横置友军算成可用阻挡；临死时不坚持只做无损交换。 需要跨过多个阻挡者时先比较真实夜王封锁路线，不预知对方下张成长牌。",
+      "policy": {
+        "target_bonus": 1600,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "指示物快攻／横置突破",
+        "tags": [
+          "勇气成长",
+          "横置阻挡者",
+          "英勇",
+          "结晶"
+        ],
+        "observed_traits": [
+          "八回合结束的样本展示指示物成长与横置联动；后续攻击强度不能按基础灵力零计算。"
+        ],
+        "responses": [
+          "优先在实际可击杀时移除公开核心，神枪核对成长后的实血。",
+          "横置和攻击费用按规则处理，不能把横置友军算成可用阻挡；临死时不坚持只做无损交换。",
+          "需要跨过多个阻挡者时先比较真实夜王封锁路线，不预知对方下张成长牌。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T23-51-50 你 vs 人机_274954426.mreply",
+            "sha256": "ed9844c5c96890bd46b80651e629099edd820f6c659675c5cdea8b4d486c4790",
+            "frames": 187,
+            "recorded_ai_winner": false,
+            "ending": "人机生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::new-spx-001": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-spx-001"
+      ],
+      "label": "萃香·目标替换／鬼衍生物",
+      "plan": "公开目标替换能力会令普通点杀失效并产鬼。提高夜王封锁触发与极光失去生命的价值；没有封锁时不将有目标伤害路线当作已证明的永久清场。",
+      "policy": {
+        "target_bonus": 1300,
+        "night_bonus": 180,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::new-spx-003": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-spx-003"
+      ],
+      "label": "诹访子·青蛙反制／横置",
+      "plan": "公开青蛙可保护神，普通点杀不能当作保证命中。提高夜王封锁反制与横置的价值，薄场比较极光牺牲或失去生命；不依据类别猜未知青蛙。",
+      "policy": {
+        "target_bonus": 1700,
+        "night_bonus": 200,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 15
+      }
+    },
+    "74::new-spx-005": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-spx-005"
+      ],
+      "label": "紫·结界牺牲／灵力调整",
+      "plan": "先拆结界牺牲调整灵力的核心，夜王提高封锁启动能力的价值。公开结界与现有灵力变化进入实际进攻计算，不假定墓地同名牌必然留在墓地。 本轮复盘：沿用公开结界、当前灵力与合法启动窗口的规则，不增加未经验证的专属强制动作。",
+      "policy": {
+        "target_bonus": 1500,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "结界资源／灵力调整",
+        "tags": [
+          "结界牺牲",
+          "灵力调整",
+          "早期投降样本"
+        ],
+        "observed_traits": [
+          "唯一新样本七回合由玩家投降，尚未形成充分的自机机制对抗，不能据此认定优势对局。"
+        ],
+        "responses": [
+          "沿用公开结界、当前灵力与合法启动窗口的规则，不增加未经验证的专属强制动作。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T16-09-27 你 vs 人机_210552334.mreply",
+            "sha256": "d8826d82834987e371c09a22677be212e4f931f6286d822c17d6e21facf39ee0",
+            "frames": 122,
+            "recorded_ai_winner": true,
+            "ending": "你投降",
+            "result_usable": false
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    },
+    "74::soi_unit_086": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "soi_unit_086"
+      ],
+      "label": "鵺·疾行／入场选择",
+      "plan": "拆在场疾行核心，入场伤害与横置按真实选择结算。有有效进攻时提高夜王封锁触发的价值，六费起在薄阻挡场面争取主动压血。",
+      "policy": {
+        "target_bonus": 1200,
+        "night_bonus": 100,
+        "castle_bonus": 100,
+        "queen_bonus": 100,
+        "life_loss_threshold": 12
+      }
+    },
+    "74::new-eto-001+new-eto-002": {
+      "own_leaders": [
+        "74"
+      ],
+      "opponent_leaders": [
+        "new-eto-001",
+        "new-eto-002"
+      ],
+      "label": "堇子＋二重身·双自机",
+      "plan": "完整双自机单独路由，不套用任一单自机对策。优先处理公开在场的清场与供珠核心，夜王提高封锁死亡计时触发的价值；只核对公开灵异珠与实际X。 本轮复盘：独立路由完整组合，清场后重新建立颜色来源；夜王价值取决于公开的触发和真实进攻。 只使用已展示的灵异珠与实际宣告X，不将整个隐藏手牌视为灵异珠。",
+      "policy": {
+        "target_bonus": 1700,
+        "night_bonus": 160,
+        "castle_bonus": 0,
+        "queen_bonus": 0,
+        "life_loss_threshold": 12
+      },
+      "review": {
+        "date": "2026-09-28",
+        "category": "双自机／灵异珠清场",
+        "tags": [
+          "完整双自机组合",
+          "灵异珠供应",
+          "清场再登场"
+        ],
+        "observed_traits": [
+          "二十六回合样本包含堇子反复登场、二重身及境界回用，必须按双自机身份归类。"
+        ],
+        "responses": [
+          "独立路由完整组合，清场后重新建立颜色来源；夜王价值取决于公开的触发和真实进攻。",
+          "只使用已展示的灵异珠与实际宣告X，不将整个隐藏手牌视为灵异珠。"
+        ],
+        "evidence": [
+          {
+            "file": "2026-09-27T17-31-19 你 vs 人机_5057717363.mreply",
+            "sha256": "a5723578a3eb8a76f2560024250859c38412d3360692991d795e64dec00b3fcf",
+            "frames": 696,
+            "recorded_ai_winner": true,
+            "ending": "你生命归零",
+            "result_usable": true
+          }
+        ],
+        "confidence": "limited",
+        "scope": "公开轨迹复盘；非隐藏手牌预测或新策略胜率"
+      }
+    }
+  }
+}

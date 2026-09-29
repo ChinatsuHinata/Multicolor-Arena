@@ -31,6 +31,7 @@ func receive(id: int,message: Dictionary):
   dirty=true;return
  if not watchers.has(id):return
  watchers[id].seen=Time.get_ticks_msec()
+ if type=="replay_request":session.replay_exchange.serve(id,message,transport);return
  if type=="watch_ack" and int(message.get("sequence",-2))==watchers[id].sent:watchers[id].ack=watchers[id].sent
  elif type=="ping":transport.send_to(id,session.metrics.make_pong(message,Time.get_ticks_msec()),true)
  elif type=="leave":watchers.erase(id);transport.drop(id)

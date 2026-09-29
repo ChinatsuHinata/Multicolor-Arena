@@ -14,6 +14,7 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Transport=preload("res://net/lan_transport.gd")
 const Discovery=preload("res://net/lan_discovery.gd")
 const Metrics=preload("res://net/connection_metrics.gd")
+const Endpoint=preload("res://net/network_endpoint.gd")
 const VERSION="1.2.3-wait"
 const RECONNECT_LIMIT_MS=30000
 var transport
@@ -64,6 +65,7 @@ var read_only=false
 var replay_mode=false
 var spectator_hub
 var recording=preload("res://scripts/replay_archive.gd").new()
+var replay_exchange
 var undo_history=preload("res://net/undo_history.gd").new()
 var undo_request={}
 var chat_log: Array=[]
@@ -109,6 +111,7 @@ func initialize(directory: String=""):
  legacy_fingerprint=("1.2"+manifest+cards).sha256_text()
  transport=Transport.new();add_child(transport)
  discovery=Discovery.new();add_child(discovery)
+ replay_exchange=preload("res://net/replay_exchange.gd").new();replay_exchange.session=self;add_child(replay_exchange)
  transport.connected.connect(on_connect);transport.disconnected.connect(on_disconnect)
  transport.received.connect(receive);transport.failed.connect(on_failure)
  discovery.rooms_changed.connect(func():changed.emit())
@@ -120,6 +123,7 @@ func save_identity() -> bool:
 func set_display_name(value: String):identity.nickname=Identity.nickname(value);save_identity()
 func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,interface_address: String="*",rule_set: String="unrestricted") -> String:
  if rule_set not in ["unrestricted","official","official_spx","test"]:return "规则集无效"
+ if game_port<1024 or game_port>=65535:return "对战端口须在 1024 至 65534 之间（下一端口用于观战）"
  leave(false);is_host=true;seat=0;port=game_port;bind_address=interface_address
  var err=transport.host_room(port,bind_address)
  if err!=OK:return "无法建房："+error_string(err)
@@ -134,18 +138,25 @@ func start_spectators():
  if is_instance_valid(spectator_hub):spectator_hub.close();spectator_hub.queue_free()
  spectator_hub=preload("res://net/spectator_hub.gd").new();add_child(spectator_hub);spectator_hub.start(self)
 func join_spectator(host_address: String,game_port: int=47861) -> String:
- leave(false);is_host=false;read_only=true;seat=0;address=host_address.strip_edges();port=game_port
- if not address.is_valid_ip_address() or port>=65535:return "请输入有效地址和小于 65535 的对战端口"
- var error=transport.join_room(address,port+1)
+ var endpoint=Endpoint.parse(host_address,game_port)
+ if endpoint.has("error"):return endpoint.error
+ if endpoint.port>=65535:return "观战需要对战端口的下一端口；请输入小于 65535 的对战端口"
+ var resolved=Endpoint.resolve(endpoint.host)
+ if resolved.is_empty():return "无法解析房主域名，请检查地址或网络连接"
+ leave(false);is_host=false;read_only=true;seat=0;address=endpoint.host;port=endpoint.port
+ var error=transport.join_room(resolved,port+1)
  if error!=OK:return "无法连接观战端口："+error_string(error)
  joining=true;remote_last_seen=Time.get_ticks_msec();notice="正在加入观战";changed.emit();return ""
 func metadata() -> Dictionary:
  return {"room_id":room_id,"name":identity.nickname,"port":port,"format":series.state.format,"rule_set":series.state.get("rule_set","unrestricted"),"players":2 if connected else 1,"status":series.state.status,"version":fingerprint,"spectate":is_instance_valid(spectator_hub) and spectator_hub.listening}
 func join_room(host_address: String,game_port: int=47861,resume: bool=false) -> String:
+ var endpoint=Endpoint.parse(host_address,game_port)
+ if endpoint.has("error"):return endpoint.error
+ var resolved=Endpoint.resolve(endpoint.host)
+ if resolved.is_empty():return "无法解析房主域名，请检查地址或网络连接"
  if not resume:leave(false)
- is_host=false;seat=1;address=host_address.strip_edges();port=game_port;rejected=false;resume_requested=resume
- if not address.is_valid_ip_address():return "请输入有效的局域网 IP 地址"
- var err=transport.join_room(address,port)
+ is_host=false;seat=1;address=endpoint.host;port=endpoint.port;rejected=false;resume_requested=resume
+ var err=transport.join_room(resolved,port)
  if err!=OK:return "无法连接："+error_string(err)
  joining=true;join_stage="connecting";paused=true;connected=false;notice="正在连接房主";remote_last_seen=Time.get_ticks_msec();retry_at=remote_last_seen
  changed.emit();return ""
@@ -235,7 +246,7 @@ func check_join_timeout(now: int):
  var limit=35000 if join_stage=="approval" else 12000
  if now-remote_last_seen<=limit:return
  joining=false;rejected=true;paused=true;transport.close()
- notice="等待房主确认超时，请房主接受加入申请后重试。" if join_stage=="approval" else "无法连接房主 %s:%d。请确认房间仍开启、双方在同一局域网或虚拟局域网，且允许游戏通过防火墙。" % [address,port]
+ notice="等待房主确认超时，请房主接受加入申请后重试。" if join_stage=="approval" else "无法连接房主 %s:%d。请确认 Wi-Fi 或内网穿透的 UDP 通道可达，端口填写正确。" % [address,port]
  error_raised.emit(notice);changed.emit()
 func receive(id: int,m: Dictionary):
  var type=m.get("type","")
@@ -262,10 +273,12 @@ func receive(id: int,m: Dictionary):
    transport.send_to(id,{"type":"approval_pending"});changed.emit()
   return
  if not authorized(id):return
- if is_host and type not in ["ping","pong","ack","command","room_action","chat","leave"]:return
- if not is_host and type not in ["ping","pong","welcome","room","state","ready_state","error","rejected","chat","leave","approval_pending"]:return
+ if is_host and type not in ["ping","pong","ack","command","room_action","chat","leave","replay_request"]:return
+ if not is_host and type not in ["ping","pong","welcome","room","state","ready_state","error","rejected","chat","leave","approval_pending","replay_frames"]:return
  remote_last_seen=Time.get_ticks_msec()
  match type:
+  "replay_request":replay_exchange.serve(id,m,transport)
+  "replay_frames":replay_exchange.receive(m)
   "approval_pending":
    join_stage="approval";notice="已连接，等待房主接受加入申请";changed.emit()
   "ping":transport.send_to(id,metrics.make_pong(m,Time.get_ticks_msec()),true)
@@ -515,7 +528,7 @@ func make_snapshot(for_seat: int,events: Array=[],recovery: bool=false) -> Dicti
 func publish(events: Array=[],remote_only: bool=false,recovery: bool=false):
  room=series.public_state(0);finish_receipt({"ack_id":receipts[0]})
  if authority!=null and series.state.status!="choosing":
-  if not remote_only:enqueue_snapshot(make_snapshot(0,events,recovery))
+  if not remote_only:enqueue_snapshot(make_snapshot(0,events,recovery),events)
   if connected:transport.send_to(remote_peer,make_snapshot(1,events,recovery))
  else:
   view_sequence=sequence
@@ -527,9 +540,13 @@ func remember_sequence():
  if not identity.get("resume",{}).is_empty():identity.resume.sequence=sequence;save_identity()
 func finish_receipt(packet: Dictionary):
  if inflight.get("id","")==packet.get("ack_id","") or packet.get("recovery",false):busy=false;inflight={}
-func enqueue_snapshot(packet: Dictionary):
+func enqueue_snapshot(packet: Dictionary,events: Array=[]):
  if recording.capture_path.is_empty():recording.begin_capture(storage+"/capture.bin")
- recording.record(packet,-1 if read_only else seat)
+ var recorded=packet
+ if is_host and authority!=null:
+  recorded=packet.duplicate(true)
+  recorded.projection=preload("res://net/observer_projection.gd").build(authority,events,seat,true)
+ recording.record(recorded,-1 if read_only else seat)
  latest_snapshot=packet
  if snapshots.any(func(s):return s.sequence==packet.sequence and s.game_id==packet.game_id):return
  if packet.get("recovery",false):snapshots.clear()
@@ -540,9 +557,16 @@ func enqueue_snapshot(packet: Dictionary):
  finish_recording()
 func finish_recording():
  if room.get("status","")!="complete" or recording.finished or recording.frames.is_empty():return
- recording.finish(room);replay_finished.emit(recording)
+ recording.finish(room)
+ if is_host:
+  if is_instance_valid(replay_exchange):replay_exchange.remember(recording)
+  replay_finished.emit(recording)
+ elif is_instance_valid(replay_exchange):replay_exchange.request(recording)
+ else:replay_finished.emit(recording)
 func receive_observer(id: int,m: Dictionary):
  if id!=1:return
+ if m.get("type","")=="replay_frames":
+  remote_last_seen=Time.get_ticks_msec();replay_exchange.receive(m);return
  if m.get("type","")=="pong":metrics.accept_pong(m,Time.get_ticks_msec());remote_last_seen=Time.get_ticks_msec();return
  if m.get("type","")!="watch_state" or not m.get("room") is Dictionary:return
  connected=true;joining=false;paused=m.get("paused",false);remote_last_seen=Time.get_ticks_msec()

@@ -4,6 +4,8 @@
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+& (Join-Path $PSScriptRoot 'sync-export-version.ps1')
+if (-not $?) { throw 'Export version synchronization failed.' }
 $godot = Join-Path $root '.godot-toolchain/editor/Godot_v4.7.2-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godot)) {
     throw "Godot 4.7.2 was not found: $godot"
@@ -74,5 +76,7 @@ $exportErrors = Select-String -LiteralPath (Join-Path $logDir 'export.log') -Pat
 if ($exportErrors) {
     throw "Godot export reported errors. See $logDir/export.log"
 }
+& (Join-Path $PSScriptRoot 'check-release-package.ps1') -PckPath $pck
+if (-not $?) { throw 'Release package check failed.' }
 Write-Host "Built: $output"
 Write-Host "Built: $pck"

@@ -1,9 +1,11 @@
 extends RefCounted
-## User-shareable files live beside the executable, never inside the PCK.
+## Desktop portable files live beside the executable; Android uses writable app data.
 static var root_override=""
 static func root() -> String:
  if not root_override.is_empty():return root_override
- return ProjectSettings.globalize_path("res://") if OS.has_feature("editor") else OS.get_executable_path().get_base_dir()
+ if OS.get_name()=="Android":return ProjectSettings.globalize_path("user://")
+ if OS.has_feature("editor"):return ProjectSettings.globalize_path("res://")
+ return OS.get_executable_path().get_base_dir()
 static func initialize() -> String:
  for folder in ["deck","replay"]:
   var error=DirAccess.make_dir_recursive_absolute(root().path_join(folder))

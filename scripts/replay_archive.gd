@@ -14,6 +14,7 @@ var finished=false
 var prompted=false
 var capture_path=""
 var capture_warning=""
+var frame_lookup={}
 static func digest_bytes(data: PackedByteArray) -> PackedByteArray:
  var context=HashingContext.new();context.start(HashingContext.HASH_SHA256);context.update(data);return context.finish()
 func record(packet: Dictionary,perspective: int=0):
@@ -27,6 +28,10 @@ func record(packet: Dictionary,perspective: int=0):
  if key==last_key or finished or not failure.is_empty():return
  last_key=key
  var copy=packet.duplicate(true)
+ if copy.projection.get("all_hands",false):
+  if frames.is_empty():metadata.hands="both"
+  elif metadata.get("hands","")!="both":metadata.hands="partial"
+ elif metadata.get("hands","")=="both":metadata.hands="partial"
  copy.erase("rewinds");copy.room.erase("undo_request");copy.room.erase("undo_available")
  metadata.room=copy.room.duplicate(true);metadata.room.erase("own_deck")
  copy.room.erase("own_deck");copy.erase("ack_id")
@@ -45,10 +50,12 @@ func record(packet: Dictionary,perspective: int=0):
  var compressed=raw.compress(FileAccess.COMPRESSION_ZSTD)
  bytes_used+=compressed.size()
  if bytes_used>MAX_FILE-1024*1024 or frames.size()>=50000:failure="回放超过容量限制";return
- frames.append({"bytes":compressed,"size":raw.size(),"time":Time.get_ticks_msec(),"game":str(packet.game_id),"round":int(packet.room.get("round",1)),"turn":int(packet.projection.state.turn)})
+ frames.append({"bytes":compressed,"size":raw.size(),"time":Time.get_ticks_msec(),"game":str(packet.game_id),"sequence":int(packet.sequence),"round":int(packet.room.get("round",1)),"turn":int(packet.projection.state.turn)})
+ frame_lookup.clear()
  append_capture({"frame":frames.back(),"definitions":new_definitions,"metadata":metadata,"key":key})
 func begin_capture(path: String,match_id: String=""):
  capture_path=path
+ if DirAccess.make_dir_recursive_absolute(path.get_base_dir())!=OK:capture_warning="无法创建回放恢复记录目录";capture_path="";return
  if not match_id.is_empty() and FileAccess.file_exists(path):
   var f=FileAccess.open(path,FileAccess.READ)
   if f!=null and f.get_length()<=MAX_FILE and f.get_buffer(6).get_string_from_utf8()=="MCAP1\n":
@@ -88,6 +95,7 @@ func apply_rewinds(events: Array):
    if last.game_id!=event.game or int(last.sequence)<=int(event.sequence):break
    frames.pop_back();changed=true
  if not changed:return
+ frame_lookup.clear()
  bytes_used=0;raw_bytes_used=0;last_key=""
  for entry in frames:bytes_used+=entry.bytes.size();raw_bytes_used+=entry.size
  # Replace the capture prefix so a later reconnect cannot resurrect an abandoned branch.
@@ -109,6 +117,47 @@ func frame(index: int) -> Dictionary:
  if not packet is Dictionary or not packet.get("projection") is Dictionary:return {}
  packet.projection.definitions=definitions
  return packet
+func frame_key(index: int) -> Dictionary:
+ var entry=frames[index]
+ return {"game":entry.game,"sequence":entry.sequence if entry.has("sequence") else frame(index).get("sequence",-1)}
+func disclosed_frames(keys: Array,include_definitions: bool) -> Dictionary:
+ if frame_lookup.is_empty():
+  for i in range(frames.size()):
+   var key=frame_key(i);frame_lookup[str(key.game)+":"+str(key.sequence)]=i
+ var result={"entries":[],"definitions":definitions if include_definitions else {}}
+ var size=var_to_bytes(result).size()
+ for key in keys:
+  if not key is Dictionary or not key.get("game") is String or not key.get("sequence") is int:break
+  var index=frame_lookup.get(str(key.game)+":"+str(key.sequence),-1)
+  var entry=frames[index] if index>=0 else {}
+  var length=var_to_bytes(entry).size()
+  if not result.entries.is_empty() and size+length>1024*1024:break
+  if size+length>MAX_FRAME-4096:break
+  result.entries.append(entry);size+=length
+ return result
+func replace_frame(index: int,entry: Dictionary,known: Dictionary) -> bool:
+ if entry.is_empty():return true # Earlier recordings may lack the requested step.
+ if not entry.get("bytes") is PackedByteArray or not entry.get("size") is int or entry.size<4 or entry.size>MAX_FRAME:return false
+ if not entry.get("game") is String or not entry.get("round") is int or not entry.get("turn") is int or not entry.get("time") is int:return false
+ var raw=entry.bytes.decompress(entry.size,FileAccess.COMPRESSION_ZSTD)
+ if raw.size()!=entry.size or raw[0]!=TYPE_DICTIONARY:return false
+ var packet=bytes_to_var(raw)
+ if not packet is Dictionary or not packet.get("projection") is Dictionary or not valid_frame(packet,known):return false
+ var key=frame_key(index)
+ if entry.game!=key.game or packet.get("game_id")!=key.game or packet.get("sequence")!=key.sequence:return false
+ var bytes_total=bytes_used-frames[index].bytes.size()+entry.bytes.size()
+ var raw_total=raw_bytes_used-frames[index].size+entry.size
+ if bytes_total>MAX_FILE-1024*1024 or raw_total>512*1024*1024:return false
+ var replaced=entry.duplicate();replaced.time=frames[index].time
+ frames[index]=replaced;bytes_used=bytes_total;raw_bytes_used=raw_total;definitions=known
+ frame_lookup.clear()
+ return true
+func refresh_capture():
+ if capture_path.is_empty():return
+ var out=FileAccess.open(capture_path,FileAccess.WRITE)
+ if out==null:capture_warning="无法保存完整手牌回放恢复记录";return
+ out.store_string("MCAP1\n");out.close()
+ for i in range(frames.size()):append_capture({"frame":frames[i],"definitions":definitions if i==0 else {},"metadata":metadata,"key":last_key if i==frames.size()-1 else ""})
 func save(path: String="") -> Dictionary:
  if not failure.is_empty():return {"error":failure}
  if frames.is_empty():return {"error":"没有可保存的对局记录"}

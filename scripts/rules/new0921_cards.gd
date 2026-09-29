@@ -22,7 +22,6 @@ static func start(e):
 static func on_enter(e,c):
  var who=c.owner
  if c.card_id in [id("LOC-003"),id("ETO-006"),id("ETO-012")]:e.add_timer(c,e.cards[c.card_id].time)
- if has(e,c,"SPX-001"):e.Roster.plus(e,c,1+e.players[who].palette.filter(func(u):return not u.tapped).size(),who)
  for code in ["SPX-005","SPX-007","ETO-003","ETO-002"]:
   if has(e,c,code):event(e,c,code,code=="ETO-002")
  if e.is_unit(c):
@@ -171,7 +170,7 @@ static func resolve_trigger(e,t):
    choose(e,t,"add_balls",options)
   "add_balls":
    for i in range(a.x):create(e,who,"ETO-S001","deck")
-   e.shuffle(p.deck)
+   if a.x>0:e.shuffle(p.deck)
   "LOC-005":
    if a.mode=="防避2":
     if C.unit(e,a):e.Pack.shield(e,a,[2],false,false)
@@ -183,12 +182,12 @@ static func resolve_trigger(e,t):
     if C.unit(e,r):
      var u=e.find_card(r.uid);var controller=u.owner;var health=maxi(0,e.stat(u,"health")-u.damage)
      e.damage_with_overflow(r,n,controller,health)
-  "SPX-005":e.Roster.field_many(e,p.grave.filter(func(c):return e.cards[c.card_id].kind in ["结界","道具"] and e.cards[c.card_id].name==a.card_name),who)
+  "SPX-005":e.Roster.field_many(e,p.grave.filter(func(c):return e.cards[c.card_id].kind in ["结界","道具"] and C.canonical_name(e,c.card_id)==a.card_name),who)
   "SPX-003:self":C.token(e,who,"青蛙",4,4,2,["蓝","绿"],["不占战场格"])
   "SPX-001:self":
    if C.unit(e,d.ref):
     var c=e.find_card(d.ref.uid);var n=C.counter_total(e,[c])
-    for i in range(n):C.token(e,who,"鬼",1,1,1,["红","黄"],["不占战场格"])
+    C.tokens(e,who,n,"鬼",1,1,1,["红","黄"],["不占战场格"])
     e.move_to(c,"exile")
     if c.zone=="return_pending":c.n21_pending_suika_return=true
     elif c.zone=="exile":c.n21_suika_return=true
@@ -263,7 +262,7 @@ static func resolve_trigger(e,t):
    if d.remaining>1:copy_choose(e,t,original,d.remaining-1)
   "deer_name":
    for c in C.field(e).duplicate():
-    if e.cards[c.card_id].kind in ["道具","结界"] and e.cards[c.card_id].name==a.card_name:e.destroy(c)
+    if e.cards[c.card_id].kind in ["道具","结界"] and C.canonical_name(e,c.card_id)==a.card_name:e.destroy(c)
  return true
 static func copy_choose(e,t,entry,n):
  var options=e.Cat.retarget_options(e,entry,-1,true,true)

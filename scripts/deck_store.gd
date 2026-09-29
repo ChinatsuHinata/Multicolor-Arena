@@ -4,6 +4,7 @@ const USER_SAVE_PATH = "user://decks.json"
 const BUNDLED_DECKS_PATH = "res://data/bundled_decks.json"
 const Paths=preload("res://scripts/portable_paths.gd")
 const EXTENSION="mdeck"
+const DELETED_CLEANUP_INTERVAL=60*60
 static var file_paths={}
 static var migration_warnings: Array=[]
 
@@ -219,7 +220,7 @@ static func load_decks(path: String = "") -> Dictionary:
   if not error.is_empty():
    return {"error":"卡组文件包含无效数据，原文件已保留。第 %d 副：%s" % [i+1,error], "decks":[]}
   ids[d.id] = true
- return {"decks":data.decks}
+ return {"decks":data.decks,"upgrade_deck_ids":data.get("upgrade_deck_ids",[])}
 static func recover_legacy_decks(path: String) -> Dictionary:
  var result={"decks":[],"warnings":[]}
  var original_path=ProjectSettings.globalize_path(path)
@@ -296,7 +297,7 @@ static func initialize_portable() -> String:
  var error=Paths.initialize()
  if not error.is_empty():return error
  var marker=folder().path_join(".initialized")
- if FileAccess.file_exists(marker):return ""
+ if FileAccess.file_exists(marker):return "" if OS.has_feature("editor") else install_bundled_updates()
  var seed=load_decks(SAVE_PATH if OS.has_feature("editor") else BUNDLED_DECKS_PATH)
  if seed.has("error"):return seed.error
  if seed.decks.is_empty():return "发行包缺少预设卡组。"
@@ -323,7 +324,44 @@ static func initialize_portable() -> String:
  var f=FileAccess.open(marker,FileAccess.WRITE)
  if f==null:return "无法写入卡组初始化标记。"
  f.store_string("1");f.close()
+ return "" if OS.has_feature("editor") else install_bundled_updates()
+
+static func install_bundled_updates(path: String=BUNDLED_DECKS_PATH) -> String:
+ # New release decks are delivered once, independently of first-run migration.
+ # Existing IDs (including renamed/edited copies) win; deletions stay deleted.
+ var bundle=load_decks(path)
+ if bundle.has("error"):return bundle.error
+ var updates=bundle.get("upgrade_deck_ids",[])
+ if not updates is Array:return "发行包的新增卡组列表格式错误。"
+ var by_id={}
+ for deck in bundle.decks:by_id[deck.id]=deck
+ for id in updates:
+  if not id is String or not by_id.has(id):return "发行包的新增卡组不存在。"
+ var pending=updates.filter(func(id):return not FileAccess.file_exists(bundled_update_marker(id)))
+ if pending.is_empty():return ""
+ var error=Paths.initialize()
+ if not error.is_empty():return error
+ var existing={}
+ for source in scan_files(folder()):
+  var parsed=read_file(source)
+  if parsed.has("deck"):existing[parsed.deck.id]=true
+ var defaults=folder().path_join("预设卡组")
+ if DirAccess.make_dir_recursive_absolute(defaults)!=OK:return "无法创建预设卡组文件夹。"
+ for id in pending:
+  if not existing.has(id):
+   var deck=by_id[id]
+   error=save_file(deck,defaults.path_join(filename(deck)))
+   if not error.is_empty():return error
+   existing[id]=true
+  var marker=FileAccess.open(bundled_update_marker(id),FileAccess.WRITE)
+  if marker==null:return "无法写入新增卡组安装标记。"
+  marker.store_string("1");marker.flush()
+  var status=marker.get_error();marker.close()
+  if status!=OK:return "新增卡组安装标记写入未完成。"
  return ""
+
+static func bundled_update_marker(id: String) -> String:
+ return folder().path_join(".bundled-"+id.sha256_text()+".installed")
 static func filename(d: Dictionary) -> String:
  var title=d.name.validate_filename().strip_edges().trim_suffix(".")
  if title.is_empty():title="卡组"
@@ -346,6 +384,7 @@ static func load_portable() -> Dictionary:
  if not error.is_empty():return {"decks":[],"error":error}
  file_paths.clear()
  var decks=[];var warnings=migration_warnings.duplicate();var seen={}
+ warnings.append_array(cleanup_deleted_files().warnings)
  for path in scan_files(folder()):
   var parsed=read_file(path)
   if parsed.has("error"):warnings.append(path.get_file()+"："+parsed.error);continue
@@ -376,9 +415,33 @@ static func save_file(d: Dictionary,path: String="") -> String:
 static func delete_file(id: String) -> String:
  if not file_paths.has(id):return "卡组文件不存在，请重新进入组卡器。"
  var path=file_paths[id]
- if FileAccess.file_exists(path) and DirAccess.rename_absolute(path,path+".deleted")!=OK:return "无法删除卡组文件。"
+ if FileAccess.file_exists(path) and DirAccess.remove_absolute(path)!=OK:return "无法删除卡组文件。"
  file_paths.erase(id)
  return ""
+
+static func cleanup_deleted_files(directory: String="",depth: int=0) -> Dictionary:
+ var result={"removed":0,"warnings":[]}
+ if directory.is_empty():directory=folder()
+ var dir=DirAccess.open(directory)
+ if dir==null or depth>4:return result
+ dir.list_dir_begin()
+ var name=dir.get_next()
+ while not name.is_empty():
+  if not name.begins_with(".") and not dir.is_link(name):
+   var path=directory.path_join(name)
+   if dir.current_is_dir():
+    var nested=cleanup_deleted_files(path,depth+1)
+    result.removed+=nested.removed
+    result.warnings.append_array(nested.warnings)
+   elif name.ends_with(".deleted"):
+    var base=name.trim_suffix(".deleted")
+    if base.get_extension().to_lower()==EXTENSION or (base.get_basename().get_extension().to_lower()==EXTENSION and base.get_extension().is_valid_int()):
+     var error=DirAccess.remove_absolute(path)
+     if error==OK:result.removed+=1
+     else:result.warnings.append("无法清理已删除卡组："+path.get_file()+"（"+error_string(error)+"）")
+  name=dir.get_next()
+ dir.list_dir_end()
+ return result
 
 
 

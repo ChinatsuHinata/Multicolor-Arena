@@ -1,0 +1,22 @@
+{
+  "registered_cards": 513,
+  "constructible_cards": 490,
+  "existing_tts_faces": 467,
+  "local_faces": 46,
+  "rule_sets": [
+    "unrestricted",
+    "official",
+    "official_spx",
+    "test"
+  ],
+  "types": {
+    "单位": 154,
+    "自机": 62,
+    "符卡": 252,
+    "道具": 24,
+    "结界": 21
+  },
+  "source_mod": "C:\\Users\\Lenovo\\Documents\\My Games\\Tabletop Simulator\\Mods\\Workshop\\2629086384.json",
+  "asset_mod": "C:\\Users\\Lenovo\\Documents\\My Games\\Tabletop Simulator\\Mods\\Workshop\\2629086384.json",
+  "output": "D:\\叶子游戏\\Multicolor-Arena\\tts_mod\\Multicolour_Deck_Builder.json"
+}

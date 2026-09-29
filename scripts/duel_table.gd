@@ -1,6 +1,8 @@
 extends Node3D
 const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
 const ConditionShader=preload("res://assets/conditional_frame.gdshader")
+const UnknownArt=preload("res://scripts/unknown_card_art.gd")
+const UnknownShader=preload("res://assets/unknown_card_art.gdshader")
 var local_seat=0
 ## One persistent world per duel. Moving cards reuse their meshes and collision objects.
 signal object_selected(uid: int)
@@ -86,6 +88,15 @@ var deferred_sync={}
 var collision_count=0
 var last_collision_targets=[]
 var unit_order={0:[],1:[]}
+var hover_uid=0
+var unknown_material: ShaderMaterial
+
+func set_hovered_card(uid: int):
+ if hover_uid==uid:return
+ hover_uid=uid
+ for key in visuals:
+  var d=descriptors.get(key,{})
+  visuals[key].get_node("Face/UnknownNoise").visible=d.get("unknown_noise",false) and d.get("uid",0)!=hover_uid
 
 static func pile_height(count: int) -> float:
  return maxi(count,0)*LAYER_HEIGHT
@@ -214,6 +225,11 @@ func pan_camera(from: Vector2,to: Vector2):
  camera_offset.z=clampf(camera_offset.z+displacement.z,-limit.y,limit.y)
  set_camera()
 
+func zoom_camera(scale: float):
+ if top_down_view:top_down_camera_size=clampf(top_down_camera_size*scale,TOP_DOWN_CAMERA_MIN_SIZE,TOP_DOWN_CAMERA_MAX_SIZE)
+ else:camera_distance=clampf(camera_distance*scale,CAMERA_MIN_DISTANCE,CAMERA_MAX_DISTANCE)
+ set_camera()
+
 func reset_camera():
  camera_distance=NEAREST_CAMERA
  top_down_camera_size=WIDE_TOP_DOWN_CAMERA_SIZE if wide_playmat else TOP_DOWN_CAMERA_SIZE
@@ -267,7 +283,7 @@ func card_snapshot() -> Dictionary:
 
 func description(c: Dictionary, at: Vector3, scale_value: float=1.0) -> Dictionary:
  var tapping=c.tapped
- return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":ConditionHints.active(duel,c)}
+ return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":ConditionHints.active(duel,c),"unknown_noise":UnknownArt.active(duel,c)}
 
 func layout() -> Dictionary:
  var result={}
@@ -500,6 +516,7 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    node.get_node("Face").material_override=material(d.card_id,d.get("art_id","")).duplicate()
   var face_mat=node.get_node("Face").material_override
   face_mat.albedo_color=Color(0.43,0.46,0.51) if d.tapped and d.zone in ["field","palette"] else Color.WHITE
+  node.get_node("Face/UnknownNoise").visible=d.unknown_noise and d.uid!=hover_uid
   node.get_node("SummoningMist").visible=d.zone=="field" and duel.summoning_sick(duel.find_card(d.uid))
   sync_color_hexes(node,d)
   var hit=node.get_node("Hit")
@@ -557,6 +574,9 @@ func create_visual(d: Dictionary) -> Node3D:
  plane(root,Vector3(0,-0.015,0),CARD_SIZE+Vector2(0.48,0.48),material("#785415")).name="Halo"
  plane(root,Vector3(0,-0.009,0),CARD_SIZE+Vector2(0.27,0.27),material("#ffd65c")).name="Outline"
  plane(root,Vector3.ZERO,CARD_SIZE,material(d.card_id,d.get("art_id","")).duplicate()).name="Face"
+ if unknown_material==null:
+  unknown_material=ShaderMaterial.new();unknown_material.shader=UnknownShader
+ plane(root.get_node("Face"),Vector3(0,0.004,0),CARD_SIZE,unknown_material).name="UnknownNoise"
  var mist=ShaderMaterial.new(); mist.shader=preload("res://assets/summoning_mist.gdshader")
  plane(root,Vector3(0,0.018,0),CARD_SIZE+Vector2(1.85,2.3),mist).name="SummoningMist"
  var hit=area(root,Vector3.ZERO,Vector3(CARD_SIZE.x,0.12,CARD_SIZE.y)); hit.name="Hit"
@@ -648,9 +668,7 @@ func pointer(event: InputEvent):
  if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
   var amount=event.factor if event.factor>0 else 1.0
   var scale=pow(CAMERA_ZOOM_STEP,amount if event.button_index==MOUSE_BUTTON_WHEEL_UP else -amount)
-  if top_down_view:top_down_camera_size=clampf(top_down_camera_size*scale,TOP_DOWN_CAMERA_MIN_SIZE,TOP_DOWN_CAMERA_MAX_SIZE)
-  else:camera_distance=clampf(camera_distance*scale,CAMERA_MIN_DISTANCE,CAMERA_MAX_DISTANCE)
-  set_camera()
+  zoom_camera(scale)
   return
  if event.button_index not in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]: return
  var from=camera.project_ray_origin(event.position)

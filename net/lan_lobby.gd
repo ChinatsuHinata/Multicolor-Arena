@@ -19,12 +19,16 @@ var chat_open=false
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  session.changed.connect(refresh);session.error_raised.connect(show_error)
- app.header("局域网联机",func():
+ app.header("联机对战",func():
   if session.disconnected_at>0:session.stop_waiting()
   else:session.leave(false)
   app.menu())
- status_label=app.label(self,"",Rect2(70,118,1460,65),20,app.GOLD);status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- body=Control.new();add_child(body);refresh(true)
+ status_label=app.label(self,"",Rect2(0,116,app.screen.size.x,66) if app.is_android else Rect2(70,118,1460,65),20,app.GOLD);status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ body=Control.new();add_child(body)
+ if app.is_android:
+  body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  body.offset_top=185
+ refresh(true)
 func show_error(message: String):
  last_error=message;status_label.text=message
  app.alert(message,"无法进行联机操作")
@@ -36,8 +40,12 @@ func refresh(force: bool=false):
  var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed])
  if force or next!=signature:
   signature=next
+  rooms_list=null;latency_label=null
   for child in body.get_children():body.remove_child(child);child.queue_free()
-  if session.room_id.is_empty():build_home()
+  if app.is_android:
+   if session.room_id.is_empty():build_mobile_home()
+   else:build_mobile_room()
+  elif session.room_id.is_empty():build_home()
   else:build_room()
  refresh_rooms()
 func input(text: String,rect: Rect2) -> LineEdit:
@@ -55,7 +63,7 @@ func build_home():
  body.add_child(rule_input)
  strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.position=Vector2(95,389);strict_input.size=Vector2(440,45);strict_input.button_pressed=true;body.add_child(strict_input)
  app.label(body,"端口",Rect2(100,448,120,42),21)
- port_input=SpinBox.new();port_input.min_value=1024;port_input.max_value=65535;port_input.value=47861;port_input.position=Vector2(230,447);port_input.size=Vector2(302,42);body.add_child(port_input)
+ port_input=SpinBox.new();port_input.min_value=1024;port_input.max_value=65534;port_input.value=47861;port_input.position=Vector2(230,447);port_input.size=Vector2(302,42);body.add_child(port_input)
  interface_input=OptionButton.new();interface_input.position=Vector2(100,501);interface_input.size=Vector2(432,43);interface_input.add_item("所有网卡");interface_input.set_item_metadata(0,"*")
  for address in IP.get_local_addresses():
   if address.is_valid_ip_address() and ":" not in address and not address.begins_with("127."):
@@ -76,10 +84,10 @@ func build_home():
  var scroll=ScrollContainer.new();scroll.position=Vector2(625,264);scroll.size=Vector2(877,350);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(scroll)
  rooms_list=VBoxContainer.new();rooms_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rooms_list.add_theme_constant_override("separation",12);scroll.add_child(rooms_list)
  app.label(body,"输入地址加入",Rect2(625,638,210,40),21)
- address_input=input("",Rect2(625,690,620,49));address_input.placeholder_text="房主的局域网或虚拟局域网 IP"
+ address_input=input("",Rect2(625,690,620,49));address_input.placeholder_text="房主 IP、域名或 地址:UDP端口"
  app.button(body,"加入",Rect2(1265,690,108,49),func():join(address_input.text,int(port_input.value)),true)
  app.button(body,"观战",Rect2(1383,690,117,49),func():watch(address_input.text,int(port_input.value)))
- app.label(body,"首次联网请允许 Windows 的专用网络访问。",Rect2(625,753,855,38),17,app.MUTED)
+ app.label(body,"Wi-Fi 直连或 UDP 内网穿透；首次联网请允许系统网络访问。",Rect2(625,753,855,38),17,app.MUTED)
 func join(address: String,port: int):
  session.set_display_name(name_input.text)
  var error=session.join_room(address,port)
@@ -91,6 +99,17 @@ func watch(address: String,port: int):
 func refresh_rooms():
  if not is_instance_valid(rooms_list):return
  for child in rooms_list.get_children():rooms_list.remove_child(child);child.queue_free()
+ if app.is_android:
+  for id in session.discovery.rooms:
+   var info=session.discovery.rooms[id]
+   var line=HBoxContainer.new();rooms_list.add_child(line)
+   var row=mobile_action(line,"%s · %s:%d" % [info.name,info.address,info.port],func():join(info.address,int(info.port)))
+   row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+   if info.version!=session.fingerprint:row.text+=" · 版本不一致";row.disabled=true
+   var watch_button=mobile_action(line,"观战",func():watch(info.address,int(info.port)))
+   watch_button.disabled=info.version!=session.fingerprint or not info.get("spectate",false)
+  if rooms_list.get_child_count()==0:mobile_text(rooms_list,"未发现房间时，可直接填写房主地址加入。")
+  return
  for id in session.discovery.rooms:
   var info=session.discovery.rooms[id]
   var line=HBoxContainer.new();rooms_list.add_child(line)
@@ -190,3 +209,161 @@ func build_room():
   refresh(true))
 func open_sideboard():
  app.open_sideboard(session)
+
+func mobile_text(parent: Node,value: String,heading: bool=false) -> Label:
+ var result=Label.new();result.text=value;result.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ result.add_theme_font_size_override("font_size",app.ui_metrics.title if heading else app.ui_metrics.body)
+ result.add_theme_color_override("font_color",app.GOLD if heading else app.WHITE)
+ parent.add_child(result);return result
+
+func mobile_action(parent: Node,caption: String,callback: Callable,accent: bool=false) -> Button:
+ var result=app.button(parent,caption,Rect2(),callback,accent)
+ app.ui_metrics.button(result)
+ return result
+
+func mobile_panel(parent: Node) -> VBoxContainer:
+ var panel=PanelContainer.new();parent.add_child(panel);panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ panel.add_theme_stylebox_override("panel",app.ui_metrics.panel_style())
+ var content=VBoxContainer.new();panel.add_child(content)
+ return content
+
+func mobile_scroll() -> VBoxContainer:
+ var scroll=ScrollContainer.new();body.add_child(scroll)
+ scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ var content=VBoxContainer.new();scroll.add_child(content)
+ content.custom_minimum_size.x=body.size.x
+ content.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ return content
+
+func mobile_edit(parent: Node,value: String="") -> LineEdit:
+ var edit=LineEdit.new();edit.text=value;parent.add_child(edit)
+ edit.custom_minimum_size.y=app.ui_metrics.hit
+ edit.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ return edit
+
+func build_mobile_home():
+ var root=mobile_scroll()
+ var columns=HBoxContainer.new();root.add_child(columns)
+ var create=mobile_panel(columns)
+ mobile_text(create,"创建房间",true)
+ mobile_text(create,"显示 ID")
+ name_input=mobile_edit(create,session.identity.nickname);name_input.max_length=20
+ mobile_text(create,"对局形式与规则集")
+ format_input=OptionButton.new();create.add_child(format_input);format_input.add_item("BO3 · 先赢两局");format_input.add_item("BO1 · 单局");app.ui_metrics.button(format_input)
+ rule_input=OptionButton.new();create.add_child(rule_input)
+ for rule_name in app.RuleSet.LABELS:rule_input.add_item(rule_name)
+ app.ui_metrics.button(rule_input)
+ strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.button_pressed=true;create.add_child(strict_input);app.ui_metrics.button(strict_input)
+ mobile_text(create,"本机 UDP 对战端口")
+ port_input=SpinBox.new();port_input.min_value=1024;port_input.max_value=65534;port_input.value=47861;create.add_child(port_input);port_input.custom_minimum_size.y=app.ui_metrics.hit
+ interface_input=OptionButton.new();create.add_child(interface_input);interface_input.add_item("所有网卡（推荐）");interface_input.set_item_metadata(0,"*")
+ for local_address in IP.get_local_addresses():
+  if local_address.is_valid_ip_address() and ":" not in local_address and not local_address.begins_with("127."):
+   interface_input.add_item(local_address);interface_input.set_item_metadata(interface_input.item_count-1,local_address)
+ app.ui_metrics.button(interface_input)
+ mobile_action(create,"创建房间",func():
+  session.set_display_name(name_input.text)
+  var error=session.create_room(3 if format_input.selected==0 else 1,strict_input.button_pressed,int(port_input.value),interface_input.get_selected_metadata(),app.RuleSet.IDS[rule_input.selected])
+  if not error.is_empty():show_error(error),true)
+ mobile_action(create,"恢复房主对局",func():
+  var error=session.restore_host()
+  if not error.is_empty():show_error(error))
+ var connect=mobile_panel(columns)
+ mobile_text(connect,"加入房间",true)
+ mobile_text(connect,"房主地址（Wi-Fi IP 或 UDP 内网穿透地址）")
+ address_input=mobile_edit(connect)
+ address_input.placeholder_text="例如 192.168.1.5 或 example.com:47861"
+ mobile_text(connect,"未在地址后填端口时，使用左侧端口。")
+ var join_buttons=HBoxContainer.new();connect.add_child(join_buttons)
+ mobile_action(join_buttons,"加入",func():join(address_input.text,int(port_input.value)),true).size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ mobile_action(join_buttons,"观战",func():watch(address_input.text,int(port_input.value))).size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ mobile_action(connect,"重连上次房间",func():
+  session.set_display_name(name_input.text)
+  var error=session.resume_guest(address_input.text)
+  if not error.is_empty():show_error(error))
+ mobile_text(connect,"发现的 Wi-Fi 房间",true)
+ rooms_list=VBoxContainer.new();connect.add_child(rooms_list)
+ mobile_text(root,"跨网络连接需要可传递 UDP 的组网或内网穿透；广播列表为空时仍可手动输入地址。")
+
+func build_mobile_room():
+ var room=session.room
+ if room.is_empty():return
+ var root=mobile_scroll()
+ var summary=mobile_panel(root)
+ mobile_text(summary,"BO%d  %s  %d : %d  %s" % [room.format,room.names[0],room.scores[0],room.scores[1],room.names[1]],true)
+ mobile_text(summary,"规则集："+app.RuleSet.label_for(str(room.get("rule_set",app.RuleSet.UNRESTRICTED))))
+ latency_label=mobile_text(summary,"网络延迟 · "+session.latency_text())
+ if session.is_host:
+  var addresses=[]
+  for local_address in IP.get_local_addresses():
+   if ":" not in local_address and not local_address.begins_with("127."):addresses.append(local_address+":"+str(session.port))
+  mobile_text(summary,"房主地址："+" / ".join(addresses))
+  mobile_action(summary,"复制房主地址",func():DisplayServer.clipboard_set(" / ".join(addresses)))
+ if session.read_only:
+  mobile_text(summary,session.connection_status())
+  if not session.latest_snapshot.is_empty():mobile_action(summary,"查看战场",app.return_network_battle,true)
+  mobile_action(summary,"离开观战",func():session.leave(false);refresh(true))
+  return
+ var actions=mobile_panel(root)
+ if not session.applicant.is_empty():
+  mobile_text(actions,session.applicant.name+" 请求加入",true)
+  mobile_action(actions,"接受",func():session.accept_applicant(true),true)
+  mobile_action(actions,"拒绝",func():session.accept_applicant(false))
+ elif room.status=="complete":
+  mobile_text(actions,"整场结束 · "+room.names[room.winner]+"获胜",true)
+  if room.has("end_reason"):mobile_text(actions,room.end_reason)
+  if not session.latest_snapshot.is_empty():mobile_action(actions,"查看战场",app.return_network_battle)
+  var rematch=mobile_action(actions,"更换卡组，再来一场",func():session.room_action({"name":"rematch"}),true)
+  rematch.disabled=not session.can_act()
+ elif room.status=="aborted":
+  mobile_text(actions,"连接中断，对局结束 · 不计胜负",true)
+  if not session.latest_snapshot.is_empty():mobile_action(actions,"查看战场",app.return_network_battle)
+ elif room.status=="playing":
+  mobile_text(actions,"第 %d 局正在进行" % room.round,true)
+  mobile_action(actions,"回到战场",app.return_network_battle,true)
+ elif room.status=="choosing":
+  mobile_text(actions,"第 %d 局 · 选择先后手" % (room.round+1),true)
+  if room.round==0:mobile_text(actions,"投骰：%s %d  ·  %s %d" % [room.names[0],room.roll.values[0],room.names[1],room.roll.values[1]])
+  else:mobile_text(actions,room.choice_reason)
+  if session.seat==room.chooser:
+   var first=mobile_action(actions,"我方先手",func():session.room_action({"name":"first","first":true}),true)
+   var second=mobile_action(actions,"我方后手",func():session.room_action({"name":"first","first":false}))
+   first.disabled=not session.can_act();second.disabled=not session.can_act()
+  else:mobile_text(actions,"等待 %s 选择先后手" % room.names[room.chooser])
+ elif room.status in ["lobby","between"]:
+  mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
+  if room.status=="lobby":
+   var pick=OptionButton.new();actions.add_child(pick)
+   for deck in app.decks:pick.add_item(deck.name)
+   deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
+   pick.item_selected.connect(func(index):deck_index=index)
+   app.ui_metrics.button(pick)
+   mobile_action(actions,"选择此卡组",func():
+    if app.decks.is_empty():return
+    var deck=app.Store.clean_deck(app.decks[deck_index])
+    var error=app.Store.validate(deck,room.get("strict",true),str(room.get("rule_set",app.RuleSet.UNRESTRICTED)))
+    if not error.is_empty():show_error(error);return
+    last_error="";session.room_action({"name":"deck","deck":deck}))
+  else:
+   var sideboard=mobile_action(actions,"调整主副卡组",open_sideboard)
+   sideboard.disabled=room.ready[session.seat] or not session.can_act()
+  if not room.own_deck.is_empty():mobile_text(actions,room.own_deck.name+" · 主卡组 %d / 副卡组 %d" % [room.own_deck.main.size(),room.own_deck.side.size()])
+  mobile_text(actions,"双方准备后开始对局" if room.status=="lobby" else "双方准备后进入下一局")
+  var ready=mobile_action(actions,"取消准备" if room.ready[session.seat] else "准备",func():session.room_action({"name":"unready" if room.ready[session.seat] else "ready"}),true)
+  ready.disabled=room.own_deck.is_empty() or not session.can_act()
+ if not session.connected and not session.is_host and not session.ended():
+  mobile_action(actions,"重连",func():
+   var error=session.resume_guest()
+   if not error.is_empty():show_error(error),true)
+ if session.wait_choice_pending:mobile_action(actions,"继续等待",func():session.continue_waiting(),true)
+ if session.connected:
+  var chat=preload("res://net/chat_panel.gd").new();body.add_child(chat)
+  var chat_size=Vector2(minf(620,body.size.x-20),minf(460,body.size.y-20))
+  chat.build(session,Rect2((body.size-chat_size)*0.5,chat_size),true)
+  chat.visible=chat_open;chat.z_index=20
+  mobile_action(actions,"聊天",func():chat_open=not chat.visible;chat.visible=chat_open)
+ mobile_action(actions,"不再等待，离开对局" if session.disconnected_at>0 else "离开房间",func():
+  if session.disconnected_at>0:session.stop_waiting()
+  else:session.leave(false)
+  refresh(true))

@@ -9,6 +9,7 @@ static func key(info: Dictionary,keys: Array) -> String:
   if has(info,k): return k
  return ""
 static func text(info: Dictionary,effect: String) -> String:
+ if effect=="byakuren_x":return "该单位进战场时，你获得X点生命。"
  for a in info.get("abilities",[]):
   if a.get("实现")=="precon" and a.get("参数",{}).get("效果")==effect: return a.get("名称","")
  return {"chase":"追击","old_city_heal":"掷一枚硬币，正面获得3点生命。","medicine_revive":"将该单位从你的墓地移回战场。","standing_palette":"将你颜色盘中的一张牌移回手牌。","watch_draw":"抓一张牌。","mike_return":"将等量牌从颜色盘移回手牌。","reimu_search":"搜寻一张黄色结界放进战场，然后洗牌。"}.get(effect,effect)
@@ -117,7 +118,7 @@ static func chromatic(e,c: Dictionary,who: int) -> bool:
  if c.get("devour_owner",-1)==who and cast_from(e,c,who): return true
  if "极彩" in e.cards[c.card_id].get("keywords",[]): return true
  return e.cards[c.card_id].kind=="符卡" and e.units(who).any(func(u): return has(e.cards[u.card_id],"patch_chromatic") and e.has_leader_ability(u))
-static func cost(e,c: Dictionary,who: int,base: Dictionary,target: Dictionary) -> Dictionary:
+static func cost_options(e,c: Dictionary,who: int,base: Dictionary,target: Dictionary) -> Array:
  var result=base.duplicate(); var info=e.cards[c.card_id]
  if not info.get("variable_cost","").is_empty(): result[info.variable_cost]=result.get(info.variable_cost,0)+int(target.get("x",0))*int(info.get("variable_multiplier",1))
  if has(info,"promise"):
@@ -129,12 +130,14 @@ static func cost(e,c: Dictionary,who: int,base: Dictionary,target: Dictionary) -
  if role(info):
   for discount in e.players[who].get("wine",[]): result[discount]=maxi(0,result.get(discount,0)-1)
  result=e.Roster.cost(e,c,who,result)
- result=e.Cat.State.cost(e,c,who,result,target)
- if chromatic(e,c,who):
-  var amount=0
-  for n in result.values(): amount+=int(n)
-  result={"红/蓝/绿/黄/黑":amount}
- return result
+ var options=[];var any_color=chromatic(e,c,who)
+ for candidate in e.Cat.State.cost_options(e,c,who,result,target):
+  if any_color:
+   var amount=0
+   for n in candidate.values():amount+=int(n)
+   candidate={"红/蓝/绿/黄/黑":amount}
+  if candidate not in options:options.append(candidate)
+ return options
 static func spell_options(e,id: String,who: int) -> Variant:
  var info=e.cards[id]; var k=key(info,SPELLS); var units=all_units(e)
  if has(info,"byakuren_x"):
@@ -175,7 +178,7 @@ static func continue_choice(e,t: Dictionary,effect: String,options: Array,data: 
 static func on_enter(e,c: Dictionary):
  var info=e.cards[c.card_id]
  if has(info,"byakuren_x"):
-  e.Roster.plus(e,c,int(c.get("cast_x",0))); event(e,c,"byakuren_x",false,{"x":int(c.get("cast_x",0))})
+  event(e,c,"byakuren_x",false,{"x":int(c.get("cast_x",0))})
  for k in ["ramp_enter","sand_add","tewi_counters","shou_shield","kosuzu_destroy","yukari_blink","eirin_return","mike_swap","bind_field","castle_exile","marisa_search","seiran_exile","koakuma_palette","tokiko_search","patch_topthree"]:
   if not has(info,k): continue
   if k=="shou_shield" and e.active==c.owner: continue
@@ -230,9 +233,10 @@ static func future_zone_ref(e,c: Dictionary,z: String) -> Dictionary:
  var r=ref(e,c); r.zone=z
  if c.zone=="return_pending": r.epoch+=1
  return r
-static func blink(e,c: Dictionary,who: int):
+static func blink(e,c: Dictionary,who: int,origin: Dictionary={}):
  e.move_to(c,"exile")
- e.delayed.append({"owner":who,"phase":"prepare","effect":"return_exile","ref":future_zone_ref(e,c,"exile"),"zone":"exile","source":c.duplicate(true)})
+ var source_name=e.cards[origin.card_id].name if not origin.is_empty() and e.cards.has(origin.card_id) else e.cards[c.card_id].name
+ e.delayed.append({"owner":who,"phase":"prepare","effect":"return_exile","ref":future_zone_ref(e,c,"exile"),"zone":"exile","source":c.duplicate(true),"origin_name":source_name})
 static func token(e,who: int,id: String):
  var c=e.make_card(id,who,"token"); c.token=true; e.enter_field(c,who)
 static func trigger_options(e,t: Dictionary) -> Array:
@@ -268,7 +272,7 @@ static func resolve_trigger(e,t: Dictionary):
   "eirin_return":
    if e.Extra.valid(e,target): e.move_to(e.find_card(target.uid),"hand")
   "yukari_blink":
-   if e.Extra.valid(e,target): blink(e,e.find_card(target.uid),who)
+   if e.Extra.valid(e,target): blink(e,e.find_card(target.uid),who,t.source)
   "bind_field":
    if original and e.Extra.valid(e,target):
     var u=e.find_card(target.uid); u.lock_sources=u.get("lock_sources",[])+[ref(e,c)]
@@ -482,7 +486,7 @@ static func resolve_activation(e,entry: Dictionary):
    if t.mode=="防避4": shield(e,t,[4])
    elif e.Extra.valid(e,t): e.destroy(e.find_card(t.uid))
   "yukari_active":
-   if e.target_valid(t,true): blink(e,e.find_card(t.uid),who)
+   if e.target_valid(t,true): blink(e,e.find_card(t.uid),who,entry.source)
   "standing_blast":
    if e.target_valid(t,true) and e.find_card(t.uid).get("tapped_turn",-1)==e.turn: e.damage_target(t,4)
    if has_character(e,who,"博丽灵梦"):
@@ -550,6 +554,7 @@ static func state_checks(e):
 static func direct_attack(e,c: Dictionary) -> bool:
  return e.Extra.keyword(e,c,"直接攻击单位") or has(e.cards[c.card_id],"flandre_direct") and e.has_leader_ability(c)
 static func target_survives(e,id: String,t: Dictionary) -> bool:
+ if has(e.cards[id],"shoot_moon"):return true
  if not t.has("picks"): return e.Extra.valid(e,t)
  var k=key(e.cards[id],SPELLS)
  var targets=picked(t,1) if k=="reveal_counter" else flatten(t)

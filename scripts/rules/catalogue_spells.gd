@@ -8,7 +8,8 @@ static func options(e,id,who):
    return [{"player":1-who}]
   "spell-fdn-009":return C.refs(e,foe.filter(func(c):return e.Extra.cost_value(e,c)<=3)) if p.grave.size()>=4 else []
   "spell-fdf-120":return C.refs(e,units.filter(func(c):return e.Extra.cost_value(e,c)<=3 and e.Pack.colors(e,c).size()==2))
-  "spell-fdn-029","spell-ucs-009","spell-ucs-052","spell-fdf-047","spell-fdf-028","spell-fdf-078","spell-fdf-022","spell-fdf-002","spell-fdf-032","spell-ucs-015","spell-fdf-050","spell-fdn-028","spell-rec-054","spell-smm-002","spell-soi-119","spell-rec-056","spell-kmo-003":return rs
+  "spell-fdn-029","spell-ucs-009","spell-ucs-052","spell-fdf-047","spell-fdf-028","spell-fdf-078","spell-fdf-022","spell-fdf-002","spell-fdf-032","spell-fdf-050","spell-fdn-028","spell-rec-054","spell-smm-002","spell-soi-119","spell-rec-056","spell-kmo-003":return rs
+  "spell-ucs-015":return C.pick(e,units,0,1,"选择至多一个目标单位获得+3/+3",id)
   "spell-fdf-043":
    var highest=0
    for c in foe:highest=maxi(highest,e.stat(c,"power"))
@@ -48,7 +49,7 @@ static func options(e,id,who):
    return e.Pack.selection([g],id)
   "spell-fdf-052":return e.stack.filter(func(s):return not e.Pack.flatten(s.target).is_empty()).map(func(s):return {"stack_id":s.id})
   "spell-fdf-087":return e.stack.filter(func(s):return s.kind=="card").map(func(s):return {"stack_id":s.id})
-  "spell-fdf-063":return e.Pack.selection([e.Pack.group(all,1,1,"伤害目标"),C.group(e,own.filter(func(c):return C.race(e,c,"神")),1,1,"放置指示物的神")],id)
+  "spell-fdf-063":return all
   "spell-fdf-061":return [{"player":1-who,"mode":"本回合不能使用符卡"},{"player":1-who,"mode":"本回合不能使用单位"}]
   "spell-fdf-034":return [{"none":true,"mode":"保留蓝色"},{"none":true,"mode":"保留绿色"}]
   "spell-fdf-124":return [{"player":0},{"player":1}]
@@ -56,7 +57,9 @@ static func options(e,id,who):
    var out=e.Extra.add_mode(rs,"名称改为不明物体并抓牌")
    var g=C.group(e,own.filter(func(c):return C.is_unknown(e,c)),1,1,"牺牲一个不明物体",true)
    var spec=e.Pack.selection([g],id)
-   for x in spec:x.mode="牺牲并放入封兽鵺"
+   for x in spec:
+    x.mode="牺牲并放入封兽鵺"
+    x.title=x.mode
    return out+spec
   "spell-fdf-082":
    var out=[]
@@ -197,7 +200,7 @@ static func resolve(e,t):
   "spell-fdf-050":
    if C.unit(e,aim):
     var u=e.find_card(aim.uid);C.buff(e,u,4,4,3)
-    if u.owner==who and C.character(e,u,"魂魄妖梦"):C.delay(e,u,"youmu_fight",who);e.delayed.back().after_turn=e.turn
+    if u.owner==who and C.character(e,u,"魂魄妖梦"):C.delay(e,u,"youmu_fight",who,"end",{},c)
   "spell-fdf-002":
    if C.unit(e,aim):e.find_card(aim.uid).rank_target={"owner":who,"turns":p.turns+1}
   "spell-fdf-055":
@@ -233,7 +236,7 @@ static func resolve(e,t):
   "spell-fdn-020":
    if C.valid(e,aim):
     var u=e.find_card(aim.uid);e.Roster.field_many(e,[u],who)
-    if u.zone=="field":C.delay(e,u)
+    if u.zone=="field":C.delay(e,u,"sacrifice",-1,"end",{},c)
   "spell-ucs-037","spell-fdn-023":e.Roster.field_many(e,C.selected(e,aim),who)
   "spell-fdf-064":
    for r in aim.parts:
@@ -250,36 +253,38 @@ static func resolve(e,t):
    if p.deck.size()<2:e.lose(foe,"最后ノ理想国");return true
    e.draw(who,2);C.choose(e,t,"cat:gate",C.pick(e,p.hand,0,2,"横置放入颜色盘"));e.move_to(c,"deck");e.shuffle(p.deck);return true
   "spell-ucs-015":
-   if C.unit(e,aim):C.buff(e,e.find_card(aim.uid),3,3,0)
+   for r in C.picked(e,aim):
+    if C.unit(e,r):C.buff(e,e.find_card(r.uid),3,3,0)
    var maximum=0
    for u in e.units(who):maximum=maxi(maximum,e.stat(u,"power"))
    C.distribution(e,t,e.Pack.all_units(e),maximum)
   "spell-fdn-003":C.distribution(e,t,e.Pack.all_units(e),5,false,10)
   "spell-fdf-063":
    var n=9 if p.palette.filter(func(u):return e.Extra.keyword(e,u,"奇迹")).size()>=5 else 4
-   for r in e.Pack.picked(aim):C.damage(e,r,n)
-   for u in C.selected(e,aim,1):e.Roster.plus(e,u,n,who)
+   C.damage(e,aim,n)
+   var gods=e.units(who).filter(func(u):return C.race(e,u,"神"))
+   if not gods.is_empty():C.choose(e,t,"cat:kuji_god",C.pick(e,gods,1,1,"放置指示物的神"),{"amount":n})
   "spell-fdf-087":
    for s in e.stack.duplicate():
     if s.id==aim.stack_id:
      var n=e.Extra.cost_value(e,s.card);e.counter_entry(s.id);C.distribution(e,t,e.Pack.all_units(e,who),n,true);break
   "spell-fdf-053":e.counter_entry(aim.picks[0][0].stack_id)
   "spell-fdf-013","spell-fdf-084":
-   for i in range(3 if id=="spell-fdf-013" else 2):C.printed_token(e,who,"token-fdf-129")
+   C.printed_tokens(e,who,3 if id=="spell-fdf-013" else 2,"token-fdf-129")
    if id=="spell-fdf-013":e.draw(who,3)
    elif not p.deck.is_empty():e.move_to(p.deck[0],"palette");p.palette.back().tapped=true
   "spell-fdn-040":
    var u=C.token(e,who,"半灵",4,2,2,["黑","绿"],["疾行","先制"],[],"token-ucs-099")
-   if not u.is_empty():C.delay(e,u,"sacrifice",who)
+   if not u.is_empty():C.delay(e,u,"sacrifice",who,"end",{},c)
    e.move_to(c,"palette");c.tapped=true;return true
   "spell-fdf-080":
-   for i in range(2 if e.units(who).any(func(u):return C.character(e,u,"泄矢诹访子")) else 1):C.token(e,who,"青蛙",4,4,2,["蓝","绿"],["不占战场格"])
+   C.tokens(e,who,2 if e.units(who).any(func(u):return C.character(e,u,"泄矢诹访子")) else 1,"青蛙",4,4,2,["蓝","绿"],["不占战场格"])
   "spell-fdf-037","spell-fdf-058","spell-fdf-062":
-   for i in range(4 if id=="spell-fdf-037" else 3 if id=="spell-fdf-058" else 2):
-    var u=C.token(e,who,"蝙蝠" if id=="spell-fdf-037" else "吸血鬼" if id=="spell-fdf-058" else "鬼",3 if id=="spell-fdf-058" else 1,3 if id=="spell-fdf-058" else 1,2 if id=="spell-fdf-058" else 1,["红","黑"] if id=="spell-fdf-037" else ["红","黄"],["先制","歼灭","疾行","直接攻击单位"] if id=="spell-fdf-058" else ["疾行"] if id=="spell-fdf-037" else [])
-    if not u.is_empty():
-     if id=="spell-fdf-062":u.imp_growth=true
-     else:C.delay(e,u,"sacrifice",who if id=="spell-fdf-037" else -1)
+   var made=C.tokens(e,who,4 if id=="spell-fdf-037" else 3 if id=="spell-fdf-058" else 2,"蝙蝠" if id=="spell-fdf-037" else "吸血鬼" if id=="spell-fdf-058" else "鬼",3 if id=="spell-fdf-058" else 1,3 if id=="spell-fdf-058" else 1,2 if id=="spell-fdf-058" else 1,["红","黑"] if id=="spell-fdf-037" else ["红","黄"],["先制","歼灭","疾行","直接攻击单位"] if id=="spell-fdf-058" else ["疾行"] if id=="spell-fdf-037" else [])
+   for u in made:
+    if id=="spell-fdf-037":u.queen_midnight_bat=true
+    if id=="spell-fdf-062":u.imp_growth=true
+    else:C.delay(e,u,"sacrifice",who if id=="spell-fdf-037" else -1,"end",{},c)
   _:return resolve_complex(e,t)
  e.resolving_spell=false
  e.move_to(c,"exile" if exile else "grave")
@@ -291,6 +296,9 @@ static func trigger_options(_e,_t):return null
 static func resolve_choice(e,t):
  var C=e.Cat;var who=t.owner;var p=e.players[who];var d=t.get("data",{});var a=t.target
  match t.effect:
+  "cat:kuji_god":
+   for u in C.selected(e,a):
+    if u.owner==who and C.race(e,u,"神"):e.Roster.plus(e,u,int(d.amount),who)
   "cat:search":
    var list=C.selected(e,a);C.reveal(e,list,false)
    if d.zone=="field":e.Roster.field_many(e,list,who)
@@ -332,6 +340,7 @@ static func resolve_complex(e,t):
    if a.get("mode","")=="名称改为不明物体并抓牌":
     if C.unit(e,a):
      var u=e.find_card(a.uid);C.rename(e,u,"不明物体")
+     e.cards[u.card_id].nightmare_rename=true
     e.draw(who)
    else:C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"封兽鵺")),0,1,"放入封兽鵺"))
   "spell-fdf-122":C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"多多良小伞")),1,1,"放入多多良小伞"))
@@ -425,7 +434,7 @@ static func resolve_complex_choice(e,t):
   "cat:resurrect":
    var list=C.selected(e,a);e.Roster.field_many(e,list,who,true)
    for u in list:
-    if u.zone=="field":C.delay(e,u,"exile",who)
+    if u.zone=="field":C.delay(e,u,"exile",who,"end",{},t.source)
   "cat:cherry_prevent":
    var list=C.selected(e,a)
    for u in list:e.move_to(u,"exile")
@@ -441,7 +450,7 @@ static func resolve_complex_choice(e,t):
    var c=d.card;var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":C.retarget_result(a),"name":e.cards[c.card_id].name,"copy":true};e.next_stack+=1;e.stack.append(copy);e.Roster.New.on_target(e,copy.target);e.priority=e.active;e.passes=0
    if d.get("rewritten_fairy",false):copy.rewritten_fairy=true
   "cat:copy_exile":
-   for u in C.selected(e,a):C.copy_token(e,who,u,false,"yukari")
+   C.copy_tokens(e,who,C.selected(e,a),"yukari")
   "cat:four_search":
    var list=[]
    for r in e.Pack.flatten(a):
@@ -457,7 +466,7 @@ static func resolve_complex_choice(e,t):
   "cat:brain_name":
    if C.unit(e,d.target):
     var u=e.find_card(d.target.uid);var owner=u.owner;var list=e.players[owner].hand+e.players[owner].deck.slice(0,1);C.reveal(e,list)
-    var matches=list.filter(func(v):return C.normalized(e.cards[v.card_id].name)==C.normalized(a.card_name))
+    var matches=list.filter(func(v):return C.normalized(C.canonical_name(e,v.card_id))==C.normalized(a.card_name))
     if matches.size()>0:e.destroy(u)
     if matches.size()>1:
      for v in matches:e.move_to(v,"grave")
@@ -485,7 +494,7 @@ static func resolve_complex_choice(e,t):
    e.gain_life(who,4)
   "cat:grant":
    if C.valid(e,d.ref):
-    var u=e.find_card(d.ref.uid);e.forced_cast={"owner":who,"uid":u.uid,"free":d.free,"cost":d.cost,"ignore":false};e.priority=who
+    var u=e.find_card(d.ref.uid);e.forced_cast={"owner":who,"uid":u.uid,"free":d.free,"cost":d.cost,"ignore":false,"optional_payment":d.get("optional_payment",false)};e.priority=who
     var plan=a.get("payment",e.payment(who,e.cast_cost(who,u,a)).plan);a.erase("payment")
     if e.payment_valid(who,e.cast_cost(who,u,a),plan):e.commit_cast(who,u.uid,a,plan)
     e.forced_cast={}

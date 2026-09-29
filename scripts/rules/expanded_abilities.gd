@@ -88,12 +88,19 @@ static func valid(e,t: Dictionary) -> bool:
   return not c.is_empty() and c.zone==t.zone and c.epoch==t.epoch
  return e.target_valid(t)
 static func event(e,c: Dictionary,effect: String,optional: bool=false,data: Dictionary={}):
+ if effect=="miracle" and e.miracle_blocked(c,c.owner):return
  if e.Pack.trigger_locked(e): return
  e.Cat.enqueue(e,{"extended":true,"owner":c.owner,"source":c.duplicate(true),"effect":effect,"optional":optional,"data":data.duplicate(true),"name":e.cards[c.card_id].name})
 static func on_enter(e,c: Dictionary):
+ # "于该单位进战场时" describes its entry properties, not a triggered event.
+ # Apply counters before any observer captures the entering unit's statistics.
+ var info=e.cards[c.card_id]
+ if e.Pack.has(info,"byakuren_x"):e.Roster.plus(e,c,int(c.get("cast_x",0)))
+ if e.Roster.New.has(e,c,"SPX-001"):e.Roster.plus(e,c,1+e.players[c.owner].palette.filter(func(u):return not u.tapped).size(),c.owner)
+ if e.Cat.has(e,c,"character-fdf-101"):
+  e.queue_entry_choice(c,"cat:momiji_name",e.Cat.name_options(e),e.Roster.text(info,"character-fdf-101"),{"ref":e.Cat.ref(e,c)})
  e.Roster.on_enter(e,c)
  e.Pack.on_enter(e,c)
- var info=e.cards[c.card_id]
  if e.DB.has_ability(info,"marisa_enter"):e.queue_trigger(c.owner,c,int(e.DB.ability(info,"marisa_enter")["数值"]),"进战场能力")
  if has(info,"leader_enter_modes") and e.has_leader_ability(c): event(e,c,"leader_enter_modes",true)
  for key in ["enter_haste","enter_drain","enter_grave_damage","enter_sweep","enter_color_evasion","enter_blink","enter_fight","enter_palette_replace","enter_unblockable","enter_halfghost"]:
@@ -201,7 +208,7 @@ static func resolve_trigger(e,t: Dictionary):
   "enter_blink":
    if valid(e,target):
     var u=e.find_card(target.uid); e.move_to(u,"exile")
-    e.delayed.append({"owner":who,"phase":"end","effect":"return_exile","ref":e.Pack.future_zone_ref(e,u,"exile"),"zone":"exile"})
+    e.delayed.append({"owner":who,"phase":"end","effect":"return_exile","ref":e.Pack.future_zone_ref(e,u,"exile"),"zone":"exile","origin_name":e.cards[source.card_id].name})
   "enter_fight":
    if original and valid(e,target) and e.combat.is_empty():
     e.combat_queue.append({"attacker":e.ref_target(c),"owner":who,"blockers":[target],"blocked":true,"step":"block_window","forced":true})
@@ -233,12 +240,12 @@ static func resolve_trigger(e,t: Dictionary):
   "death_six":
    for u in e.units(0)+e.units(1): e.damage_target(e.ref_target(u),6)
   "spell_rebirth":
-   if dead_valid: e.delayed.append({"owner":who,"phase":"prepare","effect":"return_grave","ref":e.ref_target(dead),"zone":"grave"})
+   if dead_valid: e.delayed.append({"owner":who,"phase":"prepare","effect":"return_grave","ref":e.ref_target(dead),"zone":"grave","origin_name":e.cards[source.card_id].name})
   "crystal":
    if dead_valid and valid(e,target) and e.find_card(target.uid).tapped:
     var palette=e.find_card(target.uid); e.move_to(palette,"grave"); e.move_to(dead,"palette"); dead.tapped=false
-  "leave_ufo": create_token(e,who,"token_ufo")
-  "enter_halfghost": create_token(e,who,"token_halfghost")
+  "leave_ufo": create_token(e,who,"token_ufo",e.cards[source.card_id].name)
+  "enter_halfghost": create_token(e,who,"token_halfghost",e.cards[source.card_id].name)
   "leader_death_damage": e.damage_target(target,int(data.get("amount",1)))
   "counter_six": e.damage_target(target,6)
   "sacrifice_choice":
@@ -253,7 +260,7 @@ static func resolve_trigger(e,t: Dictionary):
   "token_sacrifice":
    if original: e.sacrifice(c)
   "miracle":
-   if not c.is_empty() and c.zone=="hand" and c.epoch==source.epoch:
+   if not c.is_empty() and c.zone=="hand" and c.epoch==source.epoch and not e.miracle_blocked(c,who):
     e.detach(c); e.shift(c,"stack")
     e.stack.append({"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":{"none":true},"name":e.cards[c.card_id].name})
     e.next_stack+=1; e.priority=1-who; e.passes=0
@@ -301,7 +308,10 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
       var c=e.find_card(t.uid)
       if e.field_error(c,who).is_empty(): e.detach(c); e.enter_field(c,who)
     "牺牲单位":
-     var dummy=entry.card.duplicate(); dummy.owner=t.player; event(e,dummy,"sacrifice_choice")
+     var source=entry.card.duplicate(true); source.owner=t.player
+     var choice={"extended":true,"continuation":true,"owner":t.player,"source":source,"effect":"sacrifice_choice","optional":false,"data":{},"name":e.cards[source.card_id].name}
+     var options=trigger_options(e,choice)
+     if not options.is_empty():e.pending={"kind":"effect_choice","owner":t.player,"trigger":choice,"options":options}
     "失去生命": e.players[t.player].life-=3
   "147": e.apply_turn_buff(t,{"攻击力":-1,"血量":-1,"灵力":3})
   "162": e.damage_target(t,3)
@@ -322,9 +332,9 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
  e.to_grave(entry.card)
  return true
 
-static func create_token(e,who: int,id: String):
+static func create_token(e,who: int,id: String,origin_name: String=""):
  var c=e.make_card(id,who,"token"); c.token=true
- if e.enter_field(c,who): e.delayed.append({"owner":-1,"phase":"end","effect":"token_sacrifice","ref":e.ref_target(c),"zone":"field"})
+ if e.enter_field(c,who): e.delayed.append({"owner":-1,"phase":"end","effect":"token_sacrifice","ref":e.ref_target(c),"zone":"field","origin_name":origin_name})
 static func register_tokens(e):
  e.Roster.register_tokens(e)
  for id in ["token_ufo","token_halfghost"]:

@@ -21,10 +21,14 @@ var progress: Label
 var play_button: Button
 var slider: HSlider
 var updating=false
-func build(parent,data):
+var training
+var training_button: Button
+var training_editor
+func build(parent,data,path: String=""):
  app=parent;archive=data;seat=maxi(0,int(archive.metadata.get("seat",0)))
+ training=preload("res://scripts/ai/replay_training.gd").new();training.setup(archive,path)
  seek(0)
- controls=Control.new();app.screen.add_child(controls)
+ controls=Control.new();controls.size=Vector2(1600,900);controls.mouse_filter=Control.MOUSE_FILTER_IGNORE;app.screen.add_child(controls)
  app.box(controls,Rect2(1360,646,218,249))
  progress=app.label(controls,"",Rect2(1372,650,196,46),15,app.GOLD)
  progress.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -37,15 +41,20 @@ func build(parent,data):
  for text in ["0.5 倍速","1 倍速","2 倍速","4 倍速"]:rates.add_item(text)
  rates.selected=1;rates.item_selected.connect(func(i):speed=[0.5,1.0,2.0,4.0][i]);controls.add_child(rates)
  app.button(controls,"返回回放列表",Rect2(1372,859,196,32),func():app.replays())
+ training_button=app.button(controls,"标注当前步骤",Rect2(1372,602,196,36),open_training,true)
+ update_training_button()
  update_controls()
 func can_act(_in_match: bool=false) -> bool:return false
 func ended() -> bool:return false
 func submit(_command: Dictionary) -> String:return "回放只供查看"
 func latency_text() -> String:return ""
-func connection_status() -> String:return "回放 · "+("公开视角" if int(archive.metadata.get("seat",0))<0 else room.get("names",["玩家","玩家"])[seat]+"视角")
+func connection_status() -> String:return "回放 · "+("双方手牌可见" if archive.metadata.get("hands","")=="both" else "公开视角" if int(archive.metadata.get("seat",0))<0 else room.get("names",["玩家","玩家"])[seat]+"视角")
 func pop_snapshot() -> Dictionary:
  var packet=snapshots.pop_front();local_game_id=packet.game_id;return packet
 func seek(value: int):
+ if training_editor!=null and training_editor.is_open():
+  training_editor.close()
+  if training_editor!=null:return
  playing=false;elapsed=0;index=value
  var packet=archive.frame(index)
  if packet.is_empty():error_raised.emit("回放片段损坏");return
@@ -67,6 +76,7 @@ func update_controls():
  updating=true;slider.value=index;updating=false
 func _process(delta):
  if is_instance_valid(controls) and is_instance_valid(app.duel_view):controls.visible=not app.duel_view.history_open and not app.duel_view.modal
+ if training_editor!=null and training_editor.is_open():playing=false;return
  if not playing or not snapshots.is_empty() or not is_instance_valid(app.duel_view):return
  if app.duel_view.revealing() or app.duel_view.table.is_animating() or app.duel_view.history_open:return
  if index+1>=archive.frames.size():playing=false;update_controls();return
@@ -81,3 +91,12 @@ func _process(delta):
  else:
   room=packet.room;latest_snapshot=packet;snapshots.append(packet)
  update_controls()
+
+func update_training_button():
+ if not is_instance_valid(training_button):return
+ training_button.visible=app.replay_training_mode
+ training_button.text="标注当前步骤 · %d"%training.annotations.size() if not training.annotations.is_empty() else "标注当前步骤"
+
+func open_training():
+ if not app.replay_training_mode or training_editor!=null:return
+ training_editor=preload("res://scripts/replay_training_editor.gd").new();training_editor.open(self)

@@ -5,7 +5,8 @@
 /builds/
 
 # 编辑器本地设置
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 
 # 本地 Inno Setup 制作套件（98 个文件 / 约 50 MB，含 exe+dll，不入库）
 MulticolorArena-Installer-Tool/

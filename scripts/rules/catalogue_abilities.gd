@@ -1,6 +1,8 @@
 extends RefCounted
 ## Explicit Excel contracts for the v0.13 catalogue. Card prose is never executed.
-const CAPTIONS={"cat:element_reveal": "牌库顶展示：移除该牌，并选择是否使用。", "cat:flower_cast": "进入颜色盘：可以不支付颜色值使用本牌。", "cat:god_damage": "神子造成伤害：对至多一个目标玩家造成等量伤害。", "cat:hypnosis": "每位玩家弃一张牌，然后对手失去生命。", "cat:imp_growth": "攻击：放置两个+1/+1与+1指示物。", "cat:lie_damage": "硬币反面：对至多一个目标造成1点伤害。", "cat:murder_dolls": "放置计时指示物：对至多一个目标单位造成等量伤害。", "cat:night_timer": "对手单位死去：放置一个计时指示物。", "cat:nuclear_return": "自机单位进场：可以支付1红1黑将本牌从墓地移回手上。", "cat:rank_death": "该单位死去：失去3点生命。", "cat:rank_return": "自机单位攻击：将本牌从墓地移回手上。", "cat:sacrifice_recover": "牺牲单位：可支付1黄1黑抓牌并将本牌横置放入颜色盘。", "cat:tengu_watch": "对手本回合攻击过你：可以检索天狗放进战场。", "cat:top_free_damage": "从牌库顶进场：对目标其他单位造成等同于攻击力的伤害。", "cat:unconscious_return": "硬币反面：将本牌从墓地移回手上。", "cat:utsuho_return": "死去：在下个准备阶段将该牌移回战场。", "cat:delayed": "结算延迟触发效果。"}
+const CAPTIONS={
+ "cat:etb_curse":"本局游戏中，每当一个单位进战场时，对手失去2点生命。",
+ "cat:element_reveal": "牌库顶展示：移除该牌，并选择是否使用。", "cat:flower_cast": "进入颜色盘：可以不支付颜色值使用本牌。", "cat:god_damage": "神子造成伤害：对至多一个目标玩家造成等量伤害。", "cat:hypnosis": "每位玩家弃一张牌，然后对手失去生命。", "cat:imp_growth": "攻击：放置两个+1/+1与+1指示物。", "cat:lie_damage": "硬币反面：对至多一个目标造成1点伤害。", "cat:murder_dolls": "放置计时指示物：对至多一个目标单位造成等量伤害。", "cat:night_timer": "对手单位死去：放置一个计时指示物。", "cat:nuclear_return": "自机单位进场：可以支付1红1黑将本牌从墓地移回手上。", "cat:rank_death": "该单位死去：失去3点生命。", "cat:rank_return": "自机单位攻击：将本牌从墓地移回手上。", "cat:sacrifice_recover": "牺牲单位：可支付1黄1黑抓牌并将本牌横置放入颜色盘。", "cat:tengu_watch": "对手本回合攻击过你：可以检索天狗放进战场。", "cat:top_free_damage": "从牌库顶进场：对目标其他单位造成等同于攻击力的伤害。", "cat:unconscious_return": "硬币反面：将本牌从墓地移回手上。", "cat:utsuho_return": "死去：在下个准备阶段将该牌移回战场。", "cat:delayed": "结算延迟触发效果。"}
 const BOOST_COUNTERS=["plus_counters","drunk_counters","madness"]
 const COUNTER_KEYS=["drunk_counters","plus_counters","minus_counters","leader_counters","courage","scare","poverty","timer","dream","madness"]
 const Spells=preload("res://scripts/rules/catalogue_spells.gd")
@@ -26,6 +28,11 @@ static func character(e,c,name):
  var actual=e.cards[c.card_id].get("character","")
  return normalized(name) in normalized(actual)
 static func normalized(s):return s.replace("·","").replace("・","").replace("洛","罗").replace("鵺","ぬえ").replace("隐崎","隐岐").replace("磷","燐").replace("伊","依").replace("洩","泄").replace("雷特","蕾特").replace("侘","诧")
+static func canonical_name(e,id: String) -> String:
+ var info=e.cards.get(id,{})
+ if id not in e.DB.IDS:return str(info.get("name",""))
+ var canonical=str(info.get("canonical_id",id))
+ return str(e.cards.get(canonical,info).get("name",""))
 static func role(e,c,name=""):
  var required=e.cards[c.card_id].get("requires_character","")
  return not required.is_empty() and (name.is_empty() or normalized(name) in normalized(required))
@@ -53,7 +60,11 @@ static func mill(e,who,n):
  e.mill_cards(e.players[who].deck.slice(0,maxi(0,n)))
 static func random_discard(e,who,n):
  for i in range(mini(n,e.players[who].hand.size())):e.move_to(e.players[who].hand[e.rng.randi_range(0,e.players[who].hand.size()-1)],"grave")
-static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art=""):
+static func tokens(e,who,count,name,p,h,s,colors,words=[],abilities=[],art=""):
+ var list=[]
+ for i in range(maxi(0,count)):list.append(token(e,who,name,p,h,s,colors,words,abilities,art,false))
+ return e.enter_token_batch(list,who)
+static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art="",enter=true):
  var id="catalogue_token_"+str(e.next_uid)
  var info={"name":name,"kind":"单位","character":name,"title":"","race":[name],"colors":colors,"cost":{},"power":p,"health":h,"spirit":s,"keywords":words,"abilities":abilities,"fast":false,"requires_character":"","rules_text":"、".join(words),"token":true,"constructible":false}
  if not art.is_empty():info.copy_source_id=art
@@ -64,18 +75,39 @@ static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art=""):
   elif name=="吸血鬼":info.image="res://assets/token_cards/vampire_fdf.jpg" if p==3 else "res://assets/token_cards/vampire_fdn.jpg"
   elif name in card_art:info.image="res://assets/token_cards/"+card_art[name]+".jpg"
  e.cards[id]=info;var c=e.make_card(id,who,"token")
- return c if e.enter_field(c,who) else {}
-static func printed_token(e,who,id):
+ return c if not enter or e.enter_field(c,who) else {}
+static func printed_tokens(e,who,count,id):
+ var list=[]
+ for i in range(maxi(0,count)):list.append(printed_token(e,who,id,false))
+ return e.enter_token_batch(list,who)
+static func printed_token(e,who,id,enter=true):
  var c=e.make_card(id,who,"token")
- if not e.enter_field(c,who):return {}
+ if enter and not e.enter_field(c,who):return {}
  return c
-static func delay(e,c,effect="sacrifice",owner=-1,phase="end",data={}):
- e.delayed.append({"catalogue":true,"owner":owner,"phase":phase,"effect":effect,"ref":ref(e,c),"source":c.duplicate(true),"data":data})
+static func delay(e,c,effect="sacrifice",owner=-1,phase="end",data={},origin: Dictionary={}):
+ var source_name=e.cards[origin.card_id].name if not origin.is_empty() and e.cards.has(origin.card_id) else e.cards[c.card_id].name
+ e.delayed.append({"catalogue":true,"owner":owner,"phase":phase,"effect":effect,"ref":ref(e,c),"source":c.duplicate(true),"origin_name":source_name,"target_name":e.cards[c.card_id].name,"data":data})
+static func delay_caption(d: Dictionary) -> String:
+ var source_name=str(d.get("origin_name",d.get("source_name","未知来源")))
+ var target_name=str(d.get("target_name","该牌"))
+ var action=""
+ match str(d.get("op",d.get("effect",""))):
+  "sacrifice","token_sacrifice":action="牺牲"+target_name+"。"
+  "hand":action="将"+target_name+"移回手牌。"
+  "exile":action="移除"+target_name+"。"
+  "return_grave":action="将"+target_name+"从墓地移回战场。"
+  "return_exile":action="将"+target_name+"从除外区移回战场。"
+  "return":action="将"+target_name+"移回战场。"
+  "youmu_fight":action="选择一个对方单位，使"+target_name+"与其进行一次战斗判定。"
+  _:return "来源："+source_name+"\n效果：结算延迟触发效果。"
+ return "来源："+source_name+"\n效果："+action
 static func resolve_delay(e,d):
  var c=e.find_card(d.ref.uid)
  if d.get("after_turn",-1)>=e.turn:return false
  if not c.is_empty() and c.epoch==d.ref.epoch:
-  events(e,d.source,"cat:delayed",false,{"ref":d.ref,"op":d.effect,"data":d.get("data",{})})
+  var first=e.triggers.size()
+  events(e,d.source,"cat:delayed",false,{"ref":d.ref,"op":d.effect,"data":d.get("data",{}),"origin_name":d.get("origin_name",e.cards[d.source.card_id].name),"target_name":d.get("target_name",e.cards[d.source.card_id].name)})
+  for i in range(first,e.triggers.size()):e.triggers[i].ability_text=delay_caption(e.triggers[i].data)
  return true
 static func reveal(e,list,from_top=true,edge=""):
  var order=list.duplicate()
@@ -110,25 +142,29 @@ static func continuation(e,t):
      "youmu_fight":choose(e,t,"cat:fight",e.Pack.all_units(e,1-who),{"ref":ref(e,c)})
   "cat:fight":forced_battle(e,d.ref,aim)
   "cat:distribution":
-   var counts={}
-   for r in e.Pack.flatten(aim):
-    var k=str(r);counts[k]={"ref":r,"amount":int(counts.get(k,{}).get("amount",0))+1}
-   for value in counts.values():
-    if d.get("counter",false):
-     if unit(e,value.ref):e.Roster.plus(e,e.find_card(value.ref.uid),value.amount,who)
-    else:damage(e,value.ref,value.amount)
+   resolve_distribution(e,aim,who,d.get("counter",false))
    if d.has("life"):e.players[who].life=d.life
   _:return false
  return true
+static func distribution_options(e,pool,n):
+ var groups=[]
+ for i in range(n):groups.append(e.Pack.group(pool,1,1,"分配第 %d / %d 点" % [i+1,n]))
+ return e.Pack.selection(groups,"distribution")
+static func resolve_distribution(e,aim,who,counter=false):
+ var counts={}
+ for r in e.Pack.flatten(aim):
+  var k=str(r);counts[k]={"ref":r,"amount":int(counts.get(k,{}).get("amount",0))+1}
+ for value in counts.values():
+  if counter:
+   if unit(e,value.ref):e.Roster.plus(e,e.find_card(value.ref.uid),value.amount,who)
+  else:damage(e,value.ref,value.amount)
 static func distribution(e,t,pool,n,counter=false,life=-1):
  if n<=0 or pool.is_empty():
   if life>=0:e.players[t.owner].life=life
   return
- var groups=[]
- for i in range(n):groups.append(e.Pack.group(pool,1,1,"分配第 %d / %d 点" % [i+1,n]))
  var data={"counter":counter}
  if life>=0:data.life=life
- choose(e,t,"cat:distribution",e.Pack.selection(groups,"distribution"),data)
+ choose(e,t,"cat:distribution",distribution_options(e,pool,n),data)
 static func spell_options(e,id,who):
  var extra=extra_cast_options(e,id,who)
  return extra if extra!=null else Spells.options(e,id,who) if id in SPELLS else null
@@ -161,14 +197,14 @@ static func counter_refs(e,list):
   for i in range(c.get("color_counters",[]).size()):var r=ref(e,c);r.counter="color_counters";r.counter_index=i;result.append(r)
  return result
 static func counter_total(e,list):return counter_refs(e,list).size()
-static func grant_cast(e,c,who,free=false,cost_override={}):
- e.forced_cast={"owner":who,"uid":c.uid,"free":free,"cost":cost_override,"ignore":false}
+static func grant_cast(e,c,who,free=false,cost_override={},optional_payment=false):
+ e.forced_cast={"owner":who,"uid":c.uid,"free":free,"cost":cost_override,"ignore":false,"optional_payment":optional_payment}
  var choices=e.targets_for(c.card_id,who,c.uid) if e.cards[c.card_id].kind=="符卡" else e.Pack.none()
  var old_priority=e.priority;e.priority=who
  var error=e.cast_error(who,c.uid);e.forced_cast={};e.priority=old_priority
  if choices.is_empty() or not error.is_empty():return
  var source={"owner":who,"source":c.duplicate(true),"effect":"cat:grant","name":e.cards[c.card_id].name,"optional":true}
- e.Roster.continue_choice(e,source,"cat:grant",choices,{"ref":ref(e,c),"free":free,"cost":cost_override,"ignore":false},true)
+ e.Roster.continue_choice(e,source,"cat:grant",choices,{"ref":ref(e,c),"free":free,"cost":cost_override,"ignore":false,"optional_payment":optional_payment},true)
 static func copy_unit(e,c,template,keep_name=false,copy_marker=""):
  var old=e.cards[c.card_id];var id="catalogue_copy_"+str(c.uid)+"_"+str(e.revision);var info=e.cards[template.card_id].duplicate(true)
  info.copy_source_id=template.card_id
@@ -176,13 +212,17 @@ static func copy_unit(e,c,template,keep_name=false,copy_marker=""):
  if not copy_marker.is_empty():info.copy_marker=copy_marker
  if keep_name:info.name=old.name;info.character=old.character;info.title=old.title
  c.copy_original=c.get("copy_original",c.card_id);e.cards[id]=info;c.card_id=id
-static func copy_token(e,who,template,copy_counters=false,copy_marker=""):
+static func copy_tokens(e,who,templates,copy_marker=""):
+ var list=[]
+ for template in templates:list.append(copy_token(e,who,template,false,copy_marker,false))
+ return e.enter_token_batch(list,who)
+static func copy_token(e,who,template,copy_counters=false,copy_marker="",enter=true):
  var id="catalogue_clone_"+str(e.next_uid);var info=e.cards[template.card_id].duplicate(true);info.token=true;info.constructible=false;info.copy_source_id=template.card_id
  info.erase("copy_marker")
  if not copy_marker.is_empty():info.copy_marker=copy_marker
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
- if not e.enter_field(c,who):return {}
+ if enter and not e.enter_field(c,who):return {}
  if copy_counters:c.plus_counters=int(template.get("plus_counters",0))
  return c
 static func copy_spell(e,t,x=-1,copy_menu=false):
@@ -201,11 +241,12 @@ static func copy_spell(e,t,x=-1,copy_menu=false):
 static func name_options(e):
  var names=[];var pool=[]
  for id in e.DB.IDS:
+  if e.cards[id].get("canonical_id",id)!=id:continue
   var name=e.cards[id].name
   if name not in names:names.append(name);pool.append({"card_name":name,"mode":name,"none":true})
  return pool
 static func rename(e,c,name):
- var id="catalogue_rename_"+str(c.uid)+"_"+str(e.revision);var info=e.cards[c.card_id].duplicate(true);info.name=name;info.character=name;info.copy_source_id=c.card_id
+ var id="catalogue_rename_"+str(c.uid)+"_"+str(e.revision);var info=e.cards[c.card_id].duplicate(true);info.name=name;info.character=name;info.title="";info.copy_source_id=c.card_id
  c.copy_original=c.get("copy_original",c.card_id);e.cards[id]=info;c.card_id=id
 static func unknown(e,c):
  var old=e.cards[c.card_id];var id="catalogue_unknown_"+str(c.uid)+"_"+str(e.revision);var info=e.cards["token-fdf-131"].duplicate(true)
@@ -288,6 +329,8 @@ static func paid_cast(e,c,t,controller=-1):
  if id=="character-fdf-046":meta.ichirin_paid=t.get("extra_green",false)
  return meta
 static func target_survives(e,id,t):
+ # Optional single targets never prevent the spell's remaining effects.
+ if id in ["spell-ucs-015","spell-ucs-050","spell-fdf-051"]:return true
  if id in ["spell-fdn-046","spell-fdf-030","spell-fdf-072"] and t.has("picks"):return true
  var targets=e.Pack.flatten(t)
  if id=="spell-fdf-025":targets=picked(e,t,1)
@@ -403,5 +446,5 @@ static func retarget_result(a):
 static func granted_cost(e,t,target):
  var previous=e.forced_cast.duplicate(true);var c=e.find_card(t.data.ref.uid)
  if c.is_empty():return {}
- e.forced_cast={"owner":t.owner,"uid":c.uid,"free":t.data.free,"cost":t.data.cost,"ignore":false}
+ e.forced_cast={"owner":t.owner,"uid":c.uid,"free":t.data.free,"cost":t.data.cost,"ignore":false,"optional_payment":t.data.get("optional_payment",false)}
  var cost=e.cast_cost(t.owner,c,target);e.forced_cast=previous;return cost

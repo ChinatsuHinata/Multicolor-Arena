@@ -88,7 +88,7 @@ static func spell_options(e,id,who) -> Variant:
  match k:
   "peach_modes":return e.Extra.add_mode(e.Pack.all_units(e),"指示物翻倍")+[{"mode":"回复并抓牌","none":true},{"mode":"牌库顶放入颜色盘","none":true}]
   "fairy_rewrite":return e.Pack.none()
-  "blue_flower":return spells(e)
+  "blue_flower":return e.Pack.none()
   "night_sakura":return e.Pack.none()
   "icicle_tide":return e.Roster.pick(e,e.Pack.all_units(e),0,2,"选择至多两个单位",k)
   "angry_mask":return e.Pack.all_units(e)
@@ -131,10 +131,16 @@ static func spell_resolve(e,entry) -> bool:
    for s in e.stack:
     if s.id==aim.stack_id:s.rewritten_fairy=true;s.target={"none":true};s.ability_text="你创造一个蓝绿双色的3/3与灵力3且不计战场格的妖精衍生物。"
   "blue_flower":
-   for s in e.stack.duplicate():
-    if s.id==aim.stack_id:
-     var u=s.card;e.move_to(u,"deck")
-     if u.zone=="deck":e.players[u.owner].deck.erase(u);e.players[u.owner].deck.insert(mini(2,e.players[u.owner].deck.size()),u)
+   var chosen=c if aim.get("self",false) else {}
+   if chosen.is_empty():
+    for s in e.stack:
+     if s.id==aim.get("stack_id",-1):chosen=s.card;break
+   if not chosen.is_empty():
+    e.move_to(chosen,"deck")
+    if chosen.zone=="deck":
+     var deck=e.players[chosen.owner].deck
+     deck.erase(chosen);deck.insert(mini(2,deck.size()),chosen)
+   if aim.get("self",false):return true
   "icicle_tide":
    var n=1
    for u in e.units(who):n+=int(u.get("courage",0))
@@ -218,7 +224,7 @@ static func resolve_activation(e,entry):
     var src=e.find_card(t.uid);var id="mask_copy_"+str(e.next_uid);var info=e.cards[src.card_id].duplicate(true)
     info.token=true;info.constructible=false;info.copy_source_id=src.card_id;e.cards[id]=info
     var copy=e.make_card(id,who,"token")
-    if e.enter_field(copy,who):e.delayed.append({"phase":"end","owner":-1,"ref":e.ref_target(copy),"zone":"field","effect":"token_sacrifice"})
+    if e.enter_field(copy,who):e.delayed.append({"phase":"end","owner":-1,"ref":e.ref_target(copy),"zone":"field","effect":"token_sacrifice","origin_name":e.cards[entry.source.card_id].name})
 static func cost(e,c,who,base:Dictionary) -> Dictionary:
  if e.active!=who or e.cards[c.card_id].kind!="道具" or e.players[who].get("item_cast_turn",-1)==e.turn:return base
  var n=2*e.units(who).filter(func(u):return enabled(e,u,"tokiko_discount")).size()

@@ -1,5 +1,11 @@
 extends RefCounted
 ## A private payment proposal. Fixed reservations are kept until the player removes them.
+static func solve_costs(engine,who:int,costs:Array,fixed:Array=[],excluded:Array=[]) -> Dictionary:
+ var best={"ways":0,"score":999999,"plan":[]}
+ for cost in costs:
+  var candidate=solve(engine,who,cost,fixed,excluded)
+  if candidate.ways>0 and candidate.score<best.score:best=candidate
+ return best
 static func solve(engine,who:int,cost:Dictionary,fixed:Array=[],excluded:Array=[]) -> Dictionary:
  var sources=engine.source_resources(who);var used=excluded.duplicate()
  for p in fixed:
@@ -33,6 +39,8 @@ static func assign_fixed(engine,who:int,cost:Dictionary,fixed:Array,excluded:Arr
  memo[key]=best
  return best
 static func options(engine,who:int,cost:Dictionary,plan:Array,excluded:Array=[]) -> Array:
+ return options_for_costs(engine,who,[cost],plan,excluded)
+static func options_for_costs(engine,who:int,costs:Array,plan:Array,excluded:Array=[]) -> Array:
  var result=[]
  for source in engine.source_resources(who):
   if source.uid in excluded:continue
@@ -40,7 +48,7 @@ static func options(engine,who:int,cost:Dictionary,plan:Array,excluded:Array=[])
    result.append(source);continue
   var best={};var score=999999
   for color in source.colors:
-   var solution=solve(engine,who,cost,plan+[{"uid":source.uid,"color":color}],excluded)
+   var solution=solve_costs(engine,who,costs,plan+[{"uid":source.uid,"color":color}],excluded)
    if solution.ways>0 and solution.score<score:best={"uid":source.uid,"color":color};score=solution.score
   if not best.is_empty():
    var candidate=source.duplicate(true);candidate.reservation=best;result.append(candidate)

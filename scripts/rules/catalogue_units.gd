@@ -14,8 +14,6 @@ static func on_enter(e,c):
   if C.has(e,c,k):C.events(e,c,k,k in ["character-fdf-114","character-ucs-003"],{"event":"enter"})
  for k in ENTER_SELF:
   if C.enabled(e,c,k):C.events(e,c,k)
- if C.has(e,c,"character-fdf-101"):
-  C.events(e,c,"cat:momiji_name",false,{"ref":C.ref(e,c)})
  if C.has(e,c,"character-fdf-046") and c.get("ichirin_paid",false):C.events(e,c,"character-fdf-046")
  if e.is_unit(c):
   for p in e.players:
@@ -120,6 +118,7 @@ static func options(e,t):
   "character-fdf-119":return C.pick(e,units,0,1,"目标单位") if data.get("event","")=="enter" else e.Pack.selection([e.Pack.group(e.ability_targets(),0,1,"至多一个任意目标")],k)
   "character-fdf-114":return C.pick(e,units.filter(func(c):return c.uid!=t.source.uid),2,2,"两个其他单位互相造成伤害",k)
   "character-fdn-024":return [{"player":0},{"player":1}]
+  "character-fdn-038":return C.distribution_options(e,C.opponents()+e.Pack.all_units(e),3)
   "character-ucs-036","character-ucs-056":return [{"player":1-who}]
   "character-fdf-065","cat:top_free_damage":return e.ability_targets() if k=="character-fdf-065" else C.refs(e,units.filter(func(c):return c.uid!=t.source.uid))
   "character-fdf-046","field-ucs-064":return e.Pack.all_units(e,1-who)
@@ -134,7 +133,7 @@ static func options(e,t):
   "spell-fdf-123","cat:lie_damage","cat:god_damage","cat:murder_dolls":return C.pick(e,units,0,1,"至多一个目标单位",k) if k in ["spell-fdf-123","cat:murder_dolls"] else e.Pack.selection([e.Pack.group(e.ability_targets() if k=="cat:lie_damage" else C.opponents(),0,1,"至多一个目标")],k)
   "character-ucs-073":return C.pick(e,C.field(e).filter(func(u):return e.cards[u.card_id].kind in ["道具","结界"]),0,1,"消灭至多一个道具或结界",k)
   "character-fdf-091":return C.refs(e,e.players[who].grave.filter(func(u):return e.is_unit(u)))
- if k in ENTER+ENTER_SELF+["character-fdf-103","character-ucs-021","character-ucs-016","character-fdf-104","character-fdf-094","character-fdf-100","character-fdf-119:self","character-fdn-025:self","character-fdn-025","character-fdf-109","character-fdn-037","character-fdn-038","character-fdn-036","character-fdf-106","character-fdn-021","character-fdn-004","character-fdf-105","item-fdf-097","character-lof-002","character-fdf-110","character-ucs-025","character-fdf-090:self","spell-fdf-024","spell-fdn-012","spell-lof-006","spell-fdn-010","spell-fdn-005","spell-fdf-040","spell-fdn-033","spell-fdn-002","spell-fdf-042","cat:nuclear_return","cat:utsuho_return","cat:rank_death","cat:night_timer","cat:imp_growth","cat:rank_return","cat:tengu_watch","cat:element_reveal","cat:flower_cast","cat:unconscious_return","cat:sacrifice_recover","character-ucs-044","character-fdn-026","character-fdf-041:self"]:return e.Pack.none()
+ if k in ENTER+ENTER_SELF+["character-fdf-103","character-ucs-021","character-ucs-016","character-fdf-104","character-fdf-094","character-fdf-100","character-fdf-119:self","character-fdn-025:self","character-fdn-025","character-fdf-109","character-fdn-037","character-fdn-036","character-fdf-106","character-fdn-021","character-fdn-004","character-fdf-105","item-fdf-097","character-lof-002","character-fdf-110","character-ucs-025","character-fdf-090:self","spell-fdf-024","spell-fdn-012","spell-lof-006","spell-fdn-010","spell-fdn-005","spell-fdf-040","spell-fdn-033","spell-fdn-002","spell-fdf-042","cat:nuclear_return","cat:utsuho_return","cat:rank_death","cat:night_timer","cat:imp_growth","cat:rank_return","cat:tengu_watch","cat:element_reveal","cat:flower_cast","cat:unconscious_return","cat:sacrifice_recover","character-ucs-044","character-fdn-026","character-fdf-041:self"]:return e.Pack.none()
  return null
 static func resolve(e,t):
  var C=e.Cat;var who=t.owner;var p=e.players[who];var k=t.effect;var a=t.target;var d=t.get("data",{});var source=t.source;var c=e.find_card(source.uid);var same=not c.is_empty() and c.epoch==source.epoch
@@ -163,7 +162,7 @@ static func resolve(e,t):
     if u.get("dream",0)>0:e.move_to(u,"hand")
   "character-ucs-021":C.choose(e,t,"cat:dream_exile",C.pick(e,p.deck,0,1,"检索并放置梦指示物"))
   "character-ucs-023","character-fdn-034":
-   for i in range(3 if k=="character-ucs-023" else 1):C.token(e,who,"飞头",1,1,1,["红","蓝"],["不占战场格"])
+   C.tokens(e,who,3 if k=="character-ucs-023" else 1,"飞头",1,1,1,["红","蓝"],["不占战场格"])
   "character-fdf-065":C.damage(e,a,2);e.gain_life(who,2)
   "character-ucs-034":if not e.flip_coin(who):C.damage(e,{"player":who},3)
   "character-ucs-003":C.choose(e,t,"cat:megumu",C.pick(e,p.hand.filter(func(u):return e.is_unit(u) and e.Extra.cost_value(e,u)<=4 and e.Pack.colors(e,u).any(func(color):return color in ["蓝","黑"])),0,1,"放入蓝色或黑色单位"))
@@ -193,7 +192,7 @@ static func resolve(e,t):
     var top=p.deck[0];C.reveal(e,[top])
     if C.race(e,top,"天狗"):e.Roster.field_many(e,[top],who,true)
     else:e.move_to(top,"hand")
-  "character-fdn-038":C.distribution(e,t,e.ability_targets(),3)
+  "character-fdn-038":C.resolve_distribution(e,a,who)
   "character-fdn-036":
    var token=C.printed_token(e,who,"token-fdn-082")
    if not token.is_empty():token.news_health=true # This creator explicitly grants +0/+1 and +1, unlike the generic Excel token.
@@ -206,7 +205,7 @@ static func resolve(e,t):
   "character-fdf-029:self":
    if C.valid(e,a):e.move_to(e.find_card(a.uid),"hand");p.life-=2
   "cat:utsuho_return":
-   if C.valid(e,d.ref):C.delay(e,e.find_card(d.ref.uid),"return",-1,"prepare")
+   if C.valid(e,d.ref):C.delay(e,e.find_card(d.ref.uid),"return",-1,"prepare",{},t.source)
   "cat:rank_death":e.players[d.owner].life-=3
   "cat:night_timer":if same:e.add_timer(c,1)
   "spell-fdn-005":
@@ -215,7 +214,7 @@ static func resolve(e,t):
   "spell-ucs-059":if C.unit(e,a):C.buff(e,e.find_card(a.uid),2,2,2,["退治"])
   "item-fdf-097":
    var u=C.token(e,who,"月兔",2,2,2,["蓝","黑"],["疾行","不占战场格"])
-   if not u.is_empty():C.delay(e,u,"sacrifice",who)
+   if not u.is_empty():C.delay(e,u,"sacrifice",who,"end",{},t.source)
   "character-lof-002":
    if same and c.zone=="field":e.present_move(c,"field",1-who);p.field.erase(c);c.owner=1-who;e.players[c.owner].field.append(c);c.entered_turns=e.players[c.owner].turns;p.next_fairy_leader=e.turn
   "character-ucs-016":e.draw(who);e.gain_life(who,1)
@@ -256,7 +255,7 @@ static func resolve(e,t):
    if same and c.zone=="grave":e.move_to(c,"palette");c.tapped=true
    e.gain_life(who,2)
   "spell-fdn-010":
-   for i in range(int(d.get("value",0))):C.printed_token(e,who,"token-fdf-129")
+   C.printed_tokens(e,who,int(d.get("value",0)),"token-fdf-129")
   "spell-fdf-018":if not e.flip_coin(who):C.events(e,source,"cat:lie_damage",false)
   "cat:lie_damage","cat:god_damage":
    for r in e.Pack.picked(a):C.damage(e,r,int(d.get("amount",1)))
@@ -274,7 +273,7 @@ static func resolve(e,t):
    if same and c.zone=="grave":e.move_to(c,"hand")
   "cat:element_reveal":
    if C.valid(e,d.ref):
-    var u=e.find_card(d.ref.uid);e.move_to(u,"exile");C.grant_cast(e,u,who,u.card_id=="spell-fdf-079",{"红":1} if u.card_id=="spell-fdf-078" else {})
+    var u=e.find_card(d.ref.uid);e.move_to(u,"exile");C.grant_cast(e,u,who,u.card_id=="spell-fdf-079",{"红":1} if u.card_id=="spell-fdf-078" else {},u.card_id=="spell-fdf-079")
   _:return resolve_choices(e,t)
  return true
 static func resolve_choices(e,t):
@@ -287,7 +286,10 @@ static func resolve_choices(e,t):
   "cat:unit_reveal":
    var chosen=C.selected(e,a)
    for u in chosen:
-    if d.mode=="character-fdf-041:self":e.Roster.field_many(e,[u],who)
+    if d.mode=="character-fdf-041:self":
+     e.Roster.field_many(e,[u],who)
+     if u.zone=="field" and u.card_id not in C.SPELLS and "时符" in e.cards[u.card_id].get("spell_type","") and u.timer==0:
+      e.add_timer(u,int(e.cards[u.card_id].get("time",0)))
     else:e.move_to(u,"hand")
    var rest=d.top.filter(func(r):return C.valid(e,r))
    if d.mode=="character-fdf-119:self":C.choose(e,t,"cat:bottom_order",e.Roster.pick(e,rest,rest.size(),rest.size(),"依次放入牌库底"))
@@ -298,7 +300,7 @@ static func resolve_choices(e,t):
   "cat:megumu":
    var list=C.selected(e,a);e.Roster.field_many(e,list,who)
    for u in list:
-    if u.zone=="field":C.buff(e,u,0,0,0,["疾行"]);C.delay(e,u,"hand")
+    if u.zone=="field":C.buff(e,u,0,0,0,["疾行"]);C.delay(e,u,"hand",-1,"end",{},t.source)
   "cat:hypnosis":
    for u in C.selected(e,a):e.move_to(u,"grave")
    if d.first:C.choose(e,t,"cat:hypnosis",C.pick(e,e.players[1-who].hand,mini(1,e.players[1-who].hand.size()),1,"弃一张手牌"),{"controller":d.controller,"first":false},1-who)
@@ -389,7 +391,7 @@ static func resolve_activation(e,t):
    if C.valid(e,a):
     var u=e.find_card(a.uid);e.Roster.field_many(e,[u],who)
     if u.zone=="field":
-     C.buff(e,u,0,0,0,["疾行"]);C.delay(e,u);e.delayed.back().expires_turn=e.turn
+     C.buff(e,u,0,0,0,["疾行"]);C.delay(e,u,"sacrifice",-1,"end",{},t.source);e.delayed.back().expires_turn=e.turn
   "item-ucs-013":p.all_self_turn=e.turn
   "item-htk-008":e.draw(who,2);C.continued_move(e,t,p.hand,mini(1,p.hand.size()),1,"grave","弃一张牌")
   "character-fdn-036:self":if C.unit(e,a):e.move_to(e.find_card(a.uid),"hand")
@@ -404,7 +406,7 @@ static func resolve_activation(e,t):
    if a.has("picks"):
     var n=a.picks[0].size();C.Spells.search(e,t,p.deck.filter(func(u):return C.role(e,u,"爱丽丝") and "终言" not in e.cards[u.card_id].keywords and e.Extra.cost_value(e,u)==n),0,1,"hand")
    else:
-    for i in range(2):C.token(e,who,"人偶",1,1,1,["黄"])
+    C.tokens(e,who,2,"人偶",1,1,1,["黄"])
   "character-fdf-102","spell-fdn-019":
    for u in C.selected(e,a,1):u.tapped=false
   "character-fdn-027":if C.unit(e,a):C.buff(e,e.find_card(a.uid),0,0,0,["防避3"])

@@ -15,7 +15,6 @@ static func force(e,who):
    if handler=="roster" and k=="character-fdf-106":
     templates.append({"family":"roster","effect":k,"data":{"event":"enter"}})
     templates.append({"family":"roster","effect":k,"data":{"event":"death"}})
-   if handler=="roster" and k=="character-fdf-101":templates.append({"family":"roster","effect":"cat:momiji_name"})
    if handler=="precon" and k in MAIN_PRECON:templates.append({"family":"precon","effect":k})
    if handler=="precon" and k=="sanae_end":templates.append({"family":"precon","effect":k})
    if handler=="extension" and k in MAIN_EXTENSION:templates.append({"family":"extension","effect":k})

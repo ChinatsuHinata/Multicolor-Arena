@@ -111,9 +111,18 @@ static func permission(e,c: Dictionary,who: int) -> bool:
  return c.owner==who and c.zone=="grave" and e.active==who and e.cards[c.card_id].kind=="符卡" and e.Extra.cost_value(e,c)<=2 and e.players[who].field.any(func(u): return has(e.cards[u.card_id],"heart_grave")) and not e.players[who].get("heart_used_turn",-1)==e.turn
 static func bypass(e,c: Dictionary,who: int) -> bool:
  return (forced(e,c,who) and e.forced_cast.get("ignore",true)) or Cat.State.bypass(e,c,who) or permission(e,c,who) and c.get("excel_access",{}).get("ignore",false)
+static func mandatory_free_cast(e,c: Dictionary,who: int) -> bool:
+ if c.is_empty():return false
+ if forced(e,c,who) and e.forced_cast.get("free",true) and not e.forced_cast.get("optional_payment",false):return true
+ if c.zone=="exile":
+  if c.get("free_exile_owner",-1)==who:return true
+  var access=c.get("excel_access",{})
+  if access.get("owner",-1)==who and access.get("turn",-1)==e.turn:return true
+ return Cat.State.mandatory_free_cast(e,c,who)
 static func free_cast(e,c: Dictionary,who: int) -> bool:
+ if mandatory_free_cast(e,c,who):return true
  if e.paid_cast_uid==c.uid:return false
- return (c.zone=="exile" and c.get("free_exile_owner",-1)==who) or (forced(e,c,who) and e.forced_cast.get("free",true)) or Cat.State.free_cast(e,c,who) or (c.get("excel_access",{}).get("owner",-1)==who and c.excel_access.turn==e.turn) or e.players[who].field.any(func(u):return has(e.cards[u.card_id],"free_anthem"))
+ return (forced(e,c,who) and e.forced_cast.get("free",true)) or Cat.State.free_cast(e,c,who) or e.players[who].field.any(func(u):return has(e.cards[u.card_id],"free_anthem"))
 static func cost(e,c: Dictionary,who: int,base: Dictionary) -> Dictionary:
  if free_cast(e,c,who): return {}
  var result=base.duplicate()
@@ -324,7 +333,7 @@ static func resolve_trigger(e,t: Dictionary):
    if e.players[1-who].life>e.players[who].life:e.gain_life(who,2)
    if e.players[1-who].hand.size()>e.players[who].hand.size():e.draw(who)
   "kanako_cast":
-   for i in range(4):create_token(e,who,"pillar",2,["绿"],["不占战场格"])
+   create_tokens(e,who,4,"pillar",2,["绿"],["不占战场格"])
   "kanako_ten":
    if e.units(who).size()>=10:
     for u in e.units(who):plus(e,u,1)
@@ -358,8 +367,6 @@ static func resolve_trigger(e,t: Dictionary):
    if unit(e,data.ref):Batch.counter(e,e.find_card(data.ref.uid),"minus_counters",3,who)
   "komachi_coin":
    e.add_coin(data.player)
-   var p=e.players[data.player]
-   if p.coins>=3:e.lose(data.player,"获得三个铜钱指示物",true)
   "luna_life":e.gain_life(who,e.units(who).filter(func(c):return race(e,c,"妖精")).size())
   "star_destroy":
    if valid(e,aim):e.destroy(e.find_card(aim.uid))
@@ -587,12 +594,12 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
     if e.cards[u.card_id].kind=="符卡":e.move_to(u,"exile");u.excel_access={"owner":who,"turn":e.turn,"ignore":true}
    bottom_rest(e,top,who);exile=true
   "two_bats":
-   for i in range(2):create_token(e,who,"bat",1,["红","黑"])
+   create_tokens(e,who,2,"bat",1,["红","黑"])
   "ghost_imp":
    if valid(e,t):
     var victim=e.find_card(t.uid);var n=e.Extra.cost_value(e,victim);e.move_to(victim,"exile")
     var token=create_token(e,who,"imp",n,["黑"],["疾行"])
-    if not token.is_empty():e.delayed.append({"owner":who,"phase":"end","effect":"token_sacrifice","ref":e.ref_target(token),"zone":"field"})
+    if not token.is_empty():e.delayed.append({"owner":who,"phase":"end","effect":"token_sacrifice","ref":e.ref_target(token),"zone":"field","origin_name":e.cards[c.card_id].name})
   "gather_counters":
    var total=0
    for u in e.units(0)+e.units(1):
@@ -639,7 +646,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
    for u in e.players[who].grave.duplicate():e.move_to(u,"palette");u.tapped=true
    e.players[who].life=20;exile=true
   "frogs_x":
-   for i in range(x):create_token(e,who,"frog",x,["蓝","绿"],["不占战场格"])
+   create_tokens(e,who,x,"frog",x,["蓝","绿"],["不占战场格"])
    if x>=3:
     for u in e.units(who):e.apply_turn_buff(e.ref_target(u),{"英勇":true,"歼灭":true})
   "fire_scry":begin_scry(e,entry,who,2,true)
@@ -840,14 +847,18 @@ static func register_tokens(e):
   e.cards["roster_token_"+kind]={"name":names[kind],"kind":"单位","character":names[kind],"title":"","race":[names[kind]],"colors":["黑"],"cost":{},"power":1,"health":1,"spirit":1,"keywords":[],"abilities":[],"fast":false,"requires_character":"","rules_text":"","token":true,"constructible":false}
   if kind in ["bat","kobito"]:e.cards["roster_token_"+kind].copy_source_id="token-kmo-027" if kind=="bat" else "token-smm-025"
   if kind in ["pillar","frog"]:e.cards["roster_token_"+kind].image="res://assets/token_cards/"+kind+".jpg"
-static func create_token(e,who: int,kind: String,n: int,colors: Array,keywords: Array=[]) -> Dictionary:
+static func create_tokens(e,who: int,count: int,kind: String,n: int,colors: Array,keywords: Array=[]) -> Array:
+ var list=[]
+ for i in range(maxi(0,count)):list.append(create_token(e,who,kind,n,colors,keywords,false))
+ return e.enter_token_batch(list,who)
+static func create_token(e,who: int,kind: String,n: int,colors: Array,keywords: Array=[],enter: bool=true) -> Dictionary:
  var id="roster_token_"+kind+"_"+str(e.next_uid);var info=e.cards["roster_token_"+kind].duplicate(true)
  info.power=n;info.health=n;info.spirit=n;info.colors=colors;info.keywords=keywords.duplicate()
  if kind=="pillar":info.spirit=1;info.keywords.append("英勇")
  if kind=="ghost":info.spirit=0;info.keywords.append("不占战场格")
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
- return c if e.enter_field(c,who) else {}
+ return c if not enter or e.enter_field(c,who) else {}
 static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  var id="roster_copy_"+str(e.next_uid);var info=e.cards[source.card_id].duplicate(true)
  info.name="偶像";info.character="偶像";info.title="";info.race=["埴轮"];info.token=true;info.constructible=false;info.copy_source_id=source.card_id
@@ -856,6 +867,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  var c=e.make_card(id,who,"token")
  return c if e.enter_field(c,who) else {}
 static func target_survives(e,id: String,t: Dictionary) -> bool:
+ if has(e.cards[id],"n21:ETO-011"):return true
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
  if has(e.cards[id],"angry_mask"):return unit(e,t)
  if has(e.cards[id],"emotions") and e.Pack.flatten(t).is_empty():return true

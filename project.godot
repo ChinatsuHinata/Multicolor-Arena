@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="multicolor:arena"
-config/version="1.2.3.1"
+config/version="1.2.5.1"
 run/main_scene="res://main.tscn"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="Godot/app_userdata/极彩 Multicolour"
@@ -27,6 +27,8 @@ window/size/mode=2
 window/size/window_width_override=1600
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
 
 [editor_plugins]
 
@@ -36,3 +38,4 @@ enabled=PackedStringArray("res://addons/share_export/plugin.cfg")
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

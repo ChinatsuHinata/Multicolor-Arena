@@ -3,49 +3,83 @@ const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
 ## Screen-space stack, outside the battlefield's input and rendering rectangle.
 const AREA=Rect2(1358,148,236,452)
 const CARD_SIZE=Vector2(218,305)
+const ANDROID_CARD_SIZE=Vector2(92,128)
 var view
 var scroll: ScrollContainer
 var column: VBoxContainer
 var heading: Label
 var tiles={}
 var signature=""
+func chosen_mode(entry: Dictionary) -> String:
+ if entry.get("kind","")!="card":return ""
+ var target=entry.get("target",{})
+ var mode=str(target.get("mode",""))
+ if mode.is_empty() and target.has("ignore_color"):
+  mode="不忽略颜色" if target.ignore_color=="无" else "忽略%s色" % target.ignore_color
+ return "已选择："+mode if not mode.is_empty() else ""
 func build(owner_view):
  view=owner_view;position=AREA.position;size=AREA.size;mouse_filter=Control.MOUSE_FILTER_IGNORE
  heading=view.txt("",Rect2(3,0,230,29),20,view.host.GOLD,self)
  scroll=ScrollContainer.new();scroll.position=Vector2(0,33);scroll.size=Vector2(236,419)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  add_child(scroll)
- column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- column.add_theme_constant_override("separation",15);scroll.add_child(column)
+ column=VBoxContainer.new()
+ column.add_theme_constant_override("separation",6 if view.is_android else 15)
+ column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
 func sync():
  visible=not view.engine.stack.is_empty()
- heading.text="堆叠  %d" % view.engine.stack.size()
- var next=JSON.stringify(view.engine.stack.map(func(e):return [e.id,e.get("ability_text",""),e.get("awaiting_target",false)]))
+ heading.text="堆叠 %d · 从上往下结算" % view.engine.stack.size() if view.is_android else "堆叠  %d" % view.engine.stack.size()
+ var next=JSON.stringify(view.engine.stack.map(func(e):return [e.id,e.get("ability_text",""),e.get("awaiting_target",false),chosen_mode(e)]))
  if next!=signature:
   var old_ids=tiles.keys();var old_top=column.get_child(0).get_meta("stack_id",-1) if column.get_child_count()>0 else -1
   var scroll_y=scroll.scroll_vertical
   for child in column.get_children():column.remove_child(child);child.queue_free()
   tiles.clear();signature=next
   var entries=view.engine.stack.duplicate();entries.reverse()
-  for entry in entries:
+  for index in range(entries.size()):
+   var entry=entries[index]
    var card=entry.card if entry.kind=="card" else entry.source
-   var row=VBoxContainer.new();row.set_meta("stack_id",entry.id);row.add_theme_constant_override("separation",5)
+   var row: BoxContainer=HBoxContainer.new() if view.is_android else VBoxContainer.new()
+   row.set_meta("stack_id",entry.id);row.add_theme_constant_override("separation",8 if view.is_android else 5)
    column.add_child(row)
-   var tile=preload("res://scripts/live_tooltip_panel.gd").new();tile.custom_minimum_size=Vector2(218,156) if view.host.landscape_card(card.card_id) else CARD_SIZE;tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+   var tile=preload("res://scripts/live_tooltip_panel.gd").new()
+   var card_size=ANDROID_CARD_SIZE if view.is_android else CARD_SIZE
+   tile.custom_minimum_size=Vector2(card_size.x,card_size.x*156.0/218.0) if view.host.landscape_card(card.card_id) else card_size
+   tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
    tile.set_meta("uid",card.uid);tile.set_meta("card_id",card.card_id);row.add_child(tile)
    var art=TextureRect.new();art.texture=view.card_texture(card,true);art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
    art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;art.mouse_filter=Control.MOUSE_FILTER_IGNORE;tile.add_child(art)
    tile.gui_input.connect(func(event):
-    if not event is InputEventMouseButton or not event.pressed:return
-    if event.button_index==MOUSE_BUTTON_RIGHT:
+    if not event is InputEventMouseButton:return
+    if event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
      view.inspect_card(card.card_id,card.uid);tile.accept_event()
-    elif event.button_index==MOUSE_BUTTON_LEFT:
+    elif event.button_index==MOUSE_BUTTON_LEFT and event.pressed!=view.is_android:
      if not view.observing and not view.modal and not view.history_open and not view.revealing():view.choose_target({"stack_id":entry.id})
      tile.accept_event())
-   var caption=Label.new();caption.text=view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else ""
-   caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size.x=218
-   caption.add_theme_font_size_override("font_size",15);caption.add_theme_color_override("font_color",view.host.WHITE)
-   caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.visible=not caption.text.is_empty();row.add_child(caption)
+   var details: VBoxContainer
+   if view.is_android:
+    details=VBoxContainer.new()
+    details.custom_minimum_size.x=scroll.size.x-card_size.x-8
+    details.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    details.add_theme_constant_override("separation",4)
+    row.add_child(details)
+    var order=Label.new();order.name="StackOrder"
+    order.text="%d · %s" % [index+1,"先结算" if index==0 else "随后结算"]
+    order.add_theme_font_size_override("font_size",16)
+    order.add_theme_color_override("font_color",view.host.GOLD)
+    order.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(order)
+   var caption_text=view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else ""
+   var mode=chosen_mode(entry)
+   if not mode.is_empty():caption_text=mode if caption_text.is_empty() else caption_text+"\n"+mode
+   var caption=Label.new();caption.text=caption_text
+   caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size.x=details.custom_minimum_size.x if view.is_android else card_size.x
+   if view.is_android:
+    caption.max_lines_visible=4
+    caption.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+   caption.add_theme_font_size_override("font_size",13 if view.is_android else 15);caption.add_theme_color_override("font_color",view.host.WHITE)
+   caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.visible=not caption.text.is_empty()
+   if view.is_android:details.add_child(caption)
+   else:row.add_child(caption)
    tile.tooltip_text=entry.name+("\n"+caption.text if not caption.text.is_empty() else "")
    tiles[entry.id]={"tile":tile,"caption":caption,"art":art}
    if entry.kind=="ability" and entry.id not in old_ids:call_deferred("animate_ability",entry.id,entry.source.duplicate(true))
@@ -72,7 +106,7 @@ func card_rect(uid:int) -> Rect2:
   if tiles[id].tile.get_meta("uid")==uid:return entry_rect(id)
  return Rect2()
 func arrival_rect() -> Rect2:
- return Rect2(AREA.position+Vector2(0,33),CARD_SIZE)
+ return Rect2(scroll.get_global_rect().position,ANDROID_CARD_SIZE if view.is_android else CARD_SIZE)
 func inspect_at(point:Vector2) -> bool:
  for id in tiles:
   if entry_rect(id).has_point(point):

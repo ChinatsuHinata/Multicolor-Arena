@@ -1,5 +1,6 @@
 extends RefCounted
 ## Short stack captions identify the specific ability, never every ability on the card.
+const Catalogue=preload("res://scripts/rules/catalogue_abilities.gd")
 const TEXT={
  "end_grave_return":"结束阶段：将目标非自机单位牌从墓地移回手牌。",
  "leader_enter_modes":"自机能力：造成2点伤害、横置目标单位或抓一张牌。",
@@ -39,6 +40,13 @@ const TEXT={
  "leader_bounce":"自机能力：将目标己方单位移回手牌。"
 }
 static func text(entry: Dictionary) -> String:
+ # Restored stacks may still contain the old internal key as ability_text.
+ if entry.get("effect","")=="cat:etb_curse":return Catalogue.CAPTIONS["cat:etb_curse"]
+ if entry.get("effect","")=="cat:delayed":
+  var delayed_data=entry.get("data",{}).duplicate()
+  if not delayed_data.has("origin_name"):delayed_data.origin_name=entry.get("name","未知来源")
+  if not delayed_data.has("target_name"):delayed_data.target_name=entry.get("name","该牌")
+  return Catalogue.delay_caption(delayed_data)
  if entry.has("ability_text"): return entry.ability_text
  var effect=entry.get("effect","")
  if effect=="leader_enter_modes" and entry.get("target",{}).has("mode"): return "自机能力："+entry.target.mode+"。"

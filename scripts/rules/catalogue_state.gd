@@ -50,7 +50,7 @@ static func bypass(e,c,who):
  if C.race(e,c,"神") and p.get("god_bypass",-1)==e.turn:return true
  if C.enabled(e,c,"character-fdn-004:self") and p.life<=10:return true
  for u in e.units(who)+[c]:
-  if (C.enabled(e,u,"character-ucs-068:self") or C.enabled(e,u,"character-fdn-071:self")) and (u.uid==c.uid or c.leader):return true
+  if (C.enabled(e,u,"character-ucs-068:self") or C.enabled(e,u,"character-fdn-071:self")) and (u.uid==c.uid or e.cards[c.card_id].kind=="自机"):return true
  return false
 static func role_present(e,c,who):
  var C=e.Cat;var required=e.cards[c.card_id].requires_character
@@ -59,16 +59,20 @@ static func role_present(e,c,who):
  if C.has(e,c,"spell-fdn-023") and e.players[who].grave.any(func(u):return C.character(e,u,"少名针妙丸") and e.Extra.cost_value(e,u)==3):return true
  if c.get("catalogue_access",{}).get("support",false) and e.players[who].leader.zone=="leader" and C.role(e,c,e.cards[e.players[who].leader.card_id].character):return true
  return false
-static func free_cast(e,c,who):
- if e.paid_cast_uid==c.uid:return false
+static func mandatory_free_cast(e,c,who):
  var C=e.Cat;var p=e.players[who]
  if c.zone=="exile" and p.get("exile_free",{}).get("turn",-1)==e.turn and p.exile_free.remaining>0:return true
  if c.zone=="palette" and C.role(e,c,"魂魄妖梦") and p.get("youmu_palette_turn",-1)!=e.turn and e.active==who and not C.with_key(e,who,"character-fdf-102:self").is_empty():return true
  if e.is_unit(c) and p.get("next_free_unit",-1)==e.turn:return true
+ return false
+static func free_cast(e,c,who):
+ if mandatory_free_cast(e,c,who):return true
+ if e.paid_cast_uid==c.uid:return false
+ var C=e.Cat;var p=e.players[who]
  if C.has(e,c,"spell-fdf-088") and e.units(who).size()>=5:return true
  if C.has(e,c,"spell-fdf-005") and e.units(1-who).size()>e.units(who).size():return true
  return p.get("next_fairy_leader",-1)==e.turn and e.cards[c.card_id].kind=="自机" and C.race(e,c,"妖精")
-static func discount(e,who,cost,n):
+static func discount_options(cost,n):
  var options=[cost.duplicate()]
  for i in range(n):
   var next=[]
@@ -79,12 +83,8 @@ static func discount(e,who,cost,n):
      if copy not in next:next.append(copy)
   if next.is_empty():break
   options=next
- var best=options[0];var score=999999
- for choice in options:
-  var payment=e.payment(who,choice)
-  if payment.ways>0 and payment.score<score:best=choice;score=payment.score
- return best
-static func cost(e,c,who,base,target):
+ return options
+static func cost_options(e,c,who,base,target):
  var C=e.Cat;var p=e.players[who];var result=base.duplicate();var n=0
  if e.Roster.forced(e,c,who) and not e.forced_cast.get("cost",{}).is_empty():result=e.forced_cast.cost.duplicate()
  if free_cast(e,c,who):result={}
@@ -97,14 +97,17 @@ static func cost(e,c,who,base,target):
  n+=int(c.get("catalogue_access",{}).get("discount",0))
  if p.get("maid_discount",{}).get("turn",-1)==e.turn and (C.role(e,c) or C.race(e,c,"吸血鬼")):
   var color=p.maid_discount.color;result[color]=maxi(0,int(result.get(color,0))-1)
- result=discount(e,who,result,n)
- if C.has(e,c,"spell-fdf-082") and target.has("ignore_color"):result.erase(target.ignore_color)
- if C.has(e,c,"spell-fdf-053"):result["绿"]=maxi(0,int(result.get("绿",0))-int(target.get("counter_payment",0)))
- if C.has(e,c,"spell-fdf-030") and target.get("pitch",false):result={}
- if C.has(e,c,"character-fdf-046") and target.get("extra_green",false):result["绿"]=int(result.get("绿",0))+1
+ var options=[]
  var tax=C.with_key(e,1-who,"spell-ucs-031").size()
- if tax>0:result["红/蓝/绿/黄/黑"]=int(result.get("红/蓝/绿/黄/黑",0))+tax
- return result
+ # Keep every allocation until the player chooses which resources to spend.
+ for candidate in discount_options(result,n):
+  if C.has(e,c,"spell-fdf-082") and target.has("ignore_color"):candidate.erase(target.ignore_color)
+  if C.has(e,c,"spell-fdf-053"):candidate["绿"]=maxi(0,int(candidate.get("绿",0))-int(target.get("counter_payment",0)))
+  if C.has(e,c,"spell-fdf-030") and target.get("pitch",false):candidate={}
+  if C.has(e,c,"character-fdf-046") and target.get("extra_green",false):candidate["绿"]=int(candidate.get("绿",0))+1
+  if tax>0:candidate["红/蓝/绿/黄/黑"]=int(candidate.get("红/蓝/绿/黄/黑",0))+tax
+  if candidate not in options:options.append(candidate)
+ return options
 static func cast_error(e,c,who):
  var C=e.Cat;var p=e.players[who]
  if p.get("night_lock",-1)==e.turn:return "本回合不能使用牌或启动能力"
@@ -121,7 +124,7 @@ static func protected(e,t,who,spell):
  return spell and e.is_unit(c) and not C.with_key(e,c.owner,"character-ucs-061").is_empty() and e.get("catalogue_target_fast")
 static func activation_locked(e,c):
  if e.players[c.owner].get("night_lock",-1)==e.turn:return true
- return e.Cat.field(e).any(func(u):return e.Cat.has(e,u,"character-fdf-101") and u.get("locked_name","")==e.cards[c.card_id].name)
+ return e.Cat.field(e).any(func(u):return e.Cat.has(e,u,"character-fdf-101") and u.get("locked_name","")==e.Cat.canonical_name(e,c.card_id))
 static func can_combat(e,c):
  var C=e.Cat
  if C.has(e,c,"character-fdn-045") and not e.units(c.owner).any(func(u):return C.character(e,u,"爱丽丝")):return false

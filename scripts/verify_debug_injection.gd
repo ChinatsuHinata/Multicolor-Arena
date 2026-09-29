@@ -26,15 +26,18 @@ func find_button(node: Node,title: String):
  return null
 
 func pick_card(view,id: String) -> bool:
- var search=find_control(view.modal_root,"LineEdit")
+ var search=view.modal_root.find_child("SearchInput",true,false)
  if search==null:return false
  search.text=id;search.text_changed.emit(id)
- var panel=view.modal_root.get_child(0)
- for child in panel.get_children():
-  if child is ScrollContainer:
-   for row in child.get_child(0).get_children():
-    if row is Button and ("["+id+"]") in row.text:
-     row.pressed.emit();return true
+ var results=view.modal_root.find_child("SearchResults",true,false)
+ if results==null:return false
+ for row in results.get_children():
+  if row is Button and row.get_meta("card_id","")==id:
+   row.pressed.emit()
+   var confirm=view.modal_root.find_child("ConfirmSelection",true,false)
+   if not confirm is Button or confirm.disabled:return false
+   confirm.pressed.emit()
+   return true
  return false
 
 func run():
@@ -89,17 +92,9 @@ func run():
  check(group.get("owner",-1)==0 and group.get("group","")=="unit","field hit maps to player unit area")
  view.open_debug_card_picker(1,"field","unit")
  check(view.modal,"card picker opens")
- var search=find_control(view.modal_root,"LineEdit")
+ var search=view.modal_root.find_child("SearchInput",true,false)
  check(search!=null,"card picker has search")
- search.text="new-eto-002";search.text_changed.emit(search.text)
- var panel=view.modal_root.get_child(0)
- var added=false
- for child in panel.get_children():
-  if child is ScrollContainer:
-   var rows=child.get_child(0)
-   for row in rows.get_children():
-    if row is Button and "new-eto-002" in row.text:
-     row.pressed.emit();added=true;break
+ var added=pick_card(view,"new-eto-002")
  check(added and game.players[1].field.any(func(c):return c.card_id=="new-eto-002"),"picker adds selected card to selected side")
  game.presentation_events.clear();view.reveal_player.reset()
  game.active=1;game.priority=1

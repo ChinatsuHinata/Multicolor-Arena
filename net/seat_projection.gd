@@ -92,6 +92,9 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  var definitions={}
  for c in all+q.lookup.values():
   if not c.is_empty():definitions[c.card_id]=e.cards[c.card_id]
+ if not e.players[seat].deck.is_empty() and e.Cat.may_peek(e,seat):
+  var top_card=e.players[seat].deck[0]
+  definitions[top_card.card_id]=e.cards[top_card.card_id]
  for event in state.presentation_events:
   if event.has("card") and e.cards.has(event.card.get("card_id","")):definitions[event.card.card_id]=e.cards[event.card.card_id]
  # Searching an entire library permits seeing its cards, not their shuffled order.

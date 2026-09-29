@@ -9,19 +9,20 @@ func reset():
 func configure(options: Array,signature: String,unordered_parts: bool=false):
  if key==signature: return
  key=signature; path=[]; entries=[]; specs=[]
+ var has_selection=options.any(func(option):return option.has("selection"))
+ var fixed_groups={}
  for option in options:
   if option.has("selection"): specs.append(option.duplicate(true)); continue
   entries.append({"option":option.duplicate(true),"steps":steps(option)})
   if unordered_parts and option.get("parts",[]).size()==2:
    var reversed=option.duplicate(true); reversed.parts.reverse()
    entries.append({"option":option.duplicate(true),"steps":steps(reversed)})
- if not specs.is_empty() and not entries.is_empty():
-  var included=[]
-  for entry in entries:
-   var o=entry.option
-   if o in included:continue
-   included.append(o)
-   specs.append({"selection":[],"selection_id":"fixed_"+str(specs.size()),"fixed_option":o,"title":o.get("mode","选择目标")})
+  if has_selection:
+   var group_key=str(option.get("mode","")) if not str(option.get("mode","")).is_empty() else "fixed_"+str(fixed_groups.size())
+   if not fixed_groups.has(group_key):
+    fixed_groups[group_key]=specs.size()
+    specs.append({"selection":[],"selection_id":"fixed_"+str(specs.size()),"fixed_options":[],"title":option.get("mode","选择目标")})
+   specs[fixed_groups[group_key]].fixed_options.append(option.duplicate(true))
  normalize()
 func steps(option: Dictionary) -> Array:
  var result=[]
@@ -53,20 +54,33 @@ func normalize():
   var next=at(path)
   if next.size()!=1 or next[0].kind=="target" or ready(): return
   path.append(next[0])
+func final_group_full(state: Dictionary) -> bool:
+ if state.index<0 or specs[state.index].has("fixed_options"): return false
+ var groups: Array=specs[state.index].selection
+ if state.group!=groups.size()-1: return false
+ var group: Dictionary=groups[state.group]
+ return int(group.max)>0 and state.current.size()==int(group.max)
 func ready() -> bool:
  if not specs.is_empty():
   var state=dynamic_state()
-  if state.index>=0 and specs[state.index].has("fixed_option"):
-   return path.filter(func(a):return a.kind!="spec").size()>=steps(specs[state.index].fixed_option).filter(func(a):return a.kind!="mode").size()
-  return state.index>=0 and state.group>=specs[state.index].selection.size()
+  if state.index>=0 and specs[state.index].has("fixed_options"):
+   var chosen=path.filter(func(a):return a.kind!="spec")
+   return specs[state.index].fixed_options.any(func(option):return steps(option).filter(func(a):return a.kind!="mode")==chosen)
+  return state.index>=0 and (state.group>=specs[state.index].selection.size() or final_group_full(state))
  return entries.any(func(entry): return entry.steps==path)
 func option() -> Dictionary:
  if not specs.is_empty():
   if not ready(): return {}
   var state=dynamic_state()
   var spec=specs[state.index]
-  if spec.has("fixed_option"):return spec.fixed_option.duplicate(true)
-  var result=spec.duplicate(true);result.erase("selection");result.picks=state.picks;return result
+  if spec.has("fixed_options"):
+   var chosen=path.filter(func(a):return a.kind!="spec")
+   for candidate in spec.fixed_options:
+    if steps(candidate).filter(func(a):return a.kind!="mode")==chosen:return candidate.duplicate(true)
+   return {}
+  var result=spec.duplicate(true);result.erase("selection");result.picks=state.picks.duplicate(true)
+  if final_group_full(state):result.picks.append(state.current.duplicate(true))
+  return result
  for entry in entries:
   if entry.steps==path: return entry.option.duplicate(true)
  return {}
@@ -108,10 +122,14 @@ func dynamic_available() -> Array:
  if state.index<0:
   for i in range(specs.size()): result.append({"kind":"spec","index":i,"value":specs[i].get("title",specs[i].selection[0].get("title","选择") if not specs[i].selection.is_empty() else "选择")})
   return result
- if specs[state.index].has("fixed_option"):
-  var sequence=steps(specs[state.index].fixed_option).filter(func(a):return a.kind!="mode")
+ if specs[state.index].has("fixed_options"):
   var chosen=path.filter(func(a):return a.kind!="spec")
-  if chosen.size()<sequence.size():result.append(sequence[chosen.size()])
+  for option in specs[state.index].fixed_options:
+   var sequence=steps(option).filter(func(a):return a.kind!="mode")
+   if has_prefix(sequence,chosen) and chosen.size()<sequence.size() and sequence[chosen.size()] not in result:result.append(sequence[chosen.size()])
+  return result
+ if final_group_full(state):
+  result.append({"kind":"finish_group","value":"完成选择（%d）" % state.current.size()})
   return result
  if ready(): return result
  var g=specs[state.index].selection[state.group]
@@ -136,5 +154,5 @@ func prompt() -> String:
  if specs.is_empty() or ready(): return ""
  var state=dynamic_state()
  if state.index<0: return "选择一项"
- if specs[state.index].has("fixed_option"):return specs[state.index].get("title","")
+ if specs[state.index].has("fixed_options"):return specs[state.index].get("title","")
  return specs[state.index].selection[state.group].get("title","")
