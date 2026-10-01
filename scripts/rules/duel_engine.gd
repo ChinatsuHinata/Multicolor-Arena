@@ -141,6 +141,8 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  note("对局开始，双方起手 4 张")
 func shift(c: Dictionary, location: String):
  var old=c.get("zone","")
+ var copy_entry_counters=Cat.counter_snapshot(c) if c.has("copy_entry_counters") else {}
+ c.erase("copy_entry_counters")
  if location=="field" and old!="field":
   var usage_prefix=str(c.uid)+":"
   for usage_key in turn_usage.keys():
@@ -158,12 +160,14 @@ func shift(c: Dictionary, location: String):
   record_history(caption,art)
  c.zone=location; c.epoch+=1; c.tapped=false; c.damage=0; c.timer=0; c.attacked=false; c.modifiers=[]; c.plus_counters=0; c.poverty=0; c.spell_damage=false
  c.leader_counters=0
- for k in ["sanae_used","brave_attack_turn","locked_name","ran_discount_disabled","rank_target","imp_growth","reisen_illusion","catalogue_access","catalogue_castle","dream","madness","noncombat_damage_turn"]:c.erase(k)
+ for k in ["sanae_used","brave_attack_turn","locked_name","ran_discount_disabled","murder_dolls_skip_disabled","rank_target","imp_growth","reisen_illusion","catalogue_access","catalogue_castle","dream","madness","noncombat_damage_turn"]:c.erase(k)
  if old!="stack" or location!="field":
   for k in ["ichirin_paid","top_free_damage","haste_on_enter","exiled_hand","paid_dolls"]:c.erase(k)
  for key in ["wards","color_counters","free_exile_owner","devour_owner","base_override","lock_sources","castle_exiles","medicine","skip_reset","tapped_turn"]: c.erase(key)
  for k in ["history_spent","drunk_counters","n21_drunk_triggered","n21_suika_return","n21_spirit","courage","moods","minus_counters","scare","freeze_until","perfect_lock","control_return","died_turn","excel_access"]:c.erase(k)
  if old!="stack" or location!="field": c.erase("cast_x");c.erase("exile_on_grave")
+ # Copies enter with their counters before entry abilities and observers run.
+ if location=="field" and not copy_entry_counters.is_empty():Cat.copy_counters(c,copy_entry_counters)
 func draw(who: int,count: int=1):
  for i in range(count):
   if players[who].deck.is_empty(): lose(who,"牌库不足，无法抓牌"); return
@@ -350,8 +354,7 @@ func targets_for(id: String,acting: int=-1,source_uid: int=-1) -> Array:
   return Roster.filter_options(self,extended,acting,true)
  var targets=[]
  if DB.has_ability(cards[id],"counter_card"):
-  for e in stack:
-   if e.kind=="card": targets.append({"stack_id":e.id})
+  if stack.any(func(entry):return entry.kind=="card"):targets=Pack.none()
  elif DB.has_ability(cards[id],"turn_buff"):
   for who in range(2):
    for c in units(who): targets.append(ref_target(c))
@@ -420,12 +423,17 @@ func trigger_options(t: Dictionary) -> Array:
  if t.get("extended",false): return Roster.filter_options(self,Extra.trigger_options(self,t),t.owner,false)
  if t.get("effect","")=="untap": return [{"none":true}]
  return Roster.filter_options(self,(units(0)+units(1)).map(func(c): return ref_target(c)),t.owner,false)
+func skip_murder_dolls_trigger(t: Dictionary) -> bool:
+ # Auto-decline only before announcement; accepted abilities still resolve normally.
+ return t.get("effect","")=="cat:murder_dolls" and not t.source.get("murder_dolls_skip_disabled",false) and units(1-t.owner).is_empty()
 func begin_trigger(t: Dictionary):
+ if skip_murder_dolls_trigger(t):return
  var options=trigger_options(t)
  # A drawn Miracle is private until its owner chooses to cast it. Do not
  # announce an ability or create a stack object that exposes the card first.
  if t.get("effect","")=="miracle":
   if miracle_blocked(t.source,t.owner):return
+  if cards[t.source.card_id].kind=="符卡":options=targets_for(t.source.card_id,t.owner,t.source.uid)
   pending={"kind":"effect_choice","owner":t.owner,"trigger":t,"options":options}
   return
  # A lack of legal targets does not erase a triggered event.
@@ -480,7 +488,7 @@ func pump_choices():
   if grave_replacement_sources(c).is_empty(): move_to(c,"hand",true,false); continue
   pending={"kind":"grave_replacement","owner":c.owner,"target":request.target}; return
  while not triggers.is_empty():
-  triggers=triggers.filter(func(t):return t.get("effect","")!="miracle" or not miracle_blocked(t.source,t.owner))
+  triggers=triggers.filter(func(t):return not skip_murder_dolls_trigger(t) and (t.get("effect","")!="miracle" or not miracle_blocked(t.source,t.owner)))
   if triggers.is_empty():break
   # 1.12 / 1.142a: active player chooses first; each controller orders
   # their simultaneous triggers before either player receives priority.
@@ -498,8 +506,10 @@ func choose_trigger(target: Dictionary):
  if pending.get("kind","")!="trigger": return
  var t=pending.trigger
  if target.is_empty() and not t.get("optional",true): return
- if not target.is_empty() and target not in pending.options: return
- if not target.is_empty(): complete_trigger_target(t,target)
+ var checked_target=target.duplicate(true);checked_target.erase("payment")
+ if not target.is_empty() and checked_target not in pending.options: return
+ if not target.is_empty():
+  if not declare_trigger_target(t,target):return
  else:decline_stacked_trigger()
  pending={}; revision+=1; pump_choices()
 func choose_return(yes: bool):
@@ -785,6 +795,11 @@ func pass_priority(who: int):
    var options=Roster.Batch.spells(self)
    options.append({"mode":"青ノ花自身","self":true})
    pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"blue_flower_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
+  elif e.card.card_id in ["100","spell-rei-012"]:
+   var options=stack.filter(func(entry):return entry.kind=="card" and (e.card.card_id=="100" or Extra.cost_value(self,entry.card)<=3)).map(func(entry):return {"stack_id":entry.id})
+   if options.is_empty():
+    to_grave(e.card);note(e.name+"结算时没有可反制的牌",history_art(e.card))
+   else:pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"counter_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
   elif cards[e.card.card_id].kind=="符卡" and not spell_target_valid(e.card.card_id,e.target):
    to_grave(e.card); note("目标失效，"+e.name+"不结算")
   else: Effects.resolved(self,e); note(e.name+"结算",history_art(e.card))
@@ -1048,7 +1063,11 @@ func ai_step(who: int=1):
      if score<gap:gap=score;best=index
     choose_ward(best)
    "grave_replacement": choose_grave_replacement(true)
-   "effect_choice": choose_effect(Pack.ai_target(self,who,pending.options,pending.trigger.get("effect","")))
+   "effect_choice":
+    if pending.trigger.get("effect","")=="counter_resolution":
+     var opposing=pending.options.filter(func(option):return stack.any(func(entry):return entry.id==option.stack_id and entry.owner!=who))
+     choose_effect(opposing.back() if not opposing.is_empty() else pending.options.back())
+    else:choose_effect(Pack.ai_target(self,who,pending.options,pending.trigger.get("effect","")))
    "timer": choose_timer(0)
    "possession": ai_possession(who)
    "leader_return": choose_return(not RemiliaAI.keep_remilia_in_hand(pending.card))
@@ -1078,7 +1097,7 @@ func ai_step(who: int=1):
  if not stack.is_empty():
   for c in choices:
    if DB.has_ability(cards[c.card_id],"counter_card") and stack.back().owner==opponent and stack.back().kind=="card":
-    commit_cast(who,c.uid,{"stack_id":stack.back().id},payment(who,cast_cost(who,c)).plan); return
+    commit_cast(who,c.uid,{"none":true},payment(who,cast_cost(who,c)).plan); return
   if ai_fast_action(who,choices): return
   pass_priority(who); return
  if active==who and phase=="main" and combat.is_empty():
@@ -1255,6 +1274,24 @@ func toggle_ran_discount(who: int,uid: int) -> String:
  note(player_names[who]+" · "+cards[c.card_id].name+" · "+("关闭" if c.get("ran_discount_disabled",false) else "开启")+"常驻减费",history_art(c))
  return ""
 
+func murder_dolls_skip_toggle_error(who: int,uid: int) -> String:
+ if winner!=-2 or phase=="mulligan" or not pending.is_empty():return "当前不能切换空场自动跳过"
+ if priority!=who:return "等待执行权"
+ if not stack.is_empty():return "对抗为空时才能切换空场自动跳过"
+ var c=find_card(uid)
+ if c.is_empty() or c.owner!=who or c.zone!="field":return "需要操控该永久物"
+ if not Roster.has(cards[c.card_id],"spell-fdf-017"):return "该牌没有杀人玩偶能力"
+ return ""
+
+func toggle_murder_dolls_skip(who: int,uid: int) -> String:
+ var error=murder_dolls_skip_toggle_error(who,uid)
+ if not error.is_empty():return error
+ var c=find_card(uid)
+ if c.get("murder_dolls_skip_disabled",false):c.erase("murder_dolls_skip_disabled")
+ else:c.murder_dolls_skip_disabled=true
+ note(player_names[who]+" · "+cards[c.card_id].name+" · "+("关闭" if c.get("murder_dolls_skip_disabled",false) else "开启")+"空场自动跳过（对方场上无单位时）",history_art(c))
+ return ""
+
 func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
  var result=[]
  var c=find_card(uid)
@@ -1273,6 +1310,11 @@ func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
   if reason.is_empty() or include_disabled:
    var disabled=c.get("ran_discount_disabled",false)
    result.append({"type":"ran_discount","uid":uid,"label":"开启常驻减费（当前已关闭）" if disabled else "关闭常驻减费（当前已开启）","enabled":reason.is_empty(),"reason":reason})
+ if Roster.has(cards[c.card_id],"spell-fdf-017"):
+  var reason=murder_dolls_skip_toggle_error(who,uid)
+  if reason.is_empty() or include_disabled:
+   var disabled=c.get("murder_dolls_skip_disabled",false)
+   result.append({"type":"murder_dolls_skip","uid":uid,"label":"开启空场自动跳过（当前已关闭）" if disabled else "关闭空场自动跳过（当前已开启）","enabled":reason.is_empty(),"reason":reason})
  if (Pack.direct_attack(self,c) or units(1-who).any(func(u):return u.has("rank_target"))) and not units(1-who).is_empty() and can_attack(who,c.uid):
   result.append({"type":"direct_attack","uid":uid,"label":"攻击对手单位","enabled":true})
  if is_unit(c):
@@ -1344,6 +1386,7 @@ func character_constraint_error(c: Dictionary,who: int) -> String:
  return ""
 func miracle_blocked(c: Dictionary,who: int) -> bool:
  if not c.is_empty() and not character_constraint_error(c,who).is_empty():return true
+ if not c.is_empty() and cards[c.card_id].kind=="符卡" and targets_for(c.card_id,who,c.uid).is_empty():return true
  if c.is_empty() or not is_unit(c) or cards[c.card_id].title.is_empty():return false
  return units(who).any(func(u):return u.uid!=c.uid and cards[u.card_id].title==cards[c.card_id].title)
 func enter_token_batch(list: Array,who: int) -> Array:
@@ -1480,9 +1523,53 @@ func complete_trigger_target(t: Dictionary,target: Dictionary):
    if entry.id==pending.stack_id:
     entry.target=target.duplicate(true); entry.erase("awaiting_target");accept_trigger(entry); return
  else: push_trigger(t,target)
+func declare_trigger_target(t: Dictionary,target: Dictionary) -> bool:
+ var checked_target=target.duplicate(true);checked_target.erase("payment")
+ var tax=0 if debug_enabled and debug_free_payment else Cat.target_tax(self,t.owner,checked_target)
+ var cost={"红/蓝/绿/黄/黑":tax} if tax>0 else {}
+ if tax>0 and not target.has("payment"):
+  # Targeted triggers pay the same announcement tax as spells and activations.
+  # Keep the provisional entry unannounced while its controller chooses payment.
+  var original=pending.duplicate(true)
+  var choice={"effect":"trigger_target_payment","owner":t.owner,"source":t.source.duplicate(true),"optional":false,"continuation":true,"name":t.name,"ability_text":"雾符「云集雾散」：额外支付任意%d点颜色值以使用此能力。" % tax,"data":{"cost":cost}}
+  pending={"kind":"effect_choice","owner":t.owner,"trigger":choice,"options":Cat.pay_options(self,t.owner,cost),"original_choice":original,"target":checked_target}
+  revision+=1
+  return false
+ if target.has("payment"):
+  if not trigger_payment_valid(t.owner,cost,target.payment):return false
+  Cat.pay(self,t.owner,target.payment)
+ complete_trigger_target(t,checked_target)
+ return true
+func trigger_payment_valid(who: int,cost: Dictionary,plan: Variant) -> bool:
+ if not plan is Array:return false
+ if plan.any(func(r):return not r is Dictionary or not r.get("uid") is int or not r.get("color") is String):return false
+ return payment_valid(who,cost,plan)
 func choose_effect(target: Dictionary):
  if pending.get("kind","")!="effect_choice": return
  var t=pending.trigger
+ if t.get("effect","")=="trigger_target_payment":
+  var checked=target.duplicate(true);checked.erase("payment")
+  if checked not in pending.options:return
+  var original=pending.original_choice
+  if target.get("pay",false):
+   var plan=target.get("payment",payment(t.owner,t.data.cost).plan)
+   if not trigger_payment_valid(t.owner,t.data.cost,plan):return
+   var declared=pending.target.duplicate(true);declared.payment=plan
+   pending=original
+   if pending.kind=="trigger":choose_trigger(declared)
+   else:choose_effect(declared)
+  else:
+   pending=original;decline_stacked_trigger()
+   pending={};revision+=1;pump_choices()
+  return
+ if t.get("effect","")=="counter_resolution":
+  if target not in pending.options:return
+  pending={}
+  t.entry.target=target.duplicate(true)
+  Effects.resolved(self,t.entry)
+  note(t.entry.name+"结算",history_art(t.entry.card))
+  judge();damage_context={};priority=active;revision+=1;pump_choices()
+  return
  if t.get("effect","")=="miracle":
   if not target.is_empty() and not Pack.choice_valid(self,pending.options,target):return
   pending={}
@@ -1504,11 +1591,11 @@ func choose_effect(target: Dictionary):
  if target.is_empty() and not t.optional: return
  var checked_target=target.duplicate(true);checked_target.erase("payment")
  if not target.is_empty() and not Pack.choice_valid(self,pending.options,checked_target): return
- if target.has("payment"):
+ if target.has("payment") and not pending.has("stack_id"):
   var cost=Cat.granted_cost(self,t,target) if t.effect=="cat:grant" else t.data.get("cost",{})
   if not payment_valid(t.owner,cost,target.payment):return
- record_declaration(t.owner,target,t.source)
  if t.get("continuation",false):
+  record_declaration(t.owner,target,t.source)
   pending={}
   var previous_context=damage_context;var previous_spell=resolving_spell
   if not target.is_empty():
@@ -1517,7 +1604,9 @@ func choose_effect(target: Dictionary):
    Extra.resolve_trigger(self,t)
   judge();damage_context=previous_context;resolving_spell=previous_spell
  else:
-  if not target.is_empty(): complete_trigger_target(t,target)
+  if not target.is_empty():
+   if not declare_trigger_target(t,target):return
+   record_declaration(t.owner,checked_target,t.source)
   else:decline_stacked_trigger()
   pending={}
  revision+=1; pump_choices()
@@ -1552,19 +1641,34 @@ func run_delayed(at_phase: String):
   var caption=Cat.delay_caption({"origin_name":origin_name,"target_name":cards[c.card_id].name,"op":d.effect})
   for i in range(first,triggers.size()):triggers[i].ability_text=caption
 func add_timer(c: Dictionary,amount: int):
+ var before=int(c.get("timer",0))
  Roster.Batch.counter(self,c,"timer",amount,c.owner)
- if amount>0 and c.zone in ["field","leader"]:
-  for f in Cat.with_key(self,c.owner,"spell-fdf-017"):Cat.events(self,f,"cat:murder_dolls",true,{"amount":amount})
+ var placed=int(c.get("timer",0))-before
+ if placed<=0 or c.zone not in ["field","leader"]:return
+ var sources=units(0)+units(1)
+ sources=sources.filter(func(unit):return Extra.has(cards[unit.card_id],"timer_replace") and has_leader_ability(unit))
+ if sources.is_empty():
+  timer_placed(c,placed)
+  return
+ var batch={"amount":placed,"remaining":sources.size(),"owner":c.owner,"ref":ref_target(c)}
+ for unit in sources:
+  timer_changes.append({"owner":unit.owner,"ref":ref_target(c),"source":ref_target(unit),"source_name":cards[unit.card_id].name,"batch":batch})
+
+func timer_placed(c: Dictionary,amount: int):
  if amount<=0 or c.zone not in ["field","leader"]:return
- for unit in units(0)+units(1):
-  if Extra.has(cards[unit.card_id],"timer_replace") and has_leader_ability(unit):timer_changes.append({"owner":unit.owner,"ref":ref_target(c),"source":ref_target(unit),"source_name":cards[unit.card_id].name,"amount":amount})
+ for f in Cat.with_key(self,c.owner,"spell-fdf-017"):Cat.events(self,f,"cat:murder_dolls",true,{"amount":amount})
 func choose_timer(delta: int):
  if pending.get("kind","")!="timer" or delta not in [-1,0,1]: return
  var change=pending.change; var c=find_card(change.ref.uid)
  var source=find_card(change.get("source",{}).get("uid",0))
- if not source.is_empty() and source.epoch==change.source.epoch and Extra.has(cards[source.card_id],"timer_replace") and has_leader_ability(source) and change.amount>0 and not c.is_empty() and c.epoch==change.ref.epoch:
+ var batch=change.batch
+ if not source.is_empty() and source.epoch==change.source.epoch and Extra.has(cards[source.card_id],"timer_replace") and has_leader_ability(source) and batch.amount>0 and not c.is_empty() and c.epoch==change.ref.epoch:
+  var before=c.timer
   c.timer=maxi(0,c.timer+delta)
+  batch.amount+=c.timer-before
   if delta!=0:note(change.source_name+" · 计时指示物 "+("+1" if delta>0 else "−1"),history_art(c))
+ batch.remaining-=1
+ if batch.remaining==0 and not c.is_empty() and c.epoch==batch.ref.epoch:timer_placed(c,batch.amount)
  pending={}; judge(); revision+=1; pump_choices()
 func deals_combat_damage(c: Dictionary) -> bool:
  var stage=combat.get("strike_round","normal")

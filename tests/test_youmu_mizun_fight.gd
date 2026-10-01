@@ -1,0 +1,91 @@
+extends "res://tests/support/rules_base.gd"
+
+func resolve_fight():
+ for i in range(8):
+  if e.combat.is_empty():break
+  one()
+  settle()
+
+func run():
+ fresh()
+ mana()
+ var youmu=put("39")
+ var enemy=put("53","field",1)
+ cast("spell-fdf-050",e.ref_target(youmu))
+ expect(e.stat(youmu,"power")==7,"Mizun grants Youmu +4 power")
+ expect(e.delayed.any(func(d):return d.get("effect","")=="youmu_fight" and d.ref.uid==youmu.uid),"Youmu fight is scheduled")
+ e.advance_phase()
+ expect(e.phase=="end" and not e.stack.is_empty(),"fight triggers at this turn's end")
+ settle()
+ expect(not e.combat.is_empty() and e.stat(youmu,"power")==7,"fight uses this turn's buff")
+ resolve_fight()
+ expect(enemy.zone=="grave" and youmu.zone=="field","delayed fight deals combat damage")
+ expect(not e.delayed.any(func(d):return d.get("effect","")=="youmu_fight"),"fight triggers only once")
+
+ fresh()
+ mana()
+ var leader=enter("87")
+ settle()
+ var halfghost=e.units(0).filter(func(u):return u.card_id=="token_halfghost")
+ expect(halfghost.size()==1,"Youmu creates a halfghost")
+ enemy=put("53","field",1)
+ cast("spell-fdf-050",e.ref_target(leader))
+ e.advance_phase()
+ settle()
+ expect(halfghost[0].zone!="field" and leader.zone=="field","end phase sacrifices the halfghost, not Youmu")
+ resolve_fight()
+ expect(enemy.zone!="field" and leader.zone=="field","Youmu fights despite the halfghost sacrifice")
+
+ fresh()
+ mana()
+ put("39")
+ var other=put("53")
+ cast("spell-fdf-050",e.ref_target(other))
+ expect(not e.delayed.any(func(d):return d.get("effect","")=="youmu_fight"),"non-Youmu target gets no fight")
+
+ fresh()
+ mana()
+ youmu=put("39")
+ enemy=put("53","field",1)
+ e.Cat.delay(e,youmu,"sacrifice",0)
+ cast("spell-fdf-050",e.ref_target(youmu))
+ e.advance_phase()
+ settle()
+ resolve_fight()
+ expect(enemy.zone=="grave","same-end fight deals damage before sacrifice")
+ settle()
+ expect(youmu.zone!="field","same-end sacrifice still resolves after the fight")
+
+ fresh()
+ mana()
+ youmu=put("39")
+ enemy=put("53","field",1)
+ e.active=1; e.priority=0
+ cast("spell-fdf-050",e.ref_target(youmu))
+ e.advance_phase()
+ expect(e.combat.is_empty() and enemy.zone=="field","opponent end does not trigger your fight")
+ e.active=0; e.phase="main"; e.turn+=1; e.advance_phase();settle();resolve_fight()
+ expect(enemy.zone=="grave","spell cast on opponent turn fights at next own end")
+
+ fresh()
+ mana()
+ youmu=put("39")
+ enemy=put("53","field",1)
+ e.Cat.delay(e,youmu,"sacrifice",0)
+ cast("spell-fdf-050",e.ref_target(youmu))
+ e.advance_phase()
+ for i in range(12):
+  if not e.combat.is_empty():break
+  if e.pending.get("kind","")=="trigger_order":e.choose_trigger_order(0)
+  elif e.pending.get("kind","")=="effect_choice":e.choose_effect(e.pending.options[0])
+  elif not e.stack.is_empty():one()
+  else:break
+ expect(not e.combat.is_empty() and e.stack.size()==1,"forced fight pauses the earlier sacrifice trigger")
+ enemy.tapped=true
+ e.push_trigger({"owner":1,"source":enemy.duplicate(true),"effect":"untap","name":"response"},e.ref_target(enemy))
+ one()
+ expect(not enemy.tapped and not e.combat.is_empty() and e.stack.size()==1,"new response resolves before forced combat")
+ resolve_fight()
+ expect(enemy.zone=="grave" and youmu.zone!="field","sacrifice resolves after responsive combat")
+ print("YOUMU_MIZUN_FIGHT_TEST: %d checks; %d failures" % [checks,failures.size()])
+ quit(0 if failures.is_empty() else 1)

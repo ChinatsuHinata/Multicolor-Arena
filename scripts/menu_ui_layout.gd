@@ -16,6 +16,7 @@ func build_setup(host):
   var body=column(surface)
   text(body,"你的卡组" if i==0 else "人机的卡组",metrics.title)
   var pick=OptionButton.new();body.add_child(pick);metrics.button(pick);pick.fit_to_longest_item=false
+  app.enable_android_popup_swipe(pick.get_popup())
   if app.decks.is_empty():pick.add_item("未选择")
   else:
    for deck in app.decks:pick.add_item(deck.name)
@@ -60,4 +61,4 @@ func build_settings(host):
  check(body,"游戏内卡牌使用 2D 上方俯视",app.top_down_view,app.set_top_down_view)
  check(body,"显示左侧卡牌效果说明栏",app.show_card_inspection,app.set_show_card_inspection)
  if not app.is_android:check(body,"测试模式：允许拖动卡牌放入战场",app.debug_drag_to_field,app.set_debug_drag_to_field)
- check(body,"回放训练模式：标注关键步骤与推荐招法",app.replay_training_mode,app.set_replay_training_mode)
+ if app.is_test_build and not app.is_android:check(body,"回放训练模式：标注关键步骤与推荐招法",app.replay_training_mode,app.set_replay_training_mode)

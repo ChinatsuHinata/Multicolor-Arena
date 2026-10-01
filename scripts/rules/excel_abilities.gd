@@ -252,8 +252,9 @@ static func on_death(e,c: Dictionary,before: Dictionary):
  Cat.on_death(e,c,before)
  c.died_turn=e.turn
  var observers=e.death_observers if not e.death_observers.is_empty() else e.units(before.owner)
- for u in observers:
-  if u.owner==before.owner and has(e.cards[u.card_id],"mystia_life"):event(e,u,"mystia_life")
+ if e.is_unit(before):
+  for u in observers:
+   if u.owner==before.owner and has(e.cards[u.card_id],"mystia_life"):event(e,u,"mystia_life")
  for f in e.players[before.owner].field:
   if has(e.cards[f.card_id],"nether_ghost") and not before.get("token",false):event(e,f,"nether_ghost")
  if has(e.cards[before.card_id],"shanghai_draw") and named_character(e,before.owner,"爱丽丝·玛格特洛依德"):event(e,before,"shanghai_draw",true)
@@ -517,6 +518,8 @@ static func blink_now(e,list: Array):
   e.move_to(c,"exile")
   if c.zone=="return_pending":c.blink_return_owner=c.original_owner
   else:moved.append(e.Pack.future_zone_ref(e,c,"exile"))
+ # Illusions observe the interval when all selected units are absent.
+ Cat.State.check_illusions(e)
  for p in range(2):field_many(e,moved.filter(func(r):return valid(e,r) and e.find_card(r.uid).get("original_owner")==p).map(func(r):return e.find_card(r.uid)),p)
 
 static func spell_resolve(e,entry: Dictionary) -> bool:
@@ -546,7 +549,8 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
       if color not in colors:colors.append(color)
    e.damage_target(t,colors.size())
   "kaleidoscope","activity","extra_turn","snow_time":
-   e.enter_field(c,who);c.timer=int(e.cards[c.card_id].time);e.resolving_spell=false;return true
+   if e.enter_field(c,who):e.add_timer(c,int(e.cards[c.card_id].time))
+   e.resolving_spell=false;return true
   "fairy_revive":field_many(e,e.Pack.picked(t).filter(func(r):return valid(e,r)).map(func(r):return e.find_card(r.uid)),who)
   "tengu_pair":
    for r in t.parts:
@@ -837,8 +841,6 @@ static func end_now(e):
  for s in e.stack.duplicate():
   if s.kind=="card":e.move_to(s.card,"exile")
  e.stack.clear();e.triggers.clear();e.pending={};e.combat={};e.passes=0
- # The jade branch sacrifice is consumed by this skipped end step.
- e.delayed=e.delayed.filter(func(d):return int(d.get("expires_turn",2147483647))>e.turn)
  # Finishing immediately skips end-step events but still performs cleanup/discard.
  e.phase="end";e.cleanup_end()
 static func register_tokens(e):
@@ -865,6 +867,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  info.copy_marker="keiki"
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
+ Cat.prepare_copy_counters(c,source)
  return c if e.enter_field(c,who) else {}
 static func target_survives(e,id: String,t: Dictionary) -> bool:
  if has(e.cards[id],"n21:ETO-011"):return true

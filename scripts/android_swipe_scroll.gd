@@ -33,7 +33,8 @@ func handle(event: InputEvent,root: Node) -> bool:
    if movement.length()<DRAG_THRESHOLD:return false
    var vertical=_can_scroll(target,true)
    var horizontal=_can_scroll(target,false)
-   if absf(movement.y)>absf(movement.x) and vertical:axis="vertical"
+   if vertical and target.get_meta("android_swipe_prefer_vertical",false):axis="vertical"
+   elif absf(movement.y)>absf(movement.x) and vertical:axis="vertical"
    elif absf(movement.x)>absf(movement.y) and horizontal:axis="horizontal"
    else:reset();return false
   var delta=touch_last-event.position

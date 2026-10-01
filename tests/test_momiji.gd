@@ -10,10 +10,11 @@ func run():
  var stale=[{"uid":own.uid,"color":"黄"}]
  expect(e.payment_valid(0,{"黄":1},stale),"item can pay before Momiji declares it")
  var momiji=enter("character-fdf-101")
- expect(e.pending.get("kind","")=="effect_choice","Momiji enters through the real naming trigger")
+ expect(e.pending.get("kind","")=="effect_choice" and e.pending.trigger.get("intrinsic_entry",false),"Momiji names a card as an intrinsic entry choice")
+ expect(e.stack.is_empty() and e.triggers.is_empty(),"Momiji naming creates no triggered ability to respond to")
  var name=e.cards[own.card_id].name
- e.choose_effect(e.pending.options.filter(func(t):return t.card_name==name)[0]);one()
- expect(momiji.get("locked_name","")==name,"naming trigger stores the declared item name")
+ e.choose_effect(e.pending.options.filter(func(t):return t.card_name==name)[0])
+ expect(momiji.get("locked_name","")==name,"entry choice immediately stores the declared item name")
  for who in range(2):
   var item=own if who==0 else enemy
   expect(not e.source_resources(who).any(func(s):return s.uid==item.uid),"named item excluded for player "+str(who))
@@ -40,5 +41,8 @@ func run():
   fresh();var item=put(id);var watcher=put("character-fdf-101","field",1)
   watcher.locked_name=e.cards[id].name
   expect(not e.source_resources(0).any(func(s):return s.uid==item.uid) and e.payment(0,e.cards[id].colors.reduce(func(cost,color):cost[color]=1;return cost,{})).ways==0,"Momiji prohibits the mana item: "+e.cards[id].name)
+ fresh();var legacy=put("field-rei-013");var legacy_watcher=put("character-fdf-101","field",1)
+ legacy_watcher.locked_name=e.cards["field-smm-004"].name
+ expect(e.Cat.State.activation_locked(e,legacy),"Momiji's standard name also locks the alternate card version")
  print("MOMIJI: ",checks," checks; ",failures.size()," failures")
  quit(0 if failures.is_empty() else 1)

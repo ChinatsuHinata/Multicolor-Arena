@@ -7,7 +7,7 @@ const CostDisplay = preload("res://scripts/card_cost_display.gd")
 const GOLD = Color("#d9b775")
 const WHITE = Color("#e8edf0")
 const MUTED = Color("#91a5b7")
-const KINDS = ["全部", "单位", "普通单位", "自机单位", "符卡", "普通符卡", "道具", "结界"]
+const KINDS = SearchAliases.FILTER_KINDS
 const SORT_MODES = ["类别", "颜色值", "名字"]
 const COLORS = ["全部", "红", "蓝", "绿", "黄", "黑"]
 const SWATCHES = [Color("#344553"), Color("#a83035"), Color("#337aa7"), Color("#39794d"), Color("#ac963b"), Color("#383a42")]
@@ -68,8 +68,9 @@ func _ready():
   _refresh_color_buttons()
   var filters=HBoxContainer.new();right.add_child(filters)
   var kind=OptionButton.new();kind.name="KindFilter";filters.add_child(kind);layout_metrics.button(kind);kind.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-  for value in KINDS:kind.add_item(value)
-  kind.item_selected.connect(func(index):filter_kind=KINDS[index];update_results())
+  var kinds=SearchAliases.ANDROID_FILTER_KINDS if layout_metrics.touch else KINDS
+  for value in kinds:kind.add_item(value)
+  kind.item_selected.connect(func(index):filter_kind=kinds[index];update_results())
   var order=OptionButton.new();order.name="SortChoice";filters.add_child(order);layout_metrics.button(order);order.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   for mode in SORT_MODES:order.add_item("排序："+mode)
   order.item_selected.connect(func(index):sort_mode=SORT_MODES[index];update_results())
@@ -161,7 +162,7 @@ func _query_filters(term: String) -> Dictionary:
  var single = remaining.begins_with("单") and remaining!="单位"
  if single:remaining=remaining.substr(1)
  var kind = ""
- for suffix in SearchAliases.KINDS:
+ for suffix in SearchAliases.ANDROID_KINDS if layout_metrics.touch else SearchAliases.KINDS:
   if remaining.ends_with(suffix):
    kind=suffix
    remaining=remaining.substr(0,remaining.length()-suffix.length())
@@ -208,14 +209,14 @@ func _matches_query(id: String, info: Dictionary, prepared: Dictionary, filters:
  var race_match = race.is_empty() or race in info.get("race",[]) or _related_to_race(info,race,race_characters)
  var colors_match = filters.colors.all(func(color):return color in info.get("colors",[]))
  var match_filter = SearchAliases.kind_matches(info,str(filters.kind)) and race_match and (not filters.single or info.get("colors",[]).size()==1) and colors_match
- if filters.kind=="普通符卡":return match_filter
+ if filters.kind in ["普通符卡","自机符卡"]:return match_filter
  var required_character = str(info.get("requires_character",""))
  var role_spell = info.get("kind","")=="符卡" and not required_character.is_empty() and prepared.role_characters.any(func(character):return character==required_character or str(character).begins_with(required_character+"·") or str(character).begins_with(required_character+"・"))
  return match_filter or role_spell or prepared.ids.has(id)
 
 func visible_entries() -> Array:
  var filtered = []
- var prepared = SearchAliases.prepare_query(cards,query,alias_rules)
+ var prepared = SearchAliases.prepare_query(cards,query,alias_rules,layout_metrics.touch)
  var filters = _query_filters(query)
  var race_characters = _race_characters(str(filters.get("race","")))
  for candidate in entries:

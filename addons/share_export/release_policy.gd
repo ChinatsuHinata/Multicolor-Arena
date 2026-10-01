@@ -3,7 +3,7 @@ extends RefCounted
 ## Both installer types use this policy through the Windows export and its check.
 const VERSION=2
 const REMILIA_ID="1790434714.661_943735096"
-const REMILIA_NAME="蕾米速攻（ai）"
+const REMILIA_NAME="蕾米速攻（AI）"
 const PRIVATE_DIRECTORIES=["saves/","deck/","replay/","work/","test/","tests/","tools/","docs/","builds/","addons/","training/","models/","experiments/","scripts/export_verification/"]
 
 static func excluded_path(path: String) -> bool:

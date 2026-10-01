@@ -250,6 +250,7 @@ static func resolve_trigger(e,t):
   "copy_finish":
    var original=d.entry;var target=C.retarget_result(a)
    var c=e.make_card(original.card.card_id,who,"stack");c.stack_copy=true;c.token=true
+   C.prepare_copy_counters(c,original.card)
    for k in ["cast_x"]:
     if original.card.has(k):c[k]=original.card[k]
    # Each copy pays its own non-color costs before it is put on the stack.

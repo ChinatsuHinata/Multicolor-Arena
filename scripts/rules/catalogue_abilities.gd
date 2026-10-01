@@ -27,6 +27,11 @@ static func pick(e,list,low,high,title,tag=""):return e.Pack.selection([group(e,
 static func character(e,c,name):
  var actual=e.cards[c.card_id].get("character","")
  return normalized(name) in normalized(actual)
+static func additional_unit_names(e,c) -> Array:
+ if c.is_empty() or c.get("zone","")!="field" or not e.is_unit(c):return []
+ return ["铃仙·优昙华院·因幡"] if not with_key(e,c.owner,"spell-fdn-032").is_empty() else []
+static func has_named_unit(e,who,name) -> bool:
+ return e.units(who).any(func(u):return name in e.cards[u.card_id].name or additional_unit_names(e,u).any(func(alias):return name in alias))
 static func normalized(s):return s.replace("·","").replace("・","").replace("洛","罗").replace("鵺","ぬえ").replace("隐崎","隐岐").replace("磷","燐").replace("伊","依").replace("洩","泄").replace("雷特","蕾特").replace("侘","诧")
 static func canonical_name(e,id: String) -> String:
  var info=e.cards.get(id,{})
@@ -75,14 +80,14 @@ static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art="",enter=tru
   elif name=="吸血鬼":info.image="res://assets/token_cards/vampire_fdf.jpg" if p==3 else "res://assets/token_cards/vampire_fdn.jpg"
   elif name in card_art:info.image="res://assets/token_cards/"+card_art[name]+".jpg"
  e.cards[id]=info;var c=e.make_card(id,who,"token")
- return c if not enter or e.enter_field(c,who) else {}
+ return c if not enter or not e.enter_token_batch([c],who).is_empty() else {}
 static func printed_tokens(e,who,count,id):
  var list=[]
  for i in range(maxi(0,count)):list.append(printed_token(e,who,id,false))
  return e.enter_token_batch(list,who)
 static func printed_token(e,who,id,enter=true):
  var c=e.make_card(id,who,"token")
- if enter and not e.enter_field(c,who):return {}
+ if enter and e.enter_token_batch([c],who).is_empty():return {}
  return c
 static func delay(e,c,effect="sacrifice",owner=-1,phase="end",data={},origin: Dictionary={}):
  var source_name=e.cards[origin.card_id].name if not origin.is_empty() and e.cards.has(origin.card_id) else e.cards[c.card_id].name
@@ -120,6 +125,14 @@ static func continued_move(e,t,list,low,high,zone,title,after={},owner=-1):
 static func continuation(e,t):
  var d=t.get("data",{});var aim=t.target;var who=t.owner
  match t.effect:
+  "cat:jade_branch":
+   if valid(e,aim):
+    var u=e.find_card(aim.uid)
+    if e.cards[u.card_id].kind=="自机" and u.owner==who and (u.zone=="palette" or u.zone=="leader" and u.timer==0):
+     e.Roster.field_many(e,[u],who)
+     if u.zone=="field":
+      buff(e,u,0,0,0,["疾行"])
+      delay(e,u,"sacrifice",-1,"end",{},t.source)
   "cat:move":
    var chosen=selected(e,aim)
    for c in chosen:
@@ -197,6 +210,18 @@ static func counter_refs(e,list):
   for i in range(c.get("color_counters",[]).size()):var r=ref(e,c);r.counter="color_counters";r.counter_index=i;result.append(r)
  return result
 static func counter_total(e,list):return counter_refs(e,list).size()
+static func counter_snapshot(c: Dictionary) -> Dictionary:
+ var snapshot={}
+ for k in COUNTER_KEYS:snapshot[k]=int(c.get(k,0))
+ snapshot.color_counters=c.get("color_counters",[]).duplicate()
+ return snapshot
+static func copy_counters(c: Dictionary,template: Dictionary):
+ # Copy the counter state exactly, replacing counters already on the recipient.
+ for k in COUNTER_KEYS:c[k]=int(template.get(k,0))
+ c.color_counters=template.get("color_counters",[]).duplicate()
+static func prepare_copy_counters(c: Dictionary,template: Dictionary):
+ c.copy_entry_counters=counter_snapshot(template)
+ copy_counters(c,c.copy_entry_counters)
 static func grant_cast(e,c,who,free=false,cost_override={},optional_payment=false):
  e.forced_cast={"owner":who,"uid":c.uid,"free":free,"cost":cost_override,"ignore":false,"optional_payment":optional_payment}
  var choices=e.targets_for(c.card_id,who,c.uid) if e.cards[c.card_id].kind=="符卡" else e.Pack.none()
@@ -212,21 +237,23 @@ static func copy_unit(e,c,template,keep_name=false,copy_marker=""):
  if not copy_marker.is_empty():info.copy_marker=copy_marker
  if keep_name:info.name=old.name;info.character=old.character;info.title=old.title
  c.copy_original=c.get("copy_original",c.card_id);e.cards[id]=info;c.card_id=id
+ copy_counters(c,template)
 static func copy_tokens(e,who,templates,copy_marker=""):
  var list=[]
- for template in templates:list.append(copy_token(e,who,template,false,copy_marker,false))
+ for template in templates:list.append(copy_token(e,who,template,copy_marker,false))
  return e.enter_token_batch(list,who)
-static func copy_token(e,who,template,copy_counters=false,copy_marker="",enter=true):
+static func copy_token(e,who,template,copy_marker="",enter=true):
  var id="catalogue_clone_"+str(e.next_uid);var info=e.cards[template.card_id].duplicate(true);info.token=true;info.constructible=false;info.copy_source_id=template.card_id
  info.erase("copy_marker")
  if not copy_marker.is_empty():info.copy_marker=copy_marker
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
- if enter and not e.enter_field(c,who):return {}
- if copy_counters:c.plus_counters=int(template.get("plus_counters",0))
+ prepare_copy_counters(c,template)
+ if enter and e.enter_token_batch([c],who).is_empty():return {}
  return c
 static func copy_spell(e,t,x=-1,copy_menu=false):
  var source=t.get("card",t.get("source",{}));var c=e.make_card(source.card_id,t.owner,"stack");c.stack_copy=true;c.token=true;c.cast_x=int(source.get("cast_x",0)) if x<0 else x
+ prepare_copy_counters(c,source)
  e.catalogue_x_override=maxi(0,x)
  var choices=retarget_options(e,t,x,true);e.catalogue_x_override=0
  for property in ["paid_dolls","exiled_hand","ichirin_paid"]:
@@ -366,7 +393,7 @@ static func milled(e,who,amount):
  for u in field(e):
   if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":amount,"milled_owner":who})
 
-static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false):
+static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false,preserve_target_count=true):
  var old=entry.target;var options=[]
  e.catalogue_retargeting=not repay_cost
  if entry.kind=="card":
@@ -410,12 +437,16 @@ static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false):
    if mode_changed and not candidate.selection.any(func(g):return g.get("cost",false)):
     result.append(candidate)
     continue
+   if not preserve_target_count and not candidate.selection.any(func(g):return g.get("cost",false)):
+    result.append(candidate)
+    continue
    if not old.has("picks") or candidate.selection.size()!=old.picks.size():continue
    if not mode_changed and x<0 and candidate.get("selection_id","")!=old.get("selection_id",""):continue
    var groups=[];var indexes=[]
    for i in range(candidate.selection.size()):
     if candidate.selection[i].get("cost",false):continue
-    var g=candidate.selection[i];g.min=old.picks[i].size();g.max=old.picks[i].size()
+    var g=candidate.selection[i]
+    if preserve_target_count:g.min=old.picks[i].size();g.max=old.picks[i].size()
     groups.append(g);indexes.append(i)
    candidate.selection=groups;candidate.retarget_indices=indexes;candidate.retarget_base=old.duplicate(true)
    if x>=0:candidate.retarget_base.x=x

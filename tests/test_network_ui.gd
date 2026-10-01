@@ -51,11 +51,19 @@ func run():
  expect(app.draft==initial,"sideboarding cannot move the designated leader")
  app.drop_editor_card({"card_id":"53","source_zone":"library","source_index":0},"main")
  expect(app.draft==initial,"sideboarding cannot introduce outside cards")
+ var swap_main_id=initial.main[0]
+ var swap_side_id=initial.side[2]
+ await drag(deck_tile(app.deck_canvas,"main",0).get_global_rect().get_center(),deck_tile(app.deck_canvas,"side",2).get_global_rect().get_center())
+ expect(app.draft.main[0]==swap_side_id and app.draft.side[2]==swap_main_id and app.draft.main.size()==50 and app.draft.side.size()==10,"dragging onto a side card swaps full main and side decks")
+ expect(Session.Series.sideboard_error(app.draft,initial,true,client_session.room.rule_set).is_empty(),"card swap keeps the registered pool and sideboard counts valid")
+ await drag(deck_tile(app.deck_canvas,"side",2).get_global_rect().get_center(),deck_tile(app.deck_canvas,"main",0).get_global_rect().get_center())
+ expect(app.draft==initial,"reverse card swap restores exact registered order")
  var first=deck_tile(app.deck_canvas,"main",0)
  await click(first.get_global_rect().get_center(),MOUSE_BUTTON_RIGHT)
  expect(app.draft==initial,"right click previews without deleting registered cards")
  var first_id=first.card_id
- await drag(first.get_global_rect().get_center(),deck_tile(app.deck_canvas,"side",0).get_global_rect().get_center())
+ # The narrow blank strip after the last visible side card keeps the one-card move behavior.
+ await drag(first.get_global_rect().get_center(),app.deck_canvas.get_global_rect().position+Vector2(868,612))
  expect(app.draft.main==initial.main.slice(1) and app.draft.side==initial.side+[first_id],"drag removes one exact main card and adds it to side")
  await tap("更换完成")
  expect(app.page=="sideboard" and app.sideboard_status.text.contains("副卡组") and client_session.room.own_deck==original,"invalid counts cannot submit or leave editor")

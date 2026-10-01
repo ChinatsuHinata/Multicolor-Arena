@@ -45,7 +45,7 @@ const THINK_LIMIT_MSEC=30000
 static func profile(deck: Dictionary) -> String:
  if deck.get("leader","")!=REMILIA:return ""
  var main=deck.get("main",[])
- if deck.get("name","") in ["蕾米速攻","蕾米速攻（ai）"]:return PROFILE
+ if deck.get("name","") in ["蕾米速攻","蕾米速攻（ai）","蕾米速攻（AI）"]:return PROFILE
  # Also recognize renamed/exported copies of this list.
  return PROFILE if [LILY,WINGS,FAIRY,BIG_REMILIA,NIGHT,AURORA].all(func(id):return id in main) else ""
 

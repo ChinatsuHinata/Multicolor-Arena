@@ -9,6 +9,7 @@ var cached={}
 var dirty=true
 var tick=0
 var listening=false
+var shared_transport=false
 func start(owner_session):
  session=owner_session
  transport=Transport.new();transport.throttled=true;add_child(transport)
@@ -16,8 +17,11 @@ func start(owner_session):
  transport.disconnected.connect(func(id):watchers.erase(id))
  transport.failed.connect(func(_message):pass)
  listening=session.port<65535 and transport.host_room(session.port+1,session.bind_address,4)==OK
+
+func start_cloud(owner_session):
+ session=owner_session;transport=session.transport;shared_transport=true;listening=true
 func close():
- if transport:transport.close()
+ if transport and not shared_transport:transport.close()
  watchers.clear();cached={};pending_events.clear();listening=false
 func changed(events: Array=[]):
  dirty=true
@@ -30,6 +34,7 @@ func receive(id: int,message: Dictionary):
   if not watchers.has(id):watchers[id]={"seen":Time.get_ticks_msec(),"sent":-1,"ack":-1}
   dirty=true;return
  if not watchers.has(id):return
+ if type not in ["replay_request","watch_ack","ping","leave"]:return
  watchers[id].seen=Time.get_ticks_msec()
  if type=="replay_request":session.replay_exchange.serve(id,message,transport);return
  if type=="watch_ack" and int(message.get("sequence",-2))==watchers[id].sent:watchers[id].ack=watchers[id].sent
@@ -42,7 +47,7 @@ func _process(_delta):
  if now-tick<200:return
  tick=now
  for id in watchers.keys():
-  if now-watchers[id].seen>12000:watchers.erase(id);transport.drop(id)
+  if now-watchers[id].seen>(25000 if shared_transport else 12000):watchers.erase(id);transport.drop(id)
  if watchers.is_empty():return
  if dirty:
   var room=session.series.public_state(-1)

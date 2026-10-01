@@ -26,9 +26,9 @@ func press(title: String):
 func drag(from: Vector2,to: Vector2,cancel: bool=false):
  var event=InputEventMouseButton.new(); event.position=from; event.global_position=from; event.pressed=true; event.button_index=MOUSE_BUTTON_LEFT
  root.push_input(event,true); await process_frame
- var motion=InputEventMouseMotion.new(); motion.position=from+Vector2(-20,0); motion.global_position=motion.position; motion.button_mask=MOUSE_BUTTON_MASK_LEFT
+ var motion=InputEventMouseMotion.new(); motion.position=from+Vector2(-20,0); motion.global_position=motion.position; motion.relative=Vector2(-20,0); motion.button_mask=MOUSE_BUTTON_MASK_LEFT
  root.push_input(motion,true); await process_frame
- motion=motion.duplicate(); motion.position=to; motion.global_position=to
+ motion=motion.duplicate(); motion.relative=to-motion.position; motion.position=to; motion.global_position=to
  root.push_input(motion,true); await process_frame
  event=event.duplicate(); event.position=to; event.global_position=to; event.pressed=cancel; event.button_index=MOUSE_BUTTON_RIGHT if cancel else MOUSE_BUTTON_LEFT
  root.push_input(event,true); await process_frame

@@ -112,6 +112,8 @@ static func on_leave(e,c: Dictionary):
  e.Pack.on_leave(e,c)
  if has(e.cards[c.card_id],"leave_ufo"): event(e,c,"leave_ufo",true)
 static func on_death(e,c: Dictionary,before: Dictionary):
+ # Only units die; other permanents moving from the field to the grave leave the field.
+ if not e.is_unit(before): return
  var old_owner=e.catalogue_death_owner;e.catalogue_death_owner=before.owner
  e.catalogue_death_depth+=1
  _on_death_core(e,c,before)
@@ -119,7 +121,6 @@ static func on_death(e,c: Dictionary,before: Dictionary):
 static func _on_death_core(e,c: Dictionary,before: Dictionary):
  e.Roster.on_death(e,c,before)
  e.Pack.on_death(e,c,before)
- if not e.is_unit(before): return
  var info=e.cards[before.card_id]
  var data={"ref":e.ref_target(c)}
  data.ref.zone="grave"
@@ -261,12 +262,15 @@ static func resolve_trigger(e,t: Dictionary):
    if original: e.sacrifice(c)
   "miracle":
    if not c.is_empty() and c.zone=="hand" and c.epoch==source.epoch and not e.miracle_blocked(c,who):
+    var cast_target=target if e.cards[c.card_id].kind=="符卡" else {"none":true}
+    if e.cards[c.card_id].kind=="符卡" and not e.Pack.choice_valid(e,e.targets_for(c.card_id,who,c.uid),cast_target):return
     e.detach(c); e.shift(c,"stack")
-    e.stack.append({"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":{"none":true},"name":e.cards[c.card_id].name})
+    e.stack.append({"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":cast_target.duplicate(true),"name":e.cards[c.card_id].name})
     e.next_stack+=1; e.priority=1-who; e.passes=0
     e.note("奇迹 · "+e.cards[c.card_id].name)
     e.Roster.on_cast(e,c,who,"hand")
-    e.Pack.on_cast(e,c,who,{"none":true})
+    e.Pack.on_cast(e,c,who,cast_target)
+    e.Roster.New.on_target(e,cast_target)
     if e.cards[c.card_id].kind=="符卡":e.Effects.spell_used(e,who)
 
 static func spell_resolve(e,entry: Dictionary) -> bool:

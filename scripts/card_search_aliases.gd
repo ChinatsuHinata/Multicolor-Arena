@@ -2,6 +2,9 @@ extends RefCounted
 const PATH="res://data/card_search_aliases.json"
 const COLORS=["红","蓝","绿","黄","黑"]
 const KINDS=["自机单位","普通单位","普通符卡","单位","自机","符卡","道具","结界"]
+const FILTER_KINDS=["全部","单位","普通单位","自机单位","符卡","普通符卡","道具","结界"]
+const ANDROID_KINDS=["自机符卡"]+KINDS
+const ANDROID_FILTER_KINDS=["全部","单位","普通单位","自机单位","符卡","普通符卡","自机符卡","道具","结界"]
 
 static func load_rules() -> Dictionary:
  if not FileAccess.file_exists(PATH):return {}
@@ -47,15 +50,17 @@ static func kind_matches(info: Dictionary,wanted: String) -> bool:
  if wanted=="单位":return kind in ["单位","自机"]
  if wanted=="普通单位":return kind=="单位"
  if wanted in ["自机单位","自机"]:return kind=="自机"
- if wanted=="普通符卡":return kind=="符卡" and str(info.get("requires_character","")).is_empty() and "角色" not in str(info.get("spell_type",""))
+ var character_spell=kind=="符卡" and (not str(info.get("requires_character","")).is_empty() or "角色" in str(info.get("spell_type","")))
+ if wanted=="普通符卡":return kind=="符卡" and not character_spell
+ if wanted=="自机符卡":return character_spell
  return kind==wanted
 
-static func alias_ids(cards: Dictionary,term: String,rules: Dictionary) -> Dictionary:
+static func alias_ids(cards: Dictionary,term: String,rules: Dictionary,kinds: Array=KINDS) -> Dictionary:
  var text=term.strip_edges().to_lower()
  var rule=find_rule(rules,text)
  var kind=""
  if rule==null:
-  for suffix in KINDS:
+  for suffix in kinds:
    if not text.ends_with(suffix):continue
    rule=find_rule(rules,text.substr(0,text.length()-suffix.length()).strip_edges())
    if rule==null:continue
@@ -67,10 +72,11 @@ static func alias_ids(cards: Dictionary,term: String,rules: Dictionary) -> Dicti
    if kind_matches(cards[id],kind) and card_matches(cards[id],rule,id):matches[id]=true
  return {"exclusive":rule is Dictionary and rule.get("only",false)==true,"ids":matches}
 
-static func role_spell_characters(cards: Dictionary,term: String,rules: Dictionary) -> Array:
+static func role_spell_characters(cards: Dictionary,term: String,rules: Dictionary,character_spell_filter: bool=false) -> Array:
  var text=term.strip_edges().to_lower()
  if not text.ends_with("符卡"):return []
- var leader_name=text.substr(0,text.length()-"符卡".length()).strip_edges()
+ var suffix="自机符卡" if character_spell_filter and text.ends_with("自机符卡") else "符卡"
+ var leader_name=text.substr(0,text.length()-suffix.length()).strip_edges()
  if leader_name.is_empty():return []
  var alias_rule=find_rule(rules,leader_name)
  var characters=[]
@@ -84,15 +90,17 @@ static func role_spell_characters(cards: Dictionary,term: String,rules: Dictiona
  return characters
 
 # Prepare once per search edit; each picker still filters only its legal candidates.
-static func prepare_query(cards: Dictionary,term: String,rules: Dictionary) -> Dictionary:
- var query=alias_ids(cards,term,rules)
+static func prepare_query(cards: Dictionary,term: String,rules: Dictionary,character_spell_filter: bool=false) -> Dictionary:
+ var query=alias_ids(cards,term,rules,ANDROID_KINDS if character_spell_filter else KINDS)
  query.term=term.strip_edges().to_lower()
- query.role_characters=role_spell_characters(cards,term,rules)
+ query.role_characters=role_spell_characters(cards,term,rules,character_spell_filter)
+ if character_spell_filter:query.character_spell_filter=true
  return query
 
 static func matches_query(info: Dictionary,id: String,query: Dictionary) -> bool:
  var term=str(query.term)
  if term.is_empty():return true
+ if query.get("character_spell_filter",false) and term=="自机符卡":return kind_matches(info,term)
  var required_character=str(info.get("requires_character",""))
  var role_spell=info.kind=="符卡" and not required_character.is_empty() and query.role_characters.any(func(character):return character==required_character or str(character).begins_with(required_character+"·") or str(character).begins_with(required_character+"・"))
  if query.ids.has(id) or role_spell:return true

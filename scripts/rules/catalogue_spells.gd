@@ -10,6 +10,13 @@ static func options(e,id,who):
   "spell-fdf-120":return C.refs(e,units.filter(func(c):return e.Extra.cost_value(e,c)<=3 and e.Pack.colors(e,c).size()==2))
   "spell-fdn-029","spell-ucs-009","spell-ucs-052","spell-fdf-047","spell-fdf-028","spell-fdf-078","spell-fdf-022","spell-fdf-002","spell-fdf-032","spell-fdf-050","spell-fdn-028","spell-rec-054","spell-smm-002","spell-soi-119","spell-rec-056","spell-kmo-003":return rs
   "spell-ucs-015":return C.pick(e,units,0,1,"选择至多一个目标单位获得+3/+3",id)
+  "spell-fdn-003":
+   var out=e.Pack.selection([e.Pack.group([],0,0,"不选择目标单位")],id+":none")
+   out[0].title="不选择目标单位"
+   var allocation=C.distribution_options(e,rs,5)
+   for spec in allocation:spec.selection_id=id;spec.title="选择目标单位并分配5点伤害"
+   out.append_array(allocation)
+   return out
   "spell-fdf-043":
    var highest=0
    for c in foe:highest=maxi(highest,e.stat(c,"power"))
@@ -258,7 +265,7 @@ static func resolve(e,t):
    var maximum=0
    for u in e.units(who):maximum=maxi(maximum,e.stat(u,"power"))
    C.distribution(e,t,e.Pack.all_units(e),maximum)
-  "spell-fdn-003":C.distribution(e,t,e.Pack.all_units(e),5,false,10)
+  "spell-fdn-003":C.resolve_distribution(e,aim,who);p.life=10
   "spell-fdf-063":
    var n=9 if p.palette.filter(func(u):return e.Extra.keyword(e,u,"奇迹")).size()>=5 else 4
    C.damage(e,aim,n)
@@ -362,7 +369,7 @@ static func resolve_complex(e,t):
   "spell-fdf-052":
    for s in e.stack:
     if s.id!=a.stack_id:continue
-    var choices=C.retarget_options(e,s)
+    var choices=C.retarget_options(e,s,-1,false,false,false)
     C.choose(e,t,"cat:retarget",choices,{"id":s.id});break
   "spell-fdf-051":
    var list=C.selected(e,a)
@@ -441,7 +448,7 @@ static func resolve_complex_choice(e,t):
    C.damage(e,d.target,maxi(0,d.amount-list.size()*2))
   "cat:retarget":
    for s in e.stack:
-    if s.id==d.id:s.target=C.retarget_result(a)
+    if s.id==d.id:s.target=C.retarget_result(a);e.Roster.New.on_target(e,s.target)
   "cat:copy_x":
    if not a.get("copy_stop",false):C.copy_spell(e,d.entry,a.value,true)
   "cat:spell_copy":

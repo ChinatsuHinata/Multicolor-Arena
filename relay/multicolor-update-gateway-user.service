@@ -1,0 +1,13 @@
+[Unit]
+Description=Multicolor Arena update downloads and WebSocket gateway
+After=network-online.target multicolor-relay-ws-user.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/multicolor-relay/update_gateway.py --port 47862 --backend-port 47866 --releases %h/.local/share/multicolor-updates
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

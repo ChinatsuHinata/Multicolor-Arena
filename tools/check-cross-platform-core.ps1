@@ -42,9 +42,9 @@ try {
     foreach ($entry in $zip.Entries) {
         if (-not $entry.FullName.StartsWith('assets/', [StringComparison]::Ordinal)) { continue }
         $relative = $entry.FullName.Substring('assets/'.Length)
-        $isData = $relative -match '^(cards|data|net)/.*\.json$'
+        $isData = $relative -match '^(cards|data|net)/.*\.json$' -or $relative -eq 'data/account_public.pem'
         $isScript = $relative -match '^scripts/(rules|ai)/.*\.gdc$' -or
-            $relative -in @('scripts/card_database.gdc', 'scripts/deck_store.gdc', 'scripts/deck_rule_set.gdc')
+            $relative -in @('scripts/card_database.gdc', 'scripts/deck_store.gdc', 'scripts/deck_rule_set.gdc', 'scripts/account_client.gdc', 'scripts/account_session_store.gdc', 'scripts/deck_plaza_client.gdc', 'scripts/deck_plaza.gdc', 'scripts/main.gdc')
         if ($isData) {
             if ($apkData.ContainsKey($relative)) { throw "Duplicate core data in APK: $relative" }
             $stream = $entry.Open()
@@ -59,7 +59,7 @@ try {
 
 $pcData = @{}
 foreach ($property in $pc.data.PSObject.Properties) { $pcData[$property.Name] = [string]$property.Value }
-foreach ($required in @('data/bundled_decks.json', 'net/rules_manifest.json')) {
+foreach ($required in @('data/bundled_decks.json', 'net/rules_manifest.json', 'data/account_public.pem')) {
     if (-not $pcData.ContainsKey($required)) { throw "Windows PCK is missing $required" }
 }
 if (@($pcData.Keys | Where-Object { $_ -like 'cards/*.json' }).Count -eq 0) {
@@ -74,7 +74,7 @@ foreach ($name in $pcData.Keys) {
 }
 $pcScripts = @($pc.scripts | Sort-Object -Unique)
 $apkScripts = @($apkScripts | Sort-Object -Unique)
-foreach ($required in @('scripts/card_database.gdc', 'scripts/deck_store.gdc', 'scripts/rules/duel_engine.gdc')) {
+foreach ($required in @('scripts/card_database.gdc', 'scripts/deck_store.gdc', 'scripts/rules/duel_engine.gdc', 'scripts/account_client.gdc', 'scripts/account_session_store.gdc', 'scripts/deck_plaza_client.gdc', 'scripts/deck_plaza.gdc', 'scripts/main.gdc')) {
     if ($required -notin $pcScripts) { throw "Windows PCK is missing core script: $required" }
 }
 $scriptDiff = Compare-Object -ReferenceObject $pcScripts -DifferenceObject $apkScripts
@@ -100,4 +100,4 @@ $expectedCode = [regex]::Match($preset, '(?m)^version/code=(\d+)\r?$').Groups[1]
 if ($apkVersion -cne $version -or $apkCode -cne $expectedCode) {
     throw "Android APK version differs: got $apkVersion (code $apkCode); expected $version (code $expectedCode)."
 }
-Write-Host "Cross-platform core verified: $version; $($pcData.Count) identical JSON files; $($pcScripts.Count) core scripts on each platform."
+Write-Host "Cross-platform core verified: $version; $($pcData.Count) identical data files; $($pcScripts.Count) core scripts on each platform."

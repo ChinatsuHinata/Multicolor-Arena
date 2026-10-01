@@ -12,6 +12,7 @@ const DeckImage=preload("res://scripts/deck_image_export.gd")
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const LocalExperiment=preload("res://scripts/ai/local_experiment.gd")
+const AccountSessionStore=preload("res://scripts/account_session_store.gd")
 const GOLD = Color("#e8c77e")
 const INK = Color("#101c28")
 const MUTED = Color("#b2c2ce")
@@ -19,6 +20,9 @@ const WHITE = Color("#e8edf0")
 const UILayout=preload("res://scripts/ui_layout.gd")
 var ui_metrics=UILayout.new()
 var editor_ui
+var menu_popup
+var android_editor_overview=false
+var android_editor_main_page=0
 var layout_dpi_override=0.0
 var layout_safe_override=Rect2()
 var layout_pending=false
@@ -69,6 +73,7 @@ var fullscreen = false
 var top_down_view = false
 var show_card_inspection = true
 var replay_training_mode = false
+var is_test_build=OS.has_feature("debug")
 var add_amount = 1
 var zone_buttons = {}
 var settings_path = "res://saves/settings.json" if OS.has_feature("editor") else "user://settings.json"
@@ -79,7 +84,27 @@ var sideboard_waiting=false
 var sideboard_status: Label
 var sideboard_done: Button
 var replay_controller
-
+var account_name=""
+var account_nickname=""
+var account_token=""
+var account_remember_token=""
+var account_session_path=AccountSessionStore.DEFAULT_PATH
+var account_notice=""
+var account_action=""
+var account_mode="login"
+var account_pending=false
+var account_client
+var account_status_label: Label
+var account_username_input: LineEdit
+var account_password_input: LineEdit
+var account_confirm_input: LineEdit
+var deck_account_return=""
+var deck_plaza_ui
+var deck_plaza_form={}
+var deck_plaza_browser={}
+var cloud_edit_post={}
+var cloud_edit_deck_id=""
+var deck_plaza_server_url=preload("res://scripts/deck_plaza_client.gd").Account.SERVER_URL
 func _ready():
  if not is_android:
   get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
@@ -122,16 +147,23 @@ func _ready():
    top_down_view = saved_settings.get("top_down_view", false) == true
    show_card_inspection = saved_settings.get("show_card_inspection", true) == true
    debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
-   replay_training_mode = saved_settings.get("replay_training_mode", false) == true
+   replay_training_mode = is_test_build and not is_android and saved_settings.get("replay_training_mode", false) == true
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  menu()
+ call_deferred("restore_account")
  if not load_error.is_empty(): alert(load_error)
  elif not loaded.get("warnings",[]).is_empty():
   call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
 
 func _input(event: InputEvent):
+ if menu_popup_open():return
  if not is_android or page=="battle":return
+ if page=="editor" and editor_ui!=null and editor_ui.handle_touch(event):return
+ if page=="editor" and get_viewport().gui_is_dragging():
+  android_swipe_scroll.reset()
+  return
  if android_swipe_scroll.handle(event,self):
+  if page=="editor" and editor_ui!=null:editor_ui.cancel_touch_holds()
   suppress_swipe_mouse_until=Time.get_ticks_msec()+250
   suppress_swipe_mouse_point=event.position
   return
@@ -149,6 +181,33 @@ func enable_android_dialog_swipe(dialog: Window):
   elif (event is InputEventMouseButton or event is InputEventMouseMotion) and Time.get_ticks_msec()<suppression.until and event.position.distance_to(suppression.point)<28:
    dialog.set_input_as_handled())
 
+func enable_android_popup_swipe(popup: PopupMenu):
+ if not is_android:return
+ var gesture={"finger":-1,"last_y":0.0,"travel":0.0,"suppress_until":0,"suppress_point":Vector2.ZERO}
+ popup.window_input.connect(func(event):
+  if event is InputEventScreenTouch:
+   if event.pressed and gesture.finger<0:
+    gesture.finger=event.index;gesture.last_y=event.position.y;gesture.travel=0.0
+   elif not event.pressed and event.index==gesture.finger:
+    gesture.finger=-1
+   return
+  if event is InputEventScreenDrag and event.index==gesture.finger:
+   gesture.travel+=gesture.last_y-event.position.y
+   gesture.last_y=event.position.y
+   if absf(gesture.travel)<72.0:return
+   var wheel=InputEventMouseButton.new()
+   wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN if gesture.travel>0 else MOUSE_BUTTON_WHEEL_UP
+   wheel.position=Vector2(popup.size)*0.5
+   wheel.pressed=true
+   wheel.factor=1.0
+   gesture.suppress_until=Time.get_ticks_msec()+250
+   gesture.suppress_point=event.position
+   gesture.travel=0.0
+   popup.push_input(wheel,true)
+   return
+  if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and Time.get_ticks_msec()<gesture.suppress_until and event.position.distance_to(gesture.suppress_point)<28:
+   popup.set_input_as_handled())
+
 func _draw():
  if page=="battle": return
  draw_rect(Rect2(Vector2.ZERO,size), Color("#09121d"))
@@ -156,6 +215,7 @@ func _draw():
   draw_circle(Vector2(size.x*0.72,size.y*0.45),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
 
 func clear_page(next: String):
+ close_menu_popup()
  if page=="sideboard" and next!="sideboard":restore_editor_draft()
  if is_instance_valid(screen):
   remove_child(screen)
@@ -172,6 +232,22 @@ func clear_page(next: String):
  else:screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  page = next
  queue_redraw()
+
+func menu_popup_open() -> bool:
+ return is_instance_valid(menu_popup) and not menu_popup.is_queued_for_deletion()
+
+func close_menu_popup():
+ if menu_popup_open():menu_popup.close()
+ menu_popup=null
+
+func open_menu_popup(title: String,entries: Array,columns: int=1):
+ close_menu_popup()
+ android_swipe_scroll.reset()
+ if page=="editor" and editor_ui!=null:editor_ui.cancel_touch_holds()
+ menu_popup=preload("res://scripts/modal_menu.gd").new()
+ screen.add_child(menu_popup)
+ menu_popup.closed.connect(func():menu_popup=null)
+ menu_popup.build(self,title,entries,columns)
 
 func box(parent: Node, rect: Rect2, color: Color = INK, border: Color = Color("#30424f")) -> Panel:
  var p = Panel.new()
@@ -285,7 +361,7 @@ func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable(
  return p
 
 func header(title: String, back: Callable):
- if is_android and page=="online":
+ if is_android and page in ["online","replays"]:
   label(screen,"multicolor:arena",Rect2(0,6,screen.size.x-160,32),20,GOLD)
   label(screen,title,Rect2(0,43,screen.size.x-160,ui_metrics.hit),32)
   button(screen,"返回",Rect2(screen.size.x-142,14,138,ui_metrics.hit),back)
@@ -338,14 +414,19 @@ func menu():
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding*2))
  var row=HBoxContainer.new();margin.add_child(row)
- var left=VBoxContainer.new();row.add_child(left);left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left.size_flags_stretch_ratio=1.15
+ var menu_scroll=ScrollContainer.new();menu_scroll.name="MenuScroll";row.add_child(menu_scroll)
+ menu_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.size_flags_stretch_ratio=1.15
+ menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ var left=VBoxContainer.new();menu_scroll.add_child(left)
+ left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left.size_flags_vertical=Control.SIZE_EXPAND_FILL
  var version=Label.new();version.text="VERSION "+str(ProjectSettings.get_setting("application/config/version"));left.add_child(version);version.add_theme_color_override("font_color",GOLD)
  var heading=Label.new();heading.text="multicolor:arena";left.add_child(heading);heading.add_theme_font_size_override("font_size",54 if is_android else 64)
  var subtitle=Label.new();subtitle.text="以色彩为契约，展开你的幻想之战。";left.add_child(subtitle);subtitle.add_theme_font_size_override("font_size",ui_metrics.body);subtitle.add_theme_color_override("font_color",MUTED)
- var spacer=Control.new();left.add_child(spacer);spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL
- var actions=[["人机对战    →",setup],["联网对战",online],["编辑牌组",func():editor()]]
+ var spacer=Control.new();left.add_child(spacer);spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;spacer.custom_minimum_size.y=ui_metrics.gap
+ var actions=[["人机对战    →",setup],["联网对战",online],["编辑牌组",func():editor()],["玩家账号",account_page]]
+ var main_actions=GridContainer.new();main_actions.columns=2;left.add_child(main_actions)
  for item in actions:
-  var b=button(left,item[0],Rect2(),item[1],item==actions[0]);b.custom_minimum_size.y=maxf(ui_metrics.hit,68)
+  var b=button(main_actions,item[0],Rect2(),item[1],item==actions[0]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,68)
  var more=GridContainer.new();more.columns=2;left.add_child(more)
  for item in [["设置",settings],["关于",about],["对局回放",replays],["退出游戏",func():get_tree().quit()]]:
   var b=button(more,item[0],Rect2(),item[1]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,56)
@@ -359,13 +440,181 @@ func menu():
  art.resized.connect(arrange)
 
 func online():
+ var restore_cloud=false
+ var cloud_form={}
+ var focused_cloud_field=""
+ var focused_caret=0
+ if page=="online" and is_instance_valid(screen):
+  for child in screen.get_children():
+   if child.get_script()==preload("res://net/lan_lobby.gd"):
+    restore_cloud=child.cloud_selected
+    if restore_cloud and is_instance_valid(child.cloud_title_input):
+     cloud_form={"title":child.cloud_title_input.text,"password":child.cloud_password_input.text,"format":child.format_input.selected,"rule":child.rule_input.selected,"slot":child.cloud_host_slot.selected,"strict":child.strict_input.button_pressed}
+     var focused=get_viewport().gui_get_focus_owner()
+     if focused==child.cloud_title_input:focused_cloud_field="title"
+     elif focused==child.cloud_password_input:focused_cloud_field="password"
+     if not focused_cloud_field.is_empty():focused_caret=focused.get_caret_column()
+    break
  reload_decks()
  if not is_instance_valid(lan_session):
   lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize()
   lan_session.snapshot_ready.connect(network_snapshot_ready)
   lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
+ lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
  clear_page("online")
  var lobby=preload("res://net/lan_lobby.gd").new();screen.add_child(lobby);lobby.build(self,lan_session)
+ if restore_cloud:lobby.set_cloud_mode(true)
+ if not cloud_form.is_empty() and is_instance_valid(lobby.cloud_title_input):
+  lobby.cloud_title_input.text=cloud_form.title
+  lobby.cloud_password_input.text=cloud_form.password
+  lobby.format_input.selected=cloud_form.format
+  lobby.rule_input.selected=cloud_form.rule
+  lobby.cloud_host_slot.selected=cloud_form.slot
+  lobby.strict_input.button_pressed=cloud_form.strict
+  var focus_target=lobby.cloud_title_input if focused_cloud_field=="title" else lobby.cloud_password_input if focused_cloud_field=="password" else null
+  if focus_target!=null:
+   focus_target.grab_focus.call_deferred()
+   focus_target.set_caret_column.call_deferred(focused_caret)
+
+func account_page():
+ var focused=get_viewport().gui_get_focus_owner()
+ var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input] else ""
+ var focused_caret=focused.get_caret_column() if focused is LineEdit and not focused_name.is_empty() else 0
+ var saved_username=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountUsername" else ""
+ var saved_nickname=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountNickname" else ""
+ var saved_password=account_password_input.text if is_instance_valid(account_password_input) else ""
+ var saved_confirm=account_confirm_input.text if is_instance_valid(account_confirm_input) else ""
+ var saved_status=account_notice if account_action=="resume" and account_pending else account_status_label.text if is_instance_valid(account_status_label) else account_notice
+ clear_page("account")
+ var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding))
+ var scroll=ScrollContainer.new();scroll.name="AccountScroll";margin.add_child(scroll)
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ var center=CenterContainer.new();scroll.add_child(center)
+ center.custom_minimum_size=Vector2(maxf(0,screen.size.x-ui_metrics.padding*2-16),maxf(0,screen.size.y-ui_metrics.padding*2))
+ center.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var panel=PanelContainer.new();center.add_child(panel)
+ panel.custom_minimum_size.x=minf(760 if is_android else 560,maxf(0,screen.size.x-ui_metrics.padding*4))
+ panel.add_theme_stylebox_override("panel",ui_metrics.panel_style())
+ var body=VBoxContainer.new();panel.add_child(body)
+ body.add_theme_constant_override("separation",int(ui_metrics.gap))
+ var heading=Label.new();heading.text="玩家账号";heading.add_theme_font_size_override("font_size",ui_metrics.title);heading.add_theme_color_override("font_color",GOLD);body.add_child(heading)
+ var note=Label.new();note.text="登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(note)
+ if not account_name.is_empty():
+  var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+account_nickname;body.add_child(current)
+  account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";body.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
+  var change=button(body,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
+  var logout=button(body,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
+ else:
+  var tabs=HBoxContainer.new();body.add_child(tabs)
+  var login_button=button(tabs,"登录",Rect2(),func():account_mode="login";account_page(),account_mode=="login");ui_metrics.button(login_button)
+  var register_button=button(tabs,"注册",Rect2(),func():account_mode="register";account_page(),account_mode=="register");ui_metrics.button(register_button)
+  account_username_input=LineEdit.new();account_username_input.name="AccountUsername";account_username_input.text=saved_username;account_username_input.placeholder_text="账号：3–24 位英文字母、数字或下划线";account_username_input.max_length=24;body.add_child(account_username_input)
+  account_password_input=preload("res://scripts/password_edit.gd").new();account_password_input.name="AccountPassword";account_password_input.text=saved_password;account_password_input.placeholder_text="密码：8–64 位英文字母、数字或英文符号";account_password_input.max_length=64;body.add_child(account_password_input)
+  account_password_input.text_changed.connect(func(value):account_password_text_changed(account_password_input,value))
+  if account_mode=="register":
+   account_confirm_input=preload("res://scripts/password_edit.gd").new();account_confirm_input.name="AccountConfirm";account_confirm_input.text=saved_confirm;account_confirm_input.placeholder_text="再次输入密码（仅英文字符）";account_confirm_input.max_length=64;body.add_child(account_confirm_input)
+   account_confirm_input.text_changed.connect(func(value):account_password_text_changed(account_confirm_input,value))
+  else:account_confirm_input=null
+  for field in [account_username_input,account_password_input,account_confirm_input]:
+   if field!=null:field.custom_minimum_size.y=ui_metrics.hit
+  var submit=button(body,"注册账号" if account_mode=="register" else "登录",Rect2(),account_submit,true);ui_metrics.button(submit);submit.disabled=account_pending
+  account_password_input.text_submitted.connect(func(_value):account_submit())
+  if account_confirm_input!=null:account_confirm_input.text_submitted.connect(func(_value):account_submit())
+ account_status_label=Label.new();account_status_label.name="AccountStatus";account_status_label.text=saved_status;account_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(account_status_label)
+ var back=button(body,"返回主菜单" if deck_account_return.is_empty() else "返回套牌编辑器",Rect2(),return_from_account);ui_metrics.button(back)
+ var focus_target: LineEdit=null
+ if is_instance_valid(account_username_input) and account_username_input.name==focused_name:focus_target=account_username_input
+ elif is_instance_valid(account_password_input) and account_password_input.name==focused_name:focus_target=account_password_input
+ elif is_instance_valid(account_confirm_input) and account_confirm_input.name==focused_name:focus_target=account_confirm_input
+ if focus_target!=null:
+  focus_target.grab_focus.call_deferred()
+  focus_target.set_caret_column.call_deferred(focused_caret)
+  scroll.ensure_control_visible.call_deferred(focus_target)
+
+func account_password_text_changed(field: LineEdit,value: String):
+ var filtered=preload("res://scripts/account_client.gd").filter_password_chars(value)
+ if filtered==value:return
+ var caret=field.get_caret_column()
+ field.text=filtered
+ field.set_caret_column(preload("res://scripts/account_client.gd").filter_password_chars(value.substr(0,caret)).length())
+ if is_instance_valid(account_status_label):account_status_label.text="密码只能使用英文字母、数字和英文符号"
+
+func account_submit():
+ if account_pending or account_name!="":return
+ if account_mode=="register" and account_password_input.text!=account_confirm_input.text:
+  account_status_label.text="两次输入的密码不一致";return
+ account_pending=true
+ account_action=account_mode
+ account_status_label.text="正在连接账号服务器…"
+ var username=account_username_input.text.strip_edges()
+ var password=account_password_input.text
+ account_password_input.clear()
+ if account_confirm_input!=null:account_confirm_input.clear()
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.submit(account_mode,username,password)
+
+func restore_account():
+ if account_pending or not account_name.is_empty():return
+ var saved=AccountSessionStore.load_token(preload("res://scripts/account_client.gd").device_id(),account_session_path)
+ if saved.is_empty():return
+ account_pending=true
+ account_action="resume"
+ account_notice="正在自动登录…"
+ if page=="account":account_page()
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.resume(saved)
+
+func account_change_nickname():
+ if account_pending or account_token.is_empty():return
+ var value=account_username_input.text.strip_edges()
+ if value.is_empty() or value.length()>20:account_status_label.text="昵称须为 1–20 个字符";return
+ account_pending=true;account_action="nickname";account_status_label.text="正在保存昵称…"
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.update_nickname(value,account_token)
+
+func account_logout():
+ if account_pending or account_token.is_empty():return
+ account_pending=true;account_action="logout";account_status_label.text="正在退出账号…"
+ var saved=account_remember_token
+ account_remember_token=""
+ AccountSessionStore.clear(account_session_path)
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.logout(account_token,saved)
+
+func account_request_finished(ok: bool,message: String,username: String):
+ account_pending=false
+ var returned_token=account_client.session_token if is_instance_valid(account_client) else ""
+ var returned_remember_token=account_client.remember_token if is_instance_valid(account_client) else ""
+ var returned_nickname=account_client.nickname if is_instance_valid(account_client) else ""
+ if is_instance_valid(account_client):account_client.queue_free();account_client=null
+ if account_action=="logout":
+  account_name="";account_nickname="";account_token="";account_remember_token=""
+  if is_instance_valid(lan_session):lan_session.leave(false);lan_session.cloud_token="";lan_session.cloud_nickname=""
+  if not ok:message="本机已退出；云端会话将在到期或下次登录时失效。"
+ if ok:
+  match account_action:
+   "login","resume":
+    account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token
+    if is_instance_valid(lan_session):lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
+    if not AccountSessionStore.save_token(preload("res://scripts/account_client.gd").device_id(),returned_remember_token,account_session_path):
+     message+="；本机未能保存自动登录凭据"
+   "register":account_mode="login"
+   "nickname":account_nickname=returned_nickname
+ elif account_action=="resume" and message=="自动登录已失效，请重新登录":
+  AccountSessionStore.clear(account_session_path)
+ account_notice=message
+ if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
+  var destination=deck_account_return;deck_account_return=""
+  call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
+  return
+ if page=="account":
+  if ok:account_page()
+  if is_instance_valid(account_status_label):account_status_label.text=message
 func network_snapshot_ready():
  if lan_session.latest_snapshot.game_id!=network_game_open:
   network_game_open=lan_session.latest_snapshot.game_id
@@ -406,10 +655,65 @@ func set_debug_drag_to_field(value: bool):
  save_settings()
 
 func set_replay_training_mode(value: bool):
- replay_training_mode=value
+ if is_android:
+  replay_training_mode=false
+  return
+ replay_training_mode=is_test_build and not is_android and value
  save_settings()
  if is_instance_valid(replay_controller):replay_controller.update_training_button()
  
+
+func return_from_account():
+ var from_deck=not deck_account_return.is_empty()
+ deck_account_return=""
+ if from_deck:editor()
+ else:menu()
+
+func require_deck_login(destination: String) -> bool:
+ if not account_token.is_empty() and not account_name.is_empty():return true
+ deck_account_return=destination;account_mode="login";account_notice="登录后即可"+("上传套牌" if destination=="upload" else "进入套牌广场")
+ account_page()
+ if is_instance_valid(account_status_label):account_status_label.text=account_notice
+ return false
+
+func deck_login_expired(destination: String,message: String):
+ account_name="";account_nickname="";account_token=""
+ require_deck_login(destination)
+ account_notice=message
+ if is_instance_valid(account_status_label):account_status_label.text=message
+
+func open_deck_plaza():
+ if not require_deck_login("list"):return
+ clear_page("deck_plaza")
+ deck_plaza_ui=preload("res://scripts/deck_plaza.gd").new();deck_plaza_ui.app=self
+ screen.add_child(deck_plaza_ui)
+
+func upload_current_deck():
+ if not require_deck_login("upload"):return
+ var error=Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
+ if not error.is_empty():alert(error,"无法上传套牌");return
+ var snapshot=draft.duplicate(true)
+ clear_page("deck_plaza")
+ deck_plaza_ui=preload("res://scripts/deck_plaza.gd").new();deck_plaza_ui.app=self
+ deck_plaza_ui.mode="edit" if editing_uploaded_deck() else "upload";deck_plaza_ui.source_deck=snapshot
+ if editing_uploaded_deck():deck_plaza_ui.current_post=cloud_edit_post.duplicate(true)
+ screen.add_child(deck_plaza_ui)
+
+func editing_uploaded_deck() -> bool:
+ return not cloud_edit_post.is_empty() and draft.get("id","")==cloud_edit_deck_id and str(cloud_edit_post.get("username","")).to_lower()==account_name.to_lower()
+
+func deck_upload_caption() -> String:
+ return "更新套牌" if editing_uploaded_deck() else "上传套牌"
+
+func edit_uploaded_deck(post: Dictionary):
+ if not require_deck_login("list"):return
+ if not post.get("owned",false):alert("只能编辑自己上传的套牌");return
+ var imported=Store.decode(str(post.get("deck_code","")))
+ if imported.has("error"):alert(imported.error,"无法编辑套牌");return
+ var cloud_deck=imported.deck;cloud_deck.name=str(post.title)
+ guard(func():
+  cloud_edit_post=post.duplicate(true);cloud_edit_deck_id=cloud_deck.id
+  draft=cloud_deck;dirty=true;deck_plaza_form={};editor())
 
 func editor(sideboarding: bool=false):
  if not is_android:
@@ -417,11 +721,9 @@ func editor(sideboarding: bool=false):
   desktop_editor(sideboarding)
   return
  if not sideboarding:reload_decks()
- selected_colors.clear()
- filter_kind="全部"
  library_sort_mode="类别"
  clear_page("sideboard" if sideboarding else "editor")
- editor_ui=preload("res://scripts/deck_editor_layout.gd").new()
+ editor_ui=preload("res://scripts/deck_editor_layout.gd").new() if sideboarding else preload("res://scripts/android_deck_editor.gd").new()
  editor_ui.build(self,sideboarding)
 
 func change_deck_rule_set(rule_set: String):
@@ -464,6 +766,9 @@ func update_preview():
 func update_library():
  if not is_android:
   desktop_update_library()
+  return
+ if page=="editor":
+  editor_ui.update_library()
   return
  free_children(library)
  library_rows.clear()
@@ -520,6 +825,7 @@ func choose_card_art(id: String,art_id: String):
  draft.art_overrides[key]=art_id
  selected=id;dirty=true
  update_preview();update_deck_rows()
+ if is_android and page=="editor":editor_ui.queue_gallery_art()
 
 func open_art_picker(id: String):
  if sideboard_session!=null and sideboard_locked():return
@@ -572,7 +878,7 @@ func refresh_library_limits():
   var maximum=RuleSet.limit(id,info,rule_set)
   var remaining=maximum if maximum<0 else maxi(0,maximum-counts.get(RuleSet.name_key(id,Store.CARDS),0))
   if not leader_key.is_empty() and RuleSet.name_key(id,Store.CARDS)==leader_key:remaining=0
-  item.row.draggable=RuleSet.allowed(id,info,rule_set) and remaining!=0
+  item.row.draggable=not is_android and RuleSet.allowed(id,info,rule_set) and remaining!=0
   if item.remaining_label!=null:
    item.remaining_label.text="余 %d" % remaining
    item.remaining_label.add_theme_color_override("font_color",GOLD if remaining>0 else MUTED)
@@ -605,7 +911,7 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
  if not filters.is_empty():
   var race_match=filters.race=="" or filters.race in info.get("race",[]) or library_related_to_race(info,filters.race,race_characters)
   var color_match=library_kind_matches(info,filters.kind) and race_match and (not filters.single or info.colors.size()==1) and filters.colors.all(func(color):return color in info.colors)
-  if filters.kind=="普通符卡":return color_match
+  if filters.kind in ["普通符卡","自机符卡"]:return color_match
   return color_match or role_spell or alias_ids.has(id)
  if alias_exclusive:return role_spell or alias_ids.has(id)
  var searchable=[info.name,id,info.get("title",""),info.get("character","")]
@@ -633,10 +939,10 @@ func library_related_to_race(info: Dictionary,race: String,characters: Array) ->
  return characters.any(func(candidate):return character in candidate or candidate in character)
 
 func library_alias_ids(term: String,rules: Dictionary) -> Dictionary:
- return SearchAliases.alias_ids(Store.CARDS,term,rules)
+ return SearchAliases.alias_ids(Store.CARDS,term,rules,SearchAliases.ANDROID_KINDS if is_android else SearchAliases.KINDS)
 
 func library_role_spell_characters(term: String,rules: Dictionary) -> Array:
- return SearchAliases.role_spell_characters(Store.CARDS,term,rules)
+ return SearchAliases.role_spell_characters(Store.CARDS,term,rules,is_android)
 
 func library_kind_matches(info: Dictionary, wanted: String) -> bool:
  return SearchAliases.kind_matches(info,wanted)
@@ -647,7 +953,7 @@ func library_query_filters(term: String) -> Dictionary:
  var single=remaining.begins_with("单") and remaining!="单位"
  if single:remaining=remaining.substr(1)
  var kind=""
- for suffix in ["自机单位","普通单位","普通符卡","单位","自机","符卡","道具","结界"]:
+ for suffix in SearchAliases.ANDROID_KINDS if is_android else SearchAliases.KINDS:
   if remaining.ends_with(suffix):
    kind=suffix
    remaining=remaining.substr(0,remaining.length()-suffix.length())
@@ -782,10 +1088,14 @@ func show_deck_tutorial():
 [color=#d9b775][b]保存与使用[/b][/color]
 右下角可保存、使用、清空或删除卡组；“导出代码”直接复制到剪贴板，“导入代码”直接读取剪贴板并创建新卡组。鼠标中键点击仓库、主副卡组或自机位的牌可更换异画，仅影响当前卡组的所有对应牌，并同步用于联机显示。顶部“卡组截图”将当前卡组保存为 PNG，并提示完整路径；“打开截图文件夹”可查看 deck/image 截图目录。名称后的 * 表示有未保存的修改。保存需要设置自机；正常对战还要求主卡组恰好 50 张。"""
  if is_android:
-  guide.text=guide.text.replace("点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。", "将右侧卡库中的卡牌拖到主卡组或副卡组。")
-  guide.text=guide.text.replace("主、副卡组中的卡牌左键再加一张，右键移除；", "主、副卡组中的卡牌通过拖动调整；")
-  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "")
-  guide.text=guide.text.replace("鼠标中键点击仓库、主副卡组或自机位的牌可更换异画", "长按仓库、主副卡组或自机位的牌可更换异画")
+  guide.text=guide.text.replace("“普通符卡”排除角色符卡。", "“普通符卡”和“自机符卡”分别筛选通用符卡与角色专属符卡。")
+  guide.text=guide.text.replace("顶部“卡组截图”", "卡组页菜单中的“卡组截图”")
+  guide.text=guide.text.replace("；“打开截图文件夹”可查看 deck/image 截图目录", "")
+  guide.text=guide.text.replace("左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。", "图鉴中轻触卡牌打开详情，通过“加入主卡组”或“加入副卡组”添加一张；自机单位也可以加入主副卡组，或选择“设为自机”。详情大图右下角显示同名牌余量。图鉴右侧列表轻触查看详情，长按移除一张；下方按钮切换主、副卡组列表。")
+  guide.text=guide.text.replace("主、副卡组中的卡牌左键再加一张，右键移除；在同一组的卡牌之间拖动可调整顺序，拖到另一组的卡牌上可直接交换两张，拖到另一组的空白处可移动一张，拖回右侧卡库可移除。顶部“排序卡组”整理主、副卡组的排列。", "切换到卡组页后，可拖动主、副卡组中的卡牌调整顺序，拖到另一组的卡牌上可交换两张，拖到另一组空白处可移动一张；轻触详情中的“移出卡组”可移除一张。菜单中的“排序”整理主、副卡组。")
+  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "图鉴左侧为类型和纵向颜色筛选，搜索与筛选会叠加；颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选。每页显示三张卡牌，使用卡牌行下方的左右箭头翻页。")
+  guide.text=guide.text.replace("右下角可保存、使用、清空或删除卡组；", "卡组页右侧可保存卡组，菜单中可清空或删除卡组；图鉴页及卡组页均有“返回主菜单”按钮。")
+  guide.text=guide.text.replace("鼠标中键点击仓库、主副卡组或自机位的牌可更换异画", "卡牌详情中的“更换异画”可更换图片")
  dialog.add_child(guide)
  add_child(dialog)
  dialog.popup_centered()
@@ -1096,12 +1406,14 @@ func choose_leader_from_picker(id: String,dialog: Control):
 func editor_card(id: String, source: String, index: int, rect: Rect2, parent: Node = null):
  var tile=preload("res://scripts/deck_card.gd").new()
  tile.is_android=is_android
+ tile.hold_to_drag=is_android and page=="editor"
  tile.card_id=id
  tile.face_texture=texture(id)
  tile.source_zone=source
  tile.source_index=index
  tile.tooltip_text=Store.CARDS[id].name
- if CardArt.options(id,Store.CARDS).size()>1:tile.tooltip_text+="\n"+("长按：更换当前卡组的异画" if is_android else "鼠标中键：更换当前卡组的异画")
+ if is_android and page=="editor":tile.tooltip_text+="\n点击：查看详情 · 长按：拖动卡牌"
+ elif CardArt.options(id,Store.CARDS).size()>1:tile.tooltip_text+="\n"+("长按：更换当前卡组的异画" if is_android else "鼠标中键：更换当前卡组的异画")
  tile.position=rect.position
  tile.size=rect.size
  tile.add_theme_stylebox_override("panel",style(Color("#142737"),GOLD if source=="leader" else Color("#677585")))
@@ -1124,8 +1436,10 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
    if not right and from in ["main","side"]:drop_editor_card({"card_id":card_id,"source_zone":from,"source_index":index_in_deck},"side" if from=="main" else "main")
    return
   if is_android:
-   update_preview()
-   if from=="leader":open_leader_picker()
+   if page=="editor":editor_ui.show_details(card_id,from,index_in_deck)
+   else:
+    update_preview()
+    if from=="leader":open_leader_picker()
   elif right:
    if from=="leader": draft.leader=""
    else: draft[from].remove_at(index_in_deck)
@@ -1205,6 +1519,7 @@ func about():
  button(screen,"返回",Rect2(670,660,260,54),menu)
 
 func _unhandled_key_input(event: InputEvent):
+ if menu_popup_open():return
  if is_android:return
  if page!="about" or not event is InputEventKey or not event.pressed or event.echo: return
  if event.unicode<=0: return
@@ -1273,6 +1588,7 @@ func reload_decks():
 
 func offer_replay(archive):
  if archive.prompted or archive.frames.is_empty():return
+ if page=="battle" and is_instance_valid(replay_controller) and replay_controller.get_parent()==screen:return
  if get_children().any(func(child):return child is AcceptDialog and child.visible):
   await get_tree().create_timer(0.3).timeout
   offer_replay(archive);return
@@ -1289,14 +1605,29 @@ func offer_replay(archive):
 
 func replays():
  clear_page("replays");header("对局回放",menu)
- label(screen,"replay / .mreply",Rect2(80,151,1350,42),22,GOLD)
  var folder=Store.Paths.root().path_join("replay");Store.Paths.initialize()
- var scroll=ScrollContainer.new();scroll.position=Vector2(80,217);scroll.size=Vector2(1440,630);screen.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.name="ReplayScroll";screen.add_child(scroll)
+ if is_android:
+  var margin=ui_metrics.padding
+  var top=ui_metrics.hit+ui_metrics.gap*3+ui_metrics.title+margin
+  scroll.position=Vector2(margin,top)
+  scroll.size=Vector2(screen.size.x-margin*2,maxf(ui_metrics.hit,screen.size.y-top-margin))
+  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+  label(screen,"replay / .mreply",Rect2(margin,top-ui_metrics.body-ui_metrics.gap,scroll.size.x,ui_metrics.body+4),18,GOLD)
+ else:
+  label(screen,"replay / .mreply",Rect2(80,151,1350,42),22,GOLD)
+  scroll.position=Vector2(80,217);scroll.size=Vector2(1440,630)
  var list=VBoxContainer.new();list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.add_theme_constant_override("separation",16);scroll.add_child(list)
  var files=DirAccess.get_files_at(folder);files.reverse()
  for filename in files:
   if filename.get_extension().to_lower()!="mreply":continue
-  var row=Button.new();row.text=filename;row.custom_minimum_size=Vector2(1380,64);list.add_child(row)
+  var row=Button.new();row.text=filename;row.custom_minimum_size=Vector2(0,ui_metrics.hit if is_android else 64);list.add_child(row)
+  row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  if is_android:
+   ui_metrics.button(row)
+   row.custom_minimum_size.x=0
+   row.tooltip_text=filename
+  else:row.custom_minimum_size.x=1380
   row.pressed.connect(func():
    var result=preload("res://scripts/replay_archive.gd").read(folder.path_join(filename))
    if result.has("error"):alert(result.error,"无法播放");return
@@ -1306,9 +1637,10 @@ func replays():
    replay_controller.build(self,result.archive,folder.path_join(filename)))
  if list.get_child_count()==0:
   var empty=Label.new();empty.text="暂无回放";list.add_child(empty)
+  if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)
 
 func uses_responsive_layout() -> bool:
- return is_android and page in ["","menu","editor","sideboard","setup","settings","battle","online"]
+ return is_android and page in ["","menu","editor","sideboard","setup","settings","battle","online","account","deck_plaza","replays"]
 
 func refresh_ui_metrics():
  ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override)
@@ -1336,9 +1668,13 @@ func refresh_responsive_layout():
  elif page=="setup":setup()
  elif page=="settings":settings()
  elif page=="online":online()
+ elif page=="account":account_page()
+ elif page=="replays":replays()
+ elif page=="deck_plaza" and is_instance_valid(deck_plaza_ui):deck_plaza_ui.relayout()
  elif page=="battle" and is_instance_valid(duel_view):
   screen.position=Vector2.ZERO;screen.size=get_viewport_rect().size
   duel_view.resize_world()
+  if is_instance_valid(replay_controller):replay_controller.layout_controls()
 
 func style_dialog(dialog: AcceptDialog):
  if not is_android:return
@@ -1360,8 +1696,12 @@ func fit_card_selector(panel: Panel,selector: Control):
   selector.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   selector.offset_left=20;selector.offset_right=-20;selector.offset_top=60;selector.offset_bottom=-70
   return
- panel.size=Vector2(minf(1540,ui_metrics.safe.size.x-16),minf(870,ui_metrics.safe.size.y-16))
- panel.position=ui_metrics.safe.position+(ui_metrics.safe.size-panel.size)*0.5
+ var selector_area=ui_metrics.safe
+ if page=="battle":
+  var toolbar_height=ui_metrics.hit+ui_metrics.gap
+  selector_area.position.y+=toolbar_height;selector_area.size.y-=toolbar_height
+ panel.size=Vector2(minf(1540,selector_area.size.x-16),minf(870,selector_area.size.y-16))
+ panel.position=selector_area.position+(selector_area.size-panel.size)*0.5
  var footer=HBoxContainer.new();footer.alignment=BoxContainer.ALIGNMENT_END
  var actions=[]
  for child in panel.get_children():
@@ -1385,6 +1725,7 @@ func desktop_menu():
  button(screen,"人机对战    →",Rect2(96,422,440,70),setup,true)
  button(screen,"联网对战",Rect2(96,512,440,64),online)
  button(screen,"编辑牌组",Rect2(96,594,440,64),func(): editor())
+ button(screen,"玩家账号",Rect2(570,594,280,64),account_page)
  button(screen,"设置",Rect2(96,676,440,64),settings)
  button(screen,"关于",Rect2(96,758,440,64),about)
  button(screen,"退出游戏",Rect2(570,676,280,64),func(): get_tree().quit())
@@ -1426,13 +1767,14 @@ func desktop_settings():
  drag_cb.button_pressed=debug_drag_to_field
  drag_cb.toggled.connect(set_debug_drag_to_field)
  screen.add_child(drag_cb)
- var training_cb=CheckButton.new()
- training_cb.text="回放训练模式：标注关键步骤与推荐招法"
- training_cb.position=Vector2(420,610)
- training_cb.size=Vector2(700,60)
- training_cb.button_pressed=replay_training_mode
- training_cb.toggled.connect(set_replay_training_mode)
- screen.add_child(training_cb)
+ if is_test_build:
+  var training_cb=CheckButton.new()
+  training_cb.text="回放训练模式：标注关键步骤与推荐招法"
+  training_cb.position=Vector2(420,610)
+  training_cb.size=Vector2(700,60)
+  training_cb.button_pressed=replay_training_mode
+  training_cb.toggled.connect(set_replay_training_mode)
+  screen.add_child(training_cb)
 
 func desktop_editor(sideboarding: bool=false):
  if not sideboarding:reload_decks()
@@ -1441,6 +1783,8 @@ func desktop_editor(sideboarding: bool=false):
  button(screen,"返回",Rect2(1480,14,100,40),online if sideboarding else func(): guard(menu))
  button(screen,"排序卡组",Rect2(1090,14,156,40),sort_current_deck)
  if not sideboarding:
+  button(screen,"套牌广场",Rect2(302,14,156,40),open_deck_plaza).name="DeckPlazaButton"
+  button(screen,deck_upload_caption(),Rect2(476,14,156,40),upload_current_deck).name="DeckUploadButton"
   var capture_button=button(screen,"卡组截图",Rect2(650,14,156,40),capture_current_deck)
   capture_button.name="DeckCaptureButton"
   var folder_button=button(screen,"打开 deck 文件夹",Rect2(820,14,242,40),open_deck_folder)

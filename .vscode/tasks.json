@@ -94,6 +94,21 @@
       "problemMatcher": []
     },
     {
+      "label": "Android: 同 Wi-Fi 分享最新 APK",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/share-apk-lan.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
       "label": "发布: 导出 Windows 和 Android APK",
       "type": "process",
       "command": "powershell.exe",

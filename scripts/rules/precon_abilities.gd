@@ -151,7 +151,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
   "spirit_four","escape","dream_orbs": return units
   "meteor","silent_spark": return e.ability_targets()
   "counter_three":
-   return e.stack.filter(func(s): return s.kind=="card" and e.Extra.cost_value(e,s.card)<=3).map(func(s): return {"stack_id":s.id})
+   return e.Pack.none() if e.stack.any(func(s): return s.kind=="card" and e.Extra.cost_value(e,s.card)<=3) else []
   "reveal_counter":
    var leader=e.cards[e.players[who].leader.card_id].character
    var reveal=e.players[who].hand.filter(func(c): return e.cards[c.card_id].requires_character==leader)
@@ -550,7 +550,6 @@ static func state_checks(e):
  for c in (e.players[0].field+e.players[1].field).duplicate():
   var info=e.cards[c.card_id]
   if info.kind=="符卡" and "时符" in info.get("spell_type","") and c.timer<=0: e.move_to(c,"grave")
-  elif has(info,"illusion_check") and not e.units(c.owner).any(func(u): return "铃仙" in e.cards[u.card_id].name): e.move_to(c,"exile")
 static func direct_attack(e,c: Dictionary) -> bool:
  return e.Extra.keyword(e,c,"直接攻击单位") or has(e.cards[c.card_id],"flandre_direct") and e.has_leader_ability(c)
 static func target_survives(e,id: String,t: Dictionary) -> bool:
@@ -563,6 +562,11 @@ static func single_damage_target(entry: Dictionary) -> bool:
  # Selecting a card to recover is not a second recipient of damage.
  var t=entry.target
  if entry.get("effect","")=="enter_grave_damage": return t.get("parts",[]).size()==2
+ if entry.get("card",{}).get("card_id","")=="spell-fdn-003":
+  var recipients=[]
+  for r in flatten(t):
+   if r not in recipients:recipients.append(r)
+  return recipients.size()==1
  return flatten(t).size()==1
 static func ai_target(e,who: int,options: Array,effect: String="") -> Dictionary:
  if options.is_empty(): return {}

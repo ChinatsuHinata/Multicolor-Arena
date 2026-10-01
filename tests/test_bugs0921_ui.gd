@@ -1,9 +1,11 @@
 extends "res://tests/support/ui_base.gd"
-func nodes_of_type(node,type):
- var out=[]
- if node.is_class(type):out.append(node)
- for child in node.get_children():out.append_array(nodes_of_type(child,type))
- return out
+func selected_text(node: Node) -> String:
+ if node==null:return ""
+ var result=""
+ if node is Label:result=node.text
+ elif node is RichTextLabel:result=node.get_parsed_text()
+ for child in node.get_children():result+="\n"+selected_text(child)
+ return result
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/bugs0921-ui/"+str(Time.get_ticks_usec()))
  app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
@@ -20,10 +22,10 @@ func run():
  var token_key=token_descriptors[0].key
  expect(view.card_badges[token_key].token_count.text=="×12","要石卡图标出数量")
  var badge=view.card_badges["card_"+str(unit.uid)]
- expect(badge.has("counters") and "+3" in badge.counters.text and "−1" in badge.counters.text and "防避 2" in badge.counters.text,"战场卡面显示增减指示物和防避")
+ expect(badge.has("counters") and "+3" in badge.counters.text and "−1" in badge.counters.text and "防避2" in badge.counters.text,"战场卡面显示增减指示物和防避")
  expect(view.card_badges["card_"+str(palette.uid)].counters.text.contains("贫穷 2"),"颜色盘指示物显示")
  view.inspect_card(unit.card_id,unit.uid)
- expect("防避：2" in view.inspection_text.get_parsed_text() and "+3/+3/+3" in view.inspection_text.get_parsed_text(),"左侧详情与卡面指示物一致")
+ expect("防避2" in view.inspection_text.get_parsed_text() and "+3/+3/+3" in view.inspection_text.get_parsed_text(),"左侧详情与卡面指示物一致")
  await capture("bugs0921-counters")
  view.selection=[tokens[0].uid];view.render();await settle()
  token_descriptors=view.table.descriptors.values().filter(func(d):return d.card_id=="token-fdf-129")
@@ -34,18 +36,28 @@ func run():
  expect(e.players[0].field.filter(func(c):return c.card_id=="token-fdf-129").size()==11,"使用后剩余11个要石")
  expect(view.table.descriptors.values().filter(func(d):return d.card_id=="token-fdf-129").size()==1,"使用后重新合并剩余要石")
  clean(true)
- var momiji=put("character-fdf-101","field");e.Cat.Units.on_enter(e,momiji);e.pump_choices();view.render();await settle()
- expect(e.stack.size()==1,"雪中椛进场有待选卡名的触发")
+ var momiji=e.make_card("character-fdf-101",0,"hand");e.enter_field(momiji,0);e.pump_choices();view.render();await settle()
+ expect(e.pending.get("trigger",{}).get("effect","")=="cat:momiji_name","雪中椛进场有待选卡名的触发")
  expect(view.modal and is_instance_valid(view.modal_root) and not view.stack_panel.visible,"卡名检索窗口独立置顶，堆叠让出输入区域")
- var panel=view.modal_root.get_child(0)
- expect(panel.get_meta("name_picker",false) and panel.get_global_rect().get_center().distance_to(Vector2(800,450))<1,"卡名检索窗口居中")
- var search=nodes_of_type(panel,"LineEdit")[0];search.text="博丽灵梦";search.text_changed.emit(search.text);await process_frame
- var buttons=nodes_of_type(panel,"Button").filter(func(b):return b.visible and "博丽灵梦" in b.text)
+ var panel=view.modal_root.find_child("CardNameSearchPanel",true,false)
+ expect(panel!=null and panel.get_global_rect().get_center().distance_to(Vector2(800,450))<1,"卡名检索窗口使用居中的共用面板")
+ if panel==null:quit(1);return
+ var search=panel.find_child("SearchInput",true,false)
+ var results=panel.find_child("SearchResults",true,false)
+ expect(search is LineEdit and results!=null,"卡名检索窗口有右侧搜索仓库")
+ search.text="博丽灵梦";search.text_changed.emit(search.text);await process_frame
+ var buttons=results.get_children().filter(func(b):return b is Button and b.visible and "博丽灵梦" in str(b.get_meta("card_name","")))
  expect(not buttons.is_empty(),"能够检索卡名")
+ if buttons.is_empty():quit(1);return
  await capture("bugs0921-name-picker")
- await click(buttons[0].get_global_rect().get_center());await settle();await press("确定");await settle()
- expect(e.pending.is_empty() and e.stack[0].target.has("card_name"),"鼠标选择名称并确认，触发留在堆叠等待响应")
- expect(view.stack_panel.visible,"选名结束后恢复堆叠显示")
+ var chosen_name=str(buttons[0].get_meta("card_name",""))
+ await click(buttons[0].get_global_rect().get_center());await settle()
+ var selected=view.modal_root.find_child("SelectedCard",true,false)
+ expect(selected!=null and chosen_name in selected_text(selected),"所选卡名显示在中央")
+ expect(not e.pending.is_empty(),"选中名称后仍需确认")
+ await press("确定");await settle()
+ expect(e.pending.is_empty() and momiji.locked_name==chosen_name,"鼠标选择名称并确认后，椛记录正式卡名")
+ expect(not view.modal,"选名结束后返回对局")
  app.editor();await process_frame
  app.query="照国";app.update_library();await process_frame
  # The renderer filters aliases; keeping the old ID still lets old deck files load.

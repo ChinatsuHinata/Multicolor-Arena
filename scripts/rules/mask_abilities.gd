@@ -221,10 +221,8 @@ static func resolve_activation(e,entry):
    e.draw(who)
   "tokiko_copy":
    if e.Roster.valid(e,t):
-    var src=e.find_card(t.uid);var id="mask_copy_"+str(e.next_uid);var info=e.cards[src.card_id].duplicate(true)
-    info.token=true;info.constructible=false;info.copy_source_id=src.card_id;e.cards[id]=info
-    var copy=e.make_card(id,who,"token")
-    if e.enter_field(copy,who):e.delayed.append({"phase":"end","owner":-1,"ref":e.ref_target(copy),"zone":"field","effect":"token_sacrifice","origin_name":e.cards[entry.source.card_id].name})
+    var copy=e.Cat.copy_token(e,who,e.find_card(t.uid))
+    if not copy.is_empty():e.delayed.append({"phase":"end","owner":-1,"ref":e.ref_target(copy),"zone":"field","effect":"token_sacrifice","origin_name":e.cards[entry.source.card_id].name})
 static func cost(e,c,who,base:Dictionary) -> Dictionary:
  if e.active!=who or e.cards[c.card_id].kind!="道具" or e.players[who].get("item_cast_turn",-1)==e.turn:return base
  var n=2*e.units(who).filter(func(u):return enabled(e,u,"tokiko_discount")).size()

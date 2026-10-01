@@ -2,6 +2,7 @@ extends RefCounted
 const SAVE_PATH = "res://saves/decks.json"
 const USER_SAVE_PATH = "user://decks.json"
 const BUNDLED_DECKS_PATH = "res://data/bundled_decks.json"
+const LEGACY_BUNDLED_NAMES = {"1790434714.661_943735096":"蕾米速攻（ai）"}
 const Paths=preload("res://scripts/portable_paths.gd")
 const EXTENSION="mdeck"
 const DELETED_CLEANUP_INTERVAL=60*60
@@ -337,14 +338,23 @@ static func install_bundled_updates(path: String=BUNDLED_DECKS_PATH) -> String:
  for deck in bundle.decks:by_id[deck.id]=deck
  for id in updates:
   if not id is String or not by_id.has(id):return "发行包的新增卡组不存在。"
- var pending=updates.filter(func(id):return not FileAccess.file_exists(bundled_update_marker(id)))
- if pending.is_empty():return ""
+ if updates.is_empty():return ""
  var error=Paths.initialize()
  if not error.is_empty():return error
  var existing={}
  for source in scan_files(folder()):
   var parsed=read_file(source)
-  if parsed.has("deck"):existing[parsed.deck.id]=true
+  if parsed.has("deck"):existing[parsed.deck.id]=source
+ for id in updates:
+  if not existing.has(id) or not LEGACY_BUNDLED_NAMES.has(id):continue
+  var source=existing[id]
+  var parsed=read_file(source)
+  if parsed.has("deck") and parsed.deck.name==LEGACY_BUNDLED_NAMES[id] and by_id[id].name!=parsed.deck.name:
+   var renamed=parsed.deck.duplicate(true);renamed.name=by_id[id].name
+   error=save_file(renamed,source)
+   if not error.is_empty():return error
+ var pending=updates.filter(func(id):return not FileAccess.file_exists(bundled_update_marker(id)))
+ if pending.is_empty():return ""
  var defaults=folder().path_join("预设卡组")
  if DirAccess.make_dir_recursive_absolute(defaults)!=OK:return "无法创建预设卡组文件夹。"
  for id in pending:
@@ -352,7 +362,7 @@ static func install_bundled_updates(path: String=BUNDLED_DECKS_PATH) -> String:
    var deck=by_id[id]
    error=save_file(deck,defaults.path_join(filename(deck)))
    if not error.is_empty():return error
-   existing[id]=true
+   existing[id]=defaults.path_join(filename(deck))
   var marker=FileAccess.open(bundled_update_marker(id),FileAccess.WRITE)
   if marker==null:return "无法写入新增卡组安装标记。"
   marker.store_string("1");marker.flush()

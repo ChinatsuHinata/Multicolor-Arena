@@ -76,6 +76,23 @@ func run():
  var art=view.browser_cards.get_children().filter(func(row):return row.get_node("PileCard").get_meta("browser_uid",0)==hatate.uid)[0].get_node("PileCard")
  expect(red_frame(art),"public region browser uses the same red conditional border")
  view.close_debug()
+ var entered=[]
+ for id in ["character-fdf-105","character-fdn-004"]:
+  var c=put(id,"hand");c.leader=id=="character-fdn-004"
+  entered.append(c);e.priority=0;view.render()
+  expect(red_frame(view.hand_nodes[c.uid]),"discounted unit starts with its red hand frame: "+id)
+  expect(e.commit_cast(0,c.uid,{"none":true},[]).is_empty(),"discounted unit commits a real cast: "+id)
+  e.presentation_events.clear();view.reveal_player.reset();view.render()
+  var stack_id=e.stack.back().id
+  expect(red_frame(view.stack_panel.tiles[stack_id].tile),"discounted unit keeps its hint while on the stack: "+id)
+  resolve()
+  expect(c.zone=="field" and not view.ConditionHints.active(e,c),"discount hint clears when the unit resolves onto the field: "+id)
+  e.presentation_events.clear();view.reveal_player.reset()
+  for top_down in [false,true]:
+   view.table.set_top_down_view(top_down);view.render();await process_frame
+   var unit=view.table.visuals["card_"+str(c.uid)]
+   expect(not unit.get_meta("conditional_frame",false) and not unit.get_node("Outline").material_override is ShaderMaterial,"entered unit restores its normal border in "+str(top_down)+": "+id)
+ e.priority=0
  var spec=e.targets_for(moon.card_id,0,moon.uid)[0].duplicate(true);spec.erase("selection");spec.picks=[[]]
  var moon_error=e.commit_cast(0,moon.uid,spec,[])
  expect(moon_error.is_empty(),"UI fixture casts Shoot the Moon to the real stack: "+moon_error)
@@ -88,6 +105,8 @@ func run():
   view.render();await process_frame
   expect(view.life_widgets[0].has("curse_warning") and view.life_widgets[0].curse_warning.tooltip_text.contains("4 点生命"),"network life warning uses the public curse state for seat "+str(seat))
   expect(view.ConditionHints.active(remote,remote.find_card(hatate.uid)) if seat==0 else remote.find_card(hatate.uid).is_empty(),"network condition hints preserve hand privacy for seat "+str(seat))
+  for c in entered:
+   expect(not view.table.visuals["card_"+str(c.uid)].get_meta("conditional_frame",false),"network field unit clears its casting hint for seat "+str(seat)+": "+c.card_id)
  var observer=Remote.new();observer.apply_snapshot(Observer.build(e));view.engine=observer;view.table.duel=observer
  view.render();await process_frame
  expect(view.life_widgets[0].has("curse_warning") and view.stack_panel.tiles[moon_stack_id].tile.tooltip_text.contains("预计抽牌：3 张"),"spectator sees the public warning and stack draw preview")

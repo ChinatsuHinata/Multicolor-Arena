@@ -1,0 +1,14 @@
+[Unit]
+Description=Multicolor Arena player account store
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/multicolor-relay
+ExecStart=/usr/bin/python3 %h/.local/share/multicolor-relay/account_store.py
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+[Install]
+WantedBy=default.target

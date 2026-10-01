@@ -6,6 +6,14 @@ var status_label: Label
 var latency_label: Label
 var name_input: LineEdit
 var address_input: LineEdit
+var cloud_selected=false
+var cloud_directory
+var cloud_title_input: LineEdit
+var cloud_password_input: LineEdit
+var cloud_host_slot: OptionButton
+var cloud_rooms_list: VBoxContainer
+var cloud_room_columns=4
+const DEFAULT_RELAY_SERVER="ws://8.137.122.187:47862"
 var port_input: SpinBox
 var format_input: OptionButton
 var rule_input: OptionButton
@@ -15,9 +23,11 @@ var rooms_list: VBoxContainer
 var signature=""
 var deck_index=0
 var last_error=""
-var chat_open=false
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ cloud_directory=preload("res://net/cloud_directory.gd").new();add_child(cloud_directory)
+ cloud_directory.changed.connect(refresh_cloud_rooms)
+ cloud_directory.failed.connect(show_error)
  session.changed.connect(refresh);session.error_raised.connect(show_error)
  app.header("联机对战",func():
   if session.disconnected_at>0:session.stop_waiting()
@@ -37,20 +47,44 @@ func _process(_delta):
  if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
 func refresh(force: bool=false):
  status_label.text=last_error if not last_error.is_empty() else session.notice if not session.notice.is_empty() else session.discovery.error
- var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed])
+ var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,cloud_selected])
  if force or next!=signature:
   signature=next
   rooms_list=null;latency_label=null
   for child in body.get_children():body.remove_child(child);child.queue_free()
+  if not app.is_android:
+   body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+   body.offset_top=185 if cloud_selected or session.cloud_mode else 0
   if app.is_android:
-   if session.room_id.is_empty():build_mobile_home()
-   else:build_mobile_room()
+   if session.room_id.is_empty() and cloud_selected:build_cloud_home()
+   elif session.room_id.is_empty():build_mobile_home()
+   elif session.cloud_mode and session.room.get("status","")=="lobby":build_cloud_room_lobby()
+   else:build_responsive_room()
+  elif session.room_id.is_empty() and cloud_selected:build_cloud_home()
   elif session.room_id.is_empty():build_home()
+  elif session.cloud_mode and session.room.get("status","")=="lobby":build_cloud_room_lobby()
+  elif session.cloud_mode:build_responsive_room()
   else:build_room()
  refresh_rooms()
+ refresh_cloud_rooms()
+
+func set_cloud_mode(enabled: bool):
+ if enabled and app.account_token.is_empty():
+  app.alert("请先在主菜单的玩家账号中登录，再进入云端。","需要登录");refresh(true);return
+ cloud_selected=enabled
+ session.cloud_token=app.account_token;session.cloud_nickname=app.account_nickname
+ if enabled:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token)
+ else:cloud_directory.stop()
+ refresh(true)
+
+func mode_switch(parent: Node):
+ var toggle=CheckButton.new();toggle.name="CloudModeSwitch";toggle.text="云端联机（关闭为局域网）";toggle.button_pressed=cloud_selected;parent.add_child(toggle)
+ toggle.toggled.connect(set_cloud_mode)
+ return toggle
 func input(text: String,rect: Rect2) -> LineEdit:
  var edit=LineEdit.new();edit.position=rect.position;edit.size=rect.size;edit.text=text;body.add_child(edit);return edit
 func build_home():
+ mode_switch(body).position=Vector2(1270,127)
  app.box(body,Rect2(70,190,500,620));app.box(body,Rect2(600,190,930,620))
  app.label(body,"显示 ID",Rect2(100,210,120,35),21)
  name_input=input(session.identity.nickname,Rect2(230,208,302,44));name_input.max_length=20
@@ -81,17 +115,132 @@ func build_home():
   var error=session.resume_guest(address_input.text)
   if not error.is_empty():show_error(error))
  app.label(body,"发现的房间",Rect2(625,208,500,43),25,app.GOLD)
- var scroll=ScrollContainer.new();scroll.position=Vector2(625,264);scroll.size=Vector2(877,350);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.position=Vector2(625,264);scroll.size=Vector2(877,194);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(scroll)
  rooms_list=VBoxContainer.new();rooms_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rooms_list.add_theme_constant_override("separation",12);scroll.add_child(rooms_list)
+ app.label(body,"切换上方开关查看云端房间",Rect2(625,472,700,50),22,app.GOLD)
  app.label(body,"输入地址加入",Rect2(625,638,210,40),21)
  address_input=input("",Rect2(625,690,620,49));address_input.placeholder_text="房主 IP、域名或 地址:UDP端口"
  app.button(body,"加入",Rect2(1265,690,108,49),func():join(address_input.text,int(port_input.value)),true)
  app.button(body,"观战",Rect2(1383,690,117,49),func():watch(address_input.text,int(port_input.value)))
- app.label(body,"Wi-Fi 直连或 UDP 内网穿透；首次联网请允许系统网络访问。",Rect2(625,753,855,38),17,app.MUTED)
+ app.label(body,"云中转使用 WebSocket；局域网直连使用 UDP。",Rect2(625,753,855,38),17,app.MUTED)
 func join(address: String,port: int):
  session.set_display_name(name_input.text)
  var error=session.join_room(address,port)
  if not error.is_empty():show_error(error)
+func create_relay():
+ last_error=""
+ var error=session.create_relay_room(DEFAULT_RELAY_SERVER,3 if format_input.selected==0 else 1,strict_input.button_pressed,app.RuleSet.IDS[rule_input.selected],cloud_title_input.text,cloud_password_input.text,cloud_host_slot.selected+1)
+ if not error.is_empty():show_error(error)
+
+func join_cloud_room(info: Dictionary,slot: int,password: String=""):
+ last_error=""
+ var error=session.join_relay_room(DEFAULT_RELAY_SERVER,str(info.id),false,slot,password)
+ if not error.is_empty():show_error(error)
+
+func choose_cloud_room_seat(info: Dictionary,slot: int):
+ if not info.get("locked",false):
+  join_cloud_room(info,slot)
+  return
+ var dialog=ConfirmationDialog.new()
+ dialog.title="加入加密房间"
+ var seat_label="自动分配观战位" if str(info.get("status","lobby"))!="lobby" else "%d 号%s位" % [slot,"对战" if slot<=2 else "观战"]
+ dialog.min_size=Vector2i(540,185)
+ dialog.get_ok_button().text="加入房间"
+ dialog.get_cancel_button().text="取消"
+ dialog.get_label().hide()
+ var content=VBoxContainer.new()
+ content.add_theme_constant_override("separation",12)
+ dialog.add_child(content)
+ var description=Label.new()
+ description.text="%s · %s\n请输入房间密码" % [str(info.get("name","房间")),seat_label]
+ content.add_child(description)
+ var password_input=preload("res://scripts/password_edit.gd").new()
+ password_input.name="CloudJoinPassword"
+ password_input.secret=true
+ password_input.max_length=32
+ password_input.placeholder_text="房间密码"
+ password_input.custom_minimum_size.y=48
+ content.add_child(password_input)
+ dialog.confirmed.connect(func():
+  var password=password_input.text
+  dialog.queue_free()
+  if password.is_empty():show_error("请输入房间密码")
+  else:join_cloud_room(info,slot,password))
+ dialog.canceled.connect(dialog.queue_free)
+ add_child(dialog)
+ app.style_dialog(dialog)
+ dialog.popup_centered()
+ password_input.grab_focus()
+
+func build_cloud_home():
+ var root=mobile_scroll()
+ mode_switch(root)
+ mobile_text(root,"云端房间 · "+app.account_nickname,true)
+ var create_width=maxf(480,app.ui_metrics.body*20+app.ui_metrics.padding*2)
+ var directory_width=maxf(660,app.ui_metrics.body*16)
+ var side_by_side=body.size.x>=create_width+directory_width+app.ui_metrics.gap
+ var available_directory_width=body.size.x-create_width-app.ui_metrics.gap if side_by_side else body.size.x
+ var seat_button_width=maxf(170,app.ui_metrics.body*7+app.ui_metrics.padding*2)
+ cloud_room_columns=4 if available_directory_width>=seat_button_width*4+app.ui_metrics.gap*3 else 2
+ var columns=HBoxContainer.new() if side_by_side else VBoxContainer.new()
+ root.add_child(columns)
+ var create=mobile_panel(columns)
+ if side_by_side:
+  var create_panel=create.get_parent() as PanelContainer
+  create_panel.custom_minimum_size.x=create_width
+  create_panel.size_flags_stretch_ratio=0.8
+ mobile_text(create,"创建云端房间",true)
+ cloud_title_input=mobile_edit(create,app.account_nickname+"的房间");cloud_title_input.max_length=30
+ cloud_title_input.placeholder_text="房间名称"
+ cloud_password_input=mobile_edit(create,"",true);cloud_password_input.max_length=32;cloud_password_input.placeholder_text="房间密码（可留空）"
+ var options=HBoxContainer.new();create.add_child(options)
+ format_input=OptionButton.new();options.add_child(format_input);format_input.add_item("BO3");format_input.add_item("BO1")
+ rule_input=OptionButton.new();options.add_child(rule_input)
+ for rule_name in app.RuleSet.LABELS:rule_input.add_item(rule_name)
+ cloud_host_slot=OptionButton.new();options.add_child(cloud_host_slot);cloud_host_slot.add_item("坐 1 号对战位");cloud_host_slot.add_item("坐 2 号对战位")
+ for option in [format_input,rule_input,cloud_host_slot]:option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;app.ui_metrics.button(option)
+ strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.button_pressed=true;create.add_child(strict_input)
+ mobile_action(create,"创建房间",create_relay,true)
+ var directory=mobile_panel(columns)
+ if side_by_side:
+  var directory_panel=directory.get_parent() as PanelContainer
+  directory_panel.custom_minimum_size.x=directory_width
+  directory_panel.size_flags_stretch_ratio=1.6
+ var heading=HBoxContainer.new();directory.add_child(heading)
+ mobile_text(heading,"所有云端房间",true).size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ mobile_action(heading,"刷新",func():cloud_directory.refresh())
+ mobile_text(directory,"选择空位加入；加密房间将在加入时询问密码。")
+ cloud_rooms_list=VBoxContainer.new();directory.add_child(cloud_rooms_list)
+ refresh_cloud_rooms()
+
+func refresh_cloud_rooms():
+ if not is_instance_valid(cloud_rooms_list) or not cloud_selected:return
+ for child in cloud_rooms_list.get_children():cloud_rooms_list.remove_child(child);child.queue_free()
+ if cloud_directory.rooms.is_empty():
+  mobile_text(cloud_rooms_list,"当前没有房间，可创建一个房间。")
+  return
+ for info in cloud_directory.rooms:
+  if not info is Dictionary or not info.get("seats") is Array:continue
+  var panel=mobile_panel(cloud_rooms_list)
+  var status=str(info.get("status","lobby"))
+  var status_text={"lobby":"等待加入","choosing":"选择先后手","playing":"对局中","between":"局间准备","complete":"已结束"}.get(status,status)
+  mobile_text(panel,"%s  ·  %s  ·  BO%d  ·  %s" % [str(info.get("name","房间")),"加密" if info.get("locked",false) else "公开",int(info.get("format",3)),status_text],true)
+  if status!="lobby":
+   var has_observer_slot=false
+   for index in range(2,mini(8,info.seats.size())):
+    if str(info.seats[index]).is_empty():has_observer_slot=true
+   var enter=mobile_action(panel,"进入观战（自动分配观战位）",func():choose_cloud_room_seat(info,8),true)
+   enter.disabled=not has_observer_slot or str(info.get("version",""))!=session.fingerprint
+   continue
+  var grid=GridContainer.new();grid.columns=cloud_room_columns;panel.add_child(grid)
+  grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  for index in range(mini(8,info.seats.size())):
+   var occupant=str(info.seats[index]);var slot=index+1
+   var caption="%d %s：%s" % [slot,"对战" if slot<=2 else "观战",occupant if not occupant.is_empty() else "空位"]
+   var button=mobile_action(grid,caption,func():choose_cloud_room_seat(info,slot))
+   button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+   button.disabled=not occupant.is_empty() or str(info.get("version",""))!=session.fingerprint
+   button.tooltip_text="版本不一致" if str(info.get("version",""))!=session.fingerprint else "选择 %d 号座位" % slot
 func watch(address: String,port: int):
  session.set_display_name(name_input.text)
  var error=session.join_spectator(address,port)
@@ -122,31 +271,101 @@ func refresh_rooms():
   watch_button.pressed.connect(func():watch(info.address,int(info.port)))
  if rooms_list.get_child_count()==0:
   var label=Label.new();label.text="正在查找同一局域网内的房间…";label.custom_minimum_size=Vector2(800,58);rooms_list.add_child(label)
+func cloud_seat_grid(parent: Node,columns: int) -> GridContainer:
+ var grid=GridContainer.new();grid.columns=columns;parent.add_child(grid)
+ grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ grid.add_theme_constant_override("h_separation",12)
+ grid.add_theme_constant_override("v_separation",12)
+ for index in range(8):
+  var slot=index+1
+  var occupant=str(session.cloud_seats[index]) if index<session.cloud_seats.size() else ""
+  var tile=preload("res://net/cloud_seat_tile.gd").new()
+  tile.name="CloudSeat%d" % slot
+  tile.session=session;tile.slot=slot
+  var ready_note="（已准备）" if slot<=2 and session.room.ready[slot-1] else ""
+  tile.text="%d 号%s位\n%s%s" % [slot,"对战" if slot<=2 else "观战",occupant if not occupant.is_empty() else "空位",ready_note]
+  grid.add_child(tile)
+  app.ui_metrics.button(tile)
+  tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  tile.custom_minimum_size=Vector2(maxf(195 if columns==4 else 150,app.ui_metrics.body*6+app.ui_metrics.padding*2),maxf(86,app.ui_metrics.hit))
+  tile.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
+  tile.tooltip_text="已准备的玩家不能换位" if slot<=2 and session.room.ready[slot-1] else "拖动名称可交换或移动座位" if session.can_move_cloud_seats() else ""
+ return grid
+func build_cloud_room_lobby():
+ var room=session.room
+ var root=mobile_scroll()
+ var summary=mobile_panel(root)
+ mobile_text(summary,"BO%d    %s  %d : %d  %s" % [room.format,room.names[0],room.scores[0],room.scores[1],room.names[1]],true)
+ mobile_text(summary,"规则集：%s  ·  %s" % [app.RuleSet.label_for(str(room.get("rule_set",app.RuleSet.UNRESTRICTED))),"主卡组 50 张" if room.strict else "主卡组张数不限"])
+ mobile_text(summary,"云端房间："+session.cloud_room_name if session.is_host else "你的座位：%d 号%s位" % [session.cloud_slot,"观战" if session.read_only else "对战"])
+ var seat_panel_width=maxf(860,(app.ui_metrics.body*6+app.ui_metrics.padding*2)*4+app.ui_metrics.gap*3+app.ui_metrics.padding*2)
+ var action_panel_width=maxf(400,app.ui_metrics.body*9)
+ var side_by_side=body.size.x>=seat_panel_width+action_panel_width+app.ui_metrics.gap
+ var columns=HBoxContainer.new() if side_by_side else VBoxContainer.new()
+ root.add_child(columns)
+ var seats=mobile_panel(columns)
+ if side_by_side:
+  var seat_panel=seats.get_parent() as PanelContainer
+  seat_panel.custom_minimum_size.x=seat_panel_width
+  seat_panel.size_flags_stretch_ratio=1.8
+ mobile_text(seats,"新的一场准备 · 房主可拖动玩家名称换位" if room.get("rematch",false) else "八个座位 · 房主可在本场开始前拖动玩家名称换位",true)
+ cloud_seat_grid(seats,4 if side_by_side else 2)
+ mobile_text(seats,"1、2 号对战位都有人后才能开始对局")
+ var actions=mobile_panel(columns)
+ if side_by_side:
+  var action_panel=actions.get_parent() as PanelContainer
+  action_panel.custom_minimum_size.x=action_panel_width
+  action_panel.size_flags_stretch_ratio=1.0
+ if session.read_only:
+  mobile_text(actions,"观战中 · 对局开始后自动进入战场")
+  var watch_pick=OptionButton.new();actions.add_child(watch_pick)
+  for deck in app.decks:watch_pick.add_item(deck.name)
+  app.ui_metrics.button(watch_pick);watch_pick.disabled=true
+  mobile_action(actions,"选择此卡组",func():pass).disabled=true
+ else:
+  mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
+  var pick=OptionButton.new();actions.add_child(pick)
+  app.enable_android_popup_swipe(pick.get_popup())
+  for deck in app.decks:pick.add_item(deck.name)
+  deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
+  pick.item_selected.connect(func(index):deck_index=index)
+  app.ui_metrics.button(pick)
+  mobile_action(actions,"选择此卡组",func():
+   if app.decks.is_empty():return
+   var deck=app.Store.clean_deck(app.decks[deck_index])
+   var error=app.Store.validate(deck,room.get("strict",true),str(room.get("rule_set",app.RuleSet.UNRESTRICTED)))
+   if not error.is_empty():show_error(error);return
+   last_error="";session.room_action({"name":"deck","deck":deck}))
+  if not room.own_deck.is_empty():mobile_text(actions,room.own_deck.name)
+  var ready=mobile_action(actions,"取消准备" if room.ready[session.seat] else "准备",func():session.room_action({"name":"unready" if room.ready[session.seat] else "ready"}),true)
+  ready.disabled=room.own_deck.is_empty() or not session.can_act()
+ mobile_action(actions,"离开房间",func():session.leave(false);refresh(true))
 func build_room():
  rooms_list=null
  var room=session.room
  if room.is_empty():return
  latency_label=app.label(body,"网络延迟 · "+session.latency_text(),Rect2(103,642,890,45),20,app.MUTED)
- if not session.read_only:
-  var chat=preload("res://net/chat_panel.gd").new();body.add_child(chat);chat.build(session,Rect2(1040,299,456,410));chat.visible=chat_open;chat.z_index=20
-  var chat_button=app.button(body,"聊天",Rect2(1320,254,165,38),func():chat_open=not chat_open;chat.visible=chat_open);chat_button.z_index=21
  latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新；不需要同步电脑时钟。"
  var own=session.seat;var other=1-own
  app.box(body,Rect2(70,195,1460,604))
  app.label(body,"BO%d    %s  %d : %d  %s" % [room.format,room.names[0],room.scores[0],room.scores[1],room.names[1]],Rect2(100,210,1320,46),27,app.GOLD)
  app.label(body,"规则集："+app.RuleSet.label_for(str(room.get("rule_set",app.RuleSet.UNRESTRICTED))),Rect2(105,265,390,34),20,app.GOLD)
  app.label(body,"主卡组 50 张" if room.strict else "主卡组张数不限",Rect2(520,265,300,34),20)
+ if session.cloud_mode and not session.is_host:app.label(body,"你的座位：%d 号%s位" % [session.cloud_slot,"观战" if session.read_only else "对战"],Rect2(830,265,490,34),20,app.GOLD)
  if session.read_only:
   app.label(body,session.connection_status(),Rect2(105,350,1130,65),27,app.GOLD)
   if not session.latest_snapshot.is_empty():app.button(body,"查看战场",Rect2(1070,485,355,60),func():app.return_network_battle(),true)
   app.button(body,"离开观战",Rect2(1070,714,355,48),func():session.leave(false);refresh(true))
   return
  if session.is_host:
-  var addresses=[]
-  for ip in IP.get_local_addresses():
-   if ":" not in ip and not ip.begins_with("127."):addresses.append(ip+":"+str(session.port))
-  app.label(body,"房间地址："+" / ".join(addresses),Rect2(105,311,1130,36),18,app.MUTED)
-  app.button(body,"复制地址",Rect2(1260,311,220,42),func():DisplayServer.clipboard_set(" / ".join(addresses)))
+  if session.cloud_mode:
+   app.label(body,"云端房间："+session.cloud_room_name+"  ·  你的座位："+str(session.cloud_slot)+"号对战位",Rect2(105,311,1350,36),20,app.GOLD)
+  else:
+   var addresses=[]
+   for ip in IP.get_local_addresses():
+    if ":" not in ip and not ip.begins_with("127."):addresses.append(ip+":"+str(session.port))
+   app.label(body,"房间地址："+" / ".join(addresses),Rect2(105,311,1130,36),18,app.MUTED)
+   app.button(body,"复制地址",Rect2(1260,311,220,42),func():DisplayServer.clipboard_set(" / ".join(addresses)))
  if not session.applicant.is_empty():
   app.label(body,session.applicant.name+" 请求加入",Rect2(105,365,810,44),23)
   app.button(body,"接受",Rect2(950,365,235,48),func():session.accept_applicant(true),true)
@@ -175,25 +394,27 @@ func build_room():
    first_button.disabled=not session.can_act();second_button.disabled=not session.can_act()
   else:app.label(body,"等待 %s 选择先后手" % room.names[room.chooser],Rect2(105,500,900,50),22,app.GOLD)
  elif room.status in ["lobby","between"]:
-  app.label(body,"对手："+("已准备" if room.ready[other] else "未准备"),Rect2(105,312,620,42),21)
+  var lobby_row_y=365 if session.is_host else 312
+  var deck_row_y=420 if session.is_host else 395
+  app.label(body,"对手："+("已准备" if room.ready[other] else "未准备"),Rect2(105,lobby_row_y,620,42),21)
   if room.status=="lobby":
-   if room.get("rematch",false):app.label(body,"新的一场 · 可重新选择卡组",Rect2(800,315,560,40),21,app.GOLD)
-   var pick=OptionButton.new();pick.position=Vector2(105,395);pick.size=Vector2(665,51);body.add_child(pick)
+   if room.get("rematch",false):app.label(body,"新的一场 · 可重新选择卡组",Rect2(800,lobby_row_y,560,40),21,app.GOLD)
+   var pick=OptionButton.new();pick.position=Vector2(105,deck_row_y);pick.size=Vector2(665,51);body.add_child(pick)
    for deck in app.decks:pick.add_item(deck.name)
    deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
    pick.item_selected.connect(func(index):deck_index=index)
-   app.button(body,"选择此卡组",Rect2(800,395,270,51),func():
+   app.button(body,"选择此卡组",Rect2(800,deck_row_y,270,51),func():
     if app.decks.is_empty():return
     var deck=app.Store.clean_deck(app.decks[deck_index])
     var error=app.Store.validate(deck,room.get("strict",true),str(room.get("rule_set",app.RuleSet.UNRESTRICTED)))
     if not error.is_empty():show_error(error);return
     last_error="";session.room_action({"name":"deck","deck":deck}))
   else:
-   var sideboard=app.button(body,"调整主副卡组",Rect2(105,395,665,51),open_sideboard)
+   var sideboard=app.button(body,"调整主副卡组",Rect2(105,deck_row_y,665,51),open_sideboard)
    sideboard.disabled=room.ready[own] or not session.can_act()
-   app.label(body,"第 %d 局准备" % (room.round+1),Rect2(800,395,500,51),25,app.GOLD)
+   app.label(body,"第 %d 局准备" % (room.round+1),Rect2(800,deck_row_y,500,51),25,app.GOLD)
   if not room.own_deck.is_empty():
-   app.label(body,room.own_deck.name+" · 主卡组 %d / 副卡组 %d" % [room.own_deck.main.size(),room.own_deck.side.size()],Rect2(105,468,1030,46),22,app.GOLD)
+   app.label(body,room.own_deck.name+" · 主卡组 %d / 副卡组 %d" % [room.own_deck.main.size(),room.own_deck.side.size()],Rect2(105,490 if session.is_host else 468,1030,46),22,app.GOLD)
   var choice_hint="双方准备后投骰，点数高者选择先后手" if room.status=="lobby" else "双方准备后由上一局败者选择先后手" if room.last_winner in [0,1] else "双方准备后由上一局选择者选择先后手"
   app.label(body,choice_hint,Rect2(105,552,900,45),22)
   var ready=app.button(body,"取消准备" if room.ready[own] else "准备",Rect2(1070,550,355,60),func():session.room_action({"name":"unready" if room.ready[own] else "ready"}),true)
@@ -236,14 +457,15 @@ func mobile_scroll() -> VBoxContainer:
  content.add_theme_constant_override("separation",int(app.ui_metrics.gap))
  return content
 
-func mobile_edit(parent: Node,value: String="") -> LineEdit:
- var edit=LineEdit.new();edit.text=value;parent.add_child(edit)
+func mobile_edit(parent: Node,value: String="",password: bool=false) -> LineEdit:
+ var edit=preload("res://scripts/password_edit.gd").new() if password else LineEdit.new();edit.text=value;parent.add_child(edit)
  edit.custom_minimum_size.y=app.ui_metrics.hit
  edit.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  return edit
 
 func build_mobile_home():
  var root=mobile_scroll()
+ mode_switch(root)
  var columns=HBoxContainer.new();root.add_child(columns)
  var create=mobile_panel(columns)
  mobile_text(create,"创建房间",true)
@@ -286,20 +508,24 @@ func build_mobile_home():
  rooms_list=VBoxContainer.new();connect.add_child(rooms_list)
  mobile_text(root,"跨网络连接需要可传递 UDP 的组网或内网穿透；广播列表为空时仍可手动输入地址。")
 
-func build_mobile_room():
+func build_responsive_room():
  var room=session.room
  if room.is_empty():return
  var root=mobile_scroll()
  var summary=mobile_panel(root)
  mobile_text(summary,"BO%d  %s  %d : %d  %s" % [room.format,room.names[0],room.scores[0],room.scores[1],room.names[1]],true)
  mobile_text(summary,"规则集："+app.RuleSet.label_for(str(room.get("rule_set",app.RuleSet.UNRESTRICTED))))
+ if session.cloud_mode and not session.is_host:mobile_text(summary,"你的座位：%d 号%s位" % [session.cloud_slot,"观战" if session.read_only else "对战"])
  latency_label=mobile_text(summary,"网络延迟 · "+session.latency_text())
  if session.is_host:
-  var addresses=[]
-  for local_address in IP.get_local_addresses():
-   if ":" not in local_address and not local_address.begins_with("127."):addresses.append(local_address+":"+str(session.port))
-  mobile_text(summary,"房主地址："+" / ".join(addresses))
-  mobile_action(summary,"复制房主地址",func():DisplayServer.clipboard_set(" / ".join(addresses)))
+  if session.cloud_mode:
+   mobile_text(summary,"云端房间："+session.cloud_room_name+"  ·  你的座位："+str(session.cloud_slot)+"号对战位")
+  else:
+   var addresses=[]
+   for local_address in IP.get_local_addresses():
+    if ":" not in local_address and not local_address.begins_with("127."):addresses.append(local_address+":"+str(session.port))
+   mobile_text(summary,"房主地址："+" / ".join(addresses))
+   mobile_action(summary,"复制房主地址",func():DisplayServer.clipboard_set(" / ".join(addresses)))
  if session.read_only:
   mobile_text(summary,session.connection_status())
   if not session.latest_snapshot.is_empty():mobile_action(summary,"查看战场",app.return_network_battle,true)
@@ -335,6 +561,7 @@ func build_mobile_room():
   mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
   if room.status=="lobby":
    var pick=OptionButton.new();actions.add_child(pick)
+   app.enable_android_popup_swipe(pick.get_popup())
    for deck in app.decks:pick.add_item(deck.name)
    deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
    pick.item_selected.connect(func(index):deck_index=index)
@@ -357,12 +584,6 @@ func build_mobile_room():
    var error=session.resume_guest()
    if not error.is_empty():show_error(error),true)
  if session.wait_choice_pending:mobile_action(actions,"继续等待",func():session.continue_waiting(),true)
- if session.connected:
-  var chat=preload("res://net/chat_panel.gd").new();body.add_child(chat)
-  var chat_size=Vector2(minf(620,body.size.x-20),minf(460,body.size.y-20))
-  chat.build(session,Rect2((body.size-chat_size)*0.5,chat_size),true)
-  chat.visible=chat_open;chat.z_index=20
-  mobile_action(actions,"聊天",func():chat_open=not chat.visible;chat.visible=chat_open)
  mobile_action(actions,"不再等待，离开对局" if session.disconnected_at>0 else "离开房间",func():
   if session.disconnected_at>0:session.stop_waiting()
   else:session.leave(false)

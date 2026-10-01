@@ -20,6 +20,17 @@ func find_button(node: Node,title: String):
   if found:return found
  return null
 
+func use_battle_tool(view: Node,title: String) -> bool:
+ var tools_menu=view.hud.get_node_or_null("BattleTools") as Button
+ if tools_menu==null:return false
+ tools_menu.pressed.emit()
+ for action in view.host.menu_popup.actions:
+  if action.text==title:
+   action.pressed.emit()
+   return true
+ view.host.close_menu_popup()
+ return false
+
 func run():
  var settings_path="res://saves/settings.json"
  var saved_settings=FileAccess.get_file_as_string(settings_path)
@@ -32,19 +43,17 @@ func run():
  app.begin_battle(true)
  var view=app.duel_view
  view.set_process(false)
- expect(view.STAGE==Rect2(0,0,1600,900) and view.stage.get_rect()==view.STAGE,"battlefield fills the full game window")
+ expect(view.STAGE==Rect2(Vector2.ZERO,app.get_viewport_rect().size) and view.stage.get_rect()==view.STAGE,"battlefield fills the full game window")
  expect(view.STAGE.encloses(view.HAND),"battlefield extends beneath the full hand area")
  for edge in [Vector2(800,145),Vector2(245,450),Vector2(1357,450),Vector2(800,898)]:
   expect(view.stage.get_global_rect().has_point(edge),"battlefield reaches the former opaque margin "+str(edge))
- expect(find_button(view.ui,"视角复原")!=null,"camera reset is available outside settings")
  view.reveal_player.reset()
  view.engine.presentation_events.clear()
  var hand_card=view.engine.make_card("53",view.local_seat,"hand")
  view.engine.players[view.local_seat].hand.append(hand_card)
  view.render()
  await process_frame
- var settings_button=find_button(view.ui,"设置")
- expect(settings_button!=null and not find_button(view.ui,"视角复原").get_global_rect().intersects(settings_button.get_global_rect()),"reset and settings buttons do not overlap")
+ expect(use_battle_tool(view,"视角复原"),"PC settings and camera reset are grouped in battlefield tools")
  expect(not view.hand_nodes.is_empty() and view.over_hand_card(view.hand_nodes.values()[0].get_global_rect().get_center(),view.local_seat) and not view.over_hand_card(Vector2(1200,850),view.local_seat),"only hand cards retain the hand interaction area")
  view.inspect_card(hand_card.card_id,hand_card.uid)
  expect(not view.inspection.get_child(0) is Panel,"card inspection no longer paints an opaque sidebar")
@@ -119,8 +128,8 @@ func run():
  drag.position=motion.position
  root.push_input(drag,true)
  await process_frame
- find_button(view.ui,"视角复原").pressed.emit()
- expect(view.table.camera_offset==Vector3.ZERO and is_equal_approx(view.table.camera.size,view.table.WIDE_TOP_DOWN_CAMERA_SIZE),"visible reset button restores center and zoom")
+ use_battle_tool(view,"视角复原")
+ expect(view.table.camera_offset==Vector3.ZERO and is_equal_approx(view.table.camera.size,view.table.WIDE_TOP_DOWN_CAMERA_SIZE),"battlefield tools reset center and zoom")
  var hand_point=view.hand_nodes[hand_card.uid].get_global_rect().get_center()
  drag.pressed=true
  drag.position=hand_point
@@ -134,7 +143,7 @@ func run():
  drag.position=motion.position
  root.push_input(drag,true)
  await process_frame
- find_button(view.ui,"视角复原").pressed.emit()
+ use_battle_tool(view,"视角复原")
  view.settings_menu()
  toggle=find_button(view.ui,"3D 斜视")
  if toggle:toggle.pressed.emit()
@@ -162,7 +171,7 @@ func run():
  drag.position=motion.position
  root.push_input(drag,true)
  await process_frame
- find_button(view.ui,"视角复原").pressed.emit()
+ use_battle_tool(view,"视角复原")
  expect(view.table.camera_offset==Vector3.ZERO and is_equal_approx(view.table.camera_distance,view.table.NEAREST_CAMERA),"reset restores the default 3D view")
  view.set_card_view(original)
  await process_frame

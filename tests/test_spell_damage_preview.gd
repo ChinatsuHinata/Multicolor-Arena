@@ -169,6 +169,36 @@ func run():
  v.engine=e
  var hidden=e.make_card("spell-ucs-041",1,"hand");hidden.network_hidden=true
  expect(v.damage_caption(hidden).is_empty(),"hidden cards cannot expose a damage preview")
+ fresh();v.engine=e;v.local={};mana();put("74")
+ var scarlet=put("spell-fdf-035","hand")
+ expect(v.damage_caption(scarlet).begins_with("预计伤害：3 点") and v.damage_caption(scarlet).contains("本回合已获得生命：0 点"),"Scarlet RED starts with its own three life gain")
+ e.gain_life(0,4)
+ before=JSON.stringify([e.players,e.stack,e.revision])
+ expect(v.damage_caption(scarlet).begins_with("预计伤害：7 点"),"Scarlet RED adds all earlier gain in the current global turn")
+ expect(JSON.stringify([e.players,e.stack,e.revision])==before,"Scarlet RED preview never gains life or changes game state")
+ expect(e.commit_cast(0,scarlet.uid,{"player":1},e.payment(0,e.cast_cost(0,scarlet)).plan).is_empty(),"Scarlet RED commits a real paid cast")
+ e.gain_life(0,2)
+ expect(v.damage_caption(scarlet).begins_with("预计伤害：9 点"),"stack Scarlet RED follows response-window life gain and includes its own future gain once")
+ for seat in range(2):
+  var remote=Remote.new();remote.apply_snapshot(SeatView.build(e,seat));v.engine=remote
+  expect(v.damage_caption(remote.find_card(scarlet.uid)).begins_with("预计伤害：9 点"),"Scarlet RED public life gain is consistent for network seat "+str(seat))
+ var scarlet_observer=Remote.new();scarlet_observer.apply_snapshot(Observer.build(e));v.engine=scarlet_observer
+ expect(v.damage_caption(scarlet_observer.find_card(scarlet.uid)).begins_with("预计伤害：9 点"),"spectators receive the same Scarlet RED damage")
+ v.engine=e;one()
+ expect(e.players[1].life==11 and int(e.players[0].life_gained[str(e.turn)])==9,"Scarlet RED resolves for the response-updated preview")
+ var second_scarlet=put("spell-fdf-035","hand")
+ for c in e.players[0].palette:c.tapped=false
+ e.priority=0
+ expect(v.damage_caption(second_scarlet).begins_with("预计伤害：12 点"),"second Scarlet RED counts preceding RED life gain plus its own three")
+ expect(e.commit_cast(0,second_scarlet.uid,{"player":0},e.payment(0,e.cast_cost(0,second_scarlet)).plan).is_empty(),"second Scarlet RED can target its controller")
+ one();expect(e.players[0].life==20,"second Scarlet RED actually deals the cumulative twelve damage")
+ e.turn+=1
+ expect(v.damage_caption(second_scarlet).begins_with("预计伤害：3 点"),"Scarlet RED never carries previous turn life gain into a new turn")
+ e.gain_life(1,5)
+ var opposing_scarlet=put("spell-fdf-035","grave",1)
+ expect(v.damage_caption(opposing_scarlet).begins_with("预计伤害：8 点"),"opposing public Scarlet RED uses its controller's life gain")
+ e.gain_life(0,2);put("spell-fdn-002")
+ expect(v.damage_caption(scarlet).begins_with("预计伤害：2 点") and v.damage_caption(scarlet).contains("当前不能获得生命"),"Scarlet RED respects the live prohibition on life gain")
  fresh();v.engine=e;mana();put("character-htk-001")
  var mask_spell=put("spell-fdf-083","hand")
  var target=put("50","field",1)

@@ -20,6 +20,11 @@ func run():
  expect(app.decks.size()==4 and not FileAccess.file_exists(Store.folder().path_join("朋友的卡组.mdeck")),"editor delete removes file from active library")
  app.setup();app.begin_battle(true);view=app.duel_view;e=view.engine
  await settle()
+ expect(view.hand_nodes.size()==e.players[0].hand.size() and view.enemy_nodes.size()==e.players[1].hand.size() and view.enemy_nodes.values().all(func(n):return n.hidden_card),"player sees own hand and opponent card backs")
+ view.set_hand_display(false);await process_frame
+ expect(not view.hand_scroll.visible and not view.opponent_layer.visible and e.players[0].hand.size()>0,"player can hide hand rows without changing hand state")
+ view.set_hand_display(true);await process_frame
+ expect(view.hand_scroll.visible and view.opponent_layer.visible and view.hand_nodes.size()==e.players[0].hand.size(),"player can restore hand rows")
  expect(view.replay_recording.frames.size()>0,"offline game records initial and AI states")
  e.surrender(0);view.render();await process_frame
  var dialogs=app.get_children().filter(func(n):return n is ConfirmationDialog and n.title=="保存回放")
@@ -69,6 +74,11 @@ func run():
  observer.enqueue_snapshot({"game_id":"visual","sequence":1,"room":observer.room,"projection":public_view})
  app.lan_session=observer;app.return_network_battle();view=app.duel_view;await settle()
  expect(view.network_locked() and view.engine.players.all(func(p):return p.hand.all(func(c):return c.card_id=="back")),"spectator UI hides both hands and disables interactions")
+ expect(view.hand_nodes.size()==view.engine.players[0].hand.size() and view.enemy_nodes.size()==view.engine.players[1].hand.size() and (view.hand_nodes.values()+view.enemy_nodes.values()).all(func(n):return n.hidden_card),"spectator sees both hands as card backs")
+ view.set_hand_display(false);await process_frame
+ expect(not view.hand_scroll.visible and not view.opponent_layer.visible and view.engine.players.all(func(p):return p.hand.all(func(c):return c.card_id=="back")),"spectator can hide both hand rows locally")
+ view.set_hand_display(true);await process_frame
+ expect(view.hand_scroll.visible and view.opponent_layer.visible,"spectator can restore both hand rows")
  expect(find_button(view.ui,"返回联机房间")!=null and find_button(view.ui,"保留")==null,"spectator has navigation without decision buttons")
  await capture("spectator")
  observer.leave(false)

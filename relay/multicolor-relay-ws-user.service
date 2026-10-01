@@ -1,0 +1,14 @@
+[Unit]
+Description=Multicolor Arena WebSocket room relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/multicolor-relay
+ExecStart=%h/.local/bin/godot --headless --path %h/.local/share/multicolor-relay --script server.gd -- --transport websocket --port 47866 --bind 127.0.0.1
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

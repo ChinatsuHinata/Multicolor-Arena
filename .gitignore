@@ -3,6 +3,7 @@
 /android/
 /.godot-toolchain/
 /builds/
+__pycache__/
 
 # 编辑器本地设置
 .vscode/*
@@ -17,6 +18,8 @@ tests/
 tests/*
 !tests/*.gd
 !tests/*.gd.uid
+!tests/test_account_store.py
+!tests/test_deck_plaza_store.py
 !tests/README.md
 !tests/AGENTS.md
 !tests/support/
@@ -29,6 +32,7 @@ tests/*
 !tests/test_fairy_habitat_ui.gd
 !tests/test_fairy_habitat_keywords.gd
 !tests/test_disconnect_wait_ui.gd
+!tests/test_relay.gd
 !tests/test_momiji.gd
 !tests/test_momiji_ui.gd
 !tests/test_spell_damage_preview.gd
@@ -47,3 +51,8 @@ tests/*
 
 # Local Git upload automation
 /tools/auto-commit-push.ps1
+
+# Cloud account signing material and player database stay only on the deployment host.
+/relay/account_private.pem
+/relay/data/
+/relay/.ssh-deploy-key

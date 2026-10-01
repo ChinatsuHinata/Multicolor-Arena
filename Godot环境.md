@@ -55,6 +55,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\run-android-emul
 
 相同包名如果此前使用另一密钥签名，覆盖安装会失败；需要先在设备上处理旧安装及其数据。
 
+### 同一 Wi-Fi 给手机传 APK
+
+PC 与 Android 手机连接同一 Wi-Fi 后，在 VS Code 运行 **Android: 同 Wi-Fi 分享最新 APK**，或在项目根目录运行：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\share-apk-lan.ps1
+```
+
+脚本默认选 `builds/Android-debug/` 中修改时间最新的 APK，终端会显示实际文件名、大小和手机浏览器下载地址。需要指定文件时传入 `-ApkPath 'builds/Android-debug/MulticolorArena-1.2.7-debug.apk'`。服务只监听 PC 当前的 Wi-Fi IPv4 地址，不监听 VPN 网卡；指定网卡地址可用 `-Address 192.168.1.17`，端口可用 `-Port 8765` 调整。手机打开终端显示的完整地址即可下载；保持终端运行，结束后按 `Ctrl+C`。下载支持 HTTP Range 断点续传，文件通过 1 MiB 缓冲区流式发送，不会整包读入内存。每次启动都会生成新的随机地址，旧地址随服务停止失效。
+
+如果手机无法打开地址，先确认双方连接同一 Wi-Fi、未启用路由器的客户端隔离，且 PC 的防火墙允许该 Wi-Fi 网段访问所选 TCP 端口。浏览器下载后仍需由 Android 系统确认安装；覆盖旧版需保持相同包名和签名。
+
 正式发布前，需要设置自己的唯一包名、版本号、图标和独立的**发布签名密钥**，妥善备份密钥与密码，并检查导出资源与权限。Google Play 上架需要 AAB 和相应的 Gradle 构建设置；调试 APK 不应作为正式发布包。项目目前按 1600×900 桌面界面设计，仍须在真机上检查触控目标、拖放和手势、屏幕比例与安全区域、软键盘、文件访问及性能，再决定 Android 界面的适配范围。Godot 的组件要求和签名说明见[官方 Android 导出文档](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html)。
 
 ## 在 VS Code 启动和运行测试

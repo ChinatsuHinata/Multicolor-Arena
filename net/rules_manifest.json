@@ -4,7 +4,6 @@
     "assets/conditional_frame.gdshader": "9a960d970524ff95d980a2238ccd66df2550d161b7623350ab6f0abd27ff5adc",
     "data/alternate_art.json": "b8740e3fd8314288cf4b6757c94ac5b34b64083c0a5c4aba815989ac8623a002",
     "data/card_search_aliases.json": "3e4b414d5bfd4028b6ee9cb437a3d8aec7ba08bbba06f581858e6aeff26ea573",
-    "net/chat_panel.gd": "48470f9727695987ae97b56b09fbf87f4fa36f5ae0273bf131f2ed6ef7185490",
     "net/command_gateway.gd": "de5412c6370a572af0b3f5ecebf0a461cd7cfa07a0bf0a02451a3f3cad9ddadb",
     "net/connection_metrics.gd": "07e3244116f28566108f0f260d6c84062713680b187d2bb8be8dffb47a325bce",
     "net/journal_store.gd": "c8a1e1ae3a49acd282915f74683d13644e49b4d27f46bb6a2619887569a15373",

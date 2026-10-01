@@ -7,7 +7,7 @@ var details: PanelContainer
 var center: VBoxContainer
 var catalogue: PanelContainer
 var grid: GridContainer
-var side_grid: HBoxContainer
+var side_grid: Container
 var main_row: HBoxContainer
 var preview_home: VBoxContainer
 var details_overlay: Control
@@ -48,11 +48,8 @@ func panel(parent: Node) -> PanelContainer:
  result.add_theme_stylebox_override("panel",metrics.panel_style())
  return result
 
-func menu_button(parent: Node,caption: String,entries: Array) -> MenuButton:
- var result=MenuButton.new();result.text=caption;parent.add_child(result);metrics.button(result)
- var popup=result.get_popup()
- for i in range(entries.size()):popup.add_item(entries[i][0],i)
- popup.id_pressed.connect(func(id):entries[id][1].call())
+func menu_button(parent: Node,caption: String,entries: Array) -> Button:
+ var result=action(parent,caption,func():app.open_menu_popup("组卡菜单",entries,2))
  return result
 
 func build(host,swapping: bool):
@@ -91,6 +88,10 @@ func build(host,swapping: bool):
  rules.select(maxi(0,app.RuleSet.IDS.find(str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))))
  rules.disabled=swapping
  rules.item_selected.connect(func(index):app.change_deck_rule_set(app.RuleSet.IDS[index]))
+ if not swapping:
+  var cloud_actions=HBoxContainer.new();cloud_actions.name="DeckCloudActions";center.add_child(cloud_actions)
+  var plaza=action(cloud_actions,"套牌广场",app.open_deck_plaza);plaza.name="DeckPlazaButton";expand(plaza)
+  var upload=action(cloud_actions,app.deck_upload_caption(),app.upload_current_deck);upload.name="DeckUploadButton";expand(upload)
  app.deck_canvas=VBoxContainer.new();app.deck_canvas.name="DeckCanvas";center.add_child(app.deck_canvas);expand(app.deck_canvas,true)
  app.counts=text(center,"");app.counts.add_theme_font_size_override("font_size",metrics.small)
  app.counts.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -124,6 +125,7 @@ func build_library(right: VBoxContainer):
  app.library.set_drag_forwarding(Callable(),app.can_return_card,app.return_card_to_library)
  app.saved_select=OptionButton.new();app.saved_select.name="SavedDeckSelect";right.add_child(app.saved_select);metrics.button(app.saved_select)
  app.saved_select.fit_to_longest_item=false
+ app.enable_android_popup_swipe(app.saved_select.get_popup())
  app.saved_select.add_item("选择卡组")
  for d in app.decks:
   app.saved_select.add_item(d.name)

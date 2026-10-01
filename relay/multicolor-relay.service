@@ -1,0 +1,22 @@
+[Unit]
+Description=Multicolor Arena room relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=multicolor-relay
+Environment=HOME=/var/lib/multicolor-relay
+WorkingDirectory=/opt/multicolor-relay
+ExecStart=/usr/local/bin/godot --headless --path /opt/multicolor-relay --script server.gd -- --port 47862
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/multicolor-relay
+
+[Install]
+WantedBy=multi-user.target

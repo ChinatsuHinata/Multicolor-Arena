@@ -161,10 +161,14 @@ static func on_coin(e,who,heads):
  if heads:return
  for c in e.players[who].grave:
   if e.Cat.has(e,c,"spell-fdf-022"):e.Cat.events(e,c,"cat:unconscious_return",true)
+static func check_illusions(e):
+ for c in (e.units(0)+e.units(1)).duplicate():
+  if (c.get("reisen_illusion",false) or e.Pack.has(e.cards[c.card_id],"illusion_check")) and not e.Cat.has_named_unit(e,c.owner,"铃仙"):
+   e.move_to(c,"exile")
 static func state_checks(e):
  var C=e.Cat
+ check_illusions(e)
  for c in (e.units(0)+e.units(1)).duplicate():
-  if c.get("reisen_illusion",false) and not e.units(c.owner).any(func(u):return "铃仙" in e.cards[u.card_id].name):e.move_to(c,"exile")
   if c.has("rank_target") and e.players[c.rank_target.owner].turns>=c.rank_target.turns:c.erase("rank_target")
  for who in range(2):
   if not C.with_key(e,who,"spell-fdn-002").is_empty() and not e.units(who).is_empty():e.players[who].life=maxi(1,e.players[who].life)

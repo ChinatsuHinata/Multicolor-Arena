@@ -272,8 +272,9 @@ static func resolve(e,t):
   "cat:unconscious_return":
    if same and c.zone=="grave":e.move_to(c,"hand")
   "cat:element_reveal":
-   if C.valid(e,d.ref):
-    var u=e.find_card(d.ref.uid);e.move_to(u,"exile");C.grant_cast(e,u,who,u.card_id=="spell-fdf-079",{"红":1} if u.card_id=="spell-fdf-078" else {},u.card_id=="spell-fdf-079")
+   var u=e.find_card(d.ref.uid)
+   if not u.is_empty() and u.card_id==source.card_id and u.owner==who and u.zone in ["deck","hand"]:
+    e.move_to(u,"exile");C.grant_cast(e,u,who,u.card_id=="spell-fdf-079",{"红":1} if u.card_id=="spell-fdf-078" else {},u.card_id=="spell-fdf-079")
   _:return resolve_choices(e,t)
  return true
 static func resolve_choices(e,t):
@@ -338,7 +339,7 @@ static func activation_options(e,c,k):
    var targets=C.refs(e,units.filter(func(u):return u.get("original_owner",u.owner)==who and e.stat(u,"spirit")<=3))
    return e.Pack.selection([g,e.Pack.group(e.Extra.add_mode(targets,"重置")+e.Extra.add_mode(targets,"置于牌库顶"),1,1,"选择目标与效果")],k)
   "item-ucs-017":return e.Pack.selection([C.group(e,e.units(who),1,1,"牺牲一个单位",true)],k)
-  "item-fdf-096":return C.refs(e,(p.palette+[p.leader]).filter(func(u):return e.cards[u.card_id].kind=="自机" and (u.zone=="palette" or u.zone=="leader" and u.timer==0)))
+  "item-fdf-096":return e.Pack.none() if (p.palette+[p.leader]).any(func(u):return e.cards[u.card_id].kind=="自机" and (u.zone=="palette" or u.zone=="leader" and u.timer==0)) else []
   "item-ucs-013","item-htk-008","character-smm05","character-fdn-038","token-fdf-127":return e.Pack.none()
   "character-fdn-036:self":return C.refs(e,e.units(who).filter(func(u):return u.uid!=c.uid and C.race(e,u,"天狗")))
   "character-fdn-006":return e.Pack.selection([C.group(e,p.hand.filter(func(u):return e.is_unit(u)),1,1,"弃一张单位牌",true)],k)
@@ -388,15 +389,13 @@ static func resolve_activation(e,t):
      else:e.Roster.to_top(e,u)
   "item-ucs-017":e.draw(who)
   "item-fdf-096":
-   if C.valid(e,a):
-    var u=e.find_card(a.uid);e.Roster.field_many(e,[u],who)
-    if u.zone=="field":
-     C.buff(e,u,0,0,0,["疾行"]);C.delay(e,u,"sacrifice",-1,"end",{},t.source);e.delayed.back().expires_turn=e.turn
+   var available=(p.palette+[p.leader]).filter(func(u):return e.cards[u.card_id].kind=="自机" and (u.zone=="palette" or u.zone=="leader" and u.timer==0))
+   if not available.is_empty():C.choose(e,t,"cat:jade_branch",C.refs(e,available))
   "item-ucs-013":p.all_self_turn=e.turn
   "item-htk-008":e.draw(who,2);C.continued_move(e,t,p.hand,mini(1,p.hand.size()),1,"grave","弃一张牌")
   "character-fdn-036:self":if C.unit(e,a):e.move_to(e.find_card(a.uid),"hand")
   "character-fdn-038":if same:e.move_to(c,"hand")
-  "character-fdn-006":C.copy_token(e,who,c if same else t.source,true,"mountain_fairy")
+  "character-fdn-006":C.copy_token(e,who,c if same else t.source,"mountain_fairy")
   "character-fdn-043":
    for u in C.selected(e,a):e.move_to(u,"exile")
   "character-smm05":

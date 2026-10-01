@@ -4,10 +4,12 @@ const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
 const AREA=Rect2(1358,148,236,452)
 const CARD_SIZE=Vector2(218,305)
 const ANDROID_CARD_SIZE=Vector2(92,128)
+const ANDROID_PANEL_INSET=8.0
 var view
 var scroll: ScrollContainer
 var column: VBoxContainer
 var heading: Label
+var background: Panel
 var tiles={}
 var signature=""
 func chosen_mode(entry: Dictionary) -> String:
@@ -19,6 +21,13 @@ func chosen_mode(entry: Dictionary) -> String:
  return "已选择："+mode if not mode.is_empty() else ""
 func build(owner_view):
  view=owner_view;position=AREA.position;size=AREA.size;mouse_filter=Control.MOUSE_FILTER_IGNORE
+ if view.is_android:
+  clip_contents=true
+  background=view.host.box(self,Rect2(Vector2.ZERO,size),Color("#101c28"),Color("#637a93"))
+  background.name="StackBackground"
+  background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  # The opaque panel also shields the leader beneath empty stack space.
+  background.mouse_filter=Control.MOUSE_FILTER_STOP
  heading=view.txt("",Rect2(3,0,230,29),20,view.host.GOLD,self)
  scroll=ScrollContainer.new();scroll.position=Vector2(0,33);scroll.size=Vector2(236,419)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
@@ -28,7 +37,7 @@ func build(owner_view):
  column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
 func sync():
  visible=not view.engine.stack.is_empty()
- heading.text="堆叠 %d · 从上往下结算" % view.engine.stack.size() if view.is_android else "堆叠  %d" % view.engine.stack.size()
+ heading.text="堆叠 %d\n从上往下结算" % view.engine.stack.size() if view.is_android else "堆叠  %d" % view.engine.stack.size()
  var next=JSON.stringify(view.engine.stack.map(func(e):return [e.id,e.get("ability_text",""),e.get("awaiting_target",false),chosen_mode(e)]))
  if next!=signature:
   var old_ids=tiles.keys();var old_top=column.get_child(0).get_meta("stack_id",-1) if column.get_child_count()>0 else -1
@@ -47,6 +56,9 @@ func sync():
    tile.custom_minimum_size=Vector2(card_size.x,card_size.x*156.0/218.0) if view.host.landscape_card(card.card_id) else card_size
    tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
    tile.set_meta("uid",card.uid);tile.set_meta("card_id",card.card_id);row.add_child(tile)
+   if view.is_android:
+    view.android_card_touch.bind_card(tile,func():view.inspect_card(card.card_id,card.uid,caption_for(entry),card.get("art_id","")),func():
+     if not view.observing and not view.modal and not view.history_open and not view.revealing():view.choose_target({"stack_id":entry.id}))
    var art=TextureRect.new();art.texture=view.card_texture(card,true);art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
    art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;art.mouse_filter=Control.MOUSE_FILTER_IGNORE;tile.add_child(art)
    tile.gui_input.connect(func(event):
@@ -59,13 +71,13 @@ func sync():
    var details: VBoxContainer
    if view.is_android:
     details=VBoxContainer.new()
-    details.custom_minimum_size.x=scroll.size.x-card_size.x-8
     details.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     details.add_theme_constant_override("separation",4)
     row.add_child(details)
     var order=Label.new();order.name="StackOrder"
     order.text="%d · %s" % [index+1,"先结算" if index==0 else "随后结算"]
-    order.add_theme_font_size_override("font_size",16)
+    order.add_theme_font_size_override("font_size",view.host.ui_metrics.small)
+    order.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     order.add_theme_color_override("font_color",view.host.GOLD)
     order.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(order)
    var caption_text=view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else ""
@@ -76,7 +88,7 @@ func sync():
    if view.is_android:
     caption.max_lines_visible=4
     caption.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-   caption.add_theme_font_size_override("font_size",13 if view.is_android else 15);caption.add_theme_color_override("font_color",view.host.WHITE)
+   caption.add_theme_font_size_override("font_size",view.host.ui_metrics.small if view.is_android else 15);caption.add_theme_color_override("font_color",view.host.WHITE)
    caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.visible=not caption.text.is_empty()
    if view.is_android:details.add_child(caption)
    else:row.add_child(caption)
@@ -101,6 +113,8 @@ func entry_rect(id:int) -> Rect2:
  if not visible or not tiles.has(id):return Rect2()
  var rect=tiles[id].tile.get_global_rect().intersection(scroll.get_global_rect())
  return rect if rect.has_area() else Rect2()
+func caption_for(entry: Dictionary) -> String:
+ return view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else chosen_mode(entry)
 func card_rect(uid:int) -> Rect2:
  for id in tiles:
   if tiles[id].tile.get_meta("uid")==uid:return entry_rect(id)

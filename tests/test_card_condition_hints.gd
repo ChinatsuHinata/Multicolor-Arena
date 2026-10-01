@@ -11,6 +11,10 @@ func run():
  expect(not Hints.active(e,hatate),"Hatate does not qualify with a three-cost deck leader")
  e.players[0].leader=e.make_card("character-fdn-025",0,"leader",true)
  expect(Hints.active(e,hatate) and e.cast_cost(0,hatate).values().reduce(func(a,b):return a+b,0)==3,"Hatate qualifies at leader cost five and the actual cast costs three")
+ e.enter_field(hatate,0)
+ expect(hatate.zone=="field" and not Hints.active(e,hatate),"Hatate's casting discount hint clears on entry despite the qualifying deck leader")
+ e.move_to(hatate,"hand")
+ expect(Hints.active(e,hatate),"Hatate's casting discount hint returns when she returns to hand")
  fresh();v.engine=e
  var rain=put("spell-ucs-050","hand");var ominous=put("spell-fdn-009","hand")
  for i in range(3):put("53","grave")
@@ -60,6 +64,8 @@ func run():
  expect(not Hints.active(e,mokou),"leader Mokou is inactive above ten life")
  e.players[0].life=10
  expect(Hints.active(e,mokou) and e.cast_cost(0,mokou).values().reduce(func(a,b):return a+b,0)==2,"leader Mokou qualifies at ten life and really receives the cost discount")
+ e.enter_field(mokou,0)
+ expect(mokou.zone=="field" and not Hints.active(e,mokou),"Mokou's casting discount hint clears on entry while life remains ten")
  fresh();v.engine=e
  var fairy=put("1","hand");var fairy_leader=put("80","hand");var other=put("53","hand")
  expect(not Hints.active(e,fairy),"a fairy has no first-entry hint without the anthem")

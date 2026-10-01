@@ -10,12 +10,11 @@ PASS: same-title unit cannot be cast
 PASS: lethal leader offers return choice
 PASS: leader returns with two counters instead of grave
 PASS: own end phase reduces leader timer once
-PASS: brave enters stack before untapping
+PASS: brave untaps during the end phase
 PASS: card counter cannot target triggered ability
-PASS: brave untaps only when its trigger resolves
 PASS: ordinary Marisa does not automatically gain leader ability
 PASS: shrine grants leader ability to ordinary Marisa
-PASS: spell use pauses to choose Marisa trigger target
+PASS: spell use queues a provisional Marisa trigger while choosing its target
 PASS: Marisa trigger sits above original spell
 PASS: trigger survives source leaving battlefield
 PASS: original spell still resolves after trigger
@@ -30,7 +29,7 @@ PASS: cleanup requires discard to seven
 PASS: discard resumes turn progression
 PASS: empty palette growth is not a failed draw
 PASS: empty required draw loses match
-PASS: all eight definitions pass schema and image validation
+PASS: legacy definitions pass schema and image validation
 PASS: negative card cost rejected
 PASS: fractional card cost rejected
 PASS: unregistered effects rejected instead of silently ignored
@@ -38,4 +37,4 @@ PASS: non-numeric effect parameter rejected
 PASS: incompatible ability category rejected
 PASS: test mode still refuses construction-banned card
 PASS: editor refuses construction-banned card
-DUEL_RULES_TEST: 36 checks; 0 failures
+DUEL_RULES_TEST: 35 checks; 0 failures

@@ -53,6 +53,18 @@ func run():
  e.detach(ran);e.shift(ran,"field");e.players[0].field.append(ran)
  expect(e.cast_cost(0,spell).get("蓝",0)==1,"returning Ran starts enabled")
  expect(e.cast_cost(0,put("54","hand")).get("黄",0)==4,"switch does not alter non-blue cost")
+ e.stack.append({"kind":"ability","owner":1})
+ var before=Codec.capture(e)
+ expect(not Gateway.apply(e,0,{"name":"toggle_ran_discount","args":[ran.uid]}).is_empty(),"nonempty confrontation prevents toggling through gateway")
+ expect(Codec.capture(e)==before,"rejected toggle leaves the game state unchanged")
+ var blocked=e.available_actions(0,ran.uid,true).filter(func(a):return a.type=="ran_discount")
+ expect(blocked.size()==1 and not blocked[0].enabled and blocked[0].reason.contains("对抗为空"),"menu explains the empty confrontation requirement")
+ e.stack.clear()
+ e.players[0].night_lock=e.turn
+ e.active=1;put("character-fdn-067","field",1)
+ expect(e.Cat.State.activation_locked(e,ran) and e.Roster.Batch.locked(e,ran),"activated ability restrictions are active")
+ expect(e.toggle_ran_discount(0,ran.uid).is_empty() and e.stack.is_empty(),"static switch ignores activated ability restrictions and creates no ability")
+ e.players[0].erase("night_lock");e.active=0
  e.pending={"kind":"block","owner":0}
  expect(not e.toggle_ran_discount(0,ran.uid).is_empty(),"pending choices prevent toggling")
  e.pending={};e.priority=1

@@ -83,10 +83,11 @@ func run():
  fresh();victim=plain();victim.plus_counters=1;victim.damage=1;victim.plus_counters=0;e.pump_choices()
  expect(victim.zone=="grave","选择/付费边界执行状态动作，不等下一次伤害")
  fresh();var branch=put("item-fdf-096");var leader=e.players[0].leader
- var entry={"effect":"item-fdf-096","source":branch.duplicate(true),"owner":0,"target":e.Pack.ref(e,leader)}
- e.Cat.resolve_activation(e,entry);expect(leader.zone=="field" and e.delayed.size()==1,"玉枝进场并登记结束牺牲")
- e.Roster.end_now(e);expect(e.delayed.is_empty() and leader.zone=="field","辉夜跳过结束时消费玉枝牺牲，不延期")
- e.pending={};e.triggers=[];e.run_delayed("end");expect(not e.triggers.any(func(t):return t.effect=="cat:delayed"),"下个结束阶段不补触发玉枝")
+ var entry={"effect":"item-fdf-096","source":branch.duplicate(true),"owner":0,"target":{"none":true}}
+ e.Cat.resolve_activation(e,entry);expect(e.pending.get("trigger",{}).get("effect","")=="cat:jade_branch","玉枝结算时才选择自机")
+ e.choose_effect(e.pending.options[0]);expect(leader.zone=="field" and e.delayed.size()==1,"玉枝进场并登记结束牺牲")
+ e.Roster.end_now(e);expect(e.delayed.size()==1 and leader.zone=="field","辉夜跳过结束时保留玉枝牺牲")
+ e.pending={};e.triggers=[];e.run_delayed("end");expect(e.triggers.any(func(t):return t.effect=="cat:delayed"),"下个结束阶段触发玉枝牺牲")
  fresh();many_mana(0);var reset=put("spell-ucs-014","hand");e.cards[reset.card_id].requires_character=""
  expect(e.targets_for(reset.card_id,0)==[{"none":true}],"一条归桥付款前不选重置对象")
  var plan=e.payment(0,e.cast_cost(0,reset)).plan;var paid_uids=plan.map(func(r):return r.uid)
@@ -144,10 +145,10 @@ func run():
  expect(miracle.zone=="hand" and e.stack.is_empty() and not miracle_triggered() and not enemy_projection.definitions.has("106") and not JSON.stringify(enemy_projection.state.history).contains(e.cards["106"].name),"拒绝奇迹后仍不入堆叠、不触发神德或泄露牌名")
  miracle=draw_miracle("106");e.choose_effect({"none":true});enemy_projection=SeatView.build(e,1,e.presentation_events)
  expect(miracle.zone=="stack" and enemy_projection.definitions.has("106") and enemy_projection.state.stack.any(func(s):return s.get("kind","")=="card" and s.card.uid==miracle.uid),"确认发动后奇迹牌才公开进入堆叠")
- fresh();var fairy=put("character-fdn-006");fairy.plus_counters=3;var copy=e.Cat.copy_token(e,0,fairy,true)
+ fresh();var fairy=put("character-fdn-006");fairy.plus_counters=3;var copy=e.Cat.copy_token(e,0,fairy)
  expect(copy.plus_counters==3 and e.stat(copy,"health")==e.stat(fairy,"health"),"妖怪山妖精复制保留111指示物")
  var ordinary=e.Cat.copy_token(e,0,fairy)
- expect(ordinary.plus_counters==0,"其他复制效果没有擅自新增复制指示物规则")
+ expect(ordinary.plus_counters==3,"所有复制效果都复制来源的指示物")
  var loaded=JSON.parse_string(FileAccess.get_file_as_string(Store.SAVE_PATH))
  for deck in loaded.decks:
   expect(Store.validate(deck,true).is_empty(),"50+1自组卡组严格检查 "+deck.name)

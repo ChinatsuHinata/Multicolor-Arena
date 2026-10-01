@@ -3,7 +3,7 @@ extends SceneTree
 
 const DATA_DIRS=["cards/", "data/", "net/"]
 const SCRIPT_DIRS=["scripts/rules/", "scripts/ai/"]
-const CORE_FILES=["scripts/card_database.gdc", "scripts/deck_store.gdc", "scripts/deck_rule_set.gdc"]
+const CORE_FILES=["scripts/card_database.gdc", "scripts/deck_store.gdc", "scripts/deck_rule_set.gdc", "scripts/account_client.gdc", "scripts/account_session_store.gdc", "scripts/deck_plaza_client.gdc", "scripts/deck_plaza.gdc", "scripts/main.gdc"]
 var failed=false
 
 func _initialize():
@@ -28,6 +28,7 @@ func _collect(path: String, data: Dictionary, scripts: Array):
   _collect(path+name+"/",data,scripts)
 
 func _is_data(relative: String) -> bool:
+ if relative=="data/account_public.pem":return true
  if not relative.ends_with(".json"):return false
  for directory in DATA_DIRS:
   if relative.begins_with(directory):return true

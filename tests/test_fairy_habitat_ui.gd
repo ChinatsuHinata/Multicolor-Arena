@@ -43,7 +43,7 @@ func run():
  expect(original.has("root") and not original.get("icons",[]).any(func(icon):return icon.texture.resource_path.ends_with("mountain_fairy.png")),"original mountain fairy has no copy marker")
  var habitat_icons=view.card_badges.get("card_"+str(habitat.uid),{}).get("icons",[])
  expect(not habitat_icons.any(func(icon):return icon.texture.resource_path.ends_with("mountain_fairy.png")),"uncopied habitat has no mountain fairy copy marker")
- var copy=e.Cat.copy_token(e,0,habitat,true,"mountain_fairy")
+ var copy=e.Cat.copy_token(e,0,habitat,"mountain_fairy")
  view.table.sync();view.rebuild_badges();await process_frame
  var marked=view.card_badges.get("card_"+str(copy.uid),{})
  expect(marked.has("root") and marked.get("icons",[]).any(func(icon):return icon.texture.resource_path.ends_with("mountain_fairy.png") and icon.size==Vector2(view.CARD_ICON_SIZE,view.CARD_ICON_SIZE)),"habitat copy token displays the matching-size pixel marker")

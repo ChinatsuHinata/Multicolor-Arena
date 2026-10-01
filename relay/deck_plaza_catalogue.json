@@ -1,0 +1,9438 @@
+{
+ "cards": {
+  "1": {
+   "arts": [],
+   "canonical": "1",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "日之光「桑尼·米尔克」",
+   "search": [
+    "1",
+    "日之光「桑尼·米尔克」",
+    "桑尼·米尔克",
+    "日之光"
+   ]
+  },
+  "100": {
+   "arts": [
+    "100",
+    "tts_150900"
+   ],
+   "canonical": "100",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "灵符「梦想封印-瞬-」",
+   "search": [
+    "100",
+    "灵符「梦想封印-瞬-」",
+    "",
+    "",
+    "大康"
+   ]
+  },
+  "101": {
+   "arts": [],
+   "canonical": "101",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "「妖恋谈」",
+   "search": [
+    "101",
+    "「妖恋谈」",
+    "",
+    ""
+   ]
+  },
+  "102": {
+   "arts": [],
+   "canonical": "102",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "「万华ノ镜」",
+   "search": [
+    "102",
+    "「万华ノ镜」",
+    "",
+    ""
+   ]
+  },
+  "103": {
+   "arts": [],
+   "canonical": "103",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「萤火ノ天」",
+   "search": [
+    "103",
+    "「萤火ノ天」",
+    "",
+    ""
+   ]
+  },
+  "104": {
+   "arts": [],
+   "canonical": "104",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "禁忌「莱瓦汀」",
+   "search": [
+    "104",
+    "禁忌「莱瓦汀」",
+    "",
+    ""
+   ]
+  },
+  "105": {
+   "arts": [],
+   "canonical": "105",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "奇迹「白昼ノ客星」",
+   "search": [
+    "105",
+    "奇迹「白昼ノ客星」",
+    "",
+    ""
+   ]
+  },
+  "106": {
+   "arts": [],
+   "canonical": "106",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「彼岸ノ神想」",
+   "search": [
+    "106",
+    "「彼岸ノ神想」",
+    "",
+    ""
+   ]
+  },
+  "107": {
+   "arts": [],
+   "canonical": "107",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「稻田姬ノ秋」",
+   "search": [
+    "107",
+    "「稻田姬ノ秋」",
+    "",
+    ""
+   ]
+  },
+  "109": {
+   "arts": [
+    "109",
+    "tts_154500"
+   ],
+   "canonical": "109",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神枪「冈格尼尔」",
+   "search": [
+    "109",
+    "神枪「冈格尼尔」",
+    "",
+    ""
+   ]
+  },
+  "11": {
+   "arts": [],
+   "canonical": "11",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "巡秋而来「秋静叶」",
+   "search": [
+    "11",
+    "巡秋而来「秋静叶」",
+    "秋静叶",
+    "巡秋而来"
+   ]
+  },
+  "110": {
+   "arts": [],
+   "canonical": "110",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「背德ノ吸血鬼」",
+   "search": [
+    "110",
+    "「背德ノ吸血鬼」",
+    "",
+    ""
+   ]
+  },
+  "111": {
+   "arts": [],
+   "canonical": "111",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「缘起ノ幻想乡」",
+   "search": [
+    "111",
+    "「缘起ノ幻想乡」",
+    "",
+    ""
+   ]
+  },
+  "112": {
+   "arts": [],
+   "canonical": "112",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「甜蜜时刻」",
+   "search": [
+    "112",
+    "「甜蜜时刻」",
+    "",
+    ""
+   ]
+  },
+  "113": {
+   "arts": [],
+   "canonical": "113",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「活动记录」",
+   "search": [
+    "113",
+    "「活动记录」",
+    "",
+    ""
+   ]
+  },
+  "114": {
+   "arts": [
+    "114",
+    "tts_155123"
+   ],
+   "canonical": "114",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「境界」",
+   "search": [
+    "114",
+    "「境界」",
+    "",
+    ""
+   ]
+  },
+  "116": {
+   "arts": [],
+   "canonical": "116",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「太阳ノ花田」",
+   "search": [
+    "116",
+    "「太阳ノ花田」",
+    "",
+    ""
+   ]
+  },
+  "118": {
+   "arts": [],
+   "canonical": "118",
+   "colors": [
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "空观剑「六根清净斩」",
+   "search": [
+    "118",
+    "空观剑「六根清净斩」",
+    "",
+    ""
+   ]
+  },
+  "119": {
+   "arts": [],
+   "canonical": "119",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "旧史「旧秘境史-古代史-」",
+   "search": [
+    "119",
+    "旧史「旧秘境史-古代史-」",
+    "",
+    ""
+   ]
+  },
+  "12": {
+   "arts": [],
+   "canonical": "12",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冬之妖怪「蕾蒂·霍瓦特洛克」",
+   "search": [
+    "12",
+    "冬之妖怪「蕾蒂·霍瓦特洛克」",
+    "蕾蒂·霍瓦特洛克",
+    "冬之妖怪"
+   ]
+  },
+  "120": {
+   "arts": [],
+   "canonical": "120",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「反魂蝶」",
+   "search": [
+    "120",
+    "「反魂蝶」",
+    "",
+    ""
+   ]
+  },
+  "121": {
+   "arts": [],
+   "canonical": "121",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻世「the world」",
+   "search": [
+    "121",
+    "幻世「the world」",
+    "",
+    ""
+   ]
+  },
+  "122": {
+   "arts": [],
+   "canonical": "122",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幻想风靡」",
+   "search": [
+    "122",
+    "「幻想风靡」",
+    "",
+    ""
+   ]
+  },
+  "123": {
+   "arts": [],
+   "canonical": "123",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天狗ノ防御」",
+   "search": [
+    "123",
+    "「天狗ノ防御」",
+    "",
+    ""
+   ]
+  },
+  "124": {
+   "arts": [],
+   "canonical": "124",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「废墟ノ梦」",
+   "search": [
+    "124",
+    "「废墟ノ梦」",
+    "",
+    ""
+   ]
+  },
+  "125": {
+   "arts": [],
+   "canonical": "125",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "本能「本我的解放」",
+   "search": [
+    "125",
+    "本能「本我的解放」",
+    "",
+    ""
+   ]
+  },
+  "126": {
+   "arts": [],
+   "canonical": "126",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「湖上」",
+   "search": [
+    "126",
+    "「湖上」",
+    "",
+    ""
+   ]
+  },
+  "127": {
+   "arts": [],
+   "canonical": "127",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「九天ノ瀑布」",
+   "search": [
+    "127",
+    "「九天ノ瀑布」",
+    "",
+    ""
+   ]
+  },
+  "128": {
+   "arts": [],
+   "canonical": "128",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "火水木金土符「贤者之石」",
+   "search": [
+    "128",
+    "火水木金土符「贤者之石」",
+    "",
+    ""
+   ]
+  },
+  "129": {
+   "arts": [],
+   "canonical": "129",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「宵暗ノ翼」",
+   "search": [
+    "129",
+    "「宵暗ノ翼」",
+    "",
+    ""
+   ]
+  },
+  "13": {
+   "arts": [],
+   "canonical": "13",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "湖畔的住人「大妖精」",
+   "search": [
+    "13",
+    "湖畔的住人「大妖精」",
+    "大妖精",
+    "湖畔的住人"
+   ]
+  },
+  "130": {
+   "arts": [],
+   "canonical": "130",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「永夜蛰居」",
+   "search": [
+    "130",
+    "「永夜蛰居」",
+    "",
+    ""
+   ]
+  },
+  "131": {
+   "arts": [],
+   "canonical": "131",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「神游」",
+   "search": [
+    "131",
+    "「神游」",
+    "",
+    ""
+   ]
+  },
+  "132": {
+   "arts": [],
+   "canonical": "132",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幽冥境」",
+   "search": [
+    "132",
+    "「幽冥境」",
+    "",
+    ""
+   ]
+  },
+  "133": {
+   "arts": [],
+   "canonical": "133",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「未应ノ爱」",
+   "search": [
+    "133",
+    "「未应ノ爱」",
+    "",
+    ""
+   ]
+  },
+  "134": {
+   "arts": [],
+   "canonical": "134",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "「神ノ风」",
+   "search": [
+    "134",
+    "「神ノ风」",
+    "",
+    ""
+   ]
+  },
+  "135": {
+   "arts": [],
+   "canonical": "135",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「夜ノ蝶」",
+   "search": [
+    "135",
+    "「夜ノ蝶」",
+    "",
+    ""
+   ]
+  },
+  "136": {
+   "arts": [],
+   "canonical": "136",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天ノ磐舟」",
+   "search": [
+    "136",
+    "「天ノ磐舟」",
+    "",
+    ""
+   ]
+  },
+  "137": {
+   "arts": [],
+   "canonical": "137",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「百万鬼夜行」",
+   "search": [
+    "137",
+    "「百万鬼夜行」",
+    "",
+    ""
+   ]
+  },
+  "138": {
+   "arts": [],
+   "canonical": "138",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天ノ羽衣」",
+   "search": [
+    "138",
+    "「天ノ羽衣」",
+    "",
+    ""
+   ]
+  },
+  "139": {
+   "arts": [],
+   "canonical": "139",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「不明ノ正体」",
+   "search": [
+    "139",
+    "「不明ノ正体」",
+    "",
+    ""
+   ]
+  },
+  "14": {
+   "arts": [],
+   "canonical": "14",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「小恶魔」",
+   "search": [
+    "14",
+    "「小恶魔」",
+    "小恶魔",
+    ""
+   ]
+  },
+  "140": {
+   "arts": [],
+   "canonical": "140",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「审ノ视」",
+   "search": [
+    "140",
+    "「审ノ视」",
+    "",
+    ""
+   ]
+  },
+  "141": {
+   "arts": [],
+   "canonical": "141",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「出鞘」",
+   "search": [
+    "141",
+    "「出鞘」",
+    "",
+    ""
+   ]
+  },
+  "142": {
+   "arts": [],
+   "canonical": "142",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「秋」",
+   "search": [
+    "142",
+    "「秋」",
+    "",
+    ""
+   ]
+  },
+  "143": {
+   "arts": [],
+   "canonical": "143",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「极光」",
+   "search": [
+    "143",
+    "「极光」",
+    "",
+    ""
+   ]
+  },
+  "144": {
+   "arts": [],
+   "canonical": "144",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「深红ノ进击」",
+   "search": [
+    "144",
+    "「深红ノ进击」",
+    "",
+    ""
+   ]
+  },
+  "145": {
+   "arts": [],
+   "canonical": "145",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「静空」",
+   "search": [
+    "145",
+    "「静空」",
+    "",
+    ""
+   ]
+  },
+  "146": {
+   "arts": [],
+   "canonical": "146",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「花ノ幻想」",
+   "search": [
+    "146",
+    "「花ノ幻想」",
+    "",
+    ""
+   ]
+  },
+  "147": {
+   "arts": [],
+   "canonical": "147",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「无意识ノ雨」",
+   "search": [
+    "147",
+    "「无意识ノ雨」",
+    "",
+    ""
+   ]
+  },
+  "148": {
+   "arts": [],
+   "canonical": "148",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「今昔ノ花」",
+   "search": [
+    "148",
+    "「今昔ノ花」",
+    "",
+    ""
+   ]
+  },
+  "149": {
+   "arts": [],
+   "canonical": "149",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「秘神ノ门扉」",
+   "search": [
+    "149",
+    "「秘神ノ门扉」",
+    "",
+    "",
+    "开门"
+   ]
+  },
+  "15": {
+   "arts": [],
+   "canonical": "15",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "宵暗的妖怪「露米娅」",
+   "search": [
+    "15",
+    "宵暗的妖怪「露米娅」",
+    "露米娅",
+    "宵暗的妖怪"
+   ]
+  },
+  "150": {
+   "arts": [],
+   "canonical": "150",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「风神的神德」",
+   "search": [
+    "150",
+    "「风神的神德」",
+    "",
+    ""
+   ]
+  },
+  "151": {
+   "arts": [],
+   "canonical": "151",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "土著神「小小青蛙不输风雨」",
+   "search": [
+    "151",
+    "土著神「小小青蛙不输风雨」",
+    "",
+    ""
+   ]
+  },
+  "152": {
+   "arts": [],
+   "canonical": "152",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幻想ノ灵火」",
+   "search": [
+    "152",
+    "「幻想ノ灵火」",
+    "",
+    ""
+   ]
+  },
+  "153": {
+   "arts": [],
+   "canonical": "153",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "战符「小小军势」",
+   "search": [
+    "153",
+    "战符「小小军势」",
+    "",
+    ""
+   ]
+  },
+  "154": {
+   "arts": [],
+   "canonical": "154",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "要石「开天辟地ノ压」",
+   "search": [
+    "154",
+    "要石「开天辟地ノ压」",
+    "",
+    ""
+   ]
+  },
+  "155": {
+   "arts": [],
+   "canonical": "155",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖精ノ祭典」",
+   "search": [
+    "155",
+    "「妖精ノ祭典」",
+    "",
+    ""
+   ]
+  },
+  "156": {
+   "arts": [],
+   "canonical": "156",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冻符「完美冻结」",
+   "search": [
+    "156",
+    "冻符「完美冻结」",
+    "",
+    ""
+   ]
+  },
+  "157": {
+   "arts": [],
+   "canonical": "157",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "想起「恐怖ノ回忆」",
+   "search": [
+    "157",
+    "想起「恐怖ノ回忆」",
+    "",
+    ""
+   ]
+  },
+  "158": {
+   "arts": [],
+   "canonical": "158",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻想「花鸟风月、啸风弄月」",
+   "search": [
+    "158",
+    "幻想「花鸟风月、啸风弄月」",
+    "",
+    ""
+   ]
+  },
+  "159": {
+   "arts": [],
+   "canonical": "159",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「永夜归返-子ノ刻-」",
+   "search": [
+    "159",
+    "「永夜归返-子ノ刻-」",
+    "",
+    ""
+   ]
+  },
+  "160": {
+   "arts": [],
+   "canonical": "160",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「游行圣」",
+   "search": [
+    "160",
+    "「游行圣」",
+    "",
+    ""
+   ]
+  },
+  "161": {
+   "arts": [],
+   "canonical": "161",
+   "colors": [
+    "红",
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "妖怪「火焰ノ车轮」",
+   "search": [
+    "161",
+    "妖怪「火焰ノ车轮」",
+    "",
+    ""
+   ]
+  },
+  "162": {
+   "arts": [],
+   "canonical": "162",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「Hell's Tokamak」",
+   "search": [
+    "162",
+    "「Hell's Tokamak」",
+    "",
+    ""
+   ]
+  },
+  "163": {
+   "arts": [],
+   "canonical": "163",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「萤燈ノ森」",
+   "search": [
+    "163",
+    "「萤燈ノ森」",
+    "",
+    ""
+   ]
+  },
+  "164": {
+   "arts": [],
+   "canonical": "164",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖魔书」",
+   "search": [
+    "164",
+    "「妖魔书」",
+    "",
+    "",
+    "饼"
+   ]
+  },
+  "165": {
+   "arts": [],
+   "canonical": "165",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「蕾米莉亚的烛台」",
+   "search": [
+    "165",
+    "「蕾米莉亚的烛台」",
+    "",
+    "",
+    "饼"
+   ]
+  },
+  "166": {
+   "arts": [],
+   "canonical": "166",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「早苗的御币」",
+   "search": [
+    "166",
+    "「早苗的御币」",
+    "",
+    "",
+    "饼"
+   ]
+  },
+  "167": {
+   "arts": [],
+   "canonical": "167",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「魔理沙的元素瓶」",
+   "search": [
+    "167",
+    "「魔理沙的元素瓶」",
+    "",
+    "",
+    "饼"
+   ]
+  },
+  "168": {
+   "arts": [],
+   "canonical": "168",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幽幽子的折扇」",
+   "search": [
+    "168",
+    "「幽幽子的折扇」",
+    "",
+    "",
+    "饼"
+   ]
+  },
+  "169": {
+   "arts": [
+    "169",
+    "tts_154400"
+   ],
+   "canonical": "169",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "红魔馆",
+   "search": [
+    "169",
+    "红魔馆",
+    "",
+    ""
+   ]
+  },
+  "17": {
+   "arts": [],
+   "canonical": "17",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "甜蜜毒药「梅蒂欣·梅兰可莉」",
+   "search": [
+    "17",
+    "甜蜜毒药「梅蒂欣·梅兰可莉」",
+    "梅蒂欣·梅兰可莉",
+    "甜蜜毒药"
+   ]
+  },
+  "170": {
+   "arts": [
+    "170",
+    "tts_154300"
+   ],
+   "canonical": "170",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "博丽神社",
+   "search": [
+    "170",
+    "博丽神社",
+    "",
+    ""
+   ]
+  },
+  "171": {
+   "arts": [],
+   "canonical": "171",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "无名ノ丘",
+   "search": [
+    "171",
+    "无名ノ丘",
+    "",
+    ""
+   ]
+  },
+  "172": {
+   "arts": [],
+   "canonical": "172",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雾ノ湖",
+   "search": [
+    "172",
+    "雾ノ湖",
+    "",
+    ""
+   ]
+  },
+  "173": {
+   "arts": [],
+   "canonical": "173",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "心ノ箱",
+   "search": [
+    "173",
+    "心ノ箱",
+    "",
+    ""
+   ]
+  },
+  "174": {
+   "arts": [],
+   "canonical": "174",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "有顶ノ天",
+   "search": [
+    "174",
+    "有顶ノ天",
+    "",
+    ""
+   ]
+  },
+  "175": {
+   "arts": [],
+   "canonical": "175",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冥界",
+   "search": [
+    "175",
+    "冥界",
+    "",
+    ""
+   ]
+  },
+  "176": {
+   "arts": [],
+   "canonical": "176",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「异星弹幕ノ空」",
+   "search": [
+    "176",
+    "「异星弹幕ノ空」",
+    "",
+    ""
+   ]
+  },
+  "177": {
+   "arts": [],
+   "canonical": "177",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「正义宝塔ノ光」",
+   "search": [
+    "177",
+    "「正义宝塔ノ光」",
+    "",
+    ""
+   ]
+  },
+  "178": {
+   "arts": [],
+   "canonical": "178",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "妖云「平安时代ノ黑云」",
+   "search": [
+    "178",
+    "妖云「平安时代ノ黑云」",
+    "",
+    ""
+   ]
+  },
+  "18": {
+   "arts": [],
+   "canonical": "18",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "天狗记者「射命丸文」",
+   "search": [
+    "18",
+    "天狗记者「射命丸文」",
+    "射命丸文",
+    "天狗记者"
+   ]
+  },
+  "19": {
+   "arts": [],
+   "canonical": "19",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "暗中的光虫「莉格露·奈特巴格」",
+   "search": [
+    "19",
+    "暗中的光虫「莉格露·奈特巴格」",
+    "莉格露·奈特巴格",
+    "暗中的光虫"
+   ]
+  },
+  "2": {
+   "arts": [],
+   "canonical": "2",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "月之光「露娜·切露德」",
+   "search": [
+    "2",
+    "月之光「露娜·切露德」",
+    "露娜·切露德",
+    "月之光"
+   ]
+  },
+  "21": {
+   "arts": [
+    "21",
+    "rec_unit_097"
+   ],
+   "canonical": "21",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "蓬莱的人之形「藤原妹红」",
+   "search": [
+    "21",
+    "蓬莱的人之形「藤原妹红」",
+    "藤原妹红",
+    "蓬莱的人之形"
+   ]
+  },
+  "22": {
+   "arts": [],
+   "canonical": "22",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "夜雀「米斯蒂娅·萝蕾拉」",
+   "search": [
+    "22",
+    "夜雀「米斯蒂娅·萝蕾拉」",
+    "米斯蒂娅·萝蕾拉",
+    "夜雀",
+    "夜雀"
+   ]
+  },
+  "23": {
+   "arts": [],
+   "canonical": "23",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "地壳下的嫉妒心「水桥帕露西」",
+   "search": [
+    "23",
+    "地壳下的嫉妒心「水桥帕露西」",
+    "水桥帕露西",
+    "地壳下的嫉妒心"
+   ]
+  },
+  "24": {
+   "arts": [],
+   "canonical": "24",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "式神「八云蓝」",
+   "search": [
+    "24",
+    "式神「八云蓝」",
+    "八云蓝",
+    "式神"
+   ]
+  },
+  "25": {
+   "arts": [
+    "25",
+    "tts_152300"
+   ],
+   "canonical": "25",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "念写记者「姬海棠果」",
+   "search": [
+    "25",
+    "念写记者「姬海棠果」",
+    "姬海棠果",
+    "念写记者"
+   ]
+  },
+  "26": {
+   "arts": [],
+   "canonical": "26",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "三途川之引渡人「小野冢小町」",
+   "search": [
+    "26",
+    "三途川之引渡人「小野冢小町」",
+    "小野冢小町",
+    "三途川之引渡人"
+   ]
+  },
+  "27": {
+   "arts": [],
+   "canonical": "27",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "水中工程师「河城荷取」",
+   "search": [
+    "27",
+    "水中工程师「河城荷取」",
+    "河城荷取",
+    "水中工程师"
+   ]
+  },
+  "28": {
+   "arts": [],
+   "canonical": "28",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "提琴手「露娜萨·普莉兹姆利巴」",
+   "search": [
+    "28",
+    "提琴手「露娜萨·普莉兹姆利巴」",
+    "露娜萨·普莉兹姆利巴",
+    "提琴手"
+   ]
+  },
+  "29": {
+   "arts": [],
+   "canonical": "29",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "键盘手「莉莉卡·普莉兹姆利巴」",
+   "search": [
+    "29",
+    "键盘手「莉莉卡·普莉兹姆利巴」",
+    "莉莉卡·普莉兹姆利巴",
+    "键盘手"
+   ]
+  },
+  "3": {
+   "arts": [],
+   "canonical": "3",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "三月精「斯塔·萨菲雅」",
+   "search": [
+    "3",
+    "三月精「斯塔·萨菲雅」",
+    "斯塔·萨菲雅",
+    "三月精"
+   ]
+  },
+  "30": {
+   "arts": [],
+   "canonical": "30",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小号手「梅露兰·普莉兹姆利巴」",
+   "search": [
+    "30",
+    "小号手「梅露兰·普莉兹姆利巴」",
+    "梅露兰·普莉兹姆利巴",
+    "小号手"
+   ]
+  },
+  "31": {
+   "arts": [],
+   "canonical": "31",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "独臂有角的仙人「茨木华扇」",
+   "search": [
+    "31",
+    "独臂有角的仙人「茨木华扇」",
+    "茨木华扇",
+    "独臂有角的仙人"
+   ]
+  },
+  "32": {
+   "arts": [],
+   "canonical": "32",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "秘神流雏「键山雏」",
+   "search": [
+    "32",
+    "秘神流雏「键山雏」",
+    "键山雏",
+    "秘神流雏",
+    "转转"
+   ]
+  },
+  "33": {
+   "arts": [],
+   "canonical": "33",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "狂气月兔「铃仙·优昙华院·因幡」",
+   "search": [
+    "33",
+    "狂气月兔「铃仙·优昙华院·因幡」",
+    "铃仙·优昙华院·因幡",
+    "狂气月兔",
+    "兔子"
+   ]
+  },
+  "34": {
+   "arts": [],
+   "canonical": "34",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "地狱的妖精「克劳恩皮丝」",
+   "search": [
+    "34",
+    "地狱的妖精「克劳恩皮丝」",
+    "克劳恩皮丝",
+    "地狱的妖精"
+   ]
+  },
+  "35": {
+   "arts": [],
+   "canonical": "35",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "地狱的最高裁判长「四季映姬」",
+   "search": [
+    "35",
+    "地狱的最高裁判长「四季映姬」",
+    "四季映姬",
+    "地狱的最高裁判长"
+   ]
+  },
+  "38": {
+   "arts": [],
+   "canonical": "38",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "引雷的亡灵「苏我屠自古」",
+   "search": [
+    "38",
+    "引雷的亡灵「苏我屠自古」",
+    "苏我屠自古",
+    "引雷的亡灵"
+   ]
+  },
+  "39": {
+   "arts": [
+    "39",
+    "tts_153900"
+   ],
+   "canonical": "39",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "苍天的庭师「魂魄妖梦」",
+   "search": [
+    "39",
+    "苍天的庭师「魂魄妖梦」",
+    "魂魄妖梦",
+    "苍天的庭师",
+    "小妖梦"
+   ]
+  },
+  "41": {
+   "arts": [],
+   "canonical": "41",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "刚欲同盟盟主「饕餮尤魔」",
+   "search": [
+    "41",
+    "刚欲同盟盟主「饕餮尤魔」",
+    "饕餮尤魔",
+    "刚欲同盟盟主"
+   ]
+  },
+  "42": {
+   "arts": [],
+   "canonical": "42",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "无理非道的仙人「霍青娥」",
+   "search": [
+    "42",
+    "无理非道的仙人「霍青娥」",
+    "霍青娥",
+    "无理非道的仙人"
+   ]
+  },
+  "43": {
+   "arts": [],
+   "canonical": "43",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "漆黑的噬龙者「姬虫百百世」",
+   "search": [
+    "43",
+    "漆黑的噬龙者「姬虫百百世」",
+    "姬虫百百世",
+    "漆黑的噬龙者"
+   ]
+  },
+  "44": {
+   "arts": [],
+   "canonical": "44",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻想乡的记忆「稗田阿求」",
+   "search": [
+    "44",
+    "幻想乡的记忆「稗田阿求」",
+    "稗田阿求",
+    "幻想乡的记忆"
+   ]
+  },
+  "45": {
+   "arts": [],
+   "canonical": "45",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "孤援的造型神「埴安神袿姬」",
+   "search": [
+    "45",
+    "孤援的造型神「埴安神袿姬」",
+    "埴安神袿姬",
+    "孤援的造型神"
+   ]
+  },
+  "46": {
+   "arts": [],
+   "canonical": "46",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「橙」",
+   "search": [
+    "46",
+    "「橙」",
+    "橙",
+    ""
+   ]
+  },
+  "47": {
+   "arts": [],
+   "canonical": "47",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "恶魔的门番「红美铃」",
+   "search": [
+    "47",
+    "恶魔的门番「红美铃」",
+    "红美铃",
+    "恶魔的门番",
+    "红师傅"
+   ]
+  },
+  "48": {
+   "arts": [
+    "48",
+    "tts_152900"
+   ],
+   "canonical": "48",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雪之亡灵「西行寺幽幽子」",
+   "search": [
+    "48",
+    "雪之亡灵「西行寺幽幽子」",
+    "西行寺幽幽子",
+    "雪之亡灵",
+    "uu"
+   ]
+  },
+  "49": {
+   "arts": [],
+   "canonical": "49",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "星降的风水师「物部布都」",
+   "search": [
+    "49",
+    "星降的风水师「物部布都」",
+    "物部布都",
+    "星降的风水师"
+   ]
+  },
+  "5": {
+   "arts": [],
+   "canonical": "5",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「大妖精」",
+   "search": [
+    "5",
+    "「大妖精」",
+    "大妖精",
+    ""
+   ]
+  },
+  "50": {
+   "arts": [],
+   "canonical": "50",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「鬼神长」",
+   "search": [
+    "50",
+    "「鬼神长」",
+    "鬼神长",
+    ""
+   ]
+  },
+  "51": {
+   "arts": [],
+   "canonical": "51",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「魍魉」",
+   "search": [
+    "51",
+    "「魍魉」",
+    "魍魉",
+    ""
+   ]
+  },
+  "52": {
+   "arts": [],
+   "canonical": "52",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「高阶恶魔」",
+   "search": [
+    "52",
+    "「高阶恶魔」",
+    "高阶恶魔",
+    ""
+   ]
+  },
+  "53": {
+   "arts": [],
+   "canonical": "53",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「山童士兵」",
+   "search": [
+    "53",
+    "「山童士兵」",
+    "山童士兵",
+    ""
+   ]
+  },
+  "54": {
+   "arts": [],
+   "canonical": "54",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「埴轮泰坦」",
+   "search": [
+    "54",
+    "「埴轮泰坦」",
+    "埴轮泰坦",
+    ""
+   ]
+  },
+  "55": {
+   "arts": [],
+   "canonical": "55",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「风元素」",
+   "search": [
+    "55",
+    "「风元素」",
+    "风元素",
+    ""
+   ]
+  },
+  "56": {
+   "arts": [
+    "56",
+    "tts_154617"
+   ],
+   "canonical": "56",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「龙宫使者」",
+   "search": [
+    "56",
+    "「龙宫使者」",
+    "龙宫使者",
+    ""
+   ]
+  },
+  "57": {
+   "arts": [],
+   "canonical": "57",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「玩耍的妖精」",
+   "search": [
+    "57",
+    "「玩耍的妖精」",
+    "玩耍的妖精",
+    ""
+   ]
+  },
+  "58": {
+   "arts": [],
+   "canonical": "58",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「大天狗」",
+   "search": [
+    "58",
+    "「大天狗」",
+    "大天狗",
+    ""
+   ]
+  },
+  "59": {
+   "arts": [],
+   "canonical": "59",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "遗忘之伞「多多良小伞」",
+   "search": [
+    "59",
+    "遗忘之伞「多多良小伞」",
+    "多多良小伞",
+    "遗忘之伞"
+   ]
+  },
+  "6": {
+   "arts": [
+    "6",
+    "tts_153800"
+   ],
+   "canonical": "6",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "可怕的波动「芙兰朵露·斯卡蕾特」",
+   "search": [
+    "6",
+    "可怕的波动「芙兰朵露·斯卡蕾特」",
+    "芙兰朵露·斯卡蕾特",
+    "可怕的波动"
+   ]
+  },
+  "60": {
+   "arts": [],
+   "canonical": "60",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "大海的正义「村纱水蜜」",
+   "search": [
+    "60",
+    "大海的正义「村纱水蜜」",
+    "村纱水蜜",
+    "大海的正义",
+    "船长"
+   ]
+  },
+  "61": {
+   "arts": [
+    "61",
+    "tts_151100",
+    "tts_154200"
+   ],
+   "canonical": "61",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "忠诚的死体「宫古芳香」",
+   "search": [
+    "61",
+    "忠诚的死体「宫古芳香」",
+    "宫古芳香",
+    "忠诚的死体",
+    "僵尸"
+   ]
+  },
+  "62": {
+   "arts": [
+    "62",
+    "tts_154100"
+   ],
+   "canonical": "62",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "邪术仙人「霍青娥」",
+   "search": [
+    "62",
+    "邪术仙人「霍青娥」",
+    "霍青娥",
+    "邪术仙人"
+   ]
+  },
+  "63": {
+   "arts": [
+    "63",
+    "tts_150600"
+   ],
+   "canonical": "63",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "探宝队员「纳兹琳」",
+   "search": [
+    "63",
+    "探宝队员「纳兹琳」",
+    "纳兹琳",
+    "探宝队员",
+    "老鼠"
+   ]
+  },
+  "64": {
+   "arts": [],
+   "canonical": "64",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "未知力量X「封兽ぬえ」",
+   "search": [
+    "64",
+    "未知力量X「封兽ぬえ」",
+    "封兽ぬえ",
+    "未知力量X"
+   ]
+  },
+  "66": {
+   "arts": [],
+   "canonical": "66",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "回声山彦「幽谷响子」",
+   "search": [
+    "66",
+    "回声山彦「幽谷响子」",
+    "幽谷响子",
+    "回声山彦"
+   ]
+  },
+  "67": {
+   "arts": [],
+   "canonical": "67",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "问答无用「云居一轮&云山」",
+   "search": [
+    "67",
+    "问答无用「云居一轮&云山」",
+    "云居一轮&云山",
+    "问答无用"
+   ]
+  },
+  "68": {
+   "arts": [
+    "68",
+    "tts_149403",
+    "tts_151500"
+   ],
+   "canonical": "68",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "普通的魔法使「雾雨魔理沙」",
+   "search": [
+    "68",
+    "普通的魔法使「雾雨魔理沙」",
+    "雾雨魔理沙",
+    "普通的魔法使"
+   ]
+  },
+  "7": {
+   "arts": [
+    "7",
+    "tts_151300"
+   ],
+   "canonical": "7",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「蓬莱人偶」",
+   "search": [
+    "7",
+    "「蓬莱人偶」",
+    "蓬莱人偶",
+    ""
+   ]
+  },
+  "70": {
+   "arts": [
+    "70",
+    "tts_151600",
+    "tts_151700"
+   ],
+   "canonical": "70",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "乐园的可爱巫女「博丽灵梦」",
+   "search": [
+    "70",
+    "乐园的可爱巫女「博丽灵梦」",
+    "博丽灵梦",
+    "乐园的可爱巫女"
+   ]
+  },
+  "71": {
+   "arts": [],
+   "canonical": "71",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "华胥的亡灵「西行寺幽幽子」",
+   "search": [
+    "71",
+    "华胥的亡灵「西行寺幽幽子」",
+    "西行寺幽幽子",
+    "华胥的亡灵",
+    "uu"
+   ]
+  },
+  "73": {
+   "arts": [],
+   "canonical": "73",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "紧闭的恋之瞳「古明地恋」",
+   "search": [
+    "73",
+    "紧闭的恋之瞳「古明地恋」",
+    "古明地恋",
+    "紧闭的恋之瞳",
+    "恋恋"
+   ]
+  },
+  "74": {
+   "arts": [
+    "74",
+    "tts_149900",
+    "tts_153700"
+   ],
+   "canonical": "74",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "永远鲜红的幼月「蕾米莉亚·斯卡蕾特」",
+   "search": [
+    "74",
+    "永远鲜红的幼月「蕾米莉亚·斯卡蕾特」",
+    "蕾米莉亚·斯卡蕾特",
+    "永远鲜红的幼月"
+   ]
+  },
+  "75": {
+   "arts": [],
+   "canonical": "75",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "红魔馆的女仆「十六夜咲夜」",
+   "search": [
+    "75",
+    "红魔馆的女仆「十六夜咲夜」",
+    "十六夜咲夜",
+    "红魔馆的女仆"
+   ]
+  },
+  "76": {
+   "arts": [],
+   "canonical": "76",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "第三只眼「古明地觉」",
+   "search": [
+    "76",
+    "第三只眼「古明地觉」",
+    "古明地觉",
+    "第三只眼",
+    "小五"
+   ]
+  },
+  "77": {
+   "arts": [
+    "77",
+    "tts_151000"
+   ],
+   "canonical": "77",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "七色的人偶使「爱丽丝·玛格特洛依德」",
+   "search": [
+    "77",
+    "七色的人偶使「爱丽丝·玛格特洛依德」",
+    "爱丽丝·玛格特洛依德",
+    "七色的人偶使"
+   ]
+  },
+  "78": {
+   "arts": [
+    "78",
+    "tts_152800"
+   ],
+   "canonical": "78",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "地底的太阳「灵乌路空」",
+   "search": [
+    "78",
+    "地底的太阳「灵乌路空」",
+    "灵乌路空",
+    "地底的太阳",
+    "炸弹人"
+   ]
+  },
+  "79": {
+   "arts": [],
+   "canonical": "79",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "飞散红叶的天狗「射命丸文」",
+   "search": [
+    "79",
+    "飞散红叶的天狗「射命丸文」",
+    "射命丸文",
+    "飞散红叶的天狗"
+   ]
+  },
+  "8": {
+   "arts": [
+    "8",
+    "tts_150700"
+   ],
+   "canonical": "8",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「上海人偶」",
+   "search": [
+    "8",
+    "「上海人偶」",
+    "上海人偶",
+    ""
+   ]
+  },
+  "80": {
+   "arts": [],
+   "canonical": "80",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "湖上的冰精「琪露诺」",
+   "search": [
+    "80",
+    "湖上的冰精「琪露诺」",
+    "琪露诺",
+    "湖上的冰精",
+    "9"
+   ]
+  },
+  "82": {
+   "arts": [],
+   "canonical": "82",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "八坂的神风「八坂神奈子」",
+   "search": [
+    "82",
+    "八坂的神风「八坂神奈子」",
+    "八坂神奈子",
+    "八坂的神风",
+    "神妈"
+   ]
+  },
+  "85": {
+   "arts": [
+    "85",
+    "tts_155161"
+   ],
+   "canonical": "85",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "永远与须臾的罪人「蓬莱山辉夜」",
+   "search": [
+    "85",
+    "永远与须臾的罪人「蓬莱山辉夜」",
+    "蓬莱山辉夜",
+    "永远与须臾的罪人"
+   ]
+  },
+  "86": {
+   "arts": [
+    "86",
+    "tts_152400"
+   ],
+   "canonical": "86",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "四季鲜花之主「风见幽香」",
+   "search": [
+    "86",
+    "四季鲜花之主「风见幽香」",
+    "风见幽香",
+    "四季鲜花之主",
+    "花妈"
+   ]
+  },
+  "87": {
+   "arts": [],
+   "canonical": "87",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "二百由旬之一闪「魂魄妖梦」",
+   "search": [
+    "87",
+    "二百由旬之一闪「魂魄妖梦」",
+    "魂魄妖梦",
+    "二百由旬之一闪"
+   ]
+  },
+  "9": {
+   "arts": [],
+   "canonical": "9",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "祈风之人「东风谷早苗」",
+   "search": [
+    "9",
+    "祈风之人「东风谷早苗」",
+    "东风谷早苗",
+    "祈风之人"
+   ]
+  },
+  "90": {
+   "arts": [],
+   "canonical": "90",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "百鬼夜行「伊吹萃香」",
+   "search": [
+    "90",
+    "百鬼夜行「伊吹萃香」",
+    "伊吹萃香",
+    "百鬼夜行",
+    "西瓜"
+   ]
+  },
+  "91": {
+   "arts": [],
+   "canonical": "91",
+   "colors": [
+    "红",
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "地狱的轮祸「火焰猫燐」",
+   "search": [
+    "91",
+    "地狱的轮祸「火焰猫燐」",
+    "火焰猫燐",
+    "地狱的轮祸",
+    "猫车"
+   ]
+  },
+  "93": {
+   "arts": [
+    "93",
+    "tts_155132"
+   ],
+   "canonical": "93",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "土著神之顶「洩矢诹访子」",
+   "search": [
+    "93",
+    "土著神之顶「洩矢诹访子」",
+    "洩矢诹访子",
+    "土著神之顶",
+    "青蛙"
+   ]
+  },
+  "94": {
+   "arts": [],
+   "canonical": "94",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「秋意ノ溪」",
+   "search": [
+    "94",
+    "「秋意ノ溪」",
+    "",
+    ""
+   ]
+  },
+  "96": {
+   "arts": [],
+   "canonical": "96",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「樱华ノ月」",
+   "search": [
+    "96",
+    "「樱华ノ月」",
+    "",
+    ""
+   ]
+  },
+  "97": {
+   "arts": [],
+   "canonical": "97",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖精ノ嬉游」",
+   "search": [
+    "97",
+    "「妖精ノ嬉游」",
+    "",
+    ""
+   ]
+  },
+  "98": {
+   "arts": [],
+   "canonical": "98",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天狗ノ晴岚」",
+   "search": [
+    "98",
+    "「天狗ノ晴岚」",
+    "",
+    ""
+   ]
+  },
+  "99": {
+   "arts": [
+    "99",
+    "tts_151200"
+   ],
+   "canonical": "99",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "恋符「极限火花」",
+   "search": [
+    "99",
+    "恋符「极限火花」",
+    "",
+    "",
+    "炮"
+   ]
+  },
+  "character-fdf-029": {
+   "arts": [],
+   "canonical": "character-fdf-029",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "川雾的引航人「小野冢小町」",
+   "search": [
+    "character-fdf-029",
+    "川雾的引航人「小野冢小町」",
+    "小野冢小町",
+    "川雾的引航人"
+   ]
+  },
+  "character-fdf-041": {
+   "arts": [],
+   "canonical": "character-fdf-041",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "完美而潇洒的从者「十六夜咲夜」",
+   "search": [
+    "character-fdf-041",
+    "完美而潇洒的从者「十六夜咲夜」",
+    "十六夜咲夜",
+    "完美而潇洒的从者"
+   ]
+  },
+  "character-fdf-046": {
+   "arts": [],
+   "canonical": "character-fdf-046",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "禁止通行「云居一轮&云山」",
+   "search": [
+    "character-fdf-046",
+    "禁止通行「云居一轮&云山」",
+    "云居一轮&云山",
+    "禁止通行"
+   ]
+  },
+  "character-fdf-065": {
+   "arts": [],
+   "canonical": "character-fdf-065",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "污秽的有机怪物「天火人血枪」",
+   "search": [
+    "character-fdf-065",
+    "污秽的有机怪物「天火人血枪」",
+    "天火人血枪",
+    "污秽的有机怪物"
+   ]
+  },
+  "character-fdf-069": {
+   "arts": [],
+   "canonical": "character-fdf-069",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "诵经的山彦「幽谷响子」",
+   "search": [
+    "character-fdf-069",
+    "诵经的山彦「幽谷响子」",
+    "幽谷响子",
+    "诵经的山彦"
+   ]
+  },
+  "character-fdf-070": {
+   "arts": [],
+   "canonical": "character-fdf-070",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
+   "search": [
+    "character-fdf-070",
+    "幻想的冬天之物「蕾蒂·霍瓦特洛克」",
+    "蕾蒂·霍瓦特洛克",
+    "幻想的冬天之物"
+   ]
+  },
+  "character-fdf-090": {
+   "arts": [],
+   "canonical": "character-fdf-090",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "幻胧的月兔「铃仙·优昙华院·因幡」",
+   "search": [
+    "character-fdf-090",
+    "幻胧的月兔「铃仙·优昙华院·因幡」",
+    "铃仙·优昙华院·因幡",
+    "幻胧的月兔",
+    "兔子"
+   ]
+  },
+  "character-fdf-091": {
+   "arts": [],
+   "canonical": "character-fdf-091",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "鲜红的恶魔「蕾米莉亚·斯卡雷特」",
+   "search": [
+    "character-fdf-091",
+    "鲜红的恶魔「蕾米莉亚·斯卡雷特」",
+    "蕾米莉亚·斯卡雷特",
+    "鲜红的恶魔",
+    "雷米"
+   ]
+  },
+  "character-fdf-092": {
+   "arts": [],
+   "canonical": "character-fdf-092",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小小的贤将「纳兹琳」",
+   "search": [
+    "character-fdf-092",
+    "小小的贤将「纳兹琳」",
+    "纳兹琳",
+    "小小的贤将",
+    "老鼠"
+   ]
+  },
+  "character-fdf-093": {
+   "arts": [],
+   "canonical": "character-fdf-093",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "控龙的少女「物部布都」",
+   "search": [
+    "character-fdf-093",
+    "控龙的少女「物部布都」",
+    "物部布都",
+    "控龙的少女"
+   ]
+  },
+  "character-fdf-094": {
+   "arts": [],
+   "canonical": "character-fdf-094",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "深夜食堂店长「米斯蒂娅·萝蕾拉」",
+   "search": [
+    "character-fdf-094",
+    "深夜食堂店长「米斯蒂娅·萝蕾拉」",
+    "米斯蒂娅·萝蕾拉",
+    "深夜食堂店长",
+    "夜雀"
+   ]
+  },
+  "character-fdf-095": {
+   "arts": [],
+   "canonical": "character-fdf-095",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "鲵吞亭的店花「奥野田美宵」",
+   "search": [
+    "character-fdf-095",
+    "鲵吞亭的店花「奥野田美宵」",
+    "奥野田美宵",
+    "鲵吞亭的店花"
+   ]
+  },
+  "character-fdf-098": {
+   "arts": [],
+   "canonical": "character-fdf-098",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "巧言令色的白兔「因幡帝」",
+   "search": [
+    "character-fdf-098",
+    "巧言令色的白兔「因幡帝」",
+    "因幡帝",
+    "巧言令色的白兔",
+    "兔子"
+   ]
+  },
+  "character-fdf-099": {
+   "arts": [],
+   "canonical": "character-fdf-099",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "生意兴隆的吉祥物「豪德寺三花」",
+   "search": [
+    "character-fdf-099",
+    "生意兴隆的吉祥物「豪德寺三花」",
+    "豪德寺三花",
+    "生意兴隆的吉祥物"
+   ]
+  },
+  "character-fdf-100": {
+   "arts": [],
+   "canonical": "character-fdf-100",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "水难事故的化身「村纱水蜜」",
+   "search": [
+    "character-fdf-100",
+    "水难事故的化身「村纱水蜜」",
+    "村纱水蜜",
+    "水难事故的化身",
+    "船长"
+   ]
+  },
+  "character-fdf-101": {
+   "arts": [],
+   "canonical": "character-fdf-101",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雪中的天狗「犬走椛」",
+   "search": [
+    "character-fdf-101",
+    "雪中的天狗「犬走椛」",
+    "犬走椛",
+    "雪中的天狗",
+    "狗花"
+   ]
+  },
+  "character-fdf-102": {
+   "arts": [],
+   "canonical": "character-fdf-102",
+   "colors": [
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "幽冥的剑术家「魂魄妖梦」",
+   "search": [
+    "character-fdf-102",
+    "幽冥的剑术家「魂魄妖梦」",
+    "魂魄妖梦",
+    "幽冥的剑术家"
+   ]
+  },
+  "character-fdf-103": {
+   "arts": [],
+   "canonical": "character-fdf-103",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「胆小的小人士兵」",
+   "search": [
+    "character-fdf-103",
+    "「胆小的小人士兵」",
+    "胆小的小人士兵",
+    ""
+   ]
+  },
+  "character-fdf-104": {
+   "arts": [],
+   "canonical": "character-fdf-104",
+   "colors": [
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "萤火的行踪「莉格露·奈特巴格」",
+   "search": [
+    "character-fdf-104",
+    "萤火的行踪「莉格露·奈特巴格」",
+    "莉格露·奈特巴格",
+    "萤火的行踪"
+   ]
+  },
+  "character-fdf-105": {
+   "arts": [],
+   "canonical": "character-fdf-105",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "无间之钟「姬海棠果」",
+   "search": [
+    "character-fdf-105",
+    "无间之钟「姬海棠果」",
+    "姬海棠果",
+    "无间之钟"
+   ]
+  },
+  "character-fdf-106": {
+   "arts": [],
+   "canonical": "character-fdf-106",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "天才的造型神「埴安神袿姬」",
+   "search": [
+    "character-fdf-106",
+    "天才的造型神「埴安神袿姬」",
+    "埴安神袿姬",
+    "天才的造型神"
+   ]
+  },
+  "character-fdf-109": {
+   "arts": [],
+   "canonical": "character-fdf-109",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "花田的新人「梅蒂欣·梅兰可莉」",
+   "search": [
+    "character-fdf-109",
+    "花田的新人「梅蒂欣·梅兰可莉」",
+    "梅蒂欣·梅兰可莉",
+    "花田的新人"
+   ]
+  },
+  "character-fdf-110": {
+   "arts": [],
+   "canonical": "character-fdf-110",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "华之大江山「星熊勇仪」",
+   "search": [
+    "character-fdf-110",
+    "华之大江山「星熊勇仪」",
+    "星熊勇仪",
+    "华之大江山"
+   ]
+  },
+  "character-fdf-111": {
+   "arts": [],
+   "canonical": "character-fdf-111",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神明后裔的亡灵「苏我屠自古」",
+   "search": [
+    "character-fdf-111",
+    "神明后裔的亡灵「苏我屠自古」",
+    "苏我屠自古",
+    "神明后裔的亡灵"
+   ]
+  },
+  "character-fdf-112": {
+   "arts": [],
+   "canonical": "character-fdf-112",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "布加勒斯特的人偶师「爱丽丝·玛格特罗伊德」",
+   "search": [
+    "character-fdf-112",
+    "布加勒斯特的人偶师「爱丽丝·玛格特罗伊德」",
+    "爱丽丝·玛格特罗伊德",
+    "布加勒斯特的人偶师"
+   ]
+  },
+  "character-fdf-113": {
+   "arts": [],
+   "canonical": "character-fdf-113",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "狂气的地狱妖精「克劳恩皮丝」",
+   "search": [
+    "character-fdf-113",
+    "狂气的地狱妖精「克劳恩皮丝」",
+    "克劳恩皮丝",
+    "狂气的地狱妖精"
+   ]
+  },
+  "character-fdf-114": {
+   "arts": [],
+   "canonical": "character-fdf-114",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "耳边低语的邪恶白狐「菅牧典」",
+   "search": [
+    "character-fdf-114",
+    "耳边低语的邪恶白狐「菅牧典」",
+    "菅牧典",
+    "耳边低语的邪恶白狐"
+   ]
+  },
+  "character-fdf-115": {
+   "arts": [],
+   "canonical": "character-fdf-115",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「自异星而来的物体」",
+   "search": [
+    "character-fdf-115",
+    "「自异星而来的物体」",
+    "自异星而来的物体",
+    "",
+    "不明物体"
+   ]
+  },
+  "character-fdf-116": {
+   "arts": [
+    "character-fdf-116",
+    "tts_150507"
+   ],
+   "canonical": "character-fdf-116",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "月之头脑「八意永琳」",
+   "search": [
+    "character-fdf-116",
+    "月之头脑「八意永琳」",
+    "八意永琳",
+    "月之头脑"
+   ]
+  },
+  "character-fdf-117": {
+   "arts": [],
+   "canonical": "character-fdf-117",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "平安时代的妖怪「封兽鵺」",
+   "search": [
+    "character-fdf-117",
+    "平安时代的妖怪「封兽鵺」",
+    "封兽鵺",
+    "平安时代的妖怪"
+   ]
+  },
+  "character-fdf-119": {
+   "arts": [],
+   "canonical": "character-fdf-119",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "不动的大图书馆「帕秋莉·诺蕾姬」",
+   "search": [
+    "character-fdf-119",
+    "不动的大图书馆「帕秋莉·诺蕾姬」",
+    "帕秋莉·诺蕾姬",
+    "不动的大图书馆"
+   ]
+  },
+  "character-fdf-ex01": {
+   "arts": [],
+   "canonical": "character-fdf-ex01",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "恶魔之妹「芙兰朵露·斯卡蕾特」",
+   "search": [
+    "character-fdf-ex01",
+    "恶魔之妹「芙兰朵露·斯卡蕾特」",
+    "芙兰朵露·斯卡蕾特",
+    "恶魔之妹"
+   ]
+  },
+  "character-fdf-ex02": {
+   "arts": [],
+   "canonical": "character-fdf-ex02",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "神隐的主犯「八云紫」",
+   "search": [
+    "character-fdf-ex02",
+    "神隐的主犯「八云紫」",
+    "八云紫",
+    "神隐的主犯"
+   ]
+  },
+  "character-fdf-ex03": {
+   "arts": [],
+   "canonical": "character-fdf-ex03",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "魔神复诵「圣白莲」",
+   "search": [
+    "character-fdf-ex03",
+    "魔神复诵「圣白莲」",
+    "圣白莲",
+    "魔神复诵"
+   ]
+  },
+  "character-fdf-ex04": {
+   "arts": [],
+   "canonical": "character-fdf-ex04",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "大地的守护神「比那名居天子」",
+   "search": [
+    "character-fdf-ex04",
+    "大地的守护神「比那名居天子」",
+    "比那名居天子",
+    "大地的守护神"
+   ]
+  },
+  "character-fdf-ex05": {
+   "arts": [
+    "character-fdf-ex05",
+    "tts_149415"
+   ],
+   "canonical": "character-fdf-ex05",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "吞噬历史的半兽「上白泽慧音」",
+   "search": [
+    "character-fdf-ex05",
+    "吞噬历史的半兽「上白泽慧音」",
+    "上白泽慧音",
+    "吞噬历史的半兽",
+    "老师"
+   ]
+  },
+  "character-fdn-004": {
+   "arts": [],
+   "canonical": "character-fdn-004",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "战栗的蓬莱人「藤原妹红」",
+   "search": [
+    "character-fdn-004",
+    "战栗的蓬莱人「藤原妹红」",
+    "藤原妹红",
+    "战栗的蓬莱人"
+   ]
+  },
+  "character-fdn-006": {
+   "arts": [],
+   "canonical": "character-fdn-006",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖怪之山的妖精」",
+   "search": [
+    "character-fdn-006",
+    "「妖怪之山的妖精」",
+    "妖怪之山的妖精",
+    ""
+   ]
+  },
+  "character-fdn-007": {
+   "arts": [],
+   "canonical": "character-fdn-007",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "「妖精们的居所」",
+   "search": [
+    "character-fdn-007",
+    "「妖精们的居所」",
+    "妖精们的居所",
+    ""
+   ]
+  },
+  "character-fdn-013": {
+   "arts": [],
+   "canonical": "character-fdn-013",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「魔法之森的妖精」",
+   "search": [
+    "character-fdn-013",
+    "「魔法之森的妖精」",
+    "魔法之森的妖精",
+    ""
+   ]
+  },
+  "character-fdn-014": {
+   "arts": [],
+   "canonical": "character-fdn-014",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「红魔馆的吸血鬼妖精」",
+   "search": [
+    "character-fdn-014",
+    "「红魔馆的吸血鬼妖精」",
+    "红魔馆的吸血鬼妖精",
+    ""
+   ]
+  },
+  "character-fdn-021": {
+   "arts": [],
+   "canonical": "character-fdn-021",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "彼岸的鸡之神「庭渡久侘歌」",
+   "search": [
+    "character-fdn-021",
+    "彼岸的鸡之神「庭渡久侘歌」",
+    "庭渡久侘歌",
+    "彼岸的鸡之神"
+   ]
+  },
+  "character-fdn-024": {
+   "arts": [],
+   "canonical": "character-fdn-024",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「地灵殿的妖精」",
+   "search": [
+    "character-fdn-024",
+    "「地灵殿的妖精」",
+    "地灵殿的妖精",
+    ""
+   ]
+  },
+  "character-fdn-025": {
+   "arts": [],
+   "canonical": "character-fdn-025",
+   "colors": [
+    "红",
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "背德的姐妹「蕾米莉亚&芙兰朵露」",
+   "search": [
+    "character-fdn-025",
+    "背德的姐妹「蕾米莉亚&芙兰朵露」",
+    "蕾米莉亚&芙兰朵露",
+    "背德的姐妹"
+   ]
+  },
+  "character-fdn-026": {
+   "arts": [],
+   "canonical": "character-fdn-026",
+   "colors": [
+    "蓝",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "意识之底「古明地觉&古明地恋」",
+   "search": [
+    "character-fdn-026",
+    "意识之底「古明地觉&古明地恋」",
+    "古明地觉&古明地恋",
+    "意识之底",
+    "小五",
+    "恋恋"
+   ]
+  },
+  "character-fdn-027": {
+   "arts": [],
+   "canonical": "character-fdn-027",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "栖息于淡水的人鱼「若鹭姬」",
+   "search": [
+    "character-fdn-027",
+    "栖息于淡水的人鱼「若鹭姬」",
+    "若鹭姬",
+    "栖息于淡水的人鱼"
+   ]
+  },
+  "character-fdn-034": {
+   "arts": [],
+   "canonical": "character-fdn-034",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "辘轳首的怪奇「赤蛮奇」",
+   "search": [
+    "character-fdn-034",
+    "辘轳首的怪奇「赤蛮奇」",
+    "赤蛮奇",
+    "辘轳首的怪奇"
+   ]
+  },
+  "character-fdn-035": {
+   "arts": [],
+   "canonical": "character-fdn-035",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "沉着冷静的人狼「今泉影狼」",
+   "search": [
+    "character-fdn-035",
+    "沉着冷静的人狼「今泉影狼」",
+    "今泉影狼",
+    "沉着冷静的人狼"
+   ]
+  },
+  "character-fdn-036": {
+   "arts": [],
+   "canonical": "character-fdn-036",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "传统的幻想记者 「射命丸文」",
+   "search": [
+    "character-fdn-036",
+    "传统的幻想记者 「射命丸文」",
+    "射命丸文",
+    "传统的幻想记者"
+   ]
+  },
+  "character-fdn-037": {
+   "arts": [],
+   "canonical": "character-fdn-037",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「要塞的天狗」",
+   "search": [
+    "character-fdn-037",
+    "「要塞的天狗」",
+    "要塞的天狗",
+    ""
+   ]
+  },
+  "character-fdn-038": {
+   "arts": [],
+   "canonical": "character-fdn-038",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「侦察的天狗」",
+   "search": [
+    "character-fdn-038",
+    "「侦察的天狗」",
+    "侦察的天狗",
+    ""
+   ]
+  },
+  "character-fdn-041": {
+   "arts": [],
+   "canonical": "character-fdn-041",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「红魔馆的吸血鬼女仆」",
+   "search": [
+    "character-fdn-041",
+    "「红魔馆的吸血鬼女仆」",
+    "红魔馆的吸血鬼女仆",
+    ""
+   ]
+  },
+  "character-fdn-042": {
+   "arts": [],
+   "canonical": "character-fdn-042",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "难以驾驭的神之火「灵乌路空」",
+   "search": [
+    "character-fdn-042",
+    "难以驾驭的神之火「灵乌路空」",
+    "灵乌路空",
+    "难以驾驭的神之火",
+    "炸弹人"
+   ]
+  },
+  "character-fdn-043": {
+   "arts": [],
+   "canonical": "character-fdn-043",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「富士见之女」",
+   "search": [
+    "character-fdn-043",
+    "「富士见之女」",
+    "富士见之女",
+    "",
+    "uu"
+   ]
+  },
+  "character-fdn-045": {
+   "arts": [],
+   "canonical": "character-fdn-045",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "试作型超巨大人偶「歌莉娅人偶」",
+   "search": [
+    "character-fdn-045",
+    "试作型超巨大人偶「歌莉娅人偶」",
+    "歌莉娅人偶",
+    "试作型超巨大人偶"
+   ]
+  },
+  "character-fdn-048": {
+   "arts": [
+    "character-fdn-048",
+    "character-ucs-067"
+   ],
+   "canonical": "character-fdn-048",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "绯红的霄暗「蕾米莉亚·斯卡雷特」",
+   "search": [
+    "character-fdn-048",
+    "绯红的霄暗「蕾米莉亚·斯卡雷特」",
+    "蕾米莉亚·斯卡雷特",
+    "绯红的霄暗",
+    "雷米"
+   ]
+  },
+  "character-fdn-067": {
+   "arts": [],
+   "canonical": "character-fdn-067",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "连接海与山的月之公主「绵月丰姬」",
+   "search": [
+    "character-fdn-067",
+    "连接海与山的月之公主「绵月丰姬」",
+    "绵月丰姬",
+    "连接海与山的月之公主"
+   ]
+  },
+  "character-fdn-068": {
+   "arts": [],
+   "canonical": "character-fdn-068",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "春的另一面「莉莉黑」",
+   "search": [
+    "character-fdn-068",
+    "春的另一面「莉莉黑」",
+    "莉莉黑",
+    "春的另一面"
+   ]
+  },
+  "character-fdn-071": {
+   "arts": [
+    "character-ucs-068",
+    "character-fdn-071"
+   ],
+   "canonical": "character-ucs-068",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "究极的绝对秘神「摩多罗·隐岐奈」",
+   "search": [
+    "character-fdn-071",
+    "究极的绝对秘神「摩多罗·隐岐奈」",
+    "摩多罗·隐岐奈",
+    "究极的绝对秘神",
+    "究极的绝对秘神「摩多罗隐崎奈」"
+   ]
+  },
+  "character-htk-001": {
+   "arts": [],
+   "canonical": "character-htk-001",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "表情丰富的扑克脸「秦心」",
+   "search": [
+    "character-htk-001",
+    "表情丰富的扑克脸「秦心」",
+    "秦心",
+    "表情丰富的扑克脸"
+   ]
+  },
+  "character-htk-002": {
+   "arts": [],
+   "canonical": "character-htk-002",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "香霖堂的谜之妖怪「朱鹭子」",
+   "search": [
+    "character-htk-002",
+    "香霖堂的谜之妖怪「朱鹭子」",
+    "朱鹭子",
+    "香霖堂的谜之妖怪"
+   ]
+  },
+  "character-htk-005": {
+   "arts": [],
+   "canonical": "character-htk-005",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "使人做梦的妖怪「哆来咪·苏伊特」",
+   "search": [
+    "character-htk-005",
+    "使人做梦的妖怪「哆来咪·苏伊特」",
+    "哆来咪·苏伊特",
+    "使人做梦的妖怪"
+   ]
+  },
+  "character-kmo-001": {
+   "arts": [],
+   "canonical": "character-kmo-001",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "彼岸的渡者「小野冢小町」",
+   "search": [
+    "character-kmo-001",
+    "彼岸的渡者「小野冢小町」",
+    "小野冢小町",
+    "彼岸的渡者"
+   ]
+  },
+  "character-kmo-005": {
+   "arts": [],
+   "canonical": "character-kmo-005",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "竹林中的狼人「今泉影狼」",
+   "search": [
+    "character-kmo-005",
+    "竹林中的狼人「今泉影狼」",
+    "今泉影狼",
+    "竹林中的狼人"
+   ]
+  },
+  "character-lof-001": {
+   "arts": [],
+   "canonical": "character-lof-001",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "活力四射的冰之勇者「琪露诺」",
+   "search": [
+    "character-lof-001",
+    "活力四射的冰之勇者「琪露诺」",
+    "琪露诺",
+    "活力四射的冰之勇者",
+    "9"
+   ]
+  },
+  "character-lof-002": {
+   "arts": [],
+   "canonical": "character-lof-002",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雾之湖公主「大妖精」",
+   "search": [
+    "character-lof-002",
+    "雾之湖公主「大妖精」",
+    "大妖精",
+    "雾之湖公主"
+   ]
+  },
+  "character-lof-003": {
+   "arts": [],
+   "canonical": "character-lof-003",
+   "colors": [
+    "蓝",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "五谷丰穰之神德「东风谷早苗」",
+   "search": [
+    "character-lof-003",
+    "五谷丰穰之神德「东风谷早苗」",
+    "东风谷早苗",
+    "五谷丰穰之神德"
+   ]
+  },
+  "character-lof-004": {
+   "arts": [],
+   "canonical": "character-lof-004",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「花田的妖精」",
+   "search": [
+    "character-lof-004",
+    "「花田的妖精」",
+    "花田的妖精",
+    ""
+   ]
+  },
+  "character-lof-017": {
+   "arts": [],
+   "canonical": "character-lof-017",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "仲夏的妖精「爱塔妮缇拉尔瓦」",
+   "search": [
+    "character-lof-017",
+    "仲夏的妖精「爱塔妮缇拉尔瓦」",
+    "爱塔妮缇拉尔瓦",
+    "仲夏的妖精"
+   ]
+  },
+  "character-mar-020": {
+   "arts": [],
+   "canonical": "character-mar-020",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "实验中的魔女「雾雨魔理沙」",
+   "search": [
+    "character-mar-020",
+    "实验中的魔女「雾雨魔理沙」",
+    "雾雨魔理沙",
+    "实验中的魔女"
+   ]
+  },
+  "character-mar-021": {
+   "arts": [],
+   "canonical": "character-mar-021",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "知识与避世的少女「帕秋莉·诺蕾姬」",
+   "search": [
+    "character-mar-021",
+    "知识与避世的少女「帕秋莉·诺蕾姬」",
+    "帕秋莉·诺蕾姬",
+    "知识与避世的少女"
+   ]
+  },
+  "character-mar-022": {
+   "arts": [],
+   "canonical": "character-mar-022",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "月之都的射手「清兰」",
+   "search": [
+    "character-mar-022",
+    "月之都的射手「清兰」",
+    "清兰",
+    "月之都的射手"
+   ]
+  },
+  "character-mar-023": {
+   "arts": [],
+   "canonical": "character-mar-023",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "勤奋的图书管理员「小恶魔」",
+   "search": [
+    "character-mar-023",
+    "勤奋的图书管理员「小恶魔」",
+    "小恶魔",
+    "勤奋的图书管理员"
+   ]
+  },
+  "character-mar-024": {
+   "arts": [
+    "character-mar-024",
+    "tts_149234"
+   ],
+   "canonical": "character-mar-024",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "美丽的绯之衣「永江衣玖」",
+   "search": [
+    "character-mar-024",
+    "美丽的绯之衣「永江衣玖」",
+    "永江衣玖",
+    "美丽的绯之衣"
+   ]
+  },
+  "character-mar-025": {
+   "arts": [],
+   "canonical": "character-mar-025",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "无名的读书妖怪「朱鹭子」",
+   "search": [
+    "character-mar-025",
+    "无名的读书妖怪「朱鹭子」",
+    "朱鹭子",
+    "无名的读书妖怪"
+   ]
+  },
+  "character-mar-ex": {
+   "arts": [],
+   "canonical": "character-mar-ex",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "胆大心细的魔法使「雾雨魔理沙」",
+   "search": [
+    "character-mar-ex",
+    "胆大心细的魔法使「雾雨魔理沙」",
+    "雾雨魔理沙",
+    "胆大心细的魔法使"
+   ]
+  },
+  "character-mar-ex01": {
+   "arts": [
+    "character-mar-ex01",
+    "tts_154917"
+   ],
+   "canonical": "character-mar-ex01",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "七曜魔法使「帕秋莉·诺蕾姬」",
+   "search": [
+    "character-mar-ex01",
+    "七曜魔法使「帕秋莉·诺蕾姬」",
+    "帕秋莉·诺蕾姬",
+    "七曜魔法使"
+   ]
+  },
+  "character-rec-096": {
+   "arts": [],
+   "canonical": "character-rec-096",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幸运的白兔「因幡帝」",
+   "search": [
+    "character-rec-096",
+    "幸运的白兔「因幡帝」",
+    "因幡帝",
+    "幸运的白兔",
+    "兔子"
+   ]
+  },
+  "character-rec-104": {
+   "arts": [],
+   "canonical": "character-rec-104",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "识文解意的爱书「本居小铃」",
+   "search": [
+    "character-rec-104",
+    "识文解意的爱书「本居小铃」",
+    "本居小铃",
+    "识文解意的爱书"
+   ]
+  },
+  "character-rei-001": {
+   "arts": [],
+   "canonical": "character-rei-001",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "大结界的巫女「博丽灵梦」",
+   "search": [
+    "character-rei-001",
+    "大结界的巫女「博丽灵梦」",
+    "博丽灵梦",
+    "大结界的巫女"
+   ]
+  },
+  "character-rei-007": {
+   "arts": [],
+   "canonical": "character-rei-007",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「山童探险家」",
+   "search": [
+    "character-rei-007",
+    "「山童探险家」",
+    "山童探险家",
+    ""
+   ]
+  },
+  "character-rei-017": {
+   "arts": [],
+   "canonical": "character-rei-017",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小径的红叶巫女「博丽灵梦」",
+   "search": [
+    "character-rei-017",
+    "小径的红叶巫女「博丽灵梦」",
+    "博丽灵梦",
+    "小径的红叶巫女"
+   ]
+  },
+  "character-rei-022": {
+   "arts": [
+    "character-rei-022",
+    "tts_149239",
+    "tts_151400",
+    "tts_154000"
+   ],
+   "canonical": "character-rei-022",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "毗沙门天「寅丸星」",
+   "search": [
+    "character-rei-022",
+    "毗沙门天「寅丸星」",
+    "寅丸星",
+    "毗沙门天",
+    "老虎"
+   ]
+  },
+  "character-rei-023": {
+   "arts": [],
+   "canonical": "character-rei-023",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "丰收之秋「秋穰子」",
+   "search": [
+    "character-rei-023",
+    "丰收之秋「秋穰子」",
+    "秋穰子",
+    "丰收之秋"
+   ]
+  },
+  "character-rei-026": {
+   "arts": [
+    "character-rei-026",
+    "character-smm07"
+   ],
+   "canonical": "character-rei-026",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "祭祀风之人「东风谷早苗」",
+   "search": [
+    "character-rei-026",
+    "祭祀风之人「东风谷早苗」",
+    "东风谷早苗",
+    "祭祀风之人"
+   ]
+  },
+  "character-rei-ex01": {
+   "arts": [
+    "character-rei-ex01",
+    "tts_154614"
+   ],
+   "canonical": "character-rei-ex01",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "夏的妖精「爱塔妮缇拉尔瓦」",
+   "search": [
+    "character-rei-ex01",
+    "夏的妖精「爱塔妮缇拉尔瓦」",
+    "爱塔妮缇拉尔瓦",
+    "夏的妖精"
+   ]
+  },
+  "character-smm01": {
+   "arts": [],
+   "canonical": "character-smm01",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "小人的后裔「少名针妙丸」",
+   "search": [
+    "character-smm01",
+    "小人的后裔「少名针妙丸」",
+    "少名针妙丸",
+    "小人的后裔"
+   ]
+  },
+  "character-smm05": {
+   "arts": [],
+   "canonical": "character-smm05",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小人的公主「少名针妙丸」",
+   "search": [
+    "character-smm05",
+    "小人的公主「少名针妙丸」",
+    "少名针妙丸",
+    "小人的公主"
+   ]
+  },
+  "character-smm07": {
+   "arts": [
+    "character-rei-026",
+    "character-smm07"
+   ],
+   "canonical": "character-rei-026",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "祭祀风之人「东风谷早苗」",
+   "search": [
+    "character-smm07",
+    "祭祀风之人「东风谷早苗」",
+    "东风谷早苗",
+    "祭祀风之人"
+   ]
+  },
+  "character-soi-006": {
+   "arts": [],
+   "canonical": "character-soi-006",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "运送春天的妖精「莉莉白」",
+   "search": [
+    "character-soi-006",
+    "运送春天的妖精「莉莉白」",
+    "莉莉白",
+    "运送春天的妖精"
+   ]
+  },
+  "character-soi-018": {
+   "arts": [
+    "character-soi-018",
+    "tts_150800",
+    "tts_154908"
+   ],
+   "canonical": "character-soi-018",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "阳花的妖怪「风见幽香」",
+   "search": [
+    "character-soi-018",
+    "阳花的妖怪「风见幽香」",
+    "风见幽香",
+    "阳花的妖怪",
+    "花妈"
+   ]
+  },
+  "character-ucs-003": {
+   "arts": [],
+   "canonical": "character-ucs-003",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "繁星的引导者「饭纲丸龙」",
+   "search": [
+    "character-ucs-003",
+    "繁星的引导者「饭纲丸龙」",
+    "饭纲丸龙",
+    "繁星的引导者"
+   ]
+  },
+  "character-ucs-007": {
+   "arts": [],
+   "canonical": "character-ucs-007",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "高地的山女「驹草山如」",
+   "search": [
+    "character-ucs-007",
+    "高地的山女「驹草山如」",
+    "驹草山如",
+    "高地的山女"
+   ]
+  },
+  "character-ucs-010": {
+   "arts": [],
+   "canonical": "character-ucs-010",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "洞窟之网「黑谷山女」",
+   "search": [
+    "character-ucs-010",
+    "洞窟之网「黑谷山女」",
+    "黑谷山女",
+    "洞窟之网"
+   ]
+  },
+  "character-ucs-016": {
+   "arts": [],
+   "canonical": "character-ucs-016",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "腹黑的人鱼公主「若鹭姬」",
+   "search": [
+    "character-ucs-016",
+    "腹黑的人鱼公主「若鹭姬」",
+    "若鹭姬",
+    "腹黑的人鱼公主"
+   ]
+  },
+  "character-ucs-020": {
+   "arts": [],
+   "canonical": "character-ucs-020",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "少女秘封俱乐部「宇佐见莲子」",
+   "search": [
+    "character-ucs-020",
+    "少女秘封俱乐部「宇佐见莲子」",
+    "宇佐见莲子",
+    "少女秘封俱乐部",
+    "密封"
+   ]
+  },
+  "character-ucs-021": {
+   "arts": [],
+   "canonical": "character-ucs-021",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "少女秘封俱乐部「玛艾露贝莉·赫恩」",
+   "search": [
+    "character-ucs-021",
+    "少女秘封俱乐部「玛艾露贝莉·赫恩」",
+    "玛艾露贝莉·赫恩",
+    "少女秘封俱乐部",
+    "密封"
+   ]
+  },
+  "character-ucs-023": {
+   "arts": [],
+   "canonical": "character-ucs-023",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "柳树下的首级「赤蛮奇」",
+   "search": [
+    "character-ucs-023",
+    "柳树下的首级「赤蛮奇」",
+    "赤蛮奇",
+    "柳树下的首级"
+   ]
+  },
+  "character-ucs-025": {
+   "arts": [],
+   "canonical": "character-ucs-025",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「诹访子与赤口大人」",
+   "search": [
+    "character-ucs-025",
+    "「诹访子与赤口大人」",
+    "诹访子与赤口大人",
+    "",
+    "青蛙"
+   ]
+  },
+  "character-ucs-032": {
+   "arts": [
+    "character-ucs-032",
+    "tts_155142"
+   ],
+   "canonical": "character-ucs-032",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小夜岚的女仆「十六夜咲夜」",
+   "search": [
+    "character-ucs-032",
+    "小夜岚的女仆「十六夜咲夜」",
+    "十六夜咲夜",
+    "小夜岚的女仆"
+   ]
+  },
+  "character-ucs-034": {
+   "arts": [],
+   "canonical": "character-ucs-034",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "空想人格的保持者「古明地恋」",
+   "search": [
+    "character-ucs-034",
+    "空想人格的保持者「古明地恋」",
+    "古明地恋",
+    "空想人格的保持者",
+    "恋恋"
+   ]
+  },
+  "character-ucs-036": {
+   "arts": [],
+   "canonical": "character-ucs-036",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "孤影悄然的妖怪「古明地觉」",
+   "search": [
+    "character-ucs-036",
+    "孤影悄然的妖怪「古明地觉」",
+    "古明地觉",
+    "孤影悄然的妖怪",
+    "小五"
+   ]
+  },
+  "character-ucs-038": {
+   "arts": [
+    "character-ucs-038",
+    "tts_155125"
+   ],
+   "canonical": "character-ucs-038",
+   "colors": [
+    "红",
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "旧地狱的宠物妖怪「火焰猫燐」",
+   "search": [
+    "character-ucs-038",
+    "旧地狱的宠物妖怪「火焰猫燐」",
+    "火焰猫燐",
+    "旧地狱的宠物妖怪",
+    "猫车",
+    "小猫车"
+   ]
+  },
+  "character-ucs-042": {
+   "arts": [],
+   "canonical": "character-ucs-042",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "绿眼的无间妒嫉「水桥帕露西」",
+   "search": [
+    "character-ucs-042",
+    "绿眼的无间妒嫉「水桥帕露西」",
+    "水桥帕露西",
+    "绿眼的无间妒嫉"
+   ]
+  },
+  "character-ucs-044": {
+   "arts": [],
+   "canonical": "character-ucs-044",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "深山的妖怪「山城高岭」",
+   "search": [
+    "character-ucs-044",
+    "深山的妖怪「山城高岭」",
+    "山城高岭",
+    "深山的妖怪"
+   ]
+  },
+  "character-ucs-046": {
+   "arts": [],
+   "canonical": "character-ucs-046",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "水中的迷彩「河城荷取」",
+   "search": [
+    "character-ucs-046",
+    "水中的迷彩「河城荷取」",
+    "河城荷取",
+    "水中的迷彩"
+   ]
+  },
+  "character-ucs-048": {
+   "arts": [],
+   "canonical": "character-ucs-048",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「法兰西人偶」",
+   "search": [
+    "character-ucs-048",
+    "「法兰西人偶」",
+    "法兰西人偶",
+    ""
+   ]
+  },
+  "character-ucs-053": {
+   "arts": [],
+   "canonical": "character-ucs-053",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻想的策士「八云蓝」",
+   "search": [
+    "character-ucs-053",
+    "幻想的策士「八云蓝」",
+    "八云蓝",
+    "幻想的策士"
+   ]
+  },
+  "character-ucs-056": {
+   "arts": [],
+   "canonical": "character-ucs-056",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "妖怪之山的哨戒「犬走椛」",
+   "search": [
+    "character-ucs-056",
+    "妖怪之山的哨戒「犬走椛」",
+    "犬走椛",
+    "妖怪之山的哨戒",
+    "狗花"
+   ]
+  },
+  "character-ucs-058": {
+   "arts": [],
+   "canonical": "character-ucs-058",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "地狱的口岸神「庭渡久诧歌」",
+   "search": [
+    "character-ucs-058",
+    "地狱的口岸神「庭渡久诧歌」",
+    "庭渡久诧歌",
+    "地狱的口岸神",
+    "鸡"
+   ]
+  },
+  "character-ucs-060": {
+   "arts": [],
+   "canonical": "character-ucs-060",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "鬼神仙人「茨木华扇」",
+   "search": [
+    "character-ucs-060",
+    "鬼神仙人「茨木华扇」",
+    "茨木华扇",
+    "鬼神仙人"
+   ]
+  },
+  "character-ucs-061": {
+   "arts": [],
+   "canonical": "character-ucs-061",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "天地上等「比那名居天子」",
+   "search": [
+    "character-ucs-061",
+    "天地上等「比那名居天子」",
+    "比那名居天子",
+    "天地上等"
+   ]
+  },
+  "character-ucs-063": {
+   "arts": [],
+   "canonical": "character-ucs-063",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「灵」",
+   "search": [
+    "character-ucs-063",
+    "「灵」",
+    "灵",
+    ""
+   ]
+  },
+  "character-ucs-065": {
+   "arts": [],
+   "canonical": "character-ucs-065",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "逆袭的天邪鬼「鬼人正邪」",
+   "search": [
+    "character-ucs-065",
+    "逆袭的天邪鬼「鬼人正邪」",
+    "鬼人正邪",
+    "逆袭的天邪鬼"
+   ]
+  },
+  "character-ucs-066": {
+   "arts": [],
+   "canonical": "character-ucs-066",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "畜生界的藏匿者「吉吊八千慧」",
+   "search": [
+    "character-ucs-066",
+    "畜生界的藏匿者「吉吊八千慧」",
+    "吉吊八千慧",
+    "畜生界的藏匿者"
+   ]
+  },
+  "character-ucs-067": {
+   "arts": [
+    "character-fdn-048",
+    "character-ucs-067"
+   ],
+   "canonical": "character-fdn-048",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "绯红的宵暗「蕾米莉亚·斯卡蕾特」",
+   "search": [
+    "character-ucs-067",
+    "绯红的宵暗「蕾米莉亚·斯卡蕾特」",
+    "蕾米莉亚·斯卡蕾特",
+    "绯红的宵暗"
+   ]
+  },
+  "character-ucs-068": {
+   "arts": [
+    "character-ucs-068",
+    "character-fdn-071"
+   ],
+   "canonical": "character-ucs-068",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "究极的绝对秘神「摩多罗·隐岐奈」",
+   "search": [
+    "character-ucs-068",
+    "究极的绝对秘神「摩多罗·隐岐奈」",
+    "摩多罗·隐岐奈",
+    "究极的绝对秘神"
+   ]
+  },
+  "character-ucs-069": {
+   "arts": [],
+   "canonical": "character-ucs-069",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "星降之处的道士「丰聪耳神子」",
+   "search": [
+    "character-ucs-069",
+    "星降之处的道士「丰聪耳神子」",
+    "丰聪耳神子",
+    "星降之处的道士"
+   ]
+  },
+  "character-ucs-071": {
+   "arts": [
+    "character-ucs-071",
+    "tts_155158"
+   ],
+   "canonical": "character-ucs-071",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "惊天动地的唐伞妖怪「多多良小伞」",
+   "search": [
+    "character-ucs-071",
+    "惊天动地的唐伞妖怪「多多良小伞」",
+    "多多良小伞",
+    "惊天动地的唐伞妖怪"
+   ]
+  },
+  "character-ucs-072": {
+   "arts": [],
+   "canonical": "character-ucs-072",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "山坂与湖水的化身「八坂神奈子」",
+   "search": [
+    "character-ucs-072",
+    "山坂与湖水的化身「八坂神奈子」",
+    "八坂神奈子",
+    "山坂与湖水的化身",
+    "神妈"
+   ]
+  },
+  "character-ucs-073": {
+   "arts": [],
+   "canonical": "character-ucs-073",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "剧毒的死体「宫古芳香」",
+   "search": [
+    "character-ucs-073",
+    "剧毒的死体「宫古芳香」",
+    "宫古芳香",
+    "剧毒的死体",
+    "僵尸"
+   ]
+  },
+  "field-fdf-089": {
+   "arts": [],
+   "canonical": "field-fdf-089",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "再思ノ道",
+   "search": [
+    "field-fdf-089",
+    "再思ノ道",
+    "",
+    ""
+   ]
+  },
+  "field-fdf-107": {
+   "arts": [],
+   "canonical": "field-fdf-107",
+   "colors": [
+    "红",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "守矢神社",
+   "search": [
+    "field-fdf-107",
+    "守矢神社",
+    "",
+    ""
+   ]
+  },
+  "field-fdf-108": {
+   "arts": [
+    "field-fdf-108",
+    "tts_152033"
+   ],
+   "canonical": "field-fdf-108",
+   "colors": [
+    "蓝",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "旧都",
+   "search": [
+    "field-fdf-108",
+    "旧都",
+    "",
+    ""
+   ]
+  },
+  "field-fdn-016": {
+   "arts": [],
+   "canonical": "field-fdn-016",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「祈雨ノ阵」",
+   "search": [
+    "field-fdn-016",
+    "「祈雨ノ阵」",
+    "",
+    ""
+   ]
+  },
+  "field-mar-006": {
+   "arts": [],
+   "canonical": "field-mar-006",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雾雨魔法店",
+   "search": [
+    "field-mar-006",
+    "雾雨魔法店",
+    "",
+    ""
+   ]
+  },
+  "field-rei-003": {
+   "arts": [],
+   "canonical": "field-rei-003",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "警醒阵",
+   "search": [
+    "field-rei-003",
+    "警醒阵",
+    "",
+    ""
+   ]
+  },
+  "field-rei-004": {
+   "arts": [],
+   "canonical": "field-rei-004",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "常置阵",
+   "search": [
+    "field-rei-004",
+    "常置阵",
+    "",
+    ""
+   ]
+  },
+  "field-rei-005": {
+   "arts": [],
+   "canonical": "field-rei-005",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "系缚阵",
+   "search": [
+    "field-rei-005",
+    "系缚阵",
+    "",
+    ""
+   ]
+  },
+  "field-rei-013": {
+   "arts": [
+    "field-smm-004",
+    "field-rei-013"
+   ],
+   "canonical": "field-smm-004",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "辉光ノ城",
+   "search": [
+    "field-rei-013",
+    "辉光ノ城",
+    "",
+    ""
+   ]
+  },
+  "field-smm-004": {
+   "arts": [
+    "field-smm-004",
+    "field-rei-013"
+   ],
+   "canonical": "field-smm-004",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "辉光之城",
+   "search": [
+    "field-smm-004",
+    "辉光之城",
+    "",
+    "",
+    "辉光ノ城"
+   ]
+  },
+  "field-ucs-064": {
+   "arts": [],
+   "canonical": "field-ucs-064",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "白玉ノ阶梯",
+   "search": [
+    "field-ucs-064",
+    "白玉ノ阶梯",
+    "",
+    ""
+   ]
+  },
+  "item-fdf-096": {
+   "arts": [],
+   "canonical": "item-fdf-096",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「蓬莱的玉枝」",
+   "search": [
+    "item-fdf-096",
+    "「蓬莱的玉枝」",
+    "",
+    ""
+   ]
+  },
+  "item-fdf-097": {
+   "arts": [],
+   "canonical": "item-fdf-097",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「月兔制造机」",
+   "search": [
+    "item-fdf-097",
+    "「月兔制造机」",
+    "",
+    ""
+   ]
+  },
+  "item-fdn-044": {
+   "arts": [],
+   "canonical": "item-fdn-044",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「因幡帝的幸运萝卜」",
+   "search": [
+    "item-fdn-044",
+    "「因幡帝的幸运萝卜」",
+    "",
+    "",
+    "兔子"
+   ]
+  },
+  "item-htk-008": {
+   "arts": [],
+   "canonical": "item-htk-008",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「香霖堂的谜之书籍」",
+   "search": [
+    "item-htk-008",
+    "「香霖堂的谜之书籍」",
+    "",
+    ""
+   ]
+  },
+  "item-lof-009": {
+   "arts": [],
+   "canonical": "item-lof-009",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖精公主的信物」",
+   "search": [
+    "item-lof-009",
+    "「妖精公主的信物」",
+    "",
+    ""
+   ]
+  },
+  "item-mar-017": {
+   "arts": [],
+   "canonical": "item-mar-017",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「八卦炉」",
+   "search": [
+    "item-mar-017",
+    "「八卦炉」",
+    "",
+    ""
+   ]
+  },
+  "item-ucs-005": {
+   "arts": [],
+   "canonical": "item-ucs-005",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幽香的阳伞」",
+   "search": [
+    "item-ucs-005",
+    "「幽香的阳伞」",
+    "",
+    ""
+   ]
+  },
+  "item-ucs-012": {
+   "arts": [],
+   "canonical": "item-ucs-012",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「河童背包」",
+   "search": [
+    "item-ucs-012",
+    "「河童背包」",
+    "",
+    ""
+   ]
+  },
+  "item-ucs-013": {
+   "arts": [],
+   "canonical": "item-ucs-013",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「风祝的头饰」",
+   "search": [
+    "item-ucs-013",
+    "「风祝的头饰」",
+    "",
+    ""
+   ]
+  },
+  "item-ucs-017": {
+   "arts": [],
+   "canonical": "item-ucs-017",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「死神的大镰」",
+   "search": [
+    "item-ucs-017",
+    "「死神的大镰」",
+    "",
+    ""
+   ]
+  },
+  "new-eto-001": {
+   "arts": [],
+   "canonical": "new-eto-001",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "秘封俱乐部初代会长「宇佐见堇子」",
+   "search": [
+    "new-eto-001",
+    "秘封俱乐部初代会长「宇佐见堇子」",
+    "宇佐见堇子",
+    "秘封俱乐部初代会长"
+   ]
+  },
+  "new-eto-002": {
+   "arts": [],
+   "canonical": "new-eto-002",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "二重身「宇佐见堇子」",
+   "search": [
+    "new-eto-002",
+    "二重身「宇佐见堇子」",
+    "宇佐见堇子",
+    "二重身"
+   ]
+  },
+  "new-eto-003": {
+   "arts": [],
+   "canonical": "new-eto-003",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "命定的重逢「莲子」&「梅莉」",
+   "search": [
+    "new-eto-003",
+    "命定的重逢「莲子」&「梅莉」",
+    "莲子＆梅莉",
+    "命定的重逢",
+    "密封"
+   ]
+  },
+  "new-eto-004": {
+   "arts": [],
+   "canonical": "new-eto-004",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "枪符「3D Printer Gun」",
+   "search": [
+    "new-eto-004",
+    "枪符「3D Printer Gun」",
+    "",
+    ""
+   ]
+  },
+  "new-eto-005": {
+   "arts": [],
+   "canonical": "new-eto-005",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「假面丧心舞 暗黑能乐」",
+   "search": [
+    "new-eto-005",
+    "「假面丧心舞 暗黑能乐」",
+    "",
+    ""
+   ]
+  },
+  "new-eto-006": {
+   "arts": [],
+   "canonical": "new-eto-006",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "念力「Psychokinesis APP」",
+   "search": [
+    "new-eto-006",
+    "念力「Psychokinesis APP」",
+    "",
+    ""
+   ]
+  },
+  "new-eto-007": {
+   "arts": [],
+   "canonical": "new-eto-007",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「卯酉东海道」",
+   "search": [
+    "new-eto-007",
+    "「卯酉东海道」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-008": {
+   "arts": [],
+   "canonical": "new-eto-008",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「最澄澈的空与海」",
+   "search": [
+    "new-eto-008",
+    "「最澄澈的空与海」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-009": {
+   "arts": [],
+   "canonical": "new-eto-009",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「莲台野夜行」",
+   "search": [
+    "new-eto-009",
+    "「莲台野夜行」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-010": {
+   "arts": [],
+   "canonical": "new-eto-010",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「月之妖鸟。化猫之幻」",
+   "search": [
+    "new-eto-010",
+    "「月之妖鸟。化猫之幻」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-011": {
+   "arts": [],
+   "canonical": "new-eto-011",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「梦违科学世纪」",
+   "search": [
+    "new-eto-011",
+    "「梦违科学世纪」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-012": {
+   "arts": [],
+   "canonical": "new-eto-012",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「童祭」",
+   "search": [
+    "new-eto-012",
+    "「童祭」",
+    "",
+    "",
+    "密封符卡"
+   ]
+  },
+  "new-eto-s001": {
+   "arts": [],
+   "canonical": "new-eto-s001",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「灵异珠」",
+   "search": [
+    "new-eto-s001",
+    "「灵异珠」",
+    "",
+    ""
+   ]
+  },
+  "new-loc-001": {
+   "arts": [],
+   "canonical": "new-loc-001",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "终局的冰之勇者「琪露诺」",
+   "search": [
+    "new-loc-001",
+    "终局的冰之勇者「琪露诺」",
+    "琪露诺",
+    "终局的冰之勇者",
+    "9"
+   ]
+  },
+  "new-loc-002": {
+   "arts": [],
+   "canonical": "new-loc-002",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冷符「瞬间急冻光线」",
+   "search": [
+    "new-loc-002",
+    "冷符「瞬间急冻光线」",
+    "",
+    ""
+   ]
+  },
+  "new-loc-003": {
+   "arts": [],
+   "canonical": "new-loc-003",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雪符「Diamond Blizzard」",
+   "search": [
+    "new-loc-003",
+    "雪符「Diamond Blizzard」",
+    "",
+    ""
+   ]
+  },
+  "new-loc-004": {
+   "arts": [],
+   "canonical": "new-loc-004",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「鹿射」",
+   "search": [
+    "new-loc-004",
+    "「鹿射」",
+    "",
+    ""
+   ]
+  },
+  "new-loc-005": {
+   "arts": [],
+   "canonical": "new-loc-005",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神社山道",
+   "search": [
+    "new-loc-005",
+    "神社山道",
+    "",
+    ""
+   ]
+  },
+  "new-spx-001": {
+   "arts": [],
+   "canonical": "new-spx-001",
+   "colors": [
+    "红",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "萃集梦乡「伊吹萃香」",
+   "search": [
+    "new-spx-001",
+    "萃集梦乡「伊吹萃香」",
+    "伊吹萃香",
+    "萃集梦乡",
+    "西瓜"
+   ]
+  },
+  "new-spx-002": {
+   "arts": [],
+   "canonical": "new-spx-002",
+   "colors": [
+    "红",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「伊吹瓢」",
+   "search": [
+    "new-spx-002",
+    "「伊吹瓢」",
+    "",
+    ""
+   ]
+  },
+  "new-spx-003": {
+   "arts": [],
+   "canonical": "new-spx-003",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "昨日的神明「洩矢诹访子」",
+   "search": [
+    "new-spx-003",
+    "昨日的神明「洩矢诹访子」",
+    "洩矢诹访子",
+    "昨日的神明",
+    "青蛙"
+   ]
+  },
+  "new-spx-004": {
+   "arts": [],
+   "canonical": "new-spx-004",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "土著神「宝永四年ノ赤蛙」",
+   "search": [
+    "new-spx-004",
+    "土著神「宝永四年ノ赤蛙」",
+    "",
+    ""
+   ]
+  },
+  "new-spx-005": {
+   "arts": [],
+   "canonical": "new-spx-005",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "境界的妖怪「八云紫」",
+   "search": [
+    "new-spx-005",
+    "境界的妖怪「八云紫」",
+    "八云紫",
+    "境界的妖怪"
+   ]
+  },
+  "new-spx-006": {
+   "arts": [],
+   "canonical": "new-spx-006",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "废线「废弃车站下车ノ旅」",
+   "search": [
+    "new-spx-006",
+    "废线「废弃车站下车ノ旅」",
+    "",
+    ""
+   ]
+  },
+  "new-spx-007": {
+   "arts": [],
+   "canonical": "new-spx-007",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「废弃列车车厢」",
+   "search": [
+    "new-spx-007",
+    "「废弃列车车厢」",
+    "",
+    ""
+   ]
+  },
+  "rec_unit_097": {
+   "arts": [
+    "21",
+    "rec_unit_097"
+   ],
+   "canonical": "21",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "蓬莱的人之形「藤原妹红」",
+   "search": [
+    "rec_unit_097",
+    "蓬莱的人之形「藤原妹红」",
+    "藤原妹红",
+    "蓬莱的人之形"
+   ]
+  },
+  "soi_unit_004": {
+   "arts": [
+    "soi_unit_004",
+    "tts_149231"
+   ],
+   "canonical": "soi_unit_004",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「狼女」",
+   "search": [
+    "soi_unit_004",
+    "「狼女」",
+    "狼女",
+    ""
+   ]
+  },
+  "soi_unit_086": {
+   "arts": [],
+   "canonical": "soi_unit_086",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "未确认幻想飞行物「封兽ぬえ」",
+   "search": [
+    "soi_unit_086",
+    "未确认幻想飞行物「封兽ぬえ」",
+    "封兽ぬえ",
+    "未确认幻想飞行物"
+   ]
+  },
+  "spell-fdf-001": {
+   "arts": [],
+   "canonical": "spell-fdf-001",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "道符「掌上の天道」",
+   "search": [
+    "spell-fdf-001",
+    "道符「掌上の天道」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-002": {
+   "arts": [],
+   "canonical": "spell-fdf-002",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "名誉「十二阶の色彩」",
+   "search": [
+    "spell-fdf-002",
+    "名誉「十二阶の色彩」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-003": {
+   "arts": [],
+   "canonical": "spell-fdf-003",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「逸脱者ノ光」",
+   "search": [
+    "spell-fdf-003",
+    "「逸脱者ノ光」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-005": {
+   "arts": [],
+   "canonical": "spell-fdf-005",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「夏」",
+   "search": [
+    "spell-fdf-005",
+    "「夏」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-006": {
+   "arts": [],
+   "canonical": "spell-fdf-006",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "死灵「死ノ妖精」",
+   "search": [
+    "spell-fdf-006",
+    "死灵「死ノ妖精」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-007": {
+   "arts": [],
+   "canonical": "spell-fdf-007",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神技「八方鬼缚阵」",
+   "search": [
+    "spell-fdf-007",
+    "神技「八方鬼缚阵」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-008": {
+   "arts": [],
+   "canonical": "spell-fdf-008",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "魔炮「Final Master Spark」",
+   "search": [
+    "spell-fdf-008",
+    "魔炮「Final Master Spark」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-009": {
+   "arts": [],
+   "canonical": "spell-fdf-009",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "新史「新幻想史-现代史-」",
+   "search": [
+    "spell-fdf-009",
+    "新史「新幻想史-现代史-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-010": {
+   "arts": [],
+   "canonical": "spell-fdf-010",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "虚史「幻想乡传说」",
+   "search": [
+    "spell-fdf-010",
+    "虚史「幻想乡传说」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-011": {
+   "arts": [],
+   "canonical": "spell-fdf-011",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "梦符「二重结界」",
+   "search": [
+    "spell-fdf-011",
+    "梦符「二重结界」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-012": {
+   "arts": [],
+   "canonical": "spell-fdf-012",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "猫符「Cat’s Walk」",
+   "search": [
+    "spell-fdf-012",
+    "猫符「Cat’s Walk」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-013": {
+   "arts": [],
+   "canonical": "spell-fdf-013",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "要石「天空ノ灵石」",
+   "search": [
+    "spell-fdf-013",
+    "要石「天空ノ灵石」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-014": {
+   "arts": [],
+   "canonical": "spell-fdf-014",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "结界「梦境与现实ノ诅咒」",
+   "search": [
+    "spell-fdf-014",
+    "结界「梦境与现实ノ诅咒」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-015": {
+   "arts": [],
+   "canonical": "spell-fdf-015",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神符「天人ノ系谱」",
+   "search": [
+    "spell-fdf-015",
+    "神符「天人ノ系谱」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-016": {
+   "arts": [],
+   "canonical": "spell-fdf-016",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "换命「不惜身命，可惜身命」",
+   "search": [
+    "spell-fdf-016",
+    "换命「不惜身命，可惜身命」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-017": {
+   "arts": [],
+   "canonical": "spell-fdf-017",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "女仆秘技「杀人玩偶」",
+   "search": [
+    "spell-fdf-017",
+    "女仆秘技「杀人玩偶」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-018": {
+   "arts": [],
+   "canonical": "spell-fdf-018",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "反应「妖怪测谎仪」",
+   "search": [
+    "spell-fdf-018",
+    "反应「妖怪测谎仪」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-019": {
+   "arts": [],
+   "canonical": "spell-fdf-019",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "星符「Escape Velocity」",
+   "search": [
+    "spell-fdf-019",
+    "星符「Escape Velocity」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-021": {
+   "arts": [],
+   "canonical": "spell-fdf-021",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "表象「弹幕偏执狂」",
+   "search": [
+    "spell-fdf-021",
+    "表象「弹幕偏执狂」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-022": {
+   "arts": [],
+   "canonical": "spell-fdf-022",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "深层「无意识ノ基因」",
+   "search": [
+    "spell-fdf-022",
+    "深层「无意识ノ基因」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-023": {
+   "arts": [],
+   "canonical": "spell-fdf-023",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "星符「Meteonic Shower」",
+   "search": [
+    "spell-fdf-023",
+    "星符「Meteonic Shower」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-024": {
+   "arts": [],
+   "canonical": "spell-fdf-024",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "月符「静寂ノ月神」",
+   "search": [
+    "spell-fdf-024",
+    "月符「静寂ノ月神」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-025": {
+   "arts": [],
+   "canonical": "spell-fdf-025",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "诅咒「魔光ノ上海人形」",
+   "search": [
+    "spell-fdf-025",
+    "诅咒「魔光ノ上海人形」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-026": {
+   "arts": [],
+   "canonical": "spell-fdf-026",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幻想春花」",
+   "search": [
+    "spell-fdf-026",
+    "「幻想春花」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-027": {
+   "arts": [],
+   "canonical": "spell-fdf-027",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "爆符「Mage-Flare」",
+   "search": [
+    "spell-fdf-027",
+    "爆符「Mage-Flare」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-028": {
+   "arts": [],
+   "canonical": "spell-fdf-028",
+   "colors": [
+    "红",
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "核热「核反应制御不能」",
+   "search": [
+    "spell-fdf-028",
+    "核热「核反应制御不能」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-030": {
+   "arts": [],
+   "canonical": "spell-fdf-030",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "操符「乙女文乐」",
+   "search": [
+    "spell-fdf-030",
+    "操符「乙女文乐」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-031": {
+   "arts": [],
+   "canonical": "spell-fdf-031",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "花符「Flower Land」",
+   "search": [
+    "spell-fdf-031",
+    "花符「Flower Land」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-032": {
+   "arts": [],
+   "canonical": "spell-fdf-032",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "脑符「Brain Fingerprint」",
+   "search": [
+    "spell-fdf-032",
+    "脑符「Brain Fingerprint」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-033": {
+   "arts": [],
+   "canonical": "spell-fdf-033",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "心花「Camera-Shy Rose」",
+   "search": [
+    "spell-fdf-033",
+    "心花「Camera-Shy Rose」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-034": {
+   "arts": [],
+   "canonical": "spell-fdf-034",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "源符「厌川丿翡翠」",
+   "search": [
+    "spell-fdf-034",
+    "源符「厌川丿翡翠」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-035": {
+   "arts": [],
+   "canonical": "spell-fdf-035",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "红符「不夜城-RED-」",
+   "search": [
+    "spell-fdf-035",
+    "红符「不夜城-RED-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-036": {
+   "arts": [],
+   "canonical": "spell-fdf-036",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "魔符「Stardust Reverie」",
+   "search": [
+    "spell-fdf-036",
+    "魔符「Stardust Reverie」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-037": {
+   "arts": [],
+   "canonical": "spell-fdf-037",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "夜符「Queen of Midnight」",
+   "search": [
+    "spell-fdf-037",
+    "夜符「Queen of Midnight」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-038": {
+   "arts": [],
+   "canonical": "spell-fdf-038",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冥符「虹色ノ冥界」",
+   "search": [
+    "spell-fdf-038",
+    "冥符「虹色ノ冥界」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-039": {
+   "arts": [],
+   "canonical": "spell-fdf-039",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「新绿ノ音·延伸ノ景」",
+   "search": [
+    "spell-fdf-039",
+    "「新绿ノ音·延伸ノ景」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-040": {
+   "arts": [],
+   "canonical": "spell-fdf-040",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻葬「夜雾ノ幻影杀人鬼」",
+   "search": [
+    "spell-fdf-040",
+    "幻葬「夜雾ノ幻影杀人鬼」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-042": {
+   "arts": [],
+   "canonical": "spell-fdf-042",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「冬」",
+   "search": [
+    "spell-fdf-042",
+    "「冬」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-043": {
+   "arts": [],
+   "canonical": "spell-fdf-043",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "萃符「户隐山ノ投」",
+   "search": [
+    "spell-fdf-043",
+    "萃符「户隐山ノ投」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-044": {
+   "arts": [],
+   "canonical": "spell-fdf-044",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「圣ノ鼓动·法界ノ火」",
+   "search": [
+    "spell-fdf-044",
+    "「圣ノ鼓动·法界ノ火」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-045": {
+   "arts": [],
+   "canonical": "spell-fdf-045",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "魂符「生魂流离ノ镰」",
+   "search": [
+    "spell-fdf-045",
+    "魂符「生魂流离ノ镰」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-047": {
+   "arts": [],
+   "canonical": "spell-fdf-047",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "亡乡「亡我乡-彷徨ノ灵魂」",
+   "search": [
+    "spell-fdf-047",
+    "亡乡「亡我乡-彷徨ノ灵魂」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-048": {
+   "arts": [],
+   "canonical": "spell-fdf-048",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "樱符「Sense of Cherry Blossom」",
+   "search": [
+    "spell-fdf-048",
+    "樱符「Sense of Cherry Blossom」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-049": {
+   "arts": [],
+   "canonical": "spell-fdf-049",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "人鬼「未来永劫斩-樱-」",
+   "search": [
+    "spell-fdf-049",
+    "人鬼「未来永劫斩-樱-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-050": {
+   "arts": [],
+   "canonical": "spell-fdf-050",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "断迷剑「迷津慈航斩」",
+   "search": [
+    "spell-fdf-050",
+    "断迷剑「迷津慈航斩」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-051": {
+   "arts": [],
+   "canonical": "spell-fdf-051",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "禁弹「Catadioptric」",
+   "search": [
+    "spell-fdf-051",
+    "禁弹「Catadioptric」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-052": {
+   "arts": [],
+   "canonical": "spell-fdf-052",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻波「赤眼催眠」",
+   "search": [
+    "spell-fdf-052",
+    "幻波「赤眼催眠」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-053": {
+   "arts": [],
+   "canonical": "spell-fdf-053",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "魔法「紫云ノ兆」",
+   "search": [
+    "spell-fdf-053",
+    "魔法「紫云ノ兆」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-054": {
+   "arts": [],
+   "canonical": "spell-fdf-054",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「云中」",
+   "search": [
+    "spell-fdf-054",
+    "「云中」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-055": {
+   "arts": [],
+   "canonical": "spell-fdf-055",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻在「Clock Corpse」",
+   "search": [
+    "spell-fdf-055",
+    "幻在「Clock Corpse」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-056": {
+   "arts": [],
+   "canonical": "spell-fdf-056",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "投钱「宵越ノ钱」",
+   "search": [
+    "spell-fdf-056",
+    "投钱「宵越ノ钱」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-057": {
+   "arts": [],
+   "canonical": "spell-fdf-057",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "狂符「幻视调率」",
+   "search": [
+    "spell-fdf-057",
+    "狂符「幻视调率」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-058": {
+   "arts": [],
+   "canonical": "spell-fdf-058",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "禁忌「Four of a Kind」",
+   "search": [
+    "spell-fdf-058",
+    "禁忌「Four of a Kind」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-059": {
+   "arts": [],
+   "canonical": "spell-fdf-059",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "妖剑「辉针剑」",
+   "search": [
+    "spell-fdf-059",
+    "妖剑「辉针剑」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-060": {
+   "arts": [],
+   "canonical": "spell-fdf-060",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「永夜归还-待宵-」",
+   "search": [
+    "spell-fdf-060",
+    "「永夜归还-待宵-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-061": {
+   "arts": [],
+   "canonical": "spell-fdf-061",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "秘术「天文密葬法」",
+   "search": [
+    "spell-fdf-061",
+    "秘术「天文密葬法」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-062": {
+   "arts": [],
+   "canonical": "spell-fdf-062",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "鬼群「Imp Swarm」",
+   "search": [
+    "spell-fdf-062",
+    "鬼群「Imp Swarm」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-063": {
+   "arts": [],
+   "canonical": "spell-fdf-063",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "秘法「九字切」",
+   "search": [
+    "spell-fdf-063",
+    "秘法「九字切」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-064": {
+   "arts": [],
+   "canonical": "spell-fdf-064",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「Mooned Insect」",
+   "search": [
+    "spell-fdf-064",
+    "「Mooned Insect」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-066": {
+   "arts": [],
+   "canonical": "spell-fdf-066",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「畜生调服」",
+   "search": [
+    "spell-fdf-066",
+    "「畜生调服」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-067": {
+   "arts": [],
+   "canonical": "spell-fdf-067",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "秘仪「弹幕ノ玉茧」",
+   "search": [
+    "spell-fdf-067",
+    "秘仪「弹幕ノ玉茧」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-068": {
+   "arts": [],
+   "canonical": "spell-fdf-068",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "门符「最后ノ理想国」",
+   "search": [
+    "spell-fdf-068",
+    "门符「最后ノ理想国」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-071": {
+   "arts": [],
+   "canonical": "spell-fdf-071",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「游星弹幕“X”」",
+   "search": [
+    "spell-fdf-071",
+    "「游星弹幕“X”」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-072": {
+   "arts": [],
+   "canonical": "spell-fdf-072",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「平安京ノ恶梦」",
+   "search": [
+    "spell-fdf-072",
+    "「平安京ノ恶梦」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-073": {
+   "arts": [],
+   "canonical": "spell-fdf-073",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "执符「御射山御狩神事」",
+   "search": [
+    "spell-fdf-073",
+    "执符「御射山御狩神事」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-074": {
+   "arts": [],
+   "canonical": "spell-fdf-074",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神祭「Expanded Onbashira」",
+   "search": [
+    "spell-fdf-074",
+    "神祭「Expanded Onbashira」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-075": {
+   "arts": [],
+   "canonical": "spell-fdf-075",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "金符「Metal Fatigue」",
+   "search": [
+    "spell-fdf-075",
+    "金符「Metal Fatigue」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-076": {
+   "arts": [],
+   "canonical": "spell-fdf-076",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "土符「Lazy Trilithon」",
+   "search": [
+    "spell-fdf-076",
+    "土符「Lazy Trilithon」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-077": {
+   "arts": [],
+   "canonical": "spell-fdf-077",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "水符「Princess Undine」",
+   "search": [
+    "spell-fdf-077",
+    "水符「Princess Undine」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-078": {
+   "arts": [],
+   "canonical": "spell-fdf-078",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "火符「Agni Shine」",
+   "search": [
+    "spell-fdf-078",
+    "火符「Agni Shine」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-079": {
+   "arts": [],
+   "canonical": "spell-fdf-079",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "木符「Sylphy Horn」",
+   "search": [
+    "spell-fdf-079",
+    "木符「Sylphy Horn」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-080": {
+   "arts": [],
+   "canonical": "spell-fdf-080",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「招雨ノ雨蛙」",
+   "search": [
+    "spell-fdf-080",
+    "「招雨ノ雨蛙」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-081": {
+   "arts": [],
+   "canonical": "spell-fdf-081",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「最凶&最恶」",
+   "search": [
+    "spell-fdf-081",
+    "「最凶&最恶」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-082": {
+   "arts": [],
+   "canonical": "spell-fdf-082",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "结界「光与暗ノ网目」",
+   "search": [
+    "spell-fdf-082",
+    "结界「光与暗ノ网目」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-083": {
+   "arts": [],
+   "canonical": "spell-fdf-083",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "怒面「愤怒ノ忌狼面」",
+   "search": [
+    "spell-fdf-083",
+    "怒面「愤怒ノ忌狼面」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-084": {
+   "arts": [],
+   "canonical": "spell-fdf-084",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「守护ノ要石」",
+   "search": [
+    "spell-fdf-084",
+    "「守护ノ要石」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-085": {
+   "arts": [],
+   "canonical": "spell-fdf-085",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「5:30 PM」",
+   "search": [
+    "spell-fdf-085",
+    "「5:30 PM」",
+    "",
+    "",
+    "530"
+   ]
+  },
+  "spell-fdf-086": {
+   "arts": [],
+   "canonical": "spell-fdf-086",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「全人类ノ绯想天」",
+   "search": [
+    "spell-fdf-086",
+    "「全人类ノ绯想天」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-087": {
+   "arts": [],
+   "canonical": "spell-fdf-087",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "秘术「遗忘ノ祭仪」",
+   "search": [
+    "spell-fdf-087",
+    "秘术「遗忘ノ祭仪」",
+    "",
+    "",
+    "豆康"
+   ]
+  },
+  "spell-fdf-088": {
+   "arts": [],
+   "canonical": "spell-fdf-088",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「Wall of Issun」",
+   "search": [
+    "spell-fdf-088",
+    "「Wall of Issun」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-120": {
+   "arts": [],
+   "canonical": "spell-fdf-120",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天空の魔法使」",
+   "search": [
+    "spell-fdf-120",
+    "「天空の魔法使」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-121": {
+   "arts": [],
+   "canonical": "spell-fdf-121",
+   "colors": [
+    "红",
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "赎罪「旧地狱的针山」",
+   "search": [
+    "spell-fdf-121",
+    "赎罪「旧地狱的针山」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-122": {
+   "arts": [],
+   "canonical": "spell-fdf-122",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "光晕「唐伞惊吓闪光」",
+   "search": [
+    "spell-fdf-122",
+    "光晕「唐伞惊吓闪光」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-123": {
+   "arts": [],
+   "canonical": "spell-fdf-123",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雨符「雨夜ノ怪谈」",
+   "search": [
+    "spell-fdf-123",
+    "雨符「雨夜ノ怪谈」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-124": {
+   "arts": [],
+   "canonical": "spell-fdf-124",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "风神「风神木叶隐身术」",
+   "search": [
+    "spell-fdf-124",
+    "风神「风神木叶隐身术」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdf-ex05": {
+   "arts": [
+    "spell-fdf-ex05",
+    "tts_152056"
+   ],
+   "canonical": "spell-fdf-ex05",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「红色ノ幻想乡」",
+   "search": [
+    "spell-fdf-ex05",
+    "「红色ノ幻想乡」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-001": {
+   "arts": [],
+   "canonical": "spell-fdn-001",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「飘上月球、不死之烟」",
+   "search": [
+    "spell-fdn-001",
+    "「飘上月球、不死之烟」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-002": {
+   "arts": [],
+   "canonical": "spell-fdn-002",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "蓬莱「凯风快晴-Fujiyama Volcano-」",
+   "search": [
+    "spell-fdn-002",
+    "蓬莱「凯风快晴-Fujiyama Volcano-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-003": {
+   "arts": [],
+   "canonical": "spell-fdn-003",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "不死「火鳥-鳳翼天翔-」",
+   "search": [
+    "spell-fdn-003",
+    "不死「火鳥-鳳翼天翔-」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-005": {
+   "arts": [],
+   "canonical": "spell-fdn-005",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「U.N.OWEN 就是她吗？」",
+   "search": [
+    "spell-fdn-005",
+    "「U.N.OWEN 就是她吗？」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-008": {
+   "arts": [],
+   "canonical": "spell-fdn-008",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "夜王「Deacula Cradle」",
+   "search": [
+    "spell-fdn-008",
+    "夜王「Deacula Cradle」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-009": {
+   "arts": [],
+   "canonical": "spell-fdn-009",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「不详」",
+   "search": [
+    "spell-fdn-009",
+    "「不详」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-010": {
+   "arts": [],
+   "canonical": "spell-fdn-010",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幼心ノ地，有顶天变」",
+   "search": [
+    "spell-fdn-010",
+    "「幼心ノ地，有顶天变」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-011": {
+   "arts": [],
+   "canonical": "spell-fdn-011",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "结界「魅力ノ四重结界」",
+   "search": [
+    "spell-fdn-011",
+    "结界「魅力ノ四重结界」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-012": {
+   "arts": [],
+   "canonical": "spell-fdn-012",
+   "colors": [
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "魂魄「幽冥求闻持聪ノ法」",
+   "search": [
+    "spell-fdn-012",
+    "魂魄「幽冥求闻持聪ノ法」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-015": {
+   "arts": [],
+   "canonical": "spell-fdn-015",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雾符「云集雾散」",
+   "search": [
+    "spell-fdn-015",
+    "雾符「云集雾散」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-017": {
+   "arts": [],
+   "canonical": "spell-fdn-017",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "QED「495年ノ波纹」",
+   "search": [
+    "spell-fdn-017",
+    "QED「495年ノ波纹」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-018": {
+   "arts": [],
+   "canonical": "spell-fdn-018",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "死歌「八重雾中渡」",
+   "search": [
+    "spell-fdn-018",
+    "死歌「八重雾中渡」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-019": {
+   "arts": [],
+   "canonical": "spell-fdn-019",
+   "colors": [
+    "红",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "死价「price of life」",
+   "search": [
+    "spell-fdn-019",
+    "死价「price of life」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-020": {
+   "arts": [],
+   "canonical": "spell-fdn-020",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「白玉楼ノ夕」",
+   "search": [
+    "spell-fdn-020",
+    "「白玉楼ノ夕」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-022": {
+   "arts": [],
+   "canonical": "spell-fdn-022",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「冰精ノ花环」",
+   "search": [
+    "spell-fdn-022",
+    "「冰精ノ花环」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-023": {
+   "arts": [],
+   "canonical": "spell-fdn-023",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小弹「小人ノ道路」",
+   "search": [
+    "spell-fdn-023",
+    "小弹「小人ノ道路」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-028": {
+   "arts": [],
+   "canonical": "spell-fdn-028",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "生药「国士无双ノ药」",
+   "search": [
+    "spell-fdn-028",
+    "生药「国士无双ノ药」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-029": {
+   "arts": [],
+   "canonical": "spell-fdn-029",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「昼酒」",
+   "search": [
+    "spell-fdn-029",
+    "「昼酒」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-030": {
+   "arts": [],
+   "canonical": "spell-fdn-030",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「根下」",
+   "search": [
+    "spell-fdn-030",
+    "「根下」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-031": {
+   "arts": [],
+   "canonical": "spell-fdn-031",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "天符「天道是非ノ剑」",
+   "search": [
+    "spell-fdn-031",
+    "天符「天道是非ノ剑」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-032": {
+   "arts": [],
+   "canonical": "spell-fdn-032",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幻波ノ影、狂气ノ瞳」",
+   "search": [
+    "spell-fdn-032",
+    "「幻波ノ影、狂气ノ瞳」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-033": {
+   "arts": [],
+   "canonical": "spell-fdn-033",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "回忆「恐怖催眠术」",
+   "search": [
+    "spell-fdn-033",
+    "回忆「恐怖催眠术」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-039": {
+   "arts": [],
+   "canonical": "spell-fdn-039",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "突符「天狗巨漾流」",
+   "search": [
+    "spell-fdn-039",
+    "突符「天狗巨漾流」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-040": {
+   "arts": [],
+   "canonical": "spell-fdn-040",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「凭坐ノ缚」",
+   "search": [
+    "spell-fdn-040",
+    "「凭坐ノ缚」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-046": {
+   "arts": [],
+   "canonical": "spell-fdn-046",
+   "colors": [
+    "红",
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "实验中「歌莉娅人形」",
+   "search": [
+    "spell-fdn-046",
+    "实验中「歌莉娅人形」",
+    "",
+    ""
+   ]
+  },
+  "spell-fdn-066": {
+   "arts": [],
+   "canonical": "spell-fdn-066",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「妖精ノ巡礼」",
+   "search": [
+    "spell-fdn-066",
+    "「妖精ノ巡礼」",
+    "",
+    "",
+    "绿康"
+   ]
+  },
+  "spell-fdn-069": {
+   "arts": [],
+   "canonical": "spell-fdn-069",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「青ノ花」",
+   "search": [
+    "spell-fdn-069",
+    "「青ノ花」",
+    "",
+    "",
+    "蓝康"
+   ]
+  },
+  "spell-htk-003": {
+   "arts": [],
+   "canonical": "spell-htk-003",
+   "colors": [
+    "蓝",
+    "黑",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "凭依「喜怒哀乐附体」",
+   "search": [
+    "spell-htk-003",
+    "凭依「喜怒哀乐附体」",
+    "",
+    ""
+   ]
+  },
+  "spell-htk-004": {
+   "arts": [],
+   "canonical": "spell-htk-004",
+   "colors": [
+    "蓝",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "「奏中ノ能乐、亡失ノ感情」",
+   "search": [
+    "spell-htk-004",
+    "「奏中ノ能乐、亡失ノ感情」",
+    "",
+    ""
+   ]
+  },
+  "spell-htk-018": {
+   "arts": [
+    "spell-htk-018",
+    "tts_149264"
+   ],
+   "canonical": "spell-htk-018",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「常夜ノ樱」",
+   "search": [
+    "spell-htk-018",
+    "「常夜ノ樱」",
+    "",
+    ""
+   ]
+  },
+  "spell-kmo-002": {
+   "arts": [],
+   "canonical": "spell-kmo-002",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "死神「彼岸归航」",
+   "search": [
+    "spell-kmo-002",
+    "死神「彼岸归航」",
+    "",
+    ""
+   ]
+  },
+  "spell-kmo-003": {
+   "arts": [
+    "spell-kmo-003",
+    "spell-rec-056"
+   ],
+   "canonical": "spell-kmo-003",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "塞符「天上天下的照国」",
+   "search": [
+    "spell-kmo-003",
+    "塞符「天上天下的照国」",
+    "",
+    ""
+   ]
+  },
+  "spell-kmo-004": {
+   "arts": [],
+   "canonical": "spell-kmo-004",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「血族的末裔」",
+   "search": [
+    "spell-kmo-004",
+    "「血族的末裔」",
+    "",
+    ""
+   ]
+  },
+  "spell-kmo-005": {
+   "arts": [],
+   "canonical": "spell-kmo-005",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「春雪」",
+   "search": [
+    "spell-kmo-005",
+    "「春雪」",
+    "",
+    ""
+   ]
+  },
+  "spell-lof-006": {
+   "arts": [],
+   "canonical": "spell-lof-006",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「可爱ノ妖精叠奏曲」",
+   "search": [
+    "spell-lof-006",
+    "「可爱ノ妖精叠奏曲」",
+    "",
+    ""
+   ]
+  },
+  "spell-lof-007": {
+   "arts": [],
+   "canonical": "spell-lof-007",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "冻符「冰柱海潮」",
+   "search": [
+    "spell-lof-007",
+    "冻符「冰柱海潮」",
+    "",
+    ""
+   ]
+  },
+  "spell-lof-025": {
+   "arts": [],
+   "canonical": "spell-lof-025",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「天界ノ蜜桃」",
+   "search": [
+    "spell-lof-025",
+    "「天界ノ蜜桃」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-002": {
+   "arts": [],
+   "canonical": "spell-mar-002",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "恋心「Double Spark」",
+   "search": [
+    "spell-mar-002",
+    "恋心「Double Spark」",
+    "",
+    "",
+    "恋符「极限火花」",
+    "炮"
+   ]
+  },
+  "spell-mar-003": {
+   "arts": [],
+   "canonical": "spell-mar-003",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "恋符「Non-Directional Laser」",
+   "search": [
+    "spell-mar-003",
+    "恋符「Non-Directional Laser」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-004": {
+   "arts": [],
+   "canonical": "spell-mar-004",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "邪恋「容易结果ノ极限火花」",
+   "search": [
+    "spell-mar-004",
+    "邪恋「容易结果ノ极限火花」",
+    "",
+    "",
+    "恋符「极限火花」",
+    "炮"
+   ]
+  },
+  "spell-mar-005": {
+   "arts": [],
+   "canonical": "spell-mar-005",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「结界ノ一侧」",
+   "search": [
+    "spell-mar-005",
+    "「结界ノ一侧」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-007": {
+   "arts": [],
+   "canonical": "spell-mar-007",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「灵击符」",
+   "search": [
+    "spell-mar-007",
+    "「灵击符」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-012": {
+   "arts": [
+    "spell-mar-012",
+    "tts_152039"
+   ],
+   "canonical": "spell-mar-012",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "光击「射月」",
+   "search": [
+    "spell-mar-012",
+    "光击「射月」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-013": {
+   "arts": [
+    "spell-mar-013",
+    "tts_149061"
+   ],
+   "canonical": "spell-mar-013",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "「春」",
+   "search": [
+    "spell-mar-013",
+    "「春」",
+    "",
+    ""
+   ]
+  },
+  "spell-mar-014": {
+   "arts": [],
+   "canonical": "spell-mar-014",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「Paranoid Lost」",
+   "search": [
+    "spell-mar-014",
+    "「Paranoid Lost」",
+    "",
+    ""
+   ]
+  },
+  "spell-rec-054": {
+   "arts": [
+    "spell-rec-054",
+    "spell-smm-002"
+   ],
+   "canonical": "spell-rec-054",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小槌「变大吧」",
+   "search": [
+    "spell-rec-054",
+    "小槌「变大吧」",
+    "",
+    ""
+   ]
+  },
+  "spell-rec-055": {
+   "arts": [
+    "spell-rec-055",
+    "spell-smm-003"
+   ],
+   "canonical": "spell-rec-055",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "开海「摩西ノ奇迹」",
+   "search": [
+    "spell-rec-055",
+    "开海「摩西ノ奇迹」",
+    "",
+    ""
+   ]
+  },
+  "spell-rec-056": {
+   "arts": [
+    "spell-kmo-003",
+    "spell-rec-056"
+   ],
+   "canonical": "spell-kmo-003",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "塞符「天上天下的照国」",
+   "search": [
+    "spell-rec-056",
+    "塞符「天上天下的照国」",
+    "",
+    "",
+    "塞符「天上天下ノ照国」"
+   ]
+  },
+  "spell-rei-002": {
+   "arts": [],
+   "canonical": "spell-rei-002",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "结界「扩散结界」",
+   "search": [
+    "spell-rei-002",
+    "结界「扩散结界」",
+    "",
+    ""
+   ]
+  },
+  "spell-rei-006": {
+   "arts": [],
+   "canonical": "spell-rei-006",
+   "colors": [
+    "红",
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「约定」",
+   "search": [
+    "spell-rei-006",
+    "「约定」",
+    "",
+    ""
+   ]
+  },
+  "spell-rei-010": {
+   "arts": [],
+   "canonical": "spell-rei-010",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "宝具「阴阳鬼神玉」",
+   "search": [
+    "spell-rei-010",
+    "宝具「阴阳鬼神玉」",
+    "",
+    ""
+   ]
+  },
+  "spell-rei-011": {
+   "arts": [],
+   "canonical": "spell-rei-011",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "灵符「梦想妙珠」",
+   "search": [
+    "spell-rei-011",
+    "灵符「梦想妙珠」",
+    "",
+    ""
+   ]
+  },
+  "spell-rei-012": {
+   "arts": [],
+   "canonical": "spell-rei-012",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "灵符「梦想封印-散-」",
+   "search": [
+    "spell-rei-012",
+    "灵符「梦想封印-散-」",
+    "",
+    "",
+    "小康"
+   ]
+  },
+  "spell-rei-015": {
+   "arts": [],
+   "canonical": "spell-rei-015",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「山涧ノ川」",
+   "search": [
+    "spell-rei-015",
+    "「山涧ノ川」",
+    "",
+    "",
+    "大跳"
+   ]
+  },
+  "spell-smm-002": {
+   "arts": [
+    "spell-rec-054",
+    "spell-smm-002"
+   ],
+   "canonical": "spell-rec-054",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小锤「变大吧」",
+   "search": [
+    "spell-smm-002",
+    "小锤「变大吧」",
+    "",
+    ""
+   ]
+  },
+  "spell-smm-003": {
+   "arts": [
+    "spell-rec-055",
+    "spell-smm-003"
+   ],
+   "canonical": "spell-rec-055",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "开海「摩根的奇迹」",
+   "search": [
+    "spell-smm-003",
+    "开海「摩根的奇迹」",
+    "",
+    ""
+   ]
+  },
+  "spell-smm-006": {
+   "arts": [],
+   "canonical": "spell-smm-006",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「小憩」",
+   "search": [
+    "spell-smm-006",
+    "「小憩」",
+    "",
+    ""
+   ]
+  },
+  "spell-soi-098": {
+   "arts": [],
+   "canonical": "spell-soi-098",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「人神ノ嬉」",
+   "search": [
+    "spell-soi-098",
+    "「人神ノ嬉」",
+    "",
+    "",
+    "小跳"
+   ]
+  },
+  "spell-soi-119": {
+   "arts": [],
+   "canonical": "spell-soi-119",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻巢「飞光虫ノ巢」",
+   "search": [
+    "spell-soi-119",
+    "幻巢「飞光虫ノ巢」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-004": {
+   "arts": [],
+   "canonical": "spell-ucs-004",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「起床ノ地灵殿」",
+   "search": [
+    "spell-ucs-004",
+    "「起床ノ地灵殿」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-008": {
+   "arts": [],
+   "canonical": "spell-ucs-008",
+   "colors": [
+    "绿",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「人神ノ黎明景」",
+   "search": [
+    "spell-ucs-008",
+    "「人神ノ黎明景」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-009": {
+   "arts": [],
+   "canonical": "spell-ucs-009",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「月ノ闲暇」",
+   "search": [
+    "spell-ucs-009",
+    "「月ノ闲暇」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-011": {
+   "arts": [],
+   "canonical": "spell-ucs-011",
+   "colors": [
+    "绿",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「Subterranean Rose」",
+   "search": [
+    "spell-ucs-011",
+    "「Subterranean Rose」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-014": {
+   "arts": [],
+   "canonical": "spell-ucs-014",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "转世「一条归桥」",
+   "search": [
+    "spell-ucs-014",
+    "转世「一条归桥」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-015": {
+   "arts": [],
+   "canonical": "spell-ucs-015",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「神ノ通径」",
+   "search": [
+    "spell-ucs-015",
+    "「神ノ通径」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-018": {
+   "arts": [],
+   "canonical": "spell-ucs-018",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「鲸落」",
+   "search": [
+    "spell-ucs-018",
+    "「鲸落」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-019": {
+   "arts": [],
+   "canonical": "spell-ucs-019",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻想「第一种永久机关」",
+   "search": [
+    "spell-ucs-019",
+    "幻想「第一种永久机关」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-022": {
+   "arts": [],
+   "canonical": "spell-ucs-022",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「世界ノ间隙·大空魔术」",
+   "search": [
+    "spell-ucs-022",
+    "「世界ノ间隙·大空魔术」",
+    "",
+    "",
+    "密封"
+   ]
+  },
+  "spell-ucs-026": {
+   "arts": [],
+   "canonical": "spell-ucs-026",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "四天王奥义「三步坏废」",
+   "search": [
+    "spell-ucs-026",
+    "四天王奥义「三步坏废」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-027": {
+   "arts": [],
+   "canonical": "spell-ucs-027",
+   "colors": [
+    "红"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "非想「非想非非想ノ剑」",
+   "search": [
+    "spell-ucs-027",
+    "非想「非想非非想ノ剑」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-029": {
+   "arts": [],
+   "canonical": "spell-ucs-029",
+   "colors": [
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "人符「现世斩」",
+   "search": [
+    "spell-ucs-029",
+    "人符「现世斩」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-031": {
+   "arts": [],
+   "canonical": "spell-ucs-031",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "时符「Private Square」",
+   "search": [
+    "spell-ucs-031",
+    "时符「Private Square」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-033": {
+   "arts": [],
+   "canonical": "spell-ucs-033",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「神明ノ威光」",
+   "search": [
+    "spell-ucs-033",
+    "「神明ノ威光」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-035": {
+   "arts": [],
+   "canonical": "spell-ucs-035",
+   "colors": [
+    "红",
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "花符「幻想乡ノ开花」",
+   "search": [
+    "spell-ucs-035",
+    "花符「幻想乡ノ开花」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-037": {
+   "arts": [],
+   "canonical": "spell-ucs-037",
+   "colors": [
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「花ノ都」",
+   "search": [
+    "spell-ucs-037",
+    "「花ノ都」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-039": {
+   "arts": [],
+   "canonical": "spell-ucs-039",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "神志「思兼ノ意志」",
+   "search": [
+    "spell-ucs-039",
+    "神志「思兼ノ意志」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-041": {
+   "arts": [],
+   "canonical": "spell-ucs-041",
+   "colors": [
+    "红",
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "日符「皇家烈焰」",
+   "search": [
+    "spell-ucs-041",
+    "日符「皇家烈焰」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-043": {
+   "arts": [],
+   "canonical": "spell-ucs-043",
+   "colors": [
+    "绿"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "后符「秘神ノ后光」",
+   "search": [
+    "spell-ucs-043",
+    "后符「秘神ノ后光」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-050": {
+   "arts": [],
+   "canonical": "spell-ucs-050",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "雨符「虹彩细雨」",
+   "search": [
+    "spell-ucs-050",
+    "雨符「虹彩细雨」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-052": {
+   "arts": [],
+   "canonical": "spell-ucs-052",
+   "colors": [
+    "红",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「雾川」",
+   "search": [
+    "spell-ucs-052",
+    "「雾川」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-054": {
+   "arts": [],
+   "canonical": "spell-ucs-054",
+   "colors": [
+    "蓝",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「永夜归返-丑ノ刻-」",
+   "search": [
+    "spell-ucs-054",
+    "「永夜归返-丑ノ刻-」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-057": {
+   "arts": [],
+   "canonical": "spell-ucs-057",
+   "colors": [
+    "蓝",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "光符「最初ノ人形」",
+   "search": [
+    "spell-ucs-057",
+    "光符「最初ノ人形」",
+    "",
+    ""
+   ]
+  },
+  "spell-ucs-059": {
+   "arts": [],
+   "canonical": "spell-ucs-059",
+   "colors": [
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「承诏必慎」",
+   "search": [
+    "spell-ucs-059",
+    "「承诏必慎」",
+    "",
+    ""
+   ]
+  },
+  "token-fdf-127": {
+   "arts": [],
+   "canonical": "token-fdf-127",
+   "colors": [
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "烤八目鳗",
+   "search": [
+    "token-fdf-127",
+    "烤八目鳗",
+    "",
+    "",
+    "夜雀"
+   ]
+  },
+  "token-fdf-128": {
+   "arts": [],
+   "canonical": "token-fdf-128",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "美宵之酒",
+   "search": [
+    "token-fdf-128",
+    "美宵之酒",
+    "",
+    ""
+   ]
+  },
+  "token-fdf-129": {
+   "arts": [],
+   "canonical": "token-fdf-129",
+   "colors": [
+    "红",
+    "蓝",
+    "绿"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "要石",
+   "search": [
+    "token-fdf-129",
+    "要石",
+    "",
+    ""
+   ]
+  },
+  "token-fdf-130": {
+   "arts": [],
+   "canonical": "token-fdf-130",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "鬼衍生物",
+   "search": [
+    "token-fdf-130",
+    "鬼衍生物",
+    "鬼衍生物",
+    ""
+   ]
+  },
+  "token-fdf-131": {
+   "arts": [],
+   "canonical": "token-fdf-131",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "不明物体",
+   "search": [
+    "token-fdf-131",
+    "不明物体",
+    "不明物体",
+    ""
+   ]
+  },
+  "token-fdf-132": {
+   "arts": [],
+   "canonical": "token-fdf-132",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "月兔衍生物",
+   "search": [
+    "token-fdf-132",
+    "月兔衍生物",
+    "月兔衍生物",
+    ""
+   ]
+  },
+  "token-fdf-133": {
+   "arts": [],
+   "canonical": "token-fdf-133",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "吸血鬼衍生物",
+   "search": [
+    "token-fdf-133",
+    "吸血鬼衍生物",
+    "吸血鬼衍生物",
+    ""
+   ]
+  },
+  "token-fdn-082": {
+   "arts": [],
+   "canonical": "token-fdn-082",
+   "colors": [
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "新闻素材",
+   "search": [
+    "token-fdn-082",
+    "新闻素材",
+    "",
+    ""
+   ]
+  },
+  "token-fdn-085": {
+   "arts": [],
+   "canonical": "token-fdn-085",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "幻象衍生物",
+   "search": [
+    "token-fdn-085",
+    "幻象衍生物",
+    "幻象衍生物",
+    ""
+   ]
+  },
+  "token-htk-031": {
+   "arts": [],
+   "canonical": "token-htk-031",
+   "colors": [
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小面",
+   "search": [
+    "token-htk-031",
+    "小面",
+    "",
+    ""
+   ]
+  },
+  "token-htk-032": {
+   "arts": [],
+   "canonical": "token-htk-032",
+   "colors": [
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "般若面",
+   "search": [
+    "token-htk-032",
+    "般若面",
+    "",
+    ""
+   ]
+  },
+  "token-htk-033": {
+   "arts": [],
+   "canonical": "token-htk-033",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "姥面",
+   "search": [
+    "token-htk-033",
+    "姥面",
+    "",
+    ""
+   ]
+  },
+  "token-kmo-027": {
+   "arts": [],
+   "canonical": "token-kmo-027",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "蝙蝠衍生物",
+   "search": [
+    "token-kmo-027",
+    "蝙蝠衍生物",
+    "蝙蝠衍生物",
+    ""
+   ]
+  },
+  "token-smm-025": {
+   "arts": [],
+   "canonical": "token-smm-025",
+   "colors": [],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "小人衍生物",
+   "search": [
+    "token-smm-025",
+    "小人衍生物",
+    "小人衍生物",
+    ""
+   ]
+  },
+  "token-ucs-093": {
+   "arts": [],
+   "canonical": "token-ucs-093",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "蓬莱之药",
+   "search": [
+    "token-ucs-093",
+    "蓬莱之药",
+    "",
+    ""
+   ]
+  },
+  "token-ucs-099": {
+   "arts": [],
+   "canonical": "token-ucs-099",
+   "colors": [
+    "黑",
+    "绿"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "半灵",
+   "search": [
+    "token-ucs-099",
+    "半灵",
+    "半灵",
+    ""
+   ]
+  }
+ },
+ "version": 1
+}
