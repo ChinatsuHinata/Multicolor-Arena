@@ -67,7 +67,7 @@ func copy_interaction():
  expect(copies.size()==1,"Keiki creates one Idol copy")
  if copies.is_empty():return
  var idol=copies[0]
- expect(e.cards[idol.card_id].name=="偶像" and e.Cat.race(e,idol,"埴轮"),"Keiki retains the copy's name and race exceptions")
+ expect(e.cards[idol.card_id].name=="偶像" and e.cards[idol.card_id].race==e.cards[source.card_id].race,"Keiki changes the copy's name while retaining the source races")
  expect(idol.get("minus_counters",0)==1 and idol.plus_counters==2,"Keiki copies both negative and positive counters")
  expect(idol.damage==0 and idol.modifiers.is_empty(),"ordinary unit copying carries neither damage nor temporary buffs")
  expect(e.stat(idol,"power")==3 and e.stat(idol,"health")==3 and e.stat(idol,"spirit")==3,"Idol applies its copied counters to the printed stats")

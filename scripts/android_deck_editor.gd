@@ -23,7 +23,6 @@ var view_switch: CheckButton
 var management: VBoxContainer
 var toolbar: HBoxContainer
 var tools_menu: Button
-var saved_deck_menu: PopupMenu
 var rules_menu: PopupMenu
 var switchers: HBoxContainer
 var deck_panel: PanelContainer
@@ -81,13 +80,14 @@ func build(host,_swapping: bool=false):
  editor_heading=text(toolbar,"卡组编辑器",metrics.title);expand(editor_heading)
  editor_heading.add_theme_color_override("font_color",app.GOLD)
  build_switchers()
+ catalogue_back=action(toolbar,"返回主菜单",func():app.guard(app.menu))
+ catalogue_back.name="LibraryBackToMenu"
+ # Keep the view switch at the right edge when the collection back button hides.
  view_switch=CheckButton.new();view_switch.name="DeckViewSwitch";view_switch.text="切换图鉴/卡组"
  toolbar.add_child(view_switch);metrics.button(view_switch)
  view_switch.custom_minimum_size.x+=metrics.hit
  view_switch.set_pressed_no_signal(overview)
  view_switch.toggled.connect(set_overview)
- catalogue_back=action(toolbar,"返回主菜单",func():app.guard(app.menu))
- catalogue_back.name="LibraryBackToMenu"
  overview_menu=panel(root);overview_menu.name="DeckMenuPanel"
  management=column(overview_menu);management.name="DeckManagement"
  build_management()
@@ -130,16 +130,8 @@ func set_list_zone(source: String):
 
 func build_switchers():
  switchers=HBoxContainer.new();switchers.name="DeckSwitchers";toolbar.add_child(switchers);expand(switchers)
- app.saved_select=OptionButton.new();app.saved_select.name="SavedDeckSelect";switchers.add_child(app.saved_select)
+ app.saved_select=action(switchers,"选择卡组",app.open_editor_deck_picker);app.saved_select.name="SavedDeckSelect"
  metrics.button(app.saved_select);expand(app.saved_select);app.saved_select.custom_minimum_size.x=metrics.body*8
- app.saved_select.fit_to_longest_item=false
- app.saved_select.add_item("选择卡组")
- for deck in app.decks:
-  app.saved_select.add_item(deck.name)
-  if deck.id==app.draft.id:app.saved_select.select(app.saved_select.item_count-1)
- app.saved_select.item_selected.connect(func(index):
-  if index>0:app.guard(func():app.draft=app.decks[index-1].duplicate(true);app.dirty=false;app.editor()))
- saved_deck_menu=app.saved_select.get_popup();app.enable_android_popup_swipe(saved_deck_menu)
  var rules=OptionButton.new();rules.name="DeckRuleSet";switchers.add_child(rules);metrics.button(rules)
  for caption in app.RuleSet.LABELS:rules.add_item("规则："+caption)
  rules.select(maxi(0,app.RuleSet.IDS.find(str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))))
@@ -298,6 +290,7 @@ func render_library_page():
   var available=app.RuleSet.allowed(id,info,rule_set)
   var remaining=app.RuleSet.remaining(app.draft,id,app.Store.CARDS,rule_set)
   var tile=DeckCard.new();tile.is_android=true;tile.card_id=id;tile.source_zone="library"
+  tile.tap_action=true;tile.long_press_enabled=false
   tile.hold_to_drag=true
   tile.texture_provider=func():return app.texture(id)
   tile.draggable=false;tile.set_meta("card_id",id)
@@ -400,9 +393,10 @@ func grouped_list(source: String) -> Array:
 func row_card(id: String,source: String,index: int,parent: Node,width: float,copies: int=1):
  # Text rows load card art only when inspection needs it.
  var tile=DeckCard.new();tile.is_android=true;tile.draggable=false;tile.hold_to_remove=true
+ tile.tap_action=true;tile.long_press_enabled=false
  tile.card_id=id;tile.source_zone=source;tile.source_index=index
  tile.texture_provider=func():return app.texture(id)
- tile.tooltip_text=app.Store.CARDS[id].name+"\n点击：查看详情 · 长按：移除一张"
+ tile.tooltip_text=app.Store.CARDS[id].name+"\n点击：查看详情"
  tile.size=Vector2(width,list_height)
  tile.add_theme_stylebox_override("panel",app.style(Color("#142737"),app.GOLD if source=="leader" else Color("#677585")))
  parent.add_child(tile)
@@ -651,13 +645,11 @@ func cancel_deck_holds(node: Node):
 func handle_touch(event: InputEvent) -> bool:
  if not (event is InputEventScreenTouch or event is InputEventScreenDrag):return false
  if event is InputEventScreenTouch and event.pressed:
-  if finger>=0:return false
+  if finger>=0:cancel_touch_holds();touch_moved=true;return false
   var tile=touch_surfaces.surface_at(app.screen,event.position)
   if tile==null or not tile is DeckCard:return false
   finger=event.index;touch_tile=weakref(tile);touch_origin=event.position;touch_moved=false
   tile.dragged=false;tile.held=false;tile.grab_focus()
-  tile.hold_origin=tile.get_global_transform().affine_inverse()*event.position
-  tile.hold_timer.start()
   app.android_swipe_scroll.handle(event,app)
  elif event.index!=finger:return false
  else:
@@ -672,7 +664,8 @@ func handle_touch(event: InputEvent) -> bool:
     tile.dragged=true;tile.held=true
     tile.force_drag(tile.drag_data(),tile.drag_picture());drag_touch_mouse(event.position)
   else:
-   if is_instance_valid(tile):tile.hold_timer.stop()
+   var activate=not event.canceled and not touch_moved and is_instance_valid(tile) and not tile.is_queued_for_deletion() and not tile.dragged and not tile.held and tile.is_visible_in_tree() and tile.get_global_rect().has_point(event.position)
+   if is_instance_valid(tile):tile.cancel_touch_hold()
    var was_dragging=app.get_viewport().gui_is_dragging()
    app.android_swipe_scroll.handle(event,app)
    finger=-1;touch_tile=null
@@ -681,8 +674,8 @@ func handle_touch(event: InputEvent) -> bool:
     var release=InputEventMouseButton.new();release.position=event.position;release.global_position=event.position
     release.button_index=MOUSE_BUTTON_RIGHT if event.canceled else MOUSE_BUTTON_LEFT;release.pressed=event.canceled
     app.get_viewport().push_input(release,true)
-   elif not event.canceled and not touch_moved and is_instance_valid(tile) and not tile.held and tile.is_visible_in_tree() and tile.get_global_rect().has_point(event.position):
-    tile.clicked.emit(tile.card_id,tile.source_zone,tile.source_index,false)
+   elif activate:
+    tile.held=false;tile.clicked.emit(tile.card_id,tile.source_zone,tile.source_index,false)
  app.suppress_swipe_mouse_until=Time.get_ticks_msec()+250
  app.suppress_swipe_mouse_point=event.position
  app.get_viewport().set_input_as_handled()

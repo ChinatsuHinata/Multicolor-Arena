@@ -48,6 +48,7 @@ const WIDE_ZONES={
 # Normalized centers measured from the printed zones on playmat 3.
 const MAT_SLOTS={"exile":Vector2(124.0/1200.0,1027.0/1200.0),"deck":Vector2(1070.0/1200.0,809.0/1200.0),"grave":Vector2(1070.0/1200.0,1027.0/1200.0),"leader":Vector2(124.0/1200.0,809.0/1200.0)}
 const CARD_SIZE=Vector2(1.95,2.72)
+const ZONE_PAGE_SIZE=10
 var camera: Camera3D
 var board: MeshInstance3D
 var wide_playmat=false
@@ -55,6 +56,7 @@ var camera_distance=NEAREST_CAMERA
 var top_down_camera_size=TOP_DOWN_CAMERA_SIZE
 var top_down_view=false
 var camera_offset=Vector3.ZERO
+var camera_frame_scale=1.0
 var duel
 var external_stack=false
 var texture_provider: Callable
@@ -70,6 +72,7 @@ var presented_moves={}
 var reserved=[]
 var chosen=[]
 var highlighted=[]
+var tutorial_highlights: Array=[]
 var targetable_stacks=[]
 var selected_stacks=[]
 var stack_target_uids=[]
@@ -80,6 +83,7 @@ var last_combat={}
 var busy_until=0
 var animation_duration=0.42
 var combat_animating=false
+var combat_tween: Tween
 var damage_revealed=false
 var combat_display_cards={}
 var last_damage_batch=0
@@ -88,6 +92,8 @@ var deferred_sync={}
 var collision_count=0
 var last_collision_targets=[]
 var unit_order={0:[],1:[]}
+var zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
+var page_change_pending=false
 var hover_uid=0
 var unknown_material: ShaderMaterial
 
@@ -202,16 +208,17 @@ func add_wide_zone_guides():
   guide_vertical(melody.end.x,melody.position.y,melody.end.y,field_guide)
 
 func set_camera():
+ camera.far=90.0*maxf(1.0,camera_frame_scale)
  if is_instance_valid(board) and board.mesh.size!=displayed_board_size():board.mesh.size=displayed_board_size()
  if top_down_view:
   camera.projection=Camera3D.PROJECTION_ORTHOGONAL
-  camera.size=top_down_camera_size
+  camera.size=top_down_camera_size*camera_frame_scale
   camera.position=Vector3(0,25,0)+camera_offset
   camera.rotation=Vector3(-PI/2,0,0)
  else:
   camera.projection=Camera3D.PROJECTION_PERSPECTIVE
   camera.fov=PERSPECTIVE_FOV
-  camera.position=Vector3(0,23.5,18)*camera_distance+camera_offset
+  camera.position=Vector3(0,23.5,18)*camera_distance*camera_frame_scale+camera_offset
   camera.look_at(Vector3(0,0,1.05)+camera_offset)
 
 func pan_camera(from: Vector2,to: Vector2):
@@ -302,12 +309,12 @@ func layout() -> Dictionary:
   var groups={"unit":[],"item":[],"support":[],"melody":[]}
   for c in p.field:
    groups[field_group(c)].append(c)
-  groups.unit=ordered_units(who,groups.unit)
+  groups.unit=paged_zone_cards(who,"unit",ordered_units(who,groups.unit))
   for group in groups:
    var bundles=[];var keys={}
    for c in groups[group]:
     var signature=""
-    if c.uid not in chosen and c.uid not in stack_target_uids and not reserved.any(func(r):return r.uid==c.uid):
+    if c.uid not in chosen and c.uid not in stack_target_uids and c.uid not in tutorial_highlights and not reserved.any(func(r):return r.uid==c.uid):
      signature=duel.stackable_signature(c)
     if not signature.is_empty() and keys.has(signature):bundles[keys[signature]].append(c)
     else:
@@ -330,10 +337,14 @@ func layout() -> Dictionary:
      d.copy_index=duplicate_seen[c.card_id];d.copy_total=duplicate_totals[c.card_id]
     if c.uid in chosen:d.at.y+=0.055
     result[d.key]=d
-  for i in range(p.palette.size()):
+  var palette=paged_zone_cards(who,"palette",p.palette)
+  for i in range(palette.size()):
    var first=(-6.4 if p.potato else -7.7) if wide_playmat else -6.51
-   var stride=minf(2.0 if p.potato else 2.2,(7.7-first)/maxi(1,p.palette.size()-1)) if wide_playmat else minf(1.86,13.02/maxi(1,p.palette.size()-1))
-   var d=description(p.palette[i],Vector3((first+i*stride)*side,0.035+i*0.002,zone_position("palette",who).z),FIELD_SCALE)
+   var page_space=3.0 if zone_page_count(who,"palette")>1 else 0.0
+   if side<0:first+=page_space
+   var last=7.7-(page_space if side>0 else 0.0)
+   var stride=minf(2.0 if p.potato else 2.2,(last-first)/maxi(1,palette.size()-1)) if wide_playmat else minf(1.86,(13.02-page_space)/maxi(1,palette.size()-1))
+   var d=description(palette[i],Vector3((first+i*stride)*side,0.035+i*0.002,zone_position("palette",who).z),FIELD_SCALE)
    result[d.key]=d
   if p.potato:
    var c={"uid":-100-who,"card_id":"potato","owner":who,"zone":"palette","tapped":false}
@@ -349,6 +360,25 @@ func layout() -> Dictionary:
   d.gold=entry.id in selected_stacks; d.blue=entry.id in targetable_stacks; d.tapped=false
   result[d.key]=d
  return result
+
+func zone_page_count(who: int,group: String) -> int:
+ var count=duel.players[who].palette.size() if group=="palette" else duel.players[who].field.filter(func(c):return duel.is_unit(c)).size()
+ return maxi(1,ceili(float(count)/ZONE_PAGE_SIZE))
+
+func paged_zone_cards(who: int,group: String,cards: Array) -> Array:
+ var pages=maxi(1,ceili(float(cards.size())/ZONE_PAGE_SIZE))
+ var page=clampi(zone_pages[who][group],0,pages-1)
+ zone_pages[who][group]=page
+ return cards.slice(page*ZONE_PAGE_SIZE,(page+1)*ZONE_PAGE_SIZE)
+
+func next_zone_page(who: int,group: String):
+ zone_pages[who][group]=(zone_pages[who][group]+1)%zone_page_count(who,group)
+ page_change_pending=true
+
+func zone_page_bounds(who: int,group: String) -> Rect2:
+ var bounds=WIDE_ZONES[group] if wide_playmat else Rect2(-7.5,0.1,15.0,(2.4 if top_down_view else 3.1)-0.1)
+ if group=="palette" and not wide_playmat:bounds=Rect2(-7.9,zone_position("palette",local_seat).z-1.2,15.8,2.4)
+ return bounds if who==local_seat else Rect2(-bounds.end,bounds.size)
 
 func field_group(c: Dictionary) -> String:
  if duel.is_unit(c):return "unit"
@@ -416,7 +446,8 @@ func reorder_unit(uid: int,point: Vector2) -> bool:
  var signature=duel.stackable_signature(c)
  var moving=ordered.filter(func(u):return u.uid==uid or not signature.is_empty() and duel.stackable_signature(u)==signature)
  var remaining=ordered.filter(func(u):return u not in moving)
- var target_index=remaining.size()
+ var visible=remaining.filter(func(u):return descriptors.has("card_"+str(u.uid)))
+ var target_index=remaining.find(visible.back())+1 if not visible.is_empty() else mini(zone_pages[c.owner].unit*ZONE_PAGE_SIZE,remaining.size())
  for i in range(remaining.size()):
   var other=remaining[i]
   var key="card_"+str(other.uid)
@@ -461,24 +492,26 @@ func field_position(group: String,index: int,count: int,who: int) -> Vector3:
  if group=="item":return item_placement(index,count,who).at
  var side=1.0 if who==local_seat else -1.0
  var at=Vector3.ZERO
+ var page_space=2.2 if group=="unit" and zone_page_count(who,"unit")>1 else 0.0
+ var first_shift=page_space if side<0 else 0.0
  if wide_playmat:
   match group:
-   "unit":at=Vector3(-7.5+index*minf(3.0,15.0/maxi(1,count-1)),0.035+index*0.002,1.07+FIELD_EXTENSION*0.5)
+   "unit":at=Vector3(-7.5+first_shift+index*minf(3.0,(15.0-page_space)/maxi(1,count-1)),0.035+index*0.002,1.07+FIELD_EXTENSION*0.5)
    "melody":at=Vector3(10.1,0.04+index*0.025,0)
  elif top_down_view:
   match group:
-   "unit":at=Vector3(board_x(-6.4+index*minf(2.56,12.8/maxi(1,count-1))),0.035+index*0.002,0.9)
+   "unit":at=Vector3(board_x(-6.4+first_shift+index*minf(2.56,(12.8-page_space)/maxi(1,count-1))),0.035+index*0.002,0.9)
    "melody":at=Vector3(9.2,0.04,0)
  else:
   match group:
-   "unit":at=Vector3(-6.4+index*minf(2.56,12.8/maxi(1,count-1)),0.035+index*0.002,1.55)
+   "unit":at=Vector3(-6.4+first_shift+index*minf(2.56,(12.8-page_space)/maxi(1,count-1)),0.035+index*0.002,1.55)
    "melody":at=Vector3(9.2,0.04,0)
  at.x*=side;at.z*=side
  return at
 
-func sync(payment_reservations: Array=[], selection: Array=[], available: Array=[], animate: bool=true):
- if duel.combat.is_empty(): last_damage_batch=0
- if combat_animating:
+func sync(payment_reservations: Array=[], selection: Array=[], available: Array=[], animate: bool=true,only_id: String=""):
+ if only_id.is_empty() and duel.combat.is_empty(): last_damage_batch=0
+ if combat_animating and only_id.is_empty():
   deferred_sync={"reserved":payment_reservations.duplicate(true),"chosen":selection.duplicate(),"available":available.duplicate()}
   return
  if animate and duel.combat.get("damage_batch",0)>0 and duel.combat.damage_batch!=last_damage_batch and visuals.has("card_"+str(duel.combat.attacker.uid)):
@@ -487,10 +520,23 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   animate_combat_resolution()
   return
  reserved=payment_reservations; chosen=selection; highlighted=available
+ if page_change_pending and only_id.is_empty():animate=false;page_change_pending=false
  var now=card_snapshot()
  var next=layout()
+ if not only_id.is_empty():
+  # A token arrival may happen during another public animation. Update only
+  # its stacks; all other cards retain their presented state and movement.
+  for key in next.keys():
+   if next[key].card_id!=only_id:next.erase(key)
+  for uid in now.keys():
+   if now[uid].card_id!=only_id:now.erase(uid)
+  for key in descriptors:
+   if descriptors[key].card_id!=only_id:next[key]=descriptors[key]
+  for uid in old_cards:
+   if old_cards[uid].card_id!=only_id:now[uid]=old_cards[uid]
  for key in next:
   var d=next[key]
+  if not only_id.is_empty() and d.card_id!=only_id:continue
   var fresh=not visuals.has(key)
   if fresh:
    visuals[key]=create_visual(d)
@@ -505,12 +551,14 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   var prev=descriptors.get(key,{})
   var can_possess=duel.pending.get("kind","")=="possession" and duel.pending.get("owner",-1)==d.owner and d.zone=="palette" and d.uid>0 and not duel.find_card(d.uid).tapped and duel.can_possess(duel.find_card(d.uid))
   var outline=node.get_node("Outline")
-  var conditional=d.get("conditional",false) and not d.gold
-  outline.visible=d.gold or d.blue or can_possess or conditional
-  outline.material_override=conditional_material(false) if conditional else material("#ffd65c" if d.gold else "#359bff")
+  var tutorial_marked=d.uid in tutorial_highlights and d.zone in ["field","palette","leader"]
+  var conditional=d.get("conditional",false) and not d.gold and not tutorial_marked
+  outline.visible=tutorial_marked or d.gold or d.blue or can_possess or conditional
+  outline.material_override=material("#ff4545") if tutorial_marked else conditional_material(false) if conditional else material("#ffd65c" if d.gold else "#359bff")
   var halo=node.get_node("Halo")
   halo.visible=outline.visible
-  halo.material_override=conditional_material(true) if conditional else material("#785415" if d.gold else "#184878")
+  halo.material_override=material("#782020") if tutorial_marked else conditional_material(true) if conditional else material("#785415" if d.gold else "#184878")
+  node.set_meta("tutorial_highlighted",tutorial_marked)
   node.set_meta("conditional_frame",conditional)
   if not fresh and (prev.get("card_id","")!=d.card_id or prev.get("art_id","")!=d.get("art_id","")):
    node.get_node("Face").material_override=material(d.card_id,d.get("art_id","")).duplicate()
@@ -533,7 +581,9 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   visuals.erase(key)
   stop_tween(key)
   node.get_node("Hit").collision_layer=0
-  if animate and not presented_moves.has(d.uid):
+  var current=now.get(d.uid,{})
+  var paged_out=current.get("zone","")==d.zone and current.get("owner",-1)==d.owner and (d.zone=="palette" or d.get("group","")=="unit")
+  if animate and not paged_out and not presented_moves.has(d.uid):
    var c=now.get(d.uid,{})
    var dest=zone_position(c.get("zone","grave"),d.owner)
    for group_key in next:
@@ -545,10 +595,11 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    animation_count+=1; mark_busy()
   else: node.queue_free()
  for who in range(2):
+  if not only_id.is_empty():continue
   update_pile("pdeck" if who==0 else "adeck",duel.players[who].deck,zone_position("deck",who),false)
   update_pile("pgrave" if who==0 else "agrave",duel.players[who].grave,zone_position("grave",who),true)
   update_pile("pexile" if who==0 else "aexile",duel.players[who].exile,zone_position("exile",who),true)
- if not duel.combat.is_empty() and duel.combat.get("attacker",{})!=last_combat.get("attacker",{}):
+ if only_id.is_empty() and not duel.combat.is_empty() and duel.combat.get("attacker",{})!=last_combat.get("attacker",{}):
   var key="card_"+str(duel.combat.attacker.uid)
   if visuals.has(key):
    var node=visuals[key]
@@ -559,7 +610,7 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    tween.tween_property(node,"position",d.at+Vector3(0,0.55,-1.4 if duel.combat.owner==local_seat else 1.4),0.2)
    tween.tween_property(node,"position",d.at,0.25)
    tweens[key]=tween; animation_count+=1; mark_busy()
- last_combat=duel.combat.duplicate(true)
+ if only_id.is_empty():last_combat=duel.combat.duplicate(true)
  descriptors=next
  old_cards=now
 
@@ -611,6 +662,14 @@ func stop_tween(key: String):
  if tweens.has(key):
   if tweens[key].is_valid(): tweens[key].kill()
   tweens.erase(key)
+
+func reset_tutorial_presentation():
+ if is_instance_valid(combat_tween) and combat_tween.is_valid():combat_tween.kill()
+ combat_tween=null
+ for key in tweens.keys():stop_tween(key)
+ combat_animating=false;damage_revealed=false;deferred_sync={}
+ combat_display_cards={};last_combat={};last_damage_batch=0
+ old_cards={};presented_moves={};busy_until=0
 func move_card(key: String,node: Node3D,d: Dictionary,animate: bool):
  stop_tween(key)
  if not animate:
@@ -769,6 +828,7 @@ func animate_combat_resolution():
  var home=attacker.position
  var duration=maxf(0.025,animation_duration*0.5)
  var sequence=create_tween()
+ combat_tween=sequence
  if fight.blockers.is_empty():
   last_collision_targets.append(0)
   var destination=home+Vector3(0,0.7,-5.1 if fight.owner==local_seat else 5.1)

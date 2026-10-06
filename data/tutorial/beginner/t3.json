@@ -1,0 +1,2413 @@
+{
+  "schema_version": 1,
+  "id": "t3",
+  "title": "学习单位牌",
+  "category": "beginner",
+  "initial_scenario": "intro_empty",
+  "start_step": "d1",
+  "completion": {
+    "type": "steps_completed",
+    "steps": [
+      "d1",
+      "d2",
+      "d3",
+      "d4",
+      "d5",
+      "d6",
+      "d7",
+      "d8",
+      "d9",
+      "d10",
+      "d11",
+      "d12",
+      "a1",
+      "d13",
+      "r1",
+      "d14",
+      "a3",
+      "a4",
+      "a5",
+      "a5_crystal",
+      "a6",
+      "a7",
+      "a8",
+      "d15",
+      "r2",
+      "d16",
+      "r3",
+      "d17"
+    ]
+  },
+  "scenarios": {
+    "intro_empty": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "unit_basics": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "hand": [
+            {
+              "card_id": "character-fdn-014",
+              "alias": "vampire_fairy_hand"
+            },
+            {
+              "card_id": "32",
+              "alias": "hina_hand"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "32",
+              "alias": "hina_field"
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "fairy_combat": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdn-014",
+              "alias": "fairy_attacker",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-mar-025",
+              "alias": "toki_blocker",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "remilia_combat": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "character-fdn-025"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "74",
+              "alias": "remilia_attacker",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "67",
+              "alias": "cloud_blocker",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "damage_task": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "54",
+              "alias": "titan",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdf-046",
+              "alias": "cloud"
+            },
+            {
+              "card_id": "character-rei-ex01",
+              "alias": "larva"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "block_0",
+            "event": "state_changed",
+            "when": {
+              "type": "all",
+              "conditions": [
+                {
+                  "type": "pending",
+                  "kind": "block",
+                  "owner": 1
+                },
+                {
+                  "type": "combat_attacker",
+                  "alias": "titan"
+                }
+              ]
+            },
+            "action": {
+              "type": "block",
+              "cards": [
+                {
+                  "alias": "cloud"
+                },
+                {
+                  "alias": "larva"
+                }
+              ]
+            },
+            "max_times": 1
+          },
+          {
+            "id": "pass_responses",
+            "event": "state_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 100
+          }
+        ]
+      }
+    },
+    "annihilate": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-ucs-061",
+              "alias": "tenshi",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdf-046",
+              "alias": "cloud_annihilate"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "brave": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "54",
+              "alias": "brave_titan",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "haste": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "character-fdn-025",
+            "alias": "sisters_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "hand": [
+            {
+              "card_id": "character-fdf-105",
+              "alias": "himekaidou"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "74"
+            },
+            {
+              "card_id": "74"
+            },
+            {
+              "card_id": "74"
+            },
+            {
+              "card_id": "character-lof-017"
+            },
+            {
+              "card_id": "character-lof-017"
+            }
+          ]
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "menace": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdn-068",
+              "alias": "lily_menace",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdf-046",
+              "alias": "cloud_menace"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "exorcise": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-rei-017",
+              "alias": "reimu_exorcise",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdf-046",
+              "alias": "cloud_exorcise"
+            },
+            {
+              "card_id": "character-rec-104",
+              "alias": "kosuzu"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "leader_task": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "character-fdn-025",
+            "alias": "sisters_to_cast"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "hand": [
+            {
+              "card_id": "character-rei-007"
+            },
+            {
+              "card_id": "character-fdn-043"
+            },
+            {
+              "card_id": "3"
+            },
+            {
+              "card_id": "169"
+            },
+            {
+              "card_id": "new-loc-005"
+            },
+            {
+              "card_id": "character-ucs-056"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "165",
+              "alias": "remilia_candlestick"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "pass_responses",
+            "event": "state_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 100
+          }
+        ]
+      }
+    },
+    "final_puzzle": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "character-rei-001",
+            "alias": "reimu_leader"
+          },
+          "deck_order": [],
+          "life": 20,
+          "hand": [
+            {
+              "card_id": "character-fdf-ex01",
+              "alias": "flandre_hand"
+            },
+            {
+              "card_id": "spell-rei-011",
+              "alias": "dream_bead"
+            },
+            {
+              "card_id": "spell-rei-002",
+              "alias": "spread_barrier"
+            },
+            {
+              "card_id": "123",
+              "alias": "tengu_defense"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "70",
+              "alias": "cute_reimu",
+              "state": {
+                "entered_turns": 1
+              }
+            },
+            {
+              "card_id": "character-fdn-014",
+              "alias": "vampire_fairy",
+              "state": {
+                "entered_turns": 1
+              }
+            },
+            {
+              "card_id": "field-fdn-016",
+              "alias": "rain_field"
+            },
+            {
+              "card_id": "field-rei-004",
+              "alias": "fixed_field"
+            },
+            {
+              "card_id": "item-fdn-044",
+              "alias": "radish"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "170"
+            },
+            {
+              "card_id": "field-fdn-016"
+            },
+            {
+              "card_id": "spell-rei-010"
+            },
+            {
+              "card_id": "spell-rei-010"
+            },
+            {
+              "card_id": "spell-rei-010"
+            }
+          ],
+          "state": {
+            "turns": 2
+          },
+          "leader_on_field": true
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "93",
+            "alias": "enemy_suwako"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "life": 11,
+          "field": [
+            {
+              "card_id": "roster_token_frog",
+              "token_value": 4,
+              "token_spirit": 2,
+              "alias": "frog_one",
+              "token_name": "青蛙衍生物"
+            },
+            {
+              "card_id": "roster_token_frog",
+              "token_value": 4,
+              "token_spirit": 2,
+              "alias": "frog_two",
+              "token_name": "青蛙衍生物"
+            },
+            {
+              "card_id": "roster_token_frog",
+              "token_value": 4,
+              "token_spirit": 2,
+              "alias": "frog_three",
+              "token_name": "青蛙衍生物"
+            },
+            {
+              "card_id": "42",
+              "alias": "enemy_seiga"
+            }
+          ],
+          "leader_on_field": true
+        }
+      ],
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "block_vampire_fairy_with_seiga",
+            "event": "state_changed",
+            "when": {
+              "type": "all",
+              "conditions": [
+                { "type": "pending", "kind": "block", "owner": 1 },
+                { "type": "combat_attacker", "alias": "vampire_fairy" },
+                { "type": "entity_zone", "alias": "enemy_seiga", "zone": "field" },
+                { "type": "entity_state", "alias": "enemy_seiga", "key": "tapped", "value": false }
+              ]
+            },
+            "action": {
+              "type": "block",
+              "cards": [{ "alias": "enemy_seiga" }]
+            },
+            "max_times": 1
+          },
+          {
+            "id": "puzzle_no_block",
+            "event": "state_changed",
+            "when": {
+              "type": "pending",
+              "kind": "block",
+              "owner": 1
+            },
+            "action": {
+              "type": "block",
+              "cards": []
+            },
+            "max_times": 20
+          },
+          {
+            "id": "pass_responses",
+            "event": "state_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 100
+          }
+        ]
+      }
+    },
+    "crystal": {
+      "type": "battlefield",
+      "seed": 20261003,
+      "turn": 3,
+      "phase": "main",
+      "first": 0,
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 2
+          },
+          "field": [
+            {
+              "card_id": "character-fdn-014",
+              "alias": "crystal_fairy",
+              "state": {
+                "entered_turns": 1
+              }
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "143",
+              "alias": "spent_black",
+              "state": {
+                "tapped": true
+              }
+            },
+            {
+              "card_id": "74",
+              "alias": "spent_red",
+              "state": {
+                "tapped": true
+              }
+            }
+          ]
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "turns": 1
+          },
+          "field": [
+            {
+              "card_id": "character-fdf-046",
+              "alias": "crystal_blocker"
+            }
+          ]
+        }
+      ],
+      "opponent": {
+        "strategy": "paused"
+      }
+    }
+  },
+  "steps": {
+    "d1": {
+      "type": "info",
+      "guide": {
+        "text": "本课聚焦单位牌。单位在战场上进攻、阻挡，也是取得胜利的重要力量。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d2"
+    },
+    "d2": {
+      "type": "info",
+      "guide": {
+        "text": "单位牌有名称、颜色与费用、种类、种族、攻击力、血量和灵力值；大多数还具有自己的能力。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d3"
+    },
+    "d3": {
+      "type": "info",
+      "guide": {
+        "text": "名称由称号和角色名组成。没有称号的单位，如「红魔馆的吸血鬼妖精」，只要满足费用和使用时机，就没有称号带来的同名限制。",
+        "focus": {
+          "alias": "vampire_fairy_hand"
+        }
+      },
+      "next": "d4",
+      "scenario": "unit_basics"
+    },
+    "d4": {
+      "type": "info",
+      "guide": {
+        "text": "有称号的同名单位已经在你战场上时，手中的同名单位不能再次使用。这里的两张「秘神流雏」具有相同称号和角色名。",
+        "focus": {
+          "alias": "hina_hand"
+        },
+        "targets": [
+          {
+            "alias": "hina_field"
+          }
+        ]
+      },
+      "next": "d5"
+    },
+    "d5": {
+      "type": "info",
+      "guide": {
+        "text": "颜色值是各颜色费用数值之和。牌自身的颜色决定它能作为哪种颜色的费用，也参与自机需要的颜色约束。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d6"
+    },
+    "d6": {
+      "type": "info",
+      "guide": {
+        "text": "单位分为普通单位与自机单位。普通单位满足费用和时机就能使用；自机单位还要满足场上的颜色约束。",
+        "focus": {
+          "alias": "vampire_fairy_hand"
+        }
+      },
+      "next": "d7"
+    },
+    "d7": {
+      "type": "info",
+      "guide": {
+        "text": "种族会影响部分牌的合法目标和效果。例如符卡夜王「Deacula Cradle」只能以吸血鬼单位为目标。",
+        "focus": {
+          "alias": "vampire_fairy_hand"
+        }
+      },
+      "next": "d8"
+    },
+    "d8": {
+      "type": "info",
+      "guide": {
+        "text": "你操控的单位、道具、结界都是永久物。它们在战场上的颜色合起来，可以满足自机单位的颜色约束。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d9"
+    },
+    "d9": {
+      "type": "info",
+      "guide": {
+        "text": "攻击力决定单位在战斗中对阻挡单位造成的伤害。遇到多个阻挡单位时，攻击方决定如何分配伤害。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d10"
+    },
+    "d10": {
+      "type": "info",
+      "guide": {
+        "text": "单位的当前血量等于血量上限减去已受伤害；伤害达到血量上限时，单位通常会被消灭。每个玩家回合结束时，存活单位的伤害会被清除。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d11"
+    },
+    "d11": {
+      "type": "info",
+      "guide": {
+        "text": "灵力值决定未被阻挡的攻击对玩家造成多少战斗伤害。阻挡单位与玩家受到的攻击伤害都属于战斗伤害。",
+        "focus": {
+          "alias": "remilia_leader"
+        }
+      },
+      "next": "d12"
+    },
+    "d12": {
+      "type": "info",
+      "guide": {
+        "text": "攻击会使单位横置，防守方可选择未横置的单位阻挡。通常只有竖直、并且不是本回合入场的单位能攻击；疾行是例外。"
+      },
+      "next": "a1"
+    },
+    "a1": {
+      "type": "info",
+      "guide": {
+        "text": "妖精与朱鹭子各造成 1 点战斗伤害，双方都存活；回合结束后两者受到的伤害已清除。"
+      },
+      "next": "d13",
+      "scenario": "fairy_combat",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "fairy_attacker"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "block",
+            "player": 1,
+            "cards": [
+              {
+                "alias": "toki_blocker"
+              }
+            ]
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "d13": {
+      "type": "info",
+      "guide": {
+        "text": "多个单位可以共同阻挡同一次攻击。接下来由你亲自指定埴轮泰坦的伤害分配。"
+      },
+      "next": "r1"
+    },
+    "r1": {
+      "type": "task",
+      "guide": {
+        "text": "用埴轮泰坦攻击。电脑将用云山与拉尔瓦共同阻挡；把 5 点伤害分配成云山 4 点、拉尔瓦 1 点，使云山死亡而拉尔瓦存活。"
+      },
+      "task": {
+        "timing": "state_changed",
+        "success": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "cloud",
+              "zone": "grave"
+            },
+            {
+              "type": "entity_zone",
+              "alias": "larva",
+              "zone": "field"
+            },
+            {
+              "type": "all",
+              "conditions": [
+                {
+                  "type": "entity_state",
+                  "alias": "titan",
+                  "key": "attacked",
+                  "value": true
+                },
+                {
+                  "type": "not",
+                  "condition": {
+                    "type": "combat_attacker",
+                    "alias": "titan"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "failure": {
+          "type": "any",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "larva",
+              "zone": "grave"
+            },
+            {
+              "type": "all",
+              "conditions": [
+                {
+                  "type": "all",
+                  "conditions": [
+                    {
+                      "type": "entity_state",
+                      "alias": "titan",
+                      "key": "attacked",
+                      "value": true
+                    },
+                    {
+                      "type": "not",
+                      "condition": {
+                        "type": "combat_attacker",
+                        "alias": "titan"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "entity_zone",
+                  "alias": "cloud",
+                  "zone": "field"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "next": "d14",
+      "scenario": "damage_task",
+      "failure": "r1",
+      "restore_on_failure": true
+    },
+    "d14": {
+      "type": "info",
+      "guide": {
+        "text": "做得好。接下来用实际战斗观察几个常见词条。"
+      },
+      "next": "a3"
+    },
+    "a3": {
+      "type": "info",
+      "guide": {
+        "text": "歼灭：天子对阻挡单位造成战斗伤害并将其消灭时，对方玩家也会受到天子的灵力值伤害。"
+      },
+      "next": "a4",
+      "scenario": "annihilate",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "tenshi"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "block",
+            "player": 1,
+            "cards": [
+              {
+                "alias": "cloud_annihilate"
+              }
+            ]
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "a4": {
+      "type": "info",
+      "guide": {
+        "text": "英勇：埴轮泰坦攻击后，在结束阶段开始时重置。"
+      },
+      "next": "a5",
+      "scenario": "brave",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "brave_titan"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "a5": {
+      "type": "info",
+      "guide": {
+        "text": "疾行：无间之钟「姬海棠果」在本回合入场后也能攻击；若同回合重新入场，可再次获得攻击机会。"
+      },
+      "next": "a5_crystal",
+      "scenario": "haste",
+      "sequence": {
+        "actions": [
+          {
+            "type": "cast",
+            "player": 0,
+            "card": {
+              "alias": "himekaidou"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "himekaidou"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "a6": {
+      "type": "info",
+      "guide": {
+        "text": "先制：三费云山先对三费蕾米莉亚造成 3 点伤害。蕾米莉亚被消灭，来不及反击。这就是先制改变战斗结果的例子。"
+      },
+      "next": "a7",
+      "scenario": "remilia_combat",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "remilia_attacker"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "block",
+            "player": 1,
+            "cards": [
+              {
+                "alias": "cloud_blocker"
+              }
+            ]
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "a7": {
+      "type": "info",
+      "guide": {
+        "text": "威吓：莉莉黑攻击时，对方只用一个云山不能阻挡，必须至少有两个合法阻挡单位。"
+      },
+      "next": "a8",
+      "scenario": "menace",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "lily_menace"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "a8": {
+      "type": "info",
+      "guide": {
+        "text": "退治：灵梦攻击时，妖怪云山不能阻挡；人类小铃可以阻挡。"
+      },
+      "next": "d15",
+      "scenario": "exorcise",
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "reimu_exorcise"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "block",
+            "player": 1,
+            "cards": [
+              {
+                "alias": "kosuzu"
+              }
+            ]
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      }
+    },
+    "d15": {
+      "type": "info",
+      "guide": {
+        "text": "自机牌既能作为套牌自机，也能作为卡组中的单位牌使用。作为辅机使用时，不获得印在牌上的自机能力；自机能力也可能通过其他效果获得。"
+      },
+      "next": "r2"
+    },
+    "r2": {
+      "type": "task",
+      "guide": {
+        "text": "场上的「蕾米莉亚的烛台」已提供红色。利用手牌建立其他颜色约束，并在本回合使用套牌自机「背德的姐妹」。",
+        "targets": [
+          {
+            "alias": "sisters_to_cast"
+          },
+          {
+            "alias": "remilia_candlestick"
+          }
+        ]
+      },
+      "task": {
+        "timing": "state_changed",
+        "success": {
+          "type": "entity_zone",
+          "alias": "sisters_to_cast",
+          "zone": "field"
+        }
+      },
+      "next": "d16",
+      "scenario": "leader_task"
+    },
+    "d16": {
+      "type": "info",
+      "guide": {
+        "text": "卡组内的自机牌作为辅机使用时没有自机能力；某些牌与效果能让战场单位获得自机能力。最后试着阅读牌面并赢下一盘残局。"
+      },
+      "next": "r3"
+    },
+    "r3": {
+      "type": "task",
+      "guide": {
+        "text": "终局练习：阅读双方自机、永久物和手牌的能力，在当前回合击败生命为 11 的电脑。可随时重置局面再试。"
+      },
+      "task": {
+        "timing": "state_changed",
+        "success": {
+          "type": "life",
+          "player": 1,
+          "value": 0,
+          "op": "le"
+        }
+      },
+      "next": "d17",
+      "scenario": "final_puzzle"
+    },
+    "d17": {
+      "type": "info",
+      "guide": {
+        "text": "恭喜你完成单位牌的基础练习。下一课将继续学习符卡。"
+      },
+      "next": "$complete"
+    },
+    "a5_crystal": {
+      "type": "info",
+      "scenario": "crystal",
+      "guide": {
+        "text": "结晶：吸血鬼妖精被云山阻挡并消灭后，选择一张已横置的颜色盘牌送入墓地，妖精从墓地竖直进入颜色盘。"
+      },
+      "sequence": {
+        "actions": [
+          {
+            "type": "attack",
+            "player": 0,
+            "card": {
+              "alias": "crystal_fairy"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "block",
+            "player": 1,
+            "cards": [
+              {
+                "alias": "crystal_blocker"
+              }
+            ]
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "choose_effect",
+            "player": 0,
+            "target": {
+              "none": true
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "choose_effect",
+            "player": 0,
+            "target": {
+              "alias": "spent_black"
+            }
+          },
+          {
+            "type": "pass_priority",
+            "player": 0
+          },
+          {
+            "type": "pass_priority",
+            "player": 1
+          }
+        ]
+      },
+      "next": "a6"
+    }
+  }
+}

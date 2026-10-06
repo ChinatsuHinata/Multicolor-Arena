@@ -11,35 +11,30 @@ var held=false
 var draggable=true
 var hold_to_drag=false
 var hold_to_remove=false
+var tap_action=false
+var long_press_enabled=true
 var is_android=OS.has_feature("android")
 var hold_timer: Timer
+var hold_ring: Control
 var hold_origin=Vector2.ZERO
 var face_texture: Texture2D
 var texture_provider: Callable
+func _notification(what):
+ if is_android and what==NOTIFICATION_WM_WINDOW_FOCUS_OUT:cancel_touch_hold()
 func _ready():
  focus_mode=Control.FOCUS_ALL
  focus_entered.connect(queue_redraw)
  focus_exited.connect(queue_redraw)
- mouse_entered.connect(func(): preview_requested.emit(card_id))
+ if not is_android:mouse_entered.connect(func(): preview_requested.emit(card_id))
  mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
- if is_android:
+ if is_android and long_press_enabled:
   hold_timer=Timer.new()
   hold_timer.one_shot=true
-  hold_timer.wait_time=1.0 if hold_to_remove else 0.55
-  hold_timer.timeout.connect(func():
-   if not dragged:
-    held=true
-    if hold_to_remove:
-     remove_requested.emit(card_id,source_zone,source_index)
-    elif hold_to_drag and draggable:
-     dragged=true
-     force_drag(drag_data(),drag_picture())
-    elif not hold_to_drag:art_requested.emit(card_id))
+  hold_timer.wait_time=1.0
   add_child(hold_timer)
 func _gui_input(event):
- if is_android and event is InputEventMouseMotion and hold_timer!=null and not hold_timer.is_stopped() and event.position.distance_to(hold_origin)>12:
-  hold_timer.stop()
-  held=true
+ if is_android and event is InputEventMouseMotion and event.position.distance_to(hold_origin)>12:
+  cancel_touch_hold()
  if event is InputEventMouseButton:
   if event.pressed:
    grab_focus()
@@ -47,11 +42,11 @@ func _gui_input(event):
    held=false
    if is_android and event.button_index==MOUSE_BUTTON_LEFT:
     hold_origin=event.position
-    hold_timer.start()
+    if long_press_enabled:begin_touch_hold(get_global_transform()*event.position)
   elif is_android:
-   if hold_timer!=null:hold_timer.stop()
-   if not dragged and not held and event.button_index==MOUSE_BUTTON_LEFT:
-    clicked.emit(card_id,source_zone,source_index,false)
+   var activate=tap_action and not dragged and not held and event.button_index==MOUSE_BUTTON_LEFT
+   cancel_touch_hold()
+   if activate:held=false;clicked.emit(card_id,source_zone,source_index,false)
   elif not dragged and event.button_index==MOUSE_BUTTON_MIDDLE:
    art_requested.emit(card_id)
    accept_event()
@@ -60,13 +55,25 @@ func _gui_input(event):
 func _get_drag_data(_at):
  if not draggable:return null
  dragged=true
- if hold_timer!=null:hold_timer.stop()
+ cancel_touch_hold()
  set_drag_preview(drag_picture())
  return drag_data()
 
 func cancel_touch_hold():
  if hold_timer!=null:hold_timer.stop()
+ if is_instance_valid(hold_ring):hold_ring.queue_free()
+ hold_ring=null
  held=true
+
+func begin_touch_hold(point: Vector2):
+ cancel_touch_hold();held=false
+ hold_timer.start()
+ hold_ring=preload("res://scripts/card_hold_ring.gd").new()
+ hold_ring.valid=func():return is_visible_in_tree() and not is_queued_for_deletion() and not dragged and not held
+ get_viewport().add_child(hold_ring);hold_ring.position=point
+ hold_ring.completed.connect(func():
+  held=true;hold_timer.stop()
+  clicked.emit(card_id,source_zone,source_index,false))
 
 func drag_data() -> Dictionary:
  return {"card_id":card_id,"source_zone":source_zone,"source_index":source_index}

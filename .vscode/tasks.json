@@ -191,13 +191,135 @@
       "group": "build",
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
       "problemMatcher": []
+    },
+    {
+      "label": "发布: 创建 Windows 和 Android PCK 补丁",
+      "detail": "读取 D:\\Program Files (x86)\\MulticolorArena 的发行 PCK 及本机已安装的签名补丁链，自动识别实际运行版本；Windows 以合成后的完整 PCK 做差分，Android 使用同版本平台快照。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/build-pck-patch.ps1",
+        "-UseInstalledWindowsPck"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "PCK: 仅重新签名封装双端补丁",
+      "detail": "自动读取本机安装版的实际版本，重新封装该版本到 project.godot 版本的已导出补丁。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/build-pck-patch.ps1",
+        "-UseInstalledWindowsPck",
+        "-SkipExport"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "发布: 创建并推送双端 PCK 差分更新包到云端",
+      "detail": "检查云端版本，以本机安装版 PCK 和已安装补丁链生成相邻差分；同时保留固定基底累计补丁，验签并合并版本链后上传。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/publish-pck-update.ps1",
+        "-UseInstalledWindowsPck",
+        "-Publish"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "PCK: 推送已构建差分更新包到云端",
+      "detail": "按本机安装版实际版本读取已构建相邻补丁，并读取 1.2.7.1 累计补丁；合并签名版本链后上传 ECS。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/publish-pck-update.ps1",
+        "-UseInstalledWindowsPck",
+        "-SkipBuild",
+        "-Publish"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "PCK: 覆盖云端当前同版本补丁",
+      "detail": "显式允许覆盖云端当前版本，复用已构建双端补丁并更新签名清单；已有同版本客户端不会重新下载，修复应优先提升版本号。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/publish-pck-update.ps1",
+        "-UseInstalledWindowsPck", "-SkipBuild", "-Publish", "-ReplaceExisting"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "PCK: 用虚拟新版本测试安装版自动更新",
+      "detail": "复制实际发行 EXE/PCK 和已安装补丁链，自动取高于当前源码的新版本；制作真实差分，使用独立测试密钥及回环 HTTP 验证登录下载、安装、重启资源和避免重复下载。报告保存在 builds/pck-tests。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/test-installed-pck-update.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "PCK: 检查云端推送连接",
+      "detail": "仅检查 ECS SSH 连接和认证，不构建或上传补丁。连接失败时显示 SSH 原始错误。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/tools/publish-pck-update.ps1",
+        "-CheckConnection"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
     }
   ],
   "inputs": [
     {
       "id": "patchFromVersion",
       "type": "promptString",
-      "description": "输入要升级的旧版本号（对应 builds/installer-staging/<旧版本>）"
+      "description": "输入要升级的旧版本号（目标版本自动读取 project.godot）"
     }
   ]
 }

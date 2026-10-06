@@ -40,7 +40,7 @@ func run():
  expect(e.pending.get("trigger",{}).get("effect","")=="cat:momiji_name","雪中椛进场有待选卡名的触发")
  expect(view.modal and is_instance_valid(view.modal_root) and not view.stack_panel.visible,"卡名检索窗口独立置顶，堆叠让出输入区域")
  var panel=view.modal_root.find_child("CardNameSearchPanel",true,false)
- expect(panel!=null and panel.get_global_rect().get_center().distance_to(Vector2(800,450))<1,"卡名检索窗口使用居中的共用面板")
+ expect(panel!=null and panel.get_parent().get_rect().get_center().distance_to(view.host.ui_metrics.safe.get_center())<1,"卡名检索窗口使用居中的共用面板")
  if panel==null:quit(1);return
  var search=panel.find_child("SearchInput",true,false)
  var results=panel.find_child("SearchResults",true,false)
@@ -58,6 +58,11 @@ func run():
  await press("确定");await settle()
  expect(e.pending.is_empty() and momiji.locked_name==chosen_name,"鼠标选择名称并确认后，椛记录正式卡名")
  expect(not view.modal,"选名结束后返回对局")
+ clean(true)
+ momiji=e.make_card("character-fdf-101",0,"hand");e.enter_field(momiji,0);e.pump_choices();view.render();await settle()
+ expect(view.modal_root.find_child("CardNameSearchPanel",true,false)!=null,"椛再次进场打开选名窗口")
+ await press("不选择名称");await settle()
+ expect(e.pending.is_empty() and not momiji.has("locked_name") and not view.modal,"不选名称后结束选择并返回对局")
  app.editor();await process_frame
  app.query="照国";app.update_library();await process_frame
  # The renderer filters aliases; keeping the old ID still lets old deck files load.

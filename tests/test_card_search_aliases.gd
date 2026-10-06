@@ -24,6 +24,12 @@ func _initialize():
  for id in ["39","character-ucs-038"]:
   expect(Store.CARDS[id].cost.values().reduce(func(n,v):return n+int(v),0)==3,"small alias identifies a three-cost unit: "+id)
  expect(found(" UU ",rules)==found("uu",rules),"aliases ignore case and outer whitespace")
+ for term in ["神ノ风","神风","神之风"]:
+  expect(found(term,rules).has("134"),"printed ノ spell is found through "+term)
+ expect(Aliases.name_contains("幻波ノ影、狂气ノ瞳","幻波之影、狂气瞳"),"each ノ can use a different spelling")
+ expect(not Aliases.name_contains("神风","神之风"),"之 only substitutes for a printed ノ")
+ var spell_names=Aliases.matching_names(Store.CARDS,Aliases.prepare_query(Store.CARDS,"神之风",rules))
+ expect(spell_names.has(Store.CARDS["134"].name),"name declaration finds the printed spell through 之")
  expect(Aliases.find_rule(rules,"紫饼")==null,"unknown color is not a mana-item alias")
  expect(not rules["饼"].has("colors"),"color modifier leaves the shared base rule unchanged")
  var query=Aliases.prepare_query(Store.CARDS,"小妖梦",rules)

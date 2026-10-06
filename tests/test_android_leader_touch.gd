@@ -40,7 +40,11 @@ func run():
  view.cancel_cast()
  view.inspect_id="";view.update_inspection()
  await touch(enemy_at)
- expect(view.inspect_uid==e.players[1].leader.uid and view.inspection.visible,"native enemy leader tap opens its card details")
+ expect(not view.inspection.visible,"native enemy leader tap leaves details closed")
+ var event=InputEventScreenTouch.new();event.index=0;event.position=enemy_at;event.pressed=true
+ root.push_input(event,true);await create_timer(1.12).timeout
+ expect(view.inspect_uid==e.players[1].leader.uid and view.inspection.visible,"one-second enemy leader hold opens its card details")
+ event=event.duplicate();event.pressed=false;root.push_input(event,true);await process_frame
  view.inspect_id="";view.update_inspection()
  var hand_card=put("100","hand")
  view.render();await settle()

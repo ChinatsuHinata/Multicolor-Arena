@@ -1,0 +1,8 @@
+{
+  "lessons": [
+    "res://data/tutorial/beginner/t1.json",
+    "res://data/tutorial/beginner/t2.json",
+    "res://data/tutorial/beginner/t3.json",
+    "res://data/tutorial/beginner/t4.json"
+  ]
+}

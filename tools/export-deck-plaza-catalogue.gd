@@ -15,8 +15,7 @@ func _initialize():
    if not str(alias).begins_with("_") and Aliases.card_matches(info,rules[alias],id):search.append(alias)
   var art_ids=[]
   for variant in Art.options(id,Store.CARDS):art_ids.append(variant.id)
-  var canonical_info=Store.CARDS.get(canonical,info)
-  var exclude=canonical in ["128","character-soi-006"] or "极彩" in info.get("keywords",[]) or "极彩" in canonical_info.get("keywords",[])
+  var exclude=Store.excludes_deck_colors(id)
   cards[id]={"name":info.name,"leader":info.kind=="自机","constructible":info.get("constructible",false) and not info.get("token",false),"canonical":canonical,"colors":info.colors,"search":search,"arts":art_ids,"exclude_colors":exclude}
  var file=FileAccess.open("res://relay/deck_plaza_catalogue.json",FileAccess.WRITE)
  if file==null:push_error("Could not write deck plaza catalogue");quit(1);return

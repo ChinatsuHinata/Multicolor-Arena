@@ -2,10 +2,13 @@ extends Control
 var app
 var session
 var body: Control
+var back_button: Button
+var header_mode_button: Button
 var status_label: Label
 var latency_label: Label
 var name_input: LineEdit
 var address_input: LineEdit
+var mode_selected=false
 var cloud_selected=false
 var cloud_directory
 var cloud_title_input: LineEdit
@@ -23,16 +26,31 @@ var rooms_list: VBoxContainer
 var signature=""
 var deck_index=0
 var last_error=""
+
+func deck_choice_button(parent: Node,rect: Rect2=Rect2()) -> Button:
+ deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1))
+ var button=app.button(parent,app.deck_choice_caption(deck_index),rect,func():
+  var current_id=str(app.decks[deck_index].id) if not app.decks.is_empty() else ""
+  app.open_deck_picker(func(index):deck_index=index;refresh(true),current_id,"选择联机套牌"))
+ button.name="NetworkDeckSelect";button.disabled=session.read_only
+ button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ if rect==Rect2():
+  app.ui_metrics.button(button);button.custom_minimum_size.x=0
+  button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ return button
+
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ if not session.room_id.is_empty() or session.joining:
+  mode_selected=true;cloud_selected=session.cloud_mode
  cloud_directory=preload("res://net/cloud_directory.gd").new();add_child(cloud_directory)
  cloud_directory.changed.connect(refresh_cloud_rooms)
  cloud_directory.failed.connect(show_error)
  session.changed.connect(refresh);session.error_raised.connect(show_error)
- app.header("联机对战",func():
+ back_button=app.header("联机对战",func():
   if session.disconnected_at>0:session.stop_waiting()
   else:session.leave(false)
-  app.menu())
+  app.menu(),header_cloud_size().x+app.ui_metrics.gap)
  status_label=app.label(self,"",Rect2(0,116,app.screen.size.x,66) if app.is_android else Rect2(70,118,1460,65),20,app.GOLD);status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  body=Control.new();add_child(body)
  if app.is_android:
@@ -47,44 +65,85 @@ func _process(_delta):
  if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
 func refresh(force: bool=false):
  status_label.text=last_error if not last_error.is_empty() else session.notice if not session.notice.is_empty() else session.discovery.error
- var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,cloud_selected])
+ var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,mode_selected,cloud_selected,session.cloud_mode])
  if force or next!=signature:
   signature=next
-  rooms_list=null;latency_label=null
+  rooms_list=null;cloud_rooms_list=null;latency_label=null
   for child in body.get_children():body.remove_child(child);child.queue_free()
   if not app.is_android:
    body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-   body.offset_top=185 if cloud_selected or session.cloud_mode else 0
-  if app.is_android:
-   if session.room_id.is_empty() and cloud_selected:build_cloud_home()
-   elif session.room_id.is_empty():build_mobile_home()
-   elif session.cloud_mode and session.room.get("status","")=="lobby":build_cloud_room_lobby()
-   else:build_responsive_room()
-  elif session.room_id.is_empty() and cloud_selected:build_cloud_home()
-  elif session.room_id.is_empty():build_home()
+   body.offset_top=185 if not mode_selected or cloud_selected or session.cloud_mode else 0
+  if session.room_id.is_empty():
+   if not mode_selected:build_mode_selection()
+   elif cloud_selected:build_cloud_home()
+   elif app.is_android:build_mobile_home()
+   else:build_home()
   elif session.cloud_mode and session.room.get("status","")=="lobby":build_cloud_room_lobby()
-  elif session.cloud_mode:build_responsive_room()
+  elif app.is_android or session.cloud_mode:build_responsive_room()
   else:build_room()
+  refresh_header_mode_button()
  refresh_rooms()
  refresh_cloud_rooms()
 
 func set_cloud_mode(enabled: bool):
+ if enabled and app.cloud_match_blocked():
+  app.explain_cloud_match_block();return
  if enabled and app.account_token.is_empty():
   app.alert("请先在主菜单的玩家账号中登录，再进入云端。","需要登录");refresh(true);return
- cloud_selected=enabled
+ mode_selected=true;cloud_selected=enabled;last_error=""
  session.cloud_token=app.account_token;session.cloud_nickname=app.account_nickname
  if enabled:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token)
  else:cloud_directory.stop()
  refresh(true)
 
-func mode_switch(parent: Node):
- var toggle=CheckButton.new();toggle.name="CloudModeSwitch";toggle.text="云端联机（关闭为局域网）";toggle.button_pressed=cloud_selected;parent.add_child(toggle)
- toggle.toggled.connect(set_cloud_mode)
- return toggle
+func build_mode_selection():
+ var root=mobile_scroll();root.name="OnlineModeSelection"
+ root.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var center=CenterContainer.new();root.add_child(center)
+ center.size_flags_horizontal=Control.SIZE_EXPAND_FILL;center.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var content=VBoxContainer.new();center.add_child(content)
+ content.add_theme_constant_override("separation",int(app.ui_metrics.gap*2))
+ var heading=mobile_text(content,"选择联机方式",true);heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var choices=HBoxContainer.new() if body.size.x>=640 else VBoxContainer.new();content.add_child(choices)
+ choices.add_theme_constant_override("separation",int(app.ui_metrics.gap*2))
+ var cloud=mobile_action(choices,"云端",func():set_cloud_mode(true),true);cloud.name="ChooseCloudMode"
+ var lan=mobile_action(choices,"局域网",func():set_cloud_mode(false));lan.name="ChooseLanMode"
+ for button in [cloud,lan]:
+  button.custom_minimum_size=Vector2(minf(280,body.size.x-app.ui_metrics.padding*2),maxf(112,app.ui_metrics.hit*1.5))
+  button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  button.add_theme_font_size_override("font_size",app.ui_metrics.title)
+ var note=mobile_text(content,"云端可跨网络对战；局域网可连接同一网络内的玩家。")
+ note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+
+func header_cloud_size() -> Vector2:
+ var height=maxf(100,app.ui_metrics.hit)
+ return Vector2(height*2.2,height)
+
+func refresh_header_mode_button():
+ if is_instance_valid(header_mode_button):
+  remove_child(header_mode_button);header_mode_button.queue_free();header_mode_button=null
+ if not mode_selected or not session.room_id.is_empty():return
+ var gap=app.ui_metrics.gap
+ if cloud_selected:
+  var width=maxf(back_button.size.x,app.ui_metrics.body*3+app.ui_metrics.padding*2)
+  var rect=Rect2(back_button.position-Vector2(width+gap,0),Vector2(width,back_button.size.y))
+  header_mode_button=app.button(self,"局域网",rect,func():set_cloud_mode(false))
+  header_mode_button.name="LanModeButton"
+ else:
+  var extent=header_cloud_size()
+  var origin=Vector2(back_button.position.x-extent.x-gap,maxf(0,back_button.position.y+(back_button.size.y-extent.y)*0.5))
+  header_mode_button=cloud_entry(self,Rect2(origin,extent))
+
+func cloud_entry(parent: Node,rect: Rect2) -> Button:
+ var button=preload("res://net/cloud_mode_button.gd").new();button.name="CloudModeButton"
+ button.add_theme_font_size_override("font_size",maxi(30,app.ui_metrics.title))
+ button.position=rect.position;button.custom_minimum_size=rect.size;button.size=rect.size
+ button.pressed.connect(func():set_cloud_mode(true))
+ parent.add_child(button)
+ return button
 func input(text: String,rect: Rect2) -> LineEdit:
  var edit=LineEdit.new();edit.position=rect.position;edit.size=rect.size;edit.text=text;body.add_child(edit);return edit
 func build_home():
- mode_switch(body).position=Vector2(1270,127)
  app.box(body,Rect2(70,190,500,620));app.box(body,Rect2(600,190,930,620))
  app.label(body,"显示 ID",Rect2(100,210,120,35),21)
  name_input=input(session.identity.nickname,Rect2(230,208,302,44));name_input.max_length=20
@@ -117,27 +176,29 @@ func build_home():
  app.label(body,"发现的房间",Rect2(625,208,500,43),25,app.GOLD)
  var scroll=ScrollContainer.new();scroll.position=Vector2(625,264);scroll.size=Vector2(877,194);scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(scroll)
  rooms_list=VBoxContainer.new();rooms_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rooms_list.add_theme_constant_override("separation",12);scroll.add_child(rooms_list)
- app.label(body,"切换上方开关查看云端房间",Rect2(625,472,700,50),22,app.GOLD)
  app.label(body,"输入地址加入",Rect2(625,638,210,40),21)
  address_input=input("",Rect2(625,690,620,49));address_input.placeholder_text="房主 IP、域名或 地址:UDP端口"
  app.button(body,"加入",Rect2(1265,690,108,49),func():join(address_input.text,int(port_input.value)),true)
  app.button(body,"观战",Rect2(1383,690,117,49),func():watch(address_input.text,int(port_input.value)))
- app.label(body,"云中转使用 WebSocket；局域网直连使用 UDP。",Rect2(625,753,855,38),17,app.MUTED)
+ app.label(body,"点击返回按钮旁的云朵进入云端联机。",Rect2(625,753,855,38),17,app.MUTED)
 func join(address: String,port: int):
  session.set_display_name(name_input.text)
  var error=session.join_room(address,port)
  if not error.is_empty():show_error(error)
 func create_relay():
+ if app.cloud_match_blocked():app.explain_cloud_match_block();return
  last_error=""
  var error=session.create_relay_room(DEFAULT_RELAY_SERVER,3 if format_input.selected==0 else 1,strict_input.button_pressed,app.RuleSet.IDS[rule_input.selected],cloud_title_input.text,cloud_password_input.text,cloud_host_slot.selected+1)
  if not error.is_empty():show_error(error)
 
 func join_cloud_room(info: Dictionary,slot: int,password: String=""):
+ if app.cloud_match_blocked():app.explain_cloud_match_block();return
  last_error=""
  var error=session.join_relay_room(DEFAULT_RELAY_SERVER,str(info.id),false,slot,password)
  if not error.is_empty():show_error(error)
 
 func choose_cloud_room_seat(info: Dictionary,slot: int):
+ if app.cloud_match_blocked():app.explain_cloud_match_block();return
  if not info.get("locked",false):
   join_cloud_room(info,slot)
   return
@@ -174,7 +235,6 @@ func choose_cloud_room_seat(info: Dictionary,slot: int):
 
 func build_cloud_home():
  var root=mobile_scroll()
- mode_switch(root)
  mobile_text(root,"云端房间 · "+app.account_nickname,true)
  var create_width=maxf(480,app.ui_metrics.body*20+app.ui_metrics.padding*2)
  var directory_width=maxf(660,app.ui_metrics.body*16)
@@ -318,18 +378,11 @@ func build_cloud_room_lobby():
   action_panel.size_flags_stretch_ratio=1.0
  if session.read_only:
   mobile_text(actions,"观战中 · 对局开始后自动进入战场")
-  var watch_pick=OptionButton.new();actions.add_child(watch_pick)
-  for deck in app.decks:watch_pick.add_item(deck.name)
-  app.ui_metrics.button(watch_pick);watch_pick.disabled=true
+  deck_choice_button(actions)
   mobile_action(actions,"选择此卡组",func():pass).disabled=true
  else:
   mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
-  var pick=OptionButton.new();actions.add_child(pick)
-  app.enable_android_popup_swipe(pick.get_popup())
-  for deck in app.decks:pick.add_item(deck.name)
-  deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
-  pick.item_selected.connect(func(index):deck_index=index)
-  app.ui_metrics.button(pick)
+  deck_choice_button(actions)
   mobile_action(actions,"选择此卡组",func():
    if app.decks.is_empty():return
    var deck=app.Store.clean_deck(app.decks[deck_index])
@@ -399,10 +452,7 @@ func build_room():
   app.label(body,"对手："+("已准备" if room.ready[other] else "未准备"),Rect2(105,lobby_row_y,620,42),21)
   if room.status=="lobby":
    if room.get("rematch",false):app.label(body,"新的一场 · 可重新选择卡组",Rect2(800,lobby_row_y,560,40),21,app.GOLD)
-   var pick=OptionButton.new();pick.position=Vector2(105,deck_row_y);pick.size=Vector2(665,51);body.add_child(pick)
-   for deck in app.decks:pick.add_item(deck.name)
-   deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
-   pick.item_selected.connect(func(index):deck_index=index)
+   deck_choice_button(body,Rect2(105,deck_row_y,665,51))
    app.button(body,"选择此卡组",Rect2(800,deck_row_y,270,51),func():
     if app.decks.is_empty():return
     var deck=app.Store.clean_deck(app.decks[deck_index])
@@ -465,7 +515,7 @@ func mobile_edit(parent: Node,value: String="",password: bool=false) -> LineEdit
 
 func build_mobile_home():
  var root=mobile_scroll()
- mode_switch(root)
+ mobile_text(root,"局域网联机",true)
  var columns=HBoxContainer.new();root.add_child(columns)
  var create=mobile_panel(columns)
  mobile_text(create,"创建房间",true)
@@ -560,12 +610,7 @@ func build_responsive_room():
  elif room.status in ["lobby","between"]:
   mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
   if room.status=="lobby":
-   var pick=OptionButton.new();actions.add_child(pick)
-   app.enable_android_popup_swipe(pick.get_popup())
-   for deck in app.decks:pick.add_item(deck.name)
-   deck_index=clampi(deck_index,0,maxi(0,app.decks.size()-1));pick.selected=deck_index
-   pick.item_selected.connect(func(index):deck_index=index)
-   app.ui_metrics.button(pick)
+   deck_choice_button(actions)
    mobile_action(actions,"选择此卡组",func():
     if app.decks.is_empty():return
     var deck=app.Store.clean_deck(app.decks[deck_index])

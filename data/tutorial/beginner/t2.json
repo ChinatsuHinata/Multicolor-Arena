@@ -1,0 +1,1978 @@
+{
+  "schema_version": 1,
+  "id": "t2",
+  "title": "极彩对战的开局",
+  "category": "beginner",
+  "initial_scenario": "opening_hand",
+  "start_step": "d1",
+  "completion": {
+    "type": "steps_completed",
+    "steps": [
+      "d1",
+      "d2",
+      "r1",
+      "d3",
+      "d4",
+      "d6",
+      "d7",
+      "r2",
+      "d8",
+      "d9",
+      "d10",
+      "d11",
+      "r3",
+      "d12",
+      "r4",
+      "d13",
+      "d14",
+      "d15",
+      "r5",
+      "d16",
+      "r6",
+      "d17"
+    ]
+  },
+  "scenarios": {
+    "opening_hand": {
+      "type": "battlefield",
+      "seed": 20261002,
+      "first": 0,
+      "turn": 0,
+      "phase": "mulligan",
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "hand": [
+            {
+              "card_id": "129",
+              "alias": "wing"
+            },
+            {
+              "card_id": "character-fdn-068",
+              "alias": "lily_black"
+            },
+            {
+              "card_id": "spell-fdn-008",
+              "alias": "night_king"
+            },
+            {
+              "card_id": "character-fdf-065",
+              "alias": "fire_person"
+            }
+          ],
+          "deck_order": [
+            {
+              "card_id": "character-fdn-048"
+            },
+            {
+              "card_id": "character-fdn-048"
+            },
+            {
+              "card_id": "143",
+              "alias": "black_resource"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            }
+          ],
+          "state": {
+            "turns": 0,
+            "mulligan_done": false
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70",
+            "alias": "reimu_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "potato": true,
+            "turns": 0,
+            "mulligan_done": true
+          },
+          "hand": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "components": {
+        "interaction": {
+          "enabled": true
+        }
+      },
+      "opponent": {
+        "strategy": "paused"
+      }
+    },
+    "first_main": {
+      "type": "battlefield",
+      "seed": 20261002,
+      "first": 0,
+      "turn": 1,
+      "phase": "main",
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "hand": [
+            {
+              "card_id": "129",
+              "alias": "wing"
+            },
+            {
+              "card_id": "character-fdn-068",
+              "alias": "lily_black"
+            },
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_one"
+            },
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_two"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "143",
+              "alias": "black_resource"
+            }
+          ],
+          "deck_order": [
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "spell-fdn-008"
+            },
+            {
+              "card_id": "character-fdf-065"
+            }
+          ],
+          "state": {
+            "turns": 1
+          }
+        },
+        {
+          "name": "电脑",
+          "leader": {
+            "card_id": "70",
+            "alias": "reimu_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "potato": true,
+            "turns": 0
+          },
+          "hand": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "components": {
+        "interaction": {
+          "enabled": true
+        }
+      },
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "pass_responses",
+            "event": "priority_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 20
+          }
+        ]
+      }
+    },
+    "second_main": {
+      "type": "battlefield",
+      "seed": 20261002,
+      "first": 0,
+      "turn": 3,
+      "phase": "prepare",
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "hand": [
+            {
+              "card_id": "129",
+              "alias": "wing"
+            },
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_one"
+            },
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_two"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdn-068",
+              "alias": "lily_black",
+              "state": {
+                "entered": 1,
+                "entered_turns": 1,
+                "color_counters": [
+                  "红"
+                ]
+              }
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "143",
+              "alias": "black_resource"
+            },
+            {
+              "card_id": "143",
+              "alias": "new_resource"
+            }
+          ],
+          "deck_order": [
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "spell-fdn-008"
+            },
+            {
+              "card_id": "character-fdf-065"
+            }
+          ],
+          "state": {
+            "turns": 2
+          }
+        },
+        {
+          "name": "电脑",
+          "life": 20,
+          "leader": {
+            "card_id": "70",
+            "alias": "reimu_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "potato": true,
+            "turns": 1
+          },
+          "hand": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "components": {
+        "interaction": {
+          "enabled": true
+        }
+      },
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "pass_responses",
+            "event": "priority_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 30
+          }
+        ]
+      }
+    },
+    "third_main": {
+      "type": "battlefield",
+      "seed": 20261002,
+      "first": 0,
+      "turn": 5,
+      "phase": "prepare",
+      "active": 0,
+      "priority": 0,
+      "players": [
+        {
+          "name": "学员",
+          "leader": {
+            "card_id": "74",
+            "alias": "remilia_leader"
+          },
+          "hand": [
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_two"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            }
+          ],
+          "field": [
+            {
+              "card_id": "character-fdn-068",
+              "alias": "lily_black",
+              "state": {
+                "entered": 1,
+                "entered_turns": 1,
+                "color_counters": [
+                  "红"
+                ]
+              }
+            },
+            {
+              "card_id": "token-kmo-027",
+              "alias": "bat_one",
+              "state": {
+                "entered": 3,
+                "entered_turns": 2,
+                "token_colors": [
+                  "红",
+                  "黑"
+                ]
+              }
+            },
+            {
+              "card_id": "token-kmo-027",
+              "alias": "bat_two",
+              "state": {
+                "entered": 3,
+                "entered_turns": 2,
+                "token_colors": [
+                  "红",
+                  "黑"
+                ]
+              }
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "character-fdn-048",
+              "alias": "remilia_one"
+            },
+            {
+              "card_id": "143",
+              "alias": "black_resource"
+            },
+            {
+              "card_id": "143",
+              "alias": "new_resource"
+            }
+          ],
+          "grave": [
+            {
+              "card_id": "129",
+              "alias": "wing"
+            }
+          ],
+          "deck_order": [
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "143"
+            },
+            {
+              "card_id": "spell-fdn-008"
+            },
+            {
+              "card_id": "character-fdf-065"
+            }
+          ],
+          "state": {
+            "turns": 3
+          }
+        },
+        {
+          "name": "电脑",
+          "life": 19,
+          "leader": {
+            "card_id": "70",
+            "alias": "reimu_leader"
+          },
+          "deck_order": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "palette": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ],
+          "state": {
+            "potato": true,
+            "turns": 2
+          },
+          "hand": [
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            },
+            {
+              "card_id": "character-soi-006"
+            }
+          ]
+        }
+      ],
+      "components": {
+        "interaction": {
+          "enabled": true
+        }
+      },
+      "opponent": {
+        "strategy": "rules",
+        "rules": [
+          {
+            "id": "pass_responses",
+            "event": "priority_changed",
+            "when": {
+              "type": "priority",
+              "value": 1
+            },
+            "action": "pass_priority",
+            "max_times": 40
+          }
+        ]
+      }
+    }
+  },
+  "steps": {
+    "d1": {
+      "type": "info",
+      "camera_view": "enemy_palette",
+      "guide": {
+        "text": "现在开始一次开局。电脑赢得骰子后选择了后手；后手玩家得到一张秋瓤子的红薯，可当作任意一费使用。",
+        "targets": [
+          {
+            "player": 1
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "d2"
+    },
+    "d2": {
+      "type": "info",
+      "camera_view": "battlefield",
+      "guide": {
+        "text": "起始时双方各抽四张牌。可以把不需要的起手牌洗入牌库底，再补抽相同数量。观察这四张牌，先找出颜色值较高的两张。",
+        "next_button": "manual"
+      },
+      "next": "r1"
+    },
+    "r1": {
+      "type": "task",
+      "guide": {
+        "layout": "side",
+        "popup": "show",
+        "next_button": "hidden",
+        "text": "请在手牌中选择两张高费卡牌调度下去，通过右键或长按可以详细观看卡牌效果。"
+      },
+      "task": {
+        "timing": "mulligan_selection",
+        "required_aliases": [
+          "night_king",
+          "fire_person"
+        ]
+      },
+      "next": "d3"
+    },
+    "d3": {
+      "type": "info",
+      "guide": {
+        "text": "调度完成，你是先手。准备阶段会重置战场与颜色盘中的牌，并从牌库顶放一张牌进颜色盘；一些能力也会在此时触发。",
+        "next_button": "manual"
+      },
+      "next": "d4"
+    },
+    "d4": {
+      "type": "info",
+      "guide": {
+        "text": "接着是抓牌阶段。先手玩家的第一回合不抓牌；每个阶段开始后，双方仍有响应的机会。",
+        "next_button": "manual"
+      },
+      "next": "d6"
+    },
+    "d6": {
+      "type": "info",
+      "camera_view": "own_palette",
+      "guide": {
+        "text": "凭依阶段可以交换手牌与颜色盘中的一张未横置牌。每张牌通常只能支付一费；本回合先不凭依。",
+        "targets": [
+          {
+            "alias": "black_resource"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "d7"
+    },
+    "d7": {
+      "type": "info",
+      "camera_view": "battlefield",
+      "guide": {
+        "text": "进入主要阶段。颜色盘里有一张可支付黑费的牌，正好能使用手中的一黑费单位莉莉黑。使用前可右键或长按查看卡牌详情。",
+        "targets": [
+          {
+            "alias": "lily_black"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "r2",
+      "scenario": "first_main"
+    },
+    "r2": {
+      "type": "task",
+      "guide": {
+        "text": "使用莉莉黑，并在入场颜色选择中选红色。等待她实际进入战场。",
+        "popup": "show",
+        "next_button": "hidden",
+        "targets": [
+          {
+            "alias": "lily_black"
+          }
+        ],
+        "layout": "side"
+      },
+      "task": {
+        "timing": "state_changed",
+        "required_choice": {
+          "effect": "lily_color",
+          "color": "红"
+        },
+        "success": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "lily_black",
+              "zone": "field"
+            },
+            {
+              "type": "entity_color_counter",
+              "alias": "lily_black",
+              "color": "红"
+            }
+          ]
+        }
+      },
+      "next": "d8"
+    },
+    "d8": {
+      "type": "info",
+      "guide": {
+        "text": "单位通常在入场的回合不能攻击。第一回合先结束；接下来由电脑行动。",
+        "next_button": "manual"
+      },
+      "next": "d9"
+    },
+    "d9": {
+      "type": "info",
+      "guide": {
+        "text": "电脑没有使用牌，直接结束回合。现在准备观察你的下一回合。",
+        "next_button": "manual"
+      },
+      "next": "d10"
+    },
+    "d10": {
+      "type": "info",
+      "scenario": "second_main",
+      "camera_view": "own_palette",
+      "guide": {
+        "text": "回到你的回合：之前横置的费用牌已经重置，颜色盘又加入一张竖直的牌。",
+        "targets": [
+          {
+            "alias": "black_resource"
+          },
+          {
+            "alias": "new_resource"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "d11"
+    },
+    "d11": {
+      "type": "info",
+      "guide": {
+        "text": "本回合想使用宵暗ノ翼，需要一红一黑。颜色盘目前只有黑色，需要凭依红色牌进入颜色盘。",
+        "targets": [
+          {
+            "alias": "wing"
+          },
+          {
+            "alias": "remilia_one"
+          },
+          {
+            "alias": "remilia_two"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "r3"
+    },
+    "r3": {
+      "type": "task",
+      "camera_view": "own_palette",
+      "restore_on_failure": true,
+      "failure": "r3",
+      "guide": {
+        "text": "通过凭依，使颜色盘能支付一红一黑。",
+        "popup": "show",
+        "next_button": "hidden",
+        "layout": "side"
+      },
+      "task": {
+        "timing": "state_changed",
+        "failure": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "player_count",
+              "player": 0,
+              "key": "possession_count",
+              "value": 1,
+              "op": "ge"
+            },
+            {
+              "type": "not",
+              "condition": {
+                "type": "any",
+                "conditions": [
+                  {
+                    "type": "entity_zone",
+                    "alias": "remilia_one",
+                    "zone": "palette"
+                  },
+                  {
+                    "type": "entity_zone",
+                    "alias": "remilia_two",
+                    "zone": "palette"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "success": {
+          "type": "any",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "remilia_one",
+              "zone": "palette"
+            },
+            {
+              "type": "entity_zone",
+              "alias": "remilia_two",
+              "zone": "palette"
+            }
+          ]
+        }
+      },
+      "next": "d12"
+    },
+    "d12": {
+      "type": "info",
+      "camera_view": "battlefield",
+      "guide": {
+        "text": "现在颜色盘有黑费及可选择支付红或黑的一费。使用宵暗ノ翼后，再让已经能够攻击的莉莉黑攻击电脑玩家。",
+        "targets": [
+          {
+            "alias": "wing"
+          },
+          {
+            "alias": "lily_black"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "r4"
+    },
+    "r4": {
+      "type": "task",
+      "guide": {
+        "text": "先推进到主要阶段，使用宵暗ノ翼，再用莉莉黑攻击电脑玩家并造成战斗伤害。",
+        "popup": "show",
+        "next_button": "hidden",
+        "layout": "side"
+      },
+      "task": {
+        "timing": "state_changed",
+        "success": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "wing",
+              "zone": "grave"
+            },
+            {
+              "type": "life",
+              "player": 1,
+              "value": 19,
+              "op": "le"
+            }
+          ]
+        }
+      },
+      "next": "d13"
+    },
+    "d13": {
+      "type": "info",
+      "guide": {
+        "text": "费用已经用完，也没有尚可攻击的单位；这一回合结束。",
+        "next_button": "manual"
+      },
+      "next": "d14"
+    },
+    "d14": {
+      "type": "info",
+      "guide": {
+        "text": "电脑再次没有使用牌，直接结束回合。",
+        "next_button": "manual"
+      },
+      "next": "d15"
+    },
+    "d15": {
+      "type": "info",
+      "scenario": "third_main",
+      "camera_view": "own_palette",
+      "guide": {
+        "text": "第三个自己的回合，场上的红黑色蝙蝠已满足蕾米莉亚的颜色约束。现在还需在颜色盘中准备两张能支付红费的牌。",
+        "targets": [
+          {
+            "alias": "remilia_leader"
+          },
+          {
+            "alias": "remilia_one"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "r5"
+    },
+    "r5": {
+      "type": "task",
+      "camera_view": "own_palette",
+      "restore_on_failure": true,
+      "failure": "r5",
+      "guide": {
+        "text": "先推进到凭依阶段，然后凭依保证颜色盘中有两张红牌。",
+        "popup": "show",
+        "next_button": "hidden",
+        "layout": "side"
+      },
+      "task": {
+        "timing": "state_changed",
+        "failure": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "player_count",
+              "player": 0,
+              "key": "possession_count",
+              "value": 1,
+              "op": "ge"
+            },
+            {
+              "type": "not",
+              "condition": {
+                "type": "all",
+                "conditions": [
+                  {
+                    "type": "entity_zone",
+                    "alias": "remilia_one",
+                    "zone": "palette"
+                  },
+                  {
+                    "type": "entity_zone",
+                    "alias": "remilia_two",
+                    "zone": "palette"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "success": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "remilia_one",
+              "zone": "palette"
+            },
+            {
+              "type": "entity_zone",
+              "alias": "remilia_two",
+              "zone": "palette"
+            }
+          ]
+        }
+      },
+      "next": "d16"
+    },
+    "d16": {
+      "type": "info",
+      "camera_view": "battlefield",
+      "guide": {
+        "text": "现在可以使用自机区中的三费蕾米莉亚。她会强化其他黑色单位，并让你操控的红色单位获得吸血。随后让所有可攻击的单位进攻。",
+        "targets": [
+          {
+            "alias": "remilia_leader"
+          },
+          {
+            "alias": "lily_black"
+          },
+          {
+            "alias": "bat_one"
+          },
+          {
+            "alias": "bat_two"
+          }
+        ],
+        "next_button": "manual"
+      },
+      "next": "r6"
+    },
+    "r6": {
+      "type": "task",
+      "guide": {
+        "text": "先推进到主要阶段，使用自机区的蕾米莉亚，再让莉莉黑和两只蝙蝠攻击电脑玩家。",
+        "popup": "show",
+        "next_button": "hidden",
+        "layout": "side"
+      },
+      "task": {
+        "timing": "state_changed",
+        "success": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "entity_zone",
+              "alias": "remilia_leader",
+              "zone": "field"
+            },
+            {
+              "type": "life",
+              "player": 1,
+              "value": 13,
+              "op": "le"
+            }
+          ]
+        }
+      },
+      "next": "d17"
+    },
+    "d17": {
+      "type": "info",
+      "guide": {
+        "text": "你用蕾米莉亚的强化和单位攻击造成了大量伤害，红色单位还通过吸血回复了生命。极彩的开局练习完成；下一课将细讲单位牌及其机制。",
+        "next_button": "manual"
+      },
+      "next": "$complete"
+    }
+  }
+}

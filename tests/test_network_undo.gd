@@ -52,6 +52,7 @@ func undo_to(before: Dictionary,target_sequence: int):
  var sequence=host.sequence
  host.room_action({"name":"undo_accept","ticket":host.undo_request.id})
  check(await until(func():return host.sequence>sequence and guest.sequence==host.sequence and watcher.sequence==host.sequence and host.can_act() and guest.can_act()),"approved undo synchronized to players and spectator")
+ check(not host.rewind_events.is_empty() and int(host.rewind_events.back().get("from",-1))==1,"rewind snapshot identifies the requesting seat")
  sync_views()
  check(host.Codec.capture(e)==before,"undo restores complete pre-attack graph and RNG")
  check(host.latest_snapshot.recovery and guest.latest_snapshot.recovery and watcher.latest_snapshot.recovery,"all viewers discard combat animations")

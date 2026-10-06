@@ -97,6 +97,37 @@ func run():
   one()
   expect(e.stack.size()==1 and e.stack[0].target.picks[0][0].uid==hina.uid and e.stack[0].target.picks[1][0].uid==ally.uid,"Hina changes exactly one selected target")
  fresh()
+ hina=put("32")
+ ally=put("50")
+ var cloud=put("character-fdf-046","hand",1)
+ for id in ["167","167","166","166"]:put(id,"palette",1)
+ e.active=1;e.priority=1
+ var duel_payment={"none":true,"mode":"额外支付1绿","extra_green":true}
+ err=e.commit_cast(1,cloud.uid,duel_payment,e.payment(1,e.cast_cost(1,cloud,duel_payment)).plan)
+ expect(err.is_empty(),"opponent casts Cloud with the extra green duel cost: "+err)
+ if err.is_empty():
+  one()
+  expect(cloud.zone=="field" and e.pending.get("kind","")=="effect_choice","Cloud entry duel asks its controller to choose a target")
+  if e.pending.get("kind","")=="effect_choice":e.choose_effect(e.ref_target(ally))
+  expect(e.stack.size()==1 and e.stack[0].get("effect","")=="character-fdf-046" and e.stack[0].target.get("uid",-1)==ally.uid,"Cloud duel targets Hina's teammate on the stack")
+  options=e.Extra.activation_options(e,hina,"hina_redirect")
+  expect(options.size()==1 and options[0].redirect.uid==ally.uid,"Hina can respond to Cloud's duel and redirect its target")
+  expect(e.available_actions(0,hina.uid).any(func(a):return a.get("key","")=="hina_redirect"),"Hina's response is available through player actions")
+  projected=preload("res://net/seat_projection.gd").build(e,0)
+  expect(not projected.queries.extension_targets.get(str(hina.uid)+":hina_redirect",[]).is_empty(),"network seat offers Hina's response to Cloud's duel")
+  if not options.is_empty():
+   err=e.commit_extension(0,hina.uid,options[0],[],"hina_redirect")
+   expect(err.is_empty(),"Hina activates against Cloud's duel: "+err)
+   if err.is_empty():
+    one()
+    expect(e.players[0].life==18 and e.stack.size()==1 and e.stack[0].target.get("uid",-1)==hina.uid,"Hina pays two life and redirects Cloud's duel onto herself")
+    one()
+    expect(e.combat.get("forced",false) and e.combat.get("blockers",[]).any(func(r):return r.get("uid",-1)==hina.uid),"Cloud's forced battle uses Hina instead of her teammate")
+    for i in range(12):
+     if e.combat.is_empty() and e.combat_queue.is_empty():break
+     one()
+    expect(e.combat.is_empty() and ally.zone=="field" and ally.damage==0 and hina.zone=="grave","Cloud's duel resolves with the teammate unharmed")
+ fresh()
  expect(e.cards["new-eto-002"].colors==["蓝","黑"] and int(e.cards["new-eto-002"].cost.get("蓝",0))==2 and int(e.cards["new-eto-002"].cost.get("黑",0))==1 and int(e.cards["new-eto-002"].cost.get("黄",0))==0,"Sumireko double has two blue and one black cost")
- print("HINA_V12: ",checks," checks; ",failures.size()," failures")
+ print("HINA: ",checks," checks; ",failures.size()," failures")
  quit(0 if failures.is_empty() else 1)

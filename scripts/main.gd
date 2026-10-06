@@ -13,6 +13,8 @@ const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const LocalExperiment=preload("res://scripts/ai/local_experiment.gd")
 const AccountSessionStore=preload("res://scripts/account_session_store.gd")
+const PatchService=preload("res://scripts/pck_patch_service.gd")
+const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
 const GOLD = Color("#e8c77e")
 const INK = Color("#101c28")
 const MUTED = Color("#b2c2ce")
@@ -21,6 +23,14 @@ const UILayout=preload("res://scripts/ui_layout.gd")
 var ui_metrics=UILayout.new()
 var editor_ui
 var menu_popup
+var tutorial_ui
+var tutorial_directory_ui
+var tutorial_progress=preload("res://scripts/tutorial/progress.gd").new()
+# Entries are discovered from the tutorial catalog; progress uses stable IDs.
+var tutorial_entries: Array = []
+var tutorial_catalog_errors: Array = []
+var tutorial_local_directory="user://tutorials"
+var completed_tutorials: Dictionary = {}
 var android_editor_overview=false
 var android_editor_main_page=0
 var layout_dpi_override=0.0
@@ -51,7 +61,9 @@ var deck_rows: VBoxContainer
 var preview: Control
 var counts: Label
 var name_label: Label
-var saved_select: OptionButton
+var saved_select: Button
+var deck_picker_ui
+var deck_picker_layout_changed=false
 var player_choice = 0
 var ai_choice = 0
 var experimental_ai=false
@@ -72,6 +84,11 @@ var about_code=""
 var fullscreen = false
 var top_down_view = false
 var show_card_inspection = true
+var delay_turn_end = true
+var auto_camera_focus = true
+var android_manual_camera = false
+var android_zone_shortcuts = true
+var android_zone_shortcut_positions: Dictionary = {}
 var replay_training_mode = false
 var is_test_build=OS.has_feature("debug")
 var add_amount = 1
@@ -94,6 +111,16 @@ var account_action=""
 var account_mode="login"
 var account_pending=false
 var account_client
+var auto_pck_updater
+var compatible_patch_service
+var auto_patch_update_in_editor=false
+var auto_pck_origin=PckAutoUpdater.ORIGIN
+var auto_patch_check_pending=false
+var auto_patch_restart_required=false
+var auto_patch_dialog: AcceptDialog
+var auto_patch_status: Label
+var auto_patch_progress: ProgressBar
+var auto_patch_reopen: Button
 var account_status_label: Label
 var account_username_input: LineEdit
 var account_password_input: LineEdit
@@ -146,16 +173,29 @@ func _ready():
    fullscreen = saved_settings.get("fullscreen", false) == true
    top_down_view = saved_settings.get("top_down_view", false) == true
    show_card_inspection = saved_settings.get("show_card_inspection", true) == true
+   delay_turn_end = saved_settings.get("delay_turn_end", true) == true
+   auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
+   android_manual_camera = saved_settings.get("android_manual_camera", false) == true
+   android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
+   if saved_settings.get("android_zone_shortcut_positions") is Dictionary:
+    android_zone_shortcut_positions = saved_settings.android_zone_shortcut_positions
    debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
    replay_training_mode = is_test_build and not is_android and saved_settings.get("replay_training_mode", false) == true
+   if saved_settings.get("completed_tutorials") is Dictionary:
+    completed_tutorials = saved_settings.completed_tutorials.duplicate()
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+ load_tutorial_catalog()
+ tutorial_progress.directory=settings_path.get_base_dir().path_join("tutorial_progress")
  menu()
  call_deferred("restore_account")
  if not load_error.is_empty(): alert(load_error)
  elif not loaded.get("warnings",[]).is_empty():
   call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
+ if not patch_manager().startup_error.is_empty():call_deferred("alert",patch_manager().startup_error,"补丁加载失败")
 
 func _input(event: InputEvent):
+ if page=="tutorial_scene":return # The embedded native surface owns its input.
+ if deck_picker_open():deck_picker_ui.handle_input(event);return
  if menu_popup_open():return
  if not is_android or page=="battle":return
  if page=="editor" and editor_ui!=null and editor_ui.handle_touch(event):return
@@ -215,6 +255,7 @@ func _draw():
   draw_circle(Vector2(size.x*0.72,size.y*0.45),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
 
 func clear_page(next: String):
+ close_deck_picker()
  close_menu_popup()
  if page=="sideboard" and next!="sideboard":restore_editor_draft()
  if is_instance_valid(screen):
@@ -235,6 +276,41 @@ func clear_page(next: String):
 
 func menu_popup_open() -> bool:
  return is_instance_valid(menu_popup) and not menu_popup.is_queued_for_deletion()
+
+func deck_picker_open() -> bool:
+ return is_instance_valid(deck_picker_ui) and not deck_picker_ui.is_queued_for_deletion()
+
+func close_deck_picker():
+ if not deck_picker_open():deck_picker_ui=null;return
+ var focus=deck_picker_ui.previous_focus.get_ref() if deck_picker_ui.previous_focus!=null else null
+ deck_picker_ui.get_parent().remove_child(deck_picker_ui);deck_picker_ui.queue_free();deck_picker_ui=null
+ if is_instance_valid(focus) and not focus.is_queued_for_deletion() and focus.is_visible_in_tree():focus.grab_focus()
+ if deck_picker_layout_changed:deck_picker_layout_changed=false;queue_layout_refresh()
+
+func open_deck_picker(callback: Callable,current_id: String="",title: String="选择套牌"):
+ close_deck_picker();close_menu_popup();reload_decks()
+ deck_picker_ui=preload("res://scripts/deck_picker.gd").new()
+ deck_picker_ui.app=self;deck_picker_ui.callback=callback;deck_picker_ui.selected_id=current_id;deck_picker_ui.caption=title
+ var focus=get_viewport().gui_get_focus_owner()
+ if focus!=null:deck_picker_ui.previous_focus=weakref(focus)
+ screen.add_child(deck_picker_ui)
+
+func deck_choice_caption(index: int) -> String:
+ return "选择卡组："+str(decks[index].name) if index>=0 and index<decks.size() else "选择卡组"
+
+func open_editor_deck_picker():
+ open_deck_picker(func(index):
+  var chosen=decks[index].duplicate(true)
+  if chosen.id==draft.id:return
+  guard(func():draft=chosen;dirty=false;editor()),str(draft.get("id","")),"选择要编辑的套牌")
+
+func open_match_deck_picker(seat: int):
+ var index=player_choice if seat==0 else ai_choice
+ var current_id=str(decks[index].id) if index>=0 and index<decks.size() else ""
+ open_deck_picker(func(chosen):
+  if seat==0:player_choice=chosen
+  else:ai_choice=chosen
+  setup(),current_id,"选择你的套牌" if seat==0 else "选择人机的套牌")
 
 func close_menu_popup():
  if menu_popup_open():menu_popup.close()
@@ -360,16 +436,16 @@ func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable(
    if event is InputEventMouseButton and event.pressed!=is_android and event.button_index == MOUSE_BUTTON_LEFT: clickable.call())
  return p
 
-func header(title: String, back: Callable):
+func header(title: String, back: Callable, actions_width: float=0.0) -> Button:
  if is_android and page in ["online","replays"]:
-  label(screen,"multicolor:arena",Rect2(0,6,screen.size.x-160,32),20,GOLD)
-  label(screen,title,Rect2(0,43,screen.size.x-160,ui_metrics.hit),32)
-  button(screen,"返回",Rect2(screen.size.x-142,14,138,ui_metrics.hit),back)
-  return
+  label(screen,"multicolor:arena",Rect2(0,6,screen.size.x-160-actions_width,32),20,GOLD)
+  label(screen,title,Rect2(0,43,screen.size.x-160-actions_width,ui_metrics.hit),32)
+  return button(screen,"返回",Rect2(screen.size.x-142,14,138,ui_metrics.hit),back)
  label(screen,"multicolor:arena  /  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(42,22,500,34),20,GOLD)
  label(screen,title,Rect2(42,68,1100,48),32)
- button(screen,"返回",Rect2(screen.size.x-146,20,126,ui_metrics.hit) if is_android else Rect2(1430,32,126,46),back)
+ var back_button=button(screen,"返回",Rect2(screen.size.x-146,20,126,ui_metrics.hit) if is_android else Rect2(1430,32,126,46),back)
  box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
+ return back_button
 
 func alert(message: String, title: String = "提示"):
  var d = AcceptDialog.new()
@@ -406,6 +482,9 @@ func guard(action: Callable):
   action.call())
  else: action.call()
 
+func main_menu_entries() -> Array:
+ return [["游戏教程",tutorials],["人机对战",setup],["联网对战",online],["卡组编辑",func():editor()],["玩家账号",account_page],["对局回放",replays],["设置",settings],["退出游戏",func():get_tree().quit()]]
+
 func menu():
  if not is_android:
   desktop_menu()
@@ -423,13 +502,12 @@ func menu():
  var heading=Label.new();heading.text="multicolor:arena";left.add_child(heading);heading.add_theme_font_size_override("font_size",54 if is_android else 64)
  var subtitle=Label.new();subtitle.text="以色彩为契约，展开你的幻想之战。";left.add_child(subtitle);subtitle.add_theme_font_size_override("font_size",ui_metrics.body);subtitle.add_theme_color_override("font_color",MUTED)
  var spacer=Control.new();left.add_child(spacer);spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;spacer.custom_minimum_size.y=ui_metrics.gap
- var actions=[["人机对战    →",setup],["联网对战",online],["编辑牌组",func():editor()],["玩家账号",account_page]]
- var main_actions=GridContainer.new();main_actions.columns=2;left.add_child(main_actions)
- for item in actions:
-  var b=button(main_actions,item[0],Rect2(),item[1],item==actions[0]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,68)
- var more=GridContainer.new();more.columns=2;left.add_child(more)
- for item in [["设置",settings],["关于",about],["对局回放",replays],["退出游戏",func():get_tree().quit()]]:
-  var b=button(more,item[0],Rect2(),item[1]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,56)
+ var actions=main_menu_entries()
+ var main_actions=GridContainer.new();main_actions.name="MainMenuActions";main_actions.columns=2;left.add_child(main_actions)
+ main_actions.add_theme_constant_override("h_separation",int(ui_metrics.gap));main_actions.add_theme_constant_override("v_separation",int(ui_metrics.gap))
+ for i in range(actions.size()):
+  var item=actions[i]
+  var b=button(main_actions,item[0],Rect2(),item[1],i==1);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,68 if i<4 else 56)
  var art=Control.new();row.add_child(art);art.size_flags_horizontal=Control.SIZE_EXPAND_FILL;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var a=card(art,"68",Rect2(0,0,255,356));var b=card(art,"70",Rect2(0,0,280,391))
  var arrange=func():
@@ -440,14 +518,17 @@ func menu():
  art.resized.connect(arrange)
 
 func online():
+ var restore_mode_selected=false
  var restore_cloud=false
+ var lobby_deck_id=""
  var cloud_form={}
  var focused_cloud_field=""
  var focused_caret=0
  if page=="online" and is_instance_valid(screen):
   for child in screen.get_children():
    if child.get_script()==preload("res://net/lan_lobby.gd"):
-    restore_cloud=child.cloud_selected
+    if child.deck_index>=0 and child.deck_index<decks.size():lobby_deck_id=str(decks[child.deck_index].id)
+    restore_mode_selected=child.mode_selected;restore_cloud=child.cloud_selected
     if restore_cloud and is_instance_valid(child.cloud_title_input):
      cloud_form={"title":child.cloud_title_input.text,"password":child.cloud_password_input.text,"format":child.format_input.selected,"rule":child.rule_input.selected,"slot":child.cloud_host_slot.selected,"strict":child.strict_input.button_pressed}
      var focused=get_viewport().gui_get_focus_owner()
@@ -462,7 +543,9 @@ func online():
   lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
  lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
  clear_page("online")
- var lobby=preload("res://net/lan_lobby.gd").new();screen.add_child(lobby);lobby.build(self,lan_session)
+ var lobby=preload("res://net/lan_lobby.gd").new();lobby.deck_index=remaining_deck_index(lobby_deck_id,0)
+ lobby.mode_selected=restore_mode_selected
+ screen.add_child(lobby);lobby.build(self,lan_session)
  if restore_cloud:lobby.set_cloud_mode(true)
  if not cloud_form.is_empty() and is_instance_valid(lobby.cloud_title_input):
   lobby.cloud_title_input.text=cloud_form.title
@@ -608,6 +691,9 @@ func account_request_finished(ok: bool,message: String,username: String):
  elif account_action=="resume" and message=="自动登录已失效，请重新登录":
   AccountSessionStore.clear(account_session_path)
  account_notice=message
+ if ok and account_action in ["login","resume"]:
+  auto_patch_check_pending=not OS.has_feature("editor") or auto_patch_update_in_editor
+  call_deferred("check_cloud_pck_patch")
  if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
   var destination=deck_account_return;deck_account_return=""
   call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
@@ -635,10 +721,253 @@ func settings():
  var layout=preload("res://scripts/menu_ui_layout.gd").new()
  layout.build_settings(self)
 
+func tutorials():
+ clear_page("tutorials")
+ tutorial_ui=preload("res://scripts/tutorial_list.gd").new()
+ tutorial_ui.app=self
+ screen.add_child(tutorial_ui)
+ if not tutorial_catalog_errors.is_empty():alert("\n".join(tutorial_catalog_errors),"教程目录错误")
+
+func tutorial_editor_available() -> bool:
+ return is_test_build and not is_android
+
+func tutorial_editor(path: String=""):
+ if not tutorial_editor_available():return
+ var data={}
+ if not path.is_empty():
+  var loaded=preload("res://scripts/tutorial/config.gd").new().load_file(path,Store.CARDS)
+  if not loaded.ok:alert("\n".join(loaded.errors),"教程配置错误");return
+  data=loaded.data
+ clear_page("tutorial_editor")
+ var editor=load("res://scripts/tutorial/authoring_editor.gd").new()
+ screen.add_child(editor);editor.begin(self,data,path)
+
+func load_tutorial_catalog():
+ tutorial_entries=[];tutorial_catalog_errors=[]
+ var catalog=JSON.parse_string(FileAccess.get_file_as_string("res://data/tutorial/catalog.json"))
+ if not catalog is Dictionary or not catalog.get("lessons") is Array:
+  tutorial_catalog_errors.append("教程目录 data/tutorial/catalog.json.lessons 必须是数组");return
+ var ids={}
+ var paths=catalog.lessons.duplicate()
+ var local_dir=tutorial_local_directory
+ if DirAccess.dir_exists_absolute(local_dir):
+  for filename in DirAccess.get_files_at(local_dir):
+   if filename.ends_with(".json"):paths.append(local_dir.path_join(filename))
+ for path in paths:
+  if not path is String:tutorial_catalog_errors.append("教程目录 lessons：路径必须是字符串");continue
+  var loaded=preload("res://scripts/tutorial/config.gd").new().load_file(path,Store.CARDS)
+  if not loaded.ok:tutorial_catalog_errors.append_array(loaded.errors);continue
+  var lesson=loaded.data
+  if ids.has(lesson.id):
+   # A local edited copy may intentionally replace a bundled lesson by ID.
+   if path.begins_with(local_dir+"/") and not str(ids[lesson.id]).begins_with(local_dir+"/"):
+    tutorial_entries=tutorial_entries.filter(func(entry):return entry.id!=lesson.id)
+   else:tutorial_catalog_errors.append("教程目录：课程 ID 重复 "+lesson.id);continue
+  ids[lesson.id]=path
+  tutorial_entries.append({"id":lesson.id,"title":lesson.title,"category":lesson.get("category","beginner"),"path":path,"start":func():tutorial_directory(path)})
+
+func tutorial_directory(path: String):
+ var loaded=preload("res://scripts/tutorial/config.gd").new().load_file(path,Store.CARDS)
+ if not loaded.ok:alert("\n".join(loaded.errors),"教程配置错误");return
+ clear_page("tutorial_directory")
+ tutorial_directory_ui=preload("res://scripts/tutorial/directory.gd").new()
+ tutorial_directory_ui.app=self;tutorial_directory_ui.course=loaded.data;tutorial_directory_ui.path=path
+ screen.add_child(tutorial_directory_ui)
+
+func begin_tutorial(path: String,step_id: String=""):
+ var loaded=preload("res://scripts/tutorial/config.gd").new().load_file(path,Store.CARDS)
+ if not loaded.ok:alert("\n".join(loaded.errors),"教程配置错误");return
+ var lesson=loaded.data
+ if step_id.is_empty():step_id=lesson.start_step
+ if not tutorial_progress.can_open(lesson,step_id):return
+ var saved={}
+ if step_id!=lesson.start_step:
+  saved=tutorial_progress.snapshot(lesson,step_id,Store.CARDS)
+  if saved.is_empty():alert(tutorial_progress.last_error,"教程进度读取失败");return
+ var flow=preload("res://scripts/tutorial/runtime.gd").new()
+ flow.course_path=path
+ flow.checkpoint_ready.connect(func(id,snapshot):
+  if not tutorial_progress.save(lesson,id,snapshot) and not tutorial_progress.last_error.is_empty():call_deferred("alert",tutorial_progress.last_error,"教程进度保存失败"))
+ flow.previous_checkpoint=func():return tutorial_progress.snapshot(lesson,str(flow.completed_steps.back()),Store.CARDS) if not flow.completed_steps.is_empty() else {}
+ flow.completed.connect(func(id):complete_tutorial(id))
+ var reason=flow.start(lesson,Store.CARDS)
+ if not reason.is_empty():flow.free();alert(reason,"教程初始化失败");return
+ if not saved.is_empty() and not flow.restore(saved):flow.free();alert("无法恢复教程步骤。","教程初始化失败");return
+ if loaded.data.scenarios.values().any(func(s):return s.has("type")) or loaded.data.steps.values().any(func(s):return s.guide.get("layout")=="side"):
+  clear_page("tutorial_scene")
+  var course=load("res://scripts/tutorial/scene_view.gd").new()
+  screen.add_child(course);course.begin(self,flow)
+  return
+ clear_page("battle")
+ duel_view=preload("res://scripts/duel_view.gd").new()
+ duel_view.tutorial_runtime=flow
+ screen.add_child(duel_view)
+ duel_view.begin(self,{},{},0)
+
+func tutorial_completed(tutorial_id: String) -> bool:
+ return completed_tutorials.get(tutorial_id,false)==true
+
+func complete_tutorial(tutorial_id: String) -> bool:
+ if tutorial_id.is_empty() or not tutorial_entries.any(func(entry):return str(entry.get("id",""))==tutorial_id):return false
+ completed_tutorials[tutorial_id]=true
+ save_settings()
+ if page=="tutorials" and is_instance_valid(tutorial_ui):tutorial_ui.render_rows()
+ return true
+
+func patch_manager():
+ var installed=get_node_or_null("/root/PatchManager")
+ if installed!=null and installed.has_method("install_chain"):return installed
+ if is_instance_valid(compatible_patch_service):return compatible_patch_service
+ compatible_patch_service=PatchService.new(false)
+ if installed!=null:
+  for property in ["base_version","active_version","patch_dir","startup_error","trusted_key"]:
+   compatible_patch_service.set(property,installed.get(property))
+ add_child(compatible_patch_service)
+ return compatible_patch_service
+
+func check_cloud_pck_patch():
+ auto_patch_check_pending=false
+ if OS.has_feature("editor") and not auto_patch_update_in_editor:return
+ if account_name.is_empty():return
+ if not is_instance_valid(auto_pck_updater):
+  auto_pck_updater=PckAutoUpdater.new()
+  auto_pck_updater.origin=auto_pck_origin
+  add_child(auto_pck_updater)
+  auto_pck_updater.completed.connect(cloud_pck_patch_completed)
+  auto_pck_updater.download_started.connect(cloud_pck_download_started)
+  auto_pck_updater.download_progress.connect(cloud_pck_download_progress)
+ auto_pck_updater.check_for_update(patch_manager())
+
+func cloud_match_blocked() -> bool:
+ return auto_patch_check_pending or (is_instance_valid(auto_pck_updater) and auto_pck_updater.busy) or auto_patch_restart_required
+
+func explain_cloud_match_block() -> void:
+ if is_instance_valid(auto_patch_dialog):
+  auto_patch_dialog.popup_centered()
+ elif auto_patch_restart_required:
+  alert("游戏补丁已安装，请重启游戏后进入云端对局。","需要重启游戏")
+ else:
+  alert("正在检查或下载游戏更新，请完成更新后再进入云端对局。","正在更新")
+
+func cloud_pck_download_started(total_bytes: int, patch_count: int) -> void:
+ if is_instance_valid(auto_patch_dialog):auto_patch_dialog.hide();auto_patch_dialog.queue_free()
+ auto_patch_dialog=AcceptDialog.new()
+ auto_patch_dialog.name="AutoPatchDownloadDialog"
+ auto_patch_dialog.title="正在下载游戏更新"
+ auto_patch_dialog.exclusive=false
+ auto_patch_dialog.min_size=Vector2i(560,200)
+ auto_patch_dialog.get_label().hide()
+ auto_patch_dialog.get_ok_button().text="隐藏，继续下载"
+ var content=VBoxContainer.new()
+ content.add_theme_constant_override("separation",12)
+ auto_patch_dialog.add_child(content)
+ auto_patch_status=Label.new();auto_patch_status.name="DownloadStatus";content.add_child(auto_patch_status)
+ var content_width=minf(480,ui_metrics.safe.size.x-64) if is_android else 480.0
+ auto_patch_status.custom_minimum_size.x=content_width
+ auto_patch_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ auto_patch_progress=ProgressBar.new();auto_patch_progress.name="DownloadProgress";content.add_child(auto_patch_progress)
+ auto_patch_progress.custom_minimum_size=Vector2(content_width,32)
+ auto_patch_progress.max_value=maxi(1,total_bytes)
+ auto_patch_progress.show_percentage=false
+ var note=Label.new();note.text="可隐藏弹窗继续使用其他功能；更新完成前无法进入云端对局。";content.add_child(note)
+ note.custom_minimum_size.x=content_width
+ note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ add_child(auto_patch_dialog)
+ style_dialog(auto_patch_dialog)
+ if not is_instance_valid(auto_patch_reopen):
+  var layer=CanvasLayer.new();layer.name="AutoPatchProgressLayer";layer.layer=2;add_child(layer)
+  auto_patch_reopen=button(layer,"查看更新进度",Rect2(0,0,200,48),func():
+   if is_instance_valid(auto_patch_dialog):auto_patch_dialog.popup_centered())
+  auto_patch_reopen.name="ShowAutoPatchProgress"
+  auto_patch_reopen.anchor_left=1;auto_patch_reopen.anchor_right=1
+  auto_patch_reopen.anchor_top=1;auto_patch_reopen.anchor_bottom=1
+  auto_patch_reopen.offset_left=-220;auto_patch_reopen.offset_right=-20
+  auto_patch_reopen.offset_top=-68;auto_patch_reopen.offset_bottom=-20
+ auto_patch_dialog.visibility_changed.connect(func():
+  if is_instance_valid(auto_patch_reopen) and is_instance_valid(auto_patch_dialog):auto_patch_reopen.visible=not auto_patch_dialog.visible)
+ auto_patch_reopen.hide()
+ cloud_pck_download_progress(0,total_bytes,"准备下载 %d 个补丁" % patch_count)
+ auto_patch_dialog.popup_centered()
+
+func cloud_pck_download_progress(downloaded_bytes: int,total_bytes: int,stage: String) -> void:
+ if not is_instance_valid(auto_patch_dialog):return
+ auto_patch_progress.value=downloaded_bytes
+ var percent=int(100.0*float(downloaded_bytes)/float(maxi(1,total_bytes)))
+ auto_patch_status.text="%s\n%.1f / %.1f MiB · %d%%" % [stage,float(downloaded_bytes)/1048576.0,float(total_bytes)/1048576.0,percent]
+
+func close_cloud_pck_download_dialog() -> void:
+ if is_instance_valid(auto_patch_dialog):auto_patch_dialog.hide();auto_patch_dialog.queue_free()
+ auto_patch_dialog=null;auto_patch_status=null;auto_patch_progress=null
+ if is_instance_valid(auto_patch_reopen):
+  auto_patch_reopen.get_parent().queue_free()
+ auto_patch_reopen=null
+
+func cloud_pck_patch_completed(result: Dictionary):
+ close_cloud_pck_download_dialog()
+ if result.has("error"):
+  push_warning("云端补丁检查失败："+str(result.error))
+  if page=="account" and is_instance_valid(account_status_label):account_status_label.text=str(result.error)
+  return
+ if not result.get("installed",false):return
+ auto_patch_restart_required=true
+ if OS.has_feature("editor"):
+  alert("已安装 %s 的模拟补丁；重新运行游戏后生效。" % result.version,"PCK 补丁已安装")
+ else:
+  var notice=ConfirmationDialog.new()
+  notice.title="游戏补丁已安装"
+  notice.dialog_text="已下载并安装 %s。重新启动游戏后生效。" % result.version
+  notice.get_ok_button().text="退出游戏" if is_android else "立即重启"
+  notice.get_cancel_button().text="稍后"
+  notice.confirmed.connect(func():
+   if not is_android:OS.set_restart_on_exit(true)
+   get_tree().quit())
+  add_child(notice)
+  style_dialog(notice)
+  notice.popup_centered()
+
+func choose_pck_patch():
+ var dialog=FileDialog.new()
+ dialog.title="选择 PCK 补丁"
+ dialog.file_mode=FileDialog.FILE_MODE_OPEN_FILE
+ dialog.access=FileDialog.ACCESS_FILESYSTEM
+ dialog.use_native_dialog=true
+ dialog.filters=PackedStringArray(["*.pck ; multicolor:arena PCK 补丁","* ; 所有文件"])
+ dialog.file_selected.connect(func(path):
+  dialog.queue_free()
+  var service=patch_manager()
+  var details=service.inspect(path,service.active_version)
+  if details.has("error"):
+   alert(details.error,"补丁校验失败")
+   return
+  confirm_action("当前版本：%s\n升级至：%s\n\n应用后需要重新启动游戏。" % [details.from,details.to],func():apply_pck_patch(path)))
+ dialog.canceled.connect(dialog.queue_free)
+ add_child(dialog)
+ dialog.popup_centered(Vector2i(1000,650))
+
+func apply_pck_patch(path: String):
+ var result=patch_manager().install(path)
+ if result.has("error"):
+  alert(result.error,"补丁安装失败")
+  return
+ if is_android:
+  var notice=AcceptDialog.new()
+  notice.title="补丁已安装"
+  notice.dialog_text="补丁将于下次启动生效。点击“退出游戏”后，请重新打开游戏。"
+  notice.get_ok_button().text="退出游戏"
+  notice.confirmed.connect(func():get_tree().quit())
+  add_child(notice)
+  style_dialog(notice)
+  notice.popup_centered()
+ elif OS.has_feature("editor"):
+  alert("补丁已保存。请关闭并重新运行游戏以生效。","补丁已安装")
+ else:
+  OS.set_restart_on_exit(true)
+  get_tree().quit()
+
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -648,6 +977,34 @@ func set_top_down_view(value: bool):
 
 func set_show_card_inspection(value: bool):
  show_card_inspection=value
+ save_settings()
+
+func set_delay_turn_end(value: bool):
+ delay_turn_end=value
+ save_settings()
+
+func set_auto_camera_focus(value: bool):
+ auto_camera_focus=value
+ if is_instance_valid(duel_view):
+  duel_view.android_manual_focus_override=-1
+  duel_view.sync_automatic_camera_focus()
+ save_settings()
+
+func set_android_manual_camera(value: bool):
+ android_manual_camera=value
+ if is_instance_valid(duel_view):
+  duel_view.camera_dragging=false;duel_view.camera_touches.clear();duel_view.camera_touch_mode=""
+  duel_view.android_card_touch.cancel()
+ save_settings()
+
+func set_android_zone_shortcuts(value: bool):
+ android_zone_shortcuts=value
+ if is_instance_valid(duel_view) and is_instance_valid(duel_view.android_zone_shortcuts):
+  duel_view.android_zone_shortcuts.refresh_visibility()
+ save_settings()
+
+func set_android_zone_shortcut_position(key: String,ratio: Vector2):
+ android_zone_shortcut_positions[key]=[ratio.x,ratio.y]
  save_settings()
 
 func set_debug_drag_to_field(value: bool):
@@ -919,7 +1276,7 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
  searchable.append_array(info.get("aliases",[]))
  if info.get("token",false):searchable.append("衍生物")
  if not info.get("constructible",false):searchable.append("不可构筑")
- return role_spell or alias_ids.has(id) or searchable.any(func(value):return term in str(value).to_lower())
+ return role_spell or alias_ids.has(id) or searchable.any(func(value):return term in str(value).to_lower()) or SearchAliases.name_contains(str(info.name),term) or info.get("aliases",[]).any(func(value):return SearchAliases.name_contains(str(value),term))
 
 func library_race_characters(race: String) -> Array:
  if race.is_empty():return []
@@ -1091,7 +1448,7 @@ func show_deck_tutorial():
   guide.text=guide.text.replace("“普通符卡”排除角色符卡。", "“普通符卡”和“自机符卡”分别筛选通用符卡与角色专属符卡。")
   guide.text=guide.text.replace("顶部“卡组截图”", "卡组页菜单中的“卡组截图”")
   guide.text=guide.text.replace("；“打开截图文件夹”可查看 deck/image 截图目录", "")
-  guide.text=guide.text.replace("左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。", "图鉴中轻触卡牌打开详情，通过“加入主卡组”或“加入副卡组”添加一张；自机单位也可以加入主副卡组，或选择“设为自机”。详情大图右下角显示同名牌余量。图鉴右侧列表轻触查看详情，长按移除一张；下方按钮切换主、副卡组列表。")
+  guide.text=guide.text.replace("左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。", "轻点图鉴和卡组列表中的牌即可打开详情。通过详情中的“加入主卡组”或“加入副卡组”添加一张，“移出卡组”移除一张；自机单位也可以加入主副卡组，或选择“设为自机”。详情大图右下角显示同名牌余量，下方按钮切换主、副卡组列表。")
   guide.text=guide.text.replace("主、副卡组中的卡牌左键再加一张，右键移除；在同一组的卡牌之间拖动可调整顺序，拖到另一组的卡牌上可直接交换两张，拖到另一组的空白处可移动一张，拖回右侧卡库可移除。顶部“排序卡组”整理主、副卡组的排列。", "切换到卡组页后，可拖动主、副卡组中的卡牌调整顺序，拖到另一组的卡牌上可交换两张，拖到另一组空白处可移动一张；轻触详情中的“移出卡组”可移除一张。菜单中的“排序”整理主、副卡组。")
   guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "图鉴左侧为类型和纵向颜色筛选，搜索与筛选会叠加；颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选。每页显示三张卡牌，使用卡牌行下方的左右箭头翻页。")
   guide.text=guide.text.replace("右下角可保存、使用、清空或删除卡组；", "卡组页右侧可保存卡组，菜单中可清空或删除卡组；图鉴页及卡组页均有“返回主菜单”按钮。")
@@ -1406,13 +1763,15 @@ func choose_leader_from_picker(id: String,dialog: Control):
 func editor_card(id: String, source: String, index: int, rect: Rect2, parent: Node = null):
  var tile=preload("res://scripts/deck_card.gd").new()
  tile.is_android=is_android
+ tile.tap_action=sideboard_session!=null or (is_android and page=="editor")
+ tile.long_press_enabled=not (is_android and page=="editor")
  tile.hold_to_drag=is_android and page=="editor"
  tile.card_id=id
  tile.face_texture=texture(id)
  tile.source_zone=source
  tile.source_index=index
  tile.tooltip_text=Store.CARDS[id].name
- if is_android and page=="editor":tile.tooltip_text+="\n点击：查看详情 · 长按：拖动卡牌"
+ if is_android and page=="editor":tile.tooltip_text+="\n点击：查看详情 · 拖动：调整卡牌"
  elif CardArt.options(id,Store.CARDS).size()>1:tile.tooltip_text+="\n"+("长按：更换当前卡组的异画" if is_android else "鼠标中键：更换当前卡组的异画")
  tile.position=rect.position
  tile.size=rect.size
@@ -1433,7 +1792,7 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
   zone=from
   if sideboard_session!=null:
    update_preview()
-   if not right and from in ["main","side"]:drop_editor_card({"card_id":card_id,"source_zone":from,"source_index":index_in_deck},"side" if from=="main" else "main")
+   if not right and from in ["main","side"] and not (is_android and tile.held):drop_editor_card({"card_id":card_id,"source_zone":from,"source_index":index_in_deck},"side" if from=="main" else "main")
    return
   if is_android:
    if page=="editor":editor_ui.show_details(card_id,from,index_in_deck)
@@ -1506,6 +1865,10 @@ func use_deck():
 func about():
  clear_page("about")
  about_code=""
+ if is_android:
+  var layout=preload("res://scripts/menu_ui_layout.gd").new()
+  layout.build_about(self)
+  return
  var title=label(screen,"关于",Rect2(100,210,1400,70),44,GOLD)
  title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var version=label(screen,"multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
@@ -1516,9 +1879,10 @@ func about():
   var state=label(screen,"调试模式已开启",Rect2(100,495,1400,44),22,GOLD)
   state.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   button(screen,"退出调试模式",Rect2(670,571,260,50),func(): debug_mode=false; about())
- button(screen,"返回",Rect2(670,660,260,54),menu)
+ button(screen,"返回",Rect2(670,660,260,54),settings)
 
 func _unhandled_key_input(event: InputEvent):
+ if deck_picker_open():return
  if menu_popup_open():return
  if is_android:return
  if page!="about" or not event is InputEventKey or not event.pressed or event.echo: return
@@ -1640,7 +2004,7 @@ func replays():
   if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)
 
 func uses_responsive_layout() -> bool:
- return is_android and page in ["","menu","editor","sideboard","setup","settings","battle","online","account","deck_plaza","replays"]
+ return is_android and page in ["","menu","editor","sideboard","setup","settings","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","deck_plaza","replays"]
 
 func refresh_ui_metrics():
  ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override)
@@ -1663,10 +2027,14 @@ func refresh_responsive_layout():
   return
  screen.position=ui_metrics.safe.position;screen.size=ui_metrics.safe.size
  queue_redraw()
+ if deck_picker_open():deck_picker_layout_changed=true;deck_picker_ui.refresh_metrics();return
  if page in ["editor","sideboard"]:editor(page=="sideboard")
  elif page=="menu":menu()
  elif page=="setup":setup()
  elif page=="settings":settings()
+ elif page=="about":about()
+ elif page=="tutorials" and is_instance_valid(tutorial_ui):tutorial_ui.refresh_metrics()
+ elif page=="tutorial_directory" and is_instance_valid(tutorial_directory_ui):tutorial_directory_ui.refresh_metrics()
  elif page=="online":online()
  elif page=="account":account_page()
  elif page=="replays":replays()
@@ -1722,20 +2090,18 @@ func desktop_menu():
  label(screen,"VERSION "+str(ProjectSettings.get_setting("application/config/version")),Rect2(92,74,900,42),18,GOLD)
  label(screen,"multicolor:arena",Rect2(86,173,760,125),66)
  label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(94,309,740,48),24,MUTED)
- button(screen,"人机对战    →",Rect2(96,422,440,70),setup,true)
- button(screen,"联网对战",Rect2(96,512,440,64),online)
- button(screen,"编辑牌组",Rect2(96,594,440,64),func(): editor())
- button(screen,"玩家账号",Rect2(570,594,280,64),account_page)
- button(screen,"设置",Rect2(96,676,440,64),settings)
- button(screen,"关于",Rect2(96,758,440,64),about)
- button(screen,"退出游戏",Rect2(570,676,280,64),func(): get_tree().quit())
- button(screen,"对局回放",Rect2(570,758,280,64),replays)
+ var actions=main_menu_entries()
+ var rows=[422,512,594,676]
+ for i in range(actions.size()):
+  var item=actions[i]
+  button(screen,item[0],Rect2(96+(i%2)*374,rows[int(i/2)],350,70 if i<2 else 64),item[1],i==1)
  card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
  card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
 
 func desktop_settings():
  clear_page("settings")
  header("设置",menu)
+ button(screen,"关于",Rect2(1260,32,140,46),about)
  var cb = CheckButton.new()
  cb.text = "全屏显示"
  cb.position = Vector2(420,290)
@@ -1760,9 +2126,17 @@ func desktop_settings():
  inspection_cb.button_pressed = show_card_inspection
  inspection_cb.toggled.connect(set_show_card_inspection)
  screen.add_child(inspection_cb)
+ var delay_cb=CheckButton.new()
+ delay_cb.name="DelayTurnEnd"
+ delay_cb.text="延迟回合结束（长按 1 秒）"
+ delay_cb.position=Vector2(420,530)
+ delay_cb.size=Vector2(700,60)
+ delay_cb.button_pressed=delay_turn_end
+ delay_cb.toggled.connect(set_delay_turn_end)
+ screen.add_child(delay_cb)
  var drag_cb=CheckButton.new()
  drag_cb.text="测试模式：允许拖动卡牌放入战场"
- drag_cb.position=Vector2(420,530)
+ drag_cb.position=Vector2(420,610)
  drag_cb.size=Vector2(700,60)
  drag_cb.button_pressed=debug_drag_to_field
  drag_cb.toggled.connect(set_debug_drag_to_field)
@@ -1770,11 +2144,13 @@ func desktop_settings():
  if is_test_build:
   var training_cb=CheckButton.new()
   training_cb.text="回放训练模式：标注关键步骤与推荐招法"
-  training_cb.position=Vector2(420,610)
+  training_cb.position=Vector2(420,690)
   training_cb.size=Vector2(700,60)
   training_cb.button_pressed=replay_training_mode
   training_cb.toggled.connect(set_replay_training_mode)
   screen.add_child(training_cb)
+ button(screen,"加载 PCK 补丁…",Rect2(420,780,360,58),choose_pck_patch)
+ label(screen,"当前版本："+patch_manager().active_version,Rect2(800,784,500,48),20,GOLD)
 
 func desktop_editor(sideboarding: bool=false):
  if not sideboarding:reload_decks()
@@ -1877,16 +2253,8 @@ func desktop_editor(sideboarding: bool=false):
  library.add_theme_constant_override("v_separation",6)
  scroll.add_child(library)
  library.set_drag_forwarding(Callable(),can_return_card,return_card_to_library)
- saved_select=OptionButton.new()
- saved_select.position=Vector2(1252,602)
- saved_select.size=Vector2(314,40)
- saved_select.add_item("卡组")
- for d in decks:
-  saved_select.add_item(d.name)
-  if d.id==draft.id: saved_select.select(saved_select.item_count-1)
- saved_select.item_selected.connect(func(i):
-  if i>0: guard(func(): draft=decks[i-1].duplicate(true); dirty=false; editor()))
- screen.add_child(saved_select)
+ saved_select=button(screen,"选择卡组",Rect2(1252,602,314,40),open_editor_deck_picker)
+ saved_select.name="SavedDeckSelect"
  button(screen,"保存",Rect2(1252,656,150,42),save_deck,true)
  button(screen,"使用卡组",Rect2(1416,656,150,42),use_deck)
  button(screen,"导出代码",Rect2(1252,710,150,42),export_deck)
@@ -2007,9 +2375,7 @@ func desktop_update_deck_rows():
  for i in range(draft.side.size()):
   editor_card(draft.side[i],"side",i,Rect2(side_origin+Vector2(i*86,0),Vector2(78,109)),side_parent)
  label(deck_canvas,"副卡组",Rect2(5,519,130,32),18,GOLD)
- var color_counts={"红":0,"蓝":0,"绿":0,"黄":0,"黑":0}
- for id in draft.main:
-  for color in Store.CARDS[id].colors: color_counts[color]+=1
+ var color_counts=Store.deck_color_counts(draft.main)
  var index=0
  for c in color_counts:
   label(deck_canvas,"%s %d" % [c,color_counts[c]],Rect2(146+index*116,519,108,30),18,MUTED)
@@ -2026,19 +2392,9 @@ func desktop_setup():
   var x=220+i*620
   box(screen,Rect2(x,186,540,340))
   label(screen,"你的卡组" if i==0 else "人机的卡组",Rect2(x+24,205,440,40),24,GOLD)
-  var pick=OptionButton.new()
-  pick.position=Vector2(x+24,266)
-  pick.size=Vector2(492,50)
-  if decks.is_empty():
-   pick.add_item("未选择")
-  else:
-   for d in decks: pick.add_item(d.name)
-   pick.select(player_choice if i==0 else ai_choice)
-  pick.item_selected.connect(func(index):
-   if i==0: player_choice=index
-   else: ai_choice=index
-   setup())
-  screen.add_child(pick)
+  var pick=button(screen,deck_choice_caption(player_choice if i==0 else ai_choice),Rect2(x+24,266,492,50),func():open_match_deck_picker(i))
+  pick.name="PlayerDeckSelect" if i==0 else "AIDeckSelect"
+  pick.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
   if not decks.is_empty():
    var chosen=decks[player_choice if i==0 else ai_choice]
    card(screen,chosen.leader,Rect2(x+24,340,106,151))

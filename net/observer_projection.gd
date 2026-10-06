@@ -8,6 +8,8 @@ static func build(e,events: Array=[],perspective: int=-1,replay_hands: bool=fals
   var v=e.get(key);state[key]=v.duplicate(true) if v is Array or v is Dictionary else v
  state.stack=SeatView.public_stack(state.stack)
  state.pending={"kind":"network_wait","owner":e.pending.get("owner",e.priority)} if not e.pending.is_empty() else {}
+ if e.pending.has("resolving_entry"):state.pending.resolving_entry=SeatView.public_stack([e.pending.resolving_entry])[0]
+ elif e.pending.get("trigger",{}).has("entry"):state.pending.resolving_entry=SeatView.public_stack([e.pending.trigger.entry])[0]
  state.forced_cast={};state.players=[];state.presentation_events=[]
  var definitions={}
  for who in range(2):
@@ -34,6 +36,7 @@ static func build(e,events: Array=[],perspective: int=-1,replay_hands: bool=fals
   for art in entry.art:
    if art.get("hidden",false) and art.owner!=perspective and not replay_hands:art.card_id="back";art.erase("art_id")
  collect_definitions(state.stack,e,definitions)
+ collect_definitions(state.pending.get("resolving_entry",{}),e,definitions)
  var projection={"state":state,"queries":q,"definitions":definitions,"all_hands":replay_hands}
  if replay_hands:projection.training_context={"decision_point":e.winner==-2 and e.phase=="main" and e.active==e.priority and e.pending.is_empty() and e.stack.is_empty() and e.combat.is_empty() and e.entry_choices.is_empty()}
  return projection

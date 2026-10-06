@@ -6,6 +6,8 @@ const HOLD_SECONDS=0.22
 const REVEAL_SECONDS=0.5
 const MOVE_SECONDS=0.30
 const RESULT_SECONDS=1.25
+const MOVE_BATCH_THRESHOLD=4
+const MOVE_BATCH_FACES=8
 var view
 var busy=false
 var queue: Array=[]
@@ -15,6 +17,7 @@ var completed: Array=[]
 var movements: Array=[]
 var results: Array=[]
 var face: TextureRect
+var batch_faces: Array=[]
 var result_label: Label
 var sequence: Tween
 var hand_node
@@ -28,19 +31,53 @@ func _ready():
  mouse_filter=Control.MOUSE_FILTER_IGNORE
 func reset():
  if is_instance_valid(sequence) and sequence.is_valid():sequence.kill()
- if is_instance_valid(face):face.queue_free()
+ if is_instance_valid(face) and face not in batch_faces:face.queue_free()
+ for card_face in batch_faces:
+  if is_instance_valid(card_face):card_face.queue_free()
+ batch_faces.clear()
  if is_instance_valid(result_label):result_label.queue_free()
  if is_instance_valid(hand_node) and not saved_hand.is_empty():
   hand_node.visible=saved_hand.visible;hand_node.hidden_card=saved_hand.hidden;hand_node.art.texture=saved_hand.texture
  queue.clear();current={};public_uids.clear();completed.clear();movements.clear();results.clear();move_ends.clear();busy=false
- hand_node=null;saved_hand={}
+ hand_node=null;saved_hand={};face=null;result_label=null
 func enqueue(events: Array):
- queue.append_array(events.duplicate(true))
+ # Generated keystones become one visible stack immediately, without one
+ # travelling card and input delay per token. Android move runs share a tween.
+ var immediate=events.any(func(event):return instant_keystone(event))
+ queue.append_array(events.filter(func(event):return not instant_keystone(event)).duplicate(true))
+ if view.is_android:queue=batch_moves(queue)
+ if immediate:
+  view.table.sync(view.table.reserved,view.table.chosen,view.table.highlighted,false,"token-fdf-129")
+  view.rebuild_badges()
  if busy:return
+ if queue.is_empty():return
  busy=true
  view.close_overlay()
  if is_instance_valid(view.banner):view.banner.hide()
  call_deferred("next_card")
+func instant_keystone(event: Dictionary) -> bool:
+ return event.get("type","")=="move" and event.get("from","")=="token" and event.get("to","")=="field" and event.get("card",{}).get("card_id","")=="token-fdf-129"
+func batch_moves(events: Array) -> Array:
+ var out=[];var run=[]
+ for event in events:
+  if event.get("type","")=="move":run.append(event)
+  else:
+   append_move_run(out,run);run=[];out.append(event)
+ append_move_run(out,run)
+ return out
+func append_move_run(out: Array,run: Array):
+ # Public reveals and result messages delimit runs. Multiple moves of the
+ # same card keep their original records but travel to the final destination.
+ if run.size()<MOVE_BATCH_THRESHOLD:out.append_array(run);return
+ var by_uid={}
+ for event in run:
+  var uid=event.card.uid
+  if by_uid.has(uid):
+   by_uid[uid].to=event.to;by_uid[uid].to_owner=event.to_owner
+  else:by_uid[uid]=event.duplicate(true)
+ if by_uid.size()>1:
+  out.append({"type":"move_batch","moves":run,"cards":by_uid.values()})
+ else:out.append_array(run)
 func next_card():
  if not busy:return
  if queue.is_empty():
@@ -51,6 +88,7 @@ func next_card():
  view.ui.move_child(self,-1)
  if current.type=="result":show_result();return
  if current.type=="move":show_move();return
+ if current.type=="move_batch":show_move_batch();return
  var c=current.card
  hand_node=null;saved_hand={}
  var nodes=view.hand_nodes if c.owner==view.local_seat else view.enemy_nodes
@@ -98,7 +136,7 @@ func show_result():
  result_label.add_theme_constant_override("shadow_outline_size",5);result_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(result_label)
  sequence=create_tween();sequence.tween_interval(RESULT_SECONDS)
  sequence.tween_callback(func():results.append({"text":current.text,"seconds":(Time.get_ticks_msec()-started_at)/1000.0});result_label.queue_free();next_card())
-func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
+func zone_rect(zone: String,owner: int,uid: int,source: bool,destination_layout: Dictionary={}) -> Rect2:
  var key="card_"+str(uid)
  if source and move_ends.has(uid):return move_ends[uid]
  if zone=="hand" and owner!=view.local_seat and not view.debug_mode:
@@ -116,7 +154,7 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
    if uid in view.table.descriptors[group_key].get("members",[]) and view.table.visuals.has(group_key):
     return view.projected_card_rect(view.table.visuals[group_key])
  if not source:
-  var layout=view.table.layout()
+  var layout=destination_layout if not destination_layout.is_empty() else view.table.layout()
   var destination=layout.get(key,{})
   if destination.is_empty() and zone=="field":
    for d in layout.values():
@@ -132,13 +170,13 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool) -> Rect2:
   return Rect2(at,dimensions)
  var dimensions=Vector2(66,92)
  return Rect2(view.project(view.table.zone_position(zone,owner))-dimensions/2,dimensions)
-func show_move():
- var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
- var hidden=c.card_id=="back" or current.from in ["hand","deck"] and current.to in ["hand","deck"] and (c.owner!=view.local_seat and not view.replay_view() or current.from=="deck" and current.to=="deck") and not view.debug_mode
- var texture=view.host.texture("back") if hidden else view.card_texture(c)
- create_face(from.size,from.get_center(),texture)
+func hidden_move(event: Dictionary) -> bool:
+ var c=event.card
+ return c.card_id=="back" or event.from in ["hand","deck"] and event.to in ["hand","deck"] and (c.owner!=view.local_seat and not view.replay_view() or event.from=="deck" and event.to=="deck") and not view.debug_mode
+func hide_move_source(event: Dictionary):
+ var c=event.card
  var stack_rect=view.stack_panel.card_rect(c.uid)
- if current.from=="stack" and stack_rect.has_area():
+ if event.from=="stack" and stack_rect.has_area():
   for id in view.stack_panel.tiles:
    if view.stack_panel.tiles[id].tile.get_meta("uid")==c.uid:view.stack_panel.tiles[id].tile.modulate.a=0
  var key="card_"+str(c.uid)
@@ -146,6 +184,12 @@ func show_move():
  for nodes in [view.hand_nodes,view.enemy_nodes]:
   if nodes.has(c.uid):nodes[c.uid].hide()
  view.table.presented_moves[c.uid]=true
+func show_move():
+ var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
+ var hidden=hidden_move(current)
+ var texture=view.host.texture("back") if hidden else view.card_texture(c)
+ create_face(from.size,from.get_center(),texture)
+ hide_move_source(current)
  if current.from==current.to and current.from=="deck":to.position.y-=20
  sequence=create_tween().set_parallel(true)
  sequence.tween_property(face,"position",to.position,MOVE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
@@ -155,6 +199,34 @@ func show_move():
   move_ends[c.uid]=to
   movements.append({"uid":c.uid,"from":current.from,"to":current.to,"hidden":hidden})
   face.queue_free();next_card())
+func show_move_batch():
+ var layout=view.table.layout();var destinations={}
+ sequence=create_tween().set_parallel(true)
+ batch_faces=[]
+ for index in range(current.cards.size()):
+  var event=current.cards[index];var c=event.card
+  var from=zone_rect(event.from,c.owner,c.uid,true)
+  var to=zone_rect(event.to,event.to_owner,c.uid,false,layout)
+  destinations[c.uid]=to
+  if index<MOVE_BATCH_FACES:
+   create_face(from.size,from.get_center(),view.host.texture("back") if hidden_move(event) else view.card_texture(c))
+   batch_faces.append(face)
+   sequence.tween_property(face,"position",to.position,MOVE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+   sequence.tween_property(face,"size",to.size,MOVE_SECONDS)
+   if event.to in ["void","token"]:sequence.tween_property(face,"modulate:a",0.0,MOVE_SECONDS)
+  hide_move_source(event)
+ result_label=Label.new();result_label.text="×%d" % current.cards.size()
+ result_label.position=Vector2(view.STAGE.get_center().x-30,view.STAGE.position.y+16)
+ result_label.add_theme_font_size_override("font_size",24);result_label.add_theme_color_override("font_color",view.host.GOLD)
+ result_label.add_theme_color_override("font_outline_color",Color.BLACK);result_label.add_theme_constant_override("outline_size",4)
+ result_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(result_label)
+ sequence.chain().tween_callback(func():
+  move_ends.merge(destinations,true)
+  for event in current.moves:
+   var c=event.card
+   movements.append({"uid":c.uid,"from":event.from,"to":event.to,"hidden":hidden_move(event)})
+  for card_face in batch_faces:card_face.queue_free()
+  batch_faces.clear();result_label.queue_free();next_card())
 func show_public():
  shown_at=Time.get_ticks_msec();public_uids=[current.card.uid]
  if is_instance_valid(hand_node):

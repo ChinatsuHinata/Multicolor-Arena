@@ -2,6 +2,7 @@ extends Control
 const Client=preload("res://scripts/deck_plaza_client.gd")
 const Store=preload("res://scripts/deck_store.gd")
 const Art=preload("res://scripts/card_art.gd")
+const CardInspection=preload("res://scripts/card_inspection.gd")
 # The service returns six posts; Android presents that batch one row at a time.
 const SERVER_PAGE_SIZE=6
 var app
@@ -25,6 +26,14 @@ var color_filters_open=false
 var color_filters: VBoxContainer
 var color_filter_button: Button
 var mine_button: Button
+var back_button: Button
+var detail_panes: HBoxContainer
+var detail_info: PanelContainer
+var detail_description_scroll: ScrollContainer
+var detail_card_panel: VBoxContainer
+var detail_deck={}
+var card_overlay: Control
+var card_popup: PanelContainer
 var edit_after_detail=false
 var heading: Label
 var notice: Label
@@ -73,7 +82,7 @@ func _ready():
  mine_button=action(toolbar,"我的上传",toggle_mine);mine_button.name="PlazaMineButton"
  upload_button=action(toolbar,"上传套牌" if app.is_android else "上传当前套牌",app.upload_current_deck);upload_button.name="PlazaUploadButton"
  refresh_button=action(toolbar,"刷新",func():fetch_list(page_index,page_offset))
- action(toolbar,"返回" if app.is_android else "返回编辑器",app.editor).name="PlazaBackButton"
+ back_button=action(toolbar,"返回" if app.is_android else "返回编辑器",app.editor);back_button.name="PlazaBackButton"
  if not app.is_android:notice=text(root,"")
  notice.name="PlazaNotice"
  body=VBoxContainer.new();root.add_child(body);expand(body,true)
@@ -82,14 +91,19 @@ func _ready():
  mine=app.deck_plaza_browser.get("mine",false)
  filters=app.deck_plaza_browser.get("filters",filters).duplicate(true)
  if mode in ["upload","edit"]:show_upload()
+ elif mode=="detail":show_detail()
  else:show_list();call_deferred("fetch_list",0)
 
 func clear_body():
+ close_card_details()
  app.free_children(body)
  grid=null;list_scroll=null;submit_button=null;previous_button=null;next_button=null;page_label=null
  title_input=null;description_input=null;tags_input=null
  search_fields={}
  color_filters=null;color_filter_button=null
+ detail_panes=null;detail_info=null
+ detail_description_scroll=null;detail_card_panel=null;detail_deck={}
+ back_button.visible=mode!="detail"
  upload_button.visible=mode=="list";refresh_button.visible=mode=="list"
  mine_button.visible=mode=="list";mine_button.text="全部套牌" if mine else "我的上传"
 
@@ -287,6 +301,10 @@ func queue_tile_layout():
 
 func layout_tiles():
  tile_layout_pending=false
+ if mode=="detail":
+  if is_instance_valid(detail_info):detail_info.custom_minimum_size.x=clampf(body.size.x*0.27,280,440)
+  fit_card_popup()
+  return
  if not is_instance_valid(grid):return
  var columns=tile_columns()
  var row_height=size.y-app.ui_metrics.padding*2-app.ui_metrics.hit*3-app.ui_metrics.gap*3
@@ -417,24 +435,101 @@ func set_busy(value: bool):
 
 func show_detail():
  mode="detail";clear_body();heading.text="套牌详情";notice.text=""
- var scroll=ScrollContainer.new();body.add_child(scroll);expand(scroll,true)
+ detail_panes=HBoxContainer.new();detail_panes.name="PlazaDetailPanes";body.add_child(detail_panes);expand(detail_panes,true)
+ detail_panes.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ detail_info=PanelContainer.new();detail_info.name="PlazaDetailInfo";detail_panes.add_child(detail_info)
+ detail_info.add_theme_stylebox_override("panel",app.ui_metrics.panel_style())
+ detail_info.custom_minimum_size.x=clampf(app.screen.size.x*0.27,280,440)
+ var info=VBoxContainer.new();detail_info.add_child(info)
+ info.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ var scroll=ScrollContainer.new();scroll.name="PlazaDescriptionScroll";info.add_child(scroll);expand(scroll,true)
+ detail_description_scroll=scroll
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var column=VBoxContainer.new();scroll.add_child(column);expand(column)
+ column.add_theme_constant_override("separation",int(app.ui_metrics.gap))
  var deck=decoded(current_post)
- picture(column,deck,260)
+ detail_deck=deck
  text(column,str(current_post.get("title","")),app.ui_metrics.title,app.GOLD)
  text(column,"上传玩家：%s（%s）" % [current_post.get("nickname",""),current_post.get("username","")],app.ui_metrics.body,app.MUTED)
  text(column,"标签："+("，".join(current_post.get("tags",[])) if not current_post.get("tags",[]).is_empty() else "无"),app.ui_metrics.body,app.GOLD).name="PlazaDetailTags"
  text(column,"套牌颜色："+(" / ".join(current_post.get("colors",[])) if not current_post.get("colors",[]).is_empty() else "无色"),app.ui_metrics.body,app.MUTED)
  text(column,str(current_post.get("description","")) if not str(current_post.get("description","")).is_empty() else "暂无描述",app.ui_metrics.body).name="PlazaDetailDescription"
  if not deck.is_empty():text(column,"主卡组 %d 张 · 副卡组 %d 张 · %s" % [deck.main.size(),deck.side.size(),Store.RuleSet.label_for(str(deck.rule_set))],app.ui_metrics.body,app.MUTED)
- var download=action(column,"下载套牌到本地",download_deck,true);download.name="PlazaDownload";download.disabled=deck.is_empty()
+ detail_card_panel=VBoxContainer.new();detail_card_panel.name="PlazaCardInspection";info.add_child(detail_card_panel);expand(detail_card_panel,true)
+ detail_card_panel.add_theme_constant_override("separation",int(app.ui_metrics.gap));detail_card_panel.hide()
+ var download=action(info,"下载套牌到本地",download_deck,true);download.name="PlazaDownload";download.disabled=deck.is_empty()
  if current_post.get("owned",false):
-  var owner_actions=HBoxContainer.new();column.add_child(owner_actions)
+  var owner_actions=VBoxContainer.new();info.add_child(owner_actions)
   var edit=action(owner_actions,"进入编辑器修改",func():app.edit_uploaded_deck(current_post));edit.name="PlazaEdit";edit.disabled=deck.is_empty();expand(edit)
   expand(action(owner_actions,"删除上传套牌",func():delete_post(current_post)))
- action(column,"返回广场",func():show_list();notice.text="点击套牌查看详情")
+ action(info,"返回广场",func():show_list();notice.text="点击套牌查看详情").name="PlazaReturnToList"
+ var overview_panel=PanelContainer.new();overview_panel.name="PlazaDeckPanel";detail_panes.add_child(overview_panel);expand(overview_panel,true)
+ overview_panel.add_theme_stylebox_override("panel",app.ui_metrics.panel_style())
+ if not deck.is_empty():
+  var overview=preload("res://scripts/deck_plaza_overview.gd").new();overview.app=app;overview.deck=deck
+  overview.card_inspected.connect(show_card_details)
+  overview_panel.add_child(overview);expand(overview,true)
+ else:text(overview_panel,"此套牌需要更新客户端后查看",app.ui_metrics.body,app.MUTED)
+ queue_tile_layout()
  if deck.is_empty():notice.text="此套牌包含当前客户端无法识别的卡牌或异画，请更新后再下载。"
+
+func inspection_art(parent: Node,id: String) -> TextureRect:
+ var picture=CardInspection.artwork(app,parent,id,detail_deck);picture.name="PlazaInspectionArt"
+ return picture
+
+func inspection_text(parent: Node,id: String,width: float):
+ var scroll=CardInspection.rules(app,parent,id,width);scroll.name="PlazaCardTextScroll"
+ scroll.find_child("CardInspectionRules",true,false).name="PlazaCardRules"
+
+func inspection_header(parent: Node):
+ var header=HBoxContainer.new();parent.add_child(header)
+ var title=text(header,"卡牌详情",app.ui_metrics.body,app.GOLD)
+ title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true
+ action(header,"关闭",close_card_details).name="PlazaCloseCardDetails"
+
+func show_card_details(id: String):
+ if mode!="detail" or not Store.CARDS.has(id):return
+ close_card_details()
+ if not app.is_android:
+  detail_description_scroll.hide();detail_card_panel.show()
+  inspection_header(detail_card_panel)
+  var picture=inspection_art(detail_card_panel,id)
+  picture.size_flags_vertical=Control.SIZE_FILL
+  var width=maxf(100,detail_info.size.x-app.ui_metrics.padding*2)
+  picture.custom_minimum_size.y=minf(app.screen.size.y*0.3,width*(0.72 if app.landscape_card(id) else 1.397))
+  inspection_text(detail_card_panel,id,width-16)
+  return
+ card_overlay=Control.new();card_overlay.name="PlazaCardOverlay";add_child(card_overlay)
+ card_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var shade=ColorRect.new();shade.color=Color(0,0,0,0.78);card_overlay.add_child(shade)
+ shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade.gui_input.connect(func(event):
+  if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:close_card_details())
+ card_popup=PanelContainer.new();card_popup.name="PlazaCardPopup";card_overlay.add_child(card_popup)
+ card_popup.add_theme_stylebox_override("panel",app.ui_metrics.panel_style())
+ fit_card_popup()
+ var column=VBoxContainer.new();card_popup.add_child(column)
+ column.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ inspection_header(column)
+ var panes=HBoxContainer.new();column.add_child(panes);expand(panes,true)
+ panes.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ var words=VBoxContainer.new();panes.add_child(words);expand(words,true)
+ inspection_text(words,id,maxf(100,(card_popup.size.x-app.ui_metrics.padding*2-app.ui_metrics.gap)*0.52-16))
+ var picture=inspection_art(panes,id);picture.size_flags_stretch_ratio=0.92
+
+func fit_card_popup():
+ if not is_instance_valid(card_popup):return
+ var padding=app.ui_metrics.padding
+ card_popup.size=Vector2(minf(1200,size.x-padding*2),size.y-padding*2)
+ card_popup.position=(size-card_popup.size)*0.5
+
+func close_card_details():
+ if is_instance_valid(card_overlay):
+  remove_child(card_overlay);card_overlay.queue_free()
+ card_overlay=null;card_popup=null
+ if is_instance_valid(detail_card_panel):
+  detail_card_panel.hide();app.free_children(detail_card_panel)
+ if is_instance_valid(detail_description_scroll):detail_description_scroll.show()
 
 func download_deck():
  var deck=decoded(current_post)

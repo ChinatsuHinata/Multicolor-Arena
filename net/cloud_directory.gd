@@ -10,19 +10,41 @@ var last_request=0
 var connected_once=false
 var pending_rooms: Array=[]
 var expected_page=0
+var active=false
+var retry_at=0
+var is_android=OS.has_feature("android")
+var application_suspended=false
 
 func start(server_url: String,login_token: String):
  stop()
  if login_token.is_empty():failed.emit("请先登录玩家账号");return
  url=server_url;token=login_token
+ active=true
+ connect_peer()
+
+func connect_peer():
  peer=WebSocketMultiplayerPeer.new()
  var err=peer.create_client(url)
- if err!=OK:peer=null;failed.emit("无法连接云端服务器："+error_string(err));return
+ retry_at=Time.get_ticks_msec()+3000
+ if err!=OK:
+  stop();failed.emit("无法连接云端服务器："+error_string(err));return
+ connected_once=false;pending_rooms=[];expected_page=0
  set_process(true)
 
 func stop():
  if peer!=null:peer.close()
- peer=null;rooms=[];pending_rooms=[];expected_page=0;connected_once=false;set_process(false)
+ peer=null;active=false;rooms=[];pending_rooms=[];expected_page=0;connected_once=false;set_process(false)
+
+func _notification(what):
+ if not is_android:return
+ if what==NOTIFICATION_APPLICATION_PAUSED:application_suspended=true
+ elif what==NOTIFICATION_APPLICATION_RESUMED:
+  if not application_suspended:return
+  application_suspended=false
+  if not active:return
+  retry_at=0;last_request=0
+  if peer==null:connect_peer()
+  else:refresh()
 
 func refresh():
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
@@ -36,10 +58,13 @@ func request_page(page: int):
  peer.put_packet(("MCR1"+JSON.stringify({"kind":"list","token":token,"page":page})).to_utf8_buffer())
 
 func _process(_delta):
- if peer==null:return
+ if not active or application_suspended:return
+ if peer==null:
+  if Time.get_ticks_msec()>=retry_at:connect_peer()
+  return
  peer.poll()
  if peer.get_connection_status()==MultiplayerPeer.CONNECTION_DISCONNECTED:
-  stop();failed.emit("云端房间列表连接已断开");return
+  peer.close();peer=null;retry_at=Time.get_ticks_msec()+3000;return
  if peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  if not connected_once or Time.get_ticks_msec()-last_request>3000:
   connected_once=true;refresh()
@@ -55,6 +80,8 @@ func _process(_delta):
      expected_page+=1
      if expected_page<int(answer.get("pages",1)):request_page(expected_page)
      else:rooms=pending_rooms.duplicate(true);changed.emit()
-   "error":failed.emit(str(answer.get("message","云端请求失败")))
+   "error":
+    var message=str(answer.get("message","云端请求失败"))
+    stop();failed.emit(message)
 
 func _exit_tree():stop()

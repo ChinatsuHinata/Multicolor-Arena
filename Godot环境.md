@@ -69,6 +69,16 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\share-apk-lan.ps
 
 正式发布前，需要设置自己的唯一包名、版本号、图标和独立的**发布签名密钥**，妥善备份密钥与密码，并检查导出资源与权限。Google Play 上架需要 AAB 和相应的 Gradle 构建设置；调试 APK 不应作为正式发布包。项目目前按 1600×900 桌面界面设计，仍须在真机上检查触控目标、拖放和手势、屏幕比例与安全区域、软键盘、文件访问及性能，再决定 Android 界面的适配范围。Godot 的组件要求和签名说明见[官方 Android 导出文档](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html)。
 
+## 在 VS Code 编辑 GDScript
+
+使用 Godot 官方维护的 [Godot Tools 扩展](https://github.com/godotengine/godot-vscode-plugin)（扩展 ID：`geequlim.godot-tools`）。在 VS Code 打开本项目根目录后，工作区设置会使用项目自带的 Godot 4.7.2；打开 `.gd` 文件时，插件自动启动无窗口的 Godot 语言服务，提供补全、悬停说明、跳转定义与错误提示。无需先手动打开 Godot 编辑器。
+
+- 按 `F5`，选择 **Godot: 调试游戏**，运行主场景并使用断点调试。
+- 在“运行和调试”下拉框选择 **Godot: 调试当前场景**，可调试当前 `.tscn`，或与当前 `.gd` 同名的 `.tscn`。
+- 按 `Shift+Alt+F`，使用插件的 GDScript 格式化功能。
+
+配置位于 `.vscode/settings.json`、`.vscode/launch.json` 和 `.vscode/extensions.json`。语言服务地址为 `127.0.0.1:6005`；无窗口模式和 VS Code 调试器会自动分配可用端口。便携 Godot 的外部脚本编辑器已设为本机 VS Code，并启用外部脚本修改后的自动重载；其他电脑需在 Godot“编辑器设置 → 文本编辑器 → 外部”更新 VS Code 路径。安装后若已有 VS Code 窗口未识别插件，运行命令 **Developer: Reload Window（开发人员: 重新加载窗口）**。
+
 ## 在 VS Code 启动和运行测试
 
 在 VS Code 中打开**项目根目录**，按 `Ctrl+Shift+B` 即可启动 Godot 游戏窗口，直接进行手动测试。游戏进程在 VS Code 终端中运行；关闭游戏窗口即可结束任务。此快捷键调用当前工作区的 `.godot-toolchain/editor/Godot_v4.7.2-stable_win64.exe`，无需另装 Godot 或输入命令。任务定义保存在 `.vscode/tasks.json`，随项目共享。
@@ -83,6 +93,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\share-apk-lan.ps
 - **发布: 创建 Windows 安装包和 Android APK**：在双平台验证后创建 Windows 安装程序。
 - **发布: 创建 Windows 差分补丁和 Android APK**：输入旧版本号，在双平台验证后创建差分安装器。
 - **Windows: 仅重新打包差分补丁**：输入旧版本号，复用 `builds/installer-staging/<当前版本>/` 中已有的 EXE/PCK。
+- **发布: 创建并推送双端 PCK 差分更新包到云端**：构建 Windows 和 Android 的 PCK 差分包，签名后上传 ECS，供客户端登录时自动更新。
+- **PCK: 推送已构建差分更新包到云端**：跳过构建，复用当前版本的双端 PCK 补丁并推送到云端。
+- **PCK: 检查云端推送连接**：仅检查 SSH 连接和认证，不构建或上传补丁；适合推送失败时排查。
 
 如果经常运行当前测试脚本，可在 VS Code 的 **Preferences: Open Keyboard Shortcuts (JSON)（首选项: 打开键盘快捷方式(JSON)）** 中添加以下个人快捷键：
 
@@ -113,6 +126,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-both.ps1 -In
 ## 在 VS Code 创建差分补丁
 
 运行“终端 → 运行任务”，选择 **发布: 创建 Windows 差分补丁和 Android APK**，输入要升级的旧版本号，例如 `1.2.1`。任务从 `project.godot` 读取新版本号，要求旧版 EXE/PCK 位于 `builds/installer-staging/<旧版本>/`，随后导出双平台、验证核心数据与差分并编译安装器。已有当前版本导出文件时，可选 **Windows: 仅重新打包差分补丁**；它跳过 Godot 导出，但仍验证新旧文件和差分结果。产物位于 `builds/installers/MulticolorArena-<旧版本>-to-<新版本>-win64-patch.exe`。详细前提及自定义旧版目录的方法见 `docs/修复补丁安装包.md`。
+
+## 在 VS Code 推送云端差分更新包
+
+运行“终端 → 运行任务”，选择 **发布: 创建并推送双端 PCK 差分更新包到云端**。任务调用 `tools/publish-pck-update.ps1 -UseInstalledWindowsPck -Publish`，从 `project.godot` 读取目标版本，从 `D:\Program Files (x86)\MulticolorArena` 的发行 PCK 和本机已安装签名补丁链识别实际来源版本，合成完整 Windows 基线并使用对应 Android 快照导出差分包。流程同时保留 1.2.7.1 累计兼容包，然后签名、上传 ECS、核对云端 SHA-256 并切换 `pck/chain.json` 和 `pck/latest.json`。客户端登录后检查清单并下载更新。
+
+已经通过 **发布: 创建 Windows 和 Android PCK 补丁** 生成当前版本的补丁时，可选择 **PCK: 推送已构建差分更新包到云端**，等价于 `tools/publish-pck-update.ps1 -UseInstalledWindowsPck -SkipBuild -Publish`。任务复用 `builds/pck-patches/<安装版实际版本>-to-<目标版本>/` 的双端补丁，以及 `1.2.7.1-to-<目标版本>/` 的双端累计包，重新生成签名清单并上传。
+
+验证更新时选择 **PCK: 用虚拟新版本测试安装版自动更新**。任务生成独立测试版本和真实差分，在发行 EXE 副本、隔离用户目录和本机回环服务中验证登录下载、安装、重启资源及避免重复下载，报告保存在 `builds/pck-tests/`；源码版本和正式发布清单保持不变。安装目录完整 PCK 的版本可能早于实际运行版本，任务会合并用户目录已有补丁来识别后者。
+
+目标版本须高于固定基底 **1.2.7.1**，且云端不能已有同名版本目录。运行前须有本地发行签名私钥 `.godot-toolchain/release-signing.key` 和 ECS SSH 私钥 `%USERPROFILE%\.ssh\id_ed25519_multicolor_ecs`；SSH 私钥口令在任务终端中输入。补丁机制及基底准备见 [双端 PCK 补丁](docs/PCK补丁.md)。
+
+推送任务会在构建前检查 SSH 和暂存目录。连接失败时可运行 **PCK: 检查云端推送连接**（`tools/publish-pck-update.ps1 -CheckConnection`），查看保留在异常中的 SSH 原始报错。若出现 `kex_exchange_identification: read: Connection reset`，说明连接在 SSH 握手阶段被重置，目录命令尚未执行；先检查代理/TUN/VPN 是否转发服务器流量，再检查 ECS 的 SSH 日志和来源 IP 限制。使用代理时，可将 `8.137.122.187` 设置为直连后重新检查。
 
 ## 素材说明
 

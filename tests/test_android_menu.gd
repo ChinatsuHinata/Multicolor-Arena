@@ -35,11 +35,15 @@ func run():
   var scroll=app.screen.find_child("MenuScroll",true,false) as ScrollContainer
   expect(scroll!=null,prefix+" has a scrollable menu")
   var scrollable=scroll!=null and scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page>1
-  for title in ["人机对战    →","联网对战","编辑牌组","玩家账号","设置","关于","对局回放","退出游戏"]:
+  var captions=["游戏教程","人机对战","联网对战","卡组编辑","玩家账号","对局回放","设置","退出游戏"]
+  for title in captions:
    var control=find_button(app.screen,title)
    expect(control!=null,prefix+" has "+title)
    if control and not scrollable:expect(safe.encloses(control.get_global_rect()),prefix+" shows "+title)
   expect(find_button(app.screen,"检查更新")==null,prefix+" hides manual update check")
+  expect(find_button(app.screen,"关于")==null,prefix+" moves About into settings")
+  var grid=app.screen.find_child("MainMenuActions",true,false)
+  expect(grid!=null and grid.get_children().map(func(button):return button.text)==captions,prefix+" orders actions in four rows with exit last")
   if scrollable:
    var start=scroll.get_global_rect().get_center()
    var touch=InputEventScreenTouch.new();touch.index=0;touch.position=start;touch.pressed=true

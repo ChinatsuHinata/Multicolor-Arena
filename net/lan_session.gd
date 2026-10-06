@@ -76,6 +76,8 @@ var rejected=false
 var metrics=Metrics.new()
 var read_only=false
 var replay_mode=false
+var is_android=OS.has_feature("android")
+var application_suspended=false
 var spectator_hub
 var recording=preload("res://scripts/replay_archive.gd").new()
 var replay_exchange
@@ -102,7 +104,7 @@ func initialize(directory: String=""):
  var cards=JSON.stringify(Duel.DB.load_cards())
  fingerprint=(VERSION+manifest+cards).sha256_text()
  legacy_fingerprint=("1.2"+manifest+cards).sha256_text()
- transport=Transport.new();add_child(transport)
+ transport=Transport.new();transport.process_priority=-10;add_child(transport)
  discovery=Discovery.new();add_child(discovery)
  replay_exchange=preload("res://net/replay_exchange.gd").new();replay_exchange.session=self;add_child(replay_exchange)
  transport.connected.connect(on_connect);transport.disconnected.connect(on_disconnect)
@@ -532,7 +534,8 @@ func on_failure(message: String):
  if read_only and not is_host:
   if joining and room_id.is_empty():
    joining=false;rejected=true;transport.close();notice="加入观战位失败："+message;error_raised.emit(notice)
-  else:notice=message
+  else:
+   joining=false;transport.close();retry_at=Time.get_ticks_msec();notice=message+"，正在恢复观战连接" if cloud_mode else message
   connected=false;paused=true;changed.emit();return
  if rejected or ended():return
  if joining and room_id.is_empty():
@@ -703,7 +706,7 @@ func handle_undo_action(actor: int,action: Dictionary):
    var restored=undo_history.restore_previous(authority)
    if restored.is_empty():return reject(actor,"无法恢复上一战况")
    var old_receipt=receipts[actor];receipts[actor]=replying[actor]
-   sequence+=1;restored.id=sequence;rewind_events.append(restored);undo_request={};refresh_undo_status()
+   sequence+=1;restored.id=sequence;restored.from=request.from;rewind_events.append(restored);undo_request={};refresh_undo_status()
    if not persist():
     Codec.restore(authority,old);undo_history.entries=checkpoints;undo_request=request;sequence-=1;receipts[actor]=old_receipt;rewind_events.pop_back();refresh_undo_status();return reject(actor,notice)
    receipts[actor]=replying[actor];busy=false;inflight={};snapshots.clear()
@@ -774,8 +777,39 @@ func receive_observer(id: int,m: Dictionary):
 func pop_snapshot() -> Dictionary:
  if snapshots.is_empty():return {}
  var packet=snapshots.pop_front();view_sequence=packet.sequence;local_game_id=packet.game_id;return packet
+func _notification(what):
+ if not is_android:return
+ if what==NOTIFICATION_APPLICATION_PAUSED:
+  application_suspended=true
+  if is_host and not room_id.is_empty():persist()
+ elif what==NOTIFICATION_APPLICATION_RESUMED:
+  if not application_suspended:return
+  application_suspended=false
+  if transport==null or rejected or ended():return
+  var now=Time.get_ticks_msec()
+  # Let queued packets arrive after Android stops frame processing. An already
+  # detected outage keeps its original disconnect deadline.
+  remote_last_seen=now;last_heartbeat=0;metrics.reset()
+  for id in cloud_peer_seen:cloud_peer_seen[id]=now
+  retry_at=0
+  retry_connection(now,true)
+func retry_connection(now: int,immediate: bool=false):
+ if joining or rejected or ended() or application_suspended or not immediate and now-retry_at<=3000:return
+ if cloud_mode and (is_host or read_only) and not transport.online and not room_id.is_empty():
+  retry_at=now
+  var resolved=Endpoint.resolve(address)
+  if resolved.is_empty():return
+  var options={"seat":cloud_slot,"password_hash":cloud_password_hash,"version":fingerprint,"resume":true}
+  if is_host:
+   options.merge({"name":cloud_room_name,"format":series.state.format,"rule_set":series.state.get("rule_set","unrestricted")})
+   transport.relay_host(resolved,port,relay_code,relay_websocket,cloud_token,options)
+  else:
+   var error=transport.relay_join(resolved,port,relay_code,relay_websocket,cloud_token,options,true)
+   if error==OK:joining=true;remote_last_seen=now;notice="正在恢复观战连接";changed.emit()
+ elif not is_host and not read_only and not connected and not identity.get("resume",{}).is_empty() and disconnected_at>0:
+  retry_at=now;resume_guest()
 func _process(_delta):
- if transport==null:return
+ if transport==null or application_suspended:return
  var now=Time.get_ticks_msec()
  for id in rejected_peers.keys():
   if now>=rejected_peers[id]:transport.drop(id);rejected_peers.erase(id)
@@ -785,6 +819,7 @@ func _process(_delta):
   if (connected or joining) and now-remote_last_seen>(25000 if cloud_mode else 12000):
    if joining and room_id.is_empty():on_failure("观战连接超时，请刷新房间列表后重试")
    else:on_disconnect(1);transport.close()
+  retry_connection(now)
   return
  if check_reconnect_timeout(now):return
  if connected:
@@ -801,10 +836,5 @@ func _process(_delta):
   else:
    if now-last_heartbeat>2000:last_heartbeat=now;transport.send_to(remote_peer,metrics.make_ping(now),true)
    if now-remote_last_seen>6500:on_disconnect(remote_peer);transport.drop(remote_peer)
- elif not is_host and not joining and not rejected and not identity.get("resume",{}).is_empty() and disconnected_at>0 and now-retry_at>3000:
-  retry_at=now;resume_guest()
- elif is_host and cloud_mode and not transport.online and not ended() and not room_id.is_empty() and now-retry_at>3000:
-  retry_at=now
-  var resolved=Endpoint.resolve(address)
-  if not resolved.is_empty():transport.relay_host(resolved,port,relay_code,relay_websocket,cloud_token,{"seat":cloud_slot,"name":cloud_room_name,"password_hash":cloud_password_hash,"format":series.state.format,"rule_set":series.state.get("rule_set","unrestricted"),"version":fingerprint,"resume":true})
+ else:retry_connection(now)
  if is_host and not applicant.is_empty() and now-applicant.at>30000:accept_applicant(false)

@@ -45,8 +45,8 @@ func run() -> void:
  var original_order = e.players[0].deck.map(func(c): return c.uid)
  var original_rng_state = e.rng.state
  choose_ball_count(e, 0)
- check(e.players[0].deck.map(func(c): return c.uid) == original_order, "选择0张灵异珠时牌库顺序保持不变")
- check(e.rng.state == original_rng_state, "选择0张灵异珠时不消耗洗牌随机数")
+ check(e.players[0].deck.map(func(c): return c.uid) != original_order, "选择0张灵异珠时依旧洗牌")
+ check(e.rng.state != original_rng_state, "选择0张灵异珠时消耗洗牌随机数")
  check(e.players[0].hand.filter(func(c): return c.card_id == N.id("ETO-S001")).size() == 2, "选择0张仍将两张灵异珠置于手牌")
 
  e = fresh_game()

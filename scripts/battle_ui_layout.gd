@@ -17,7 +17,6 @@ var action_column: VBoxContainer
 var action_scroll: ScrollContainer
 var notice_scroll: ScrollContainer
 var notice_column: VBoxContainer
-var palette_row: HBoxContainer
 var toolbar: HBoxContainer
 
 func measure(owner_view):
@@ -39,7 +38,7 @@ func measure(owner_view):
   view.ANDROID_ACTION_CONFIRM_Y=770
   view.ANDROID_ACTION_FOOTER_Y=853
   view.ANDROID_ACTION_FOOTER_HEIGHT=36
-  choice_rect=Rect2(250,60,1050,380)
+  choice_rect=Rect2(1358,148,224,510)
   measure_hand_controls()
   return
  var life_width=maxf(180,metrics.body*6.5)
@@ -64,8 +63,8 @@ func measure(owner_view):
  choice_rect=Rect2(view.HAND.position.x,toolbar_rect.end.y+g,back_rect.position.x-view.HAND.position.x-g,maxf(220,safe.get_center().y-toolbar_rect.end.y-g*2))
  var palette_left=enemy_life.end.x+g
  var palette_width=minf(1320,back_rect.position.x-g-palette_left)
- var palette_y=choice_rect.end.y+g
- var palette_height=minf(264,maxf(220,safe.end.y-palette_y-hit-g))
+ var palette_height=minf(264,maxf(220,view.HAND.position.y-toolbar_rect.end.y-g*2))
+ var palette_y=view.HAND.position.y-g-palette_height
  palette_rect=Rect2(palette_left,palette_y,palette_width,palette_height)
  view.ANDROID_PALETTE_RECT=palette_rect
  view.ANDROID_ACTION_X=back_rect.position.x
@@ -74,11 +73,14 @@ func measure(owner_view):
  view.ANDROID_ACTION_FOOTER_Y=back_rect.position.y
  view.ANDROID_ACTION_FOOTER_HEIGHT=hit
  view.ANDROID_BACK_SWIPE_EDGE_X=safe.end.x-hit
+ var choice_top=view.OPPONENT_HAND_COUNT.end.y+g
+ if view.network_session!=null:choice_top+=metrics.small*1.4+g
+ choice_rect=Rect2(view.SIDEBAR.position.x,choice_top,view.SIDEBAR.size.x,back_rect.position.y-g-choice_top)
  measure_hand_controls()
 
 func measure_hand_controls():
  if view.is_android:
-  hand_toggle_rect=Rect2(safe.position.x,enemy_life.end.y+metrics.hit*2+metrics.gap*3,enemy_life.size.x,metrics.hit)
+  hand_toggle_rect=Rect2(safe.position.x,view.HAND.position.y-metrics.hit,enemy_life.size.x,metrics.hit)
   hand_cards_rect=view.HAND
  else:
   var width=132.0
@@ -95,6 +97,10 @@ func render_hand_controls():
  var badge=view.host.box(view.hud,view.OPPONENT_HAND_COUNT,Color("#101e2b"),view.host.GOLD)
  badge.name="OpponentHandCount"
  badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ if not view.is_android:
+  var history_rect=Rect2(badge.position.x-144,badge.position.y+10,132,42)
+  var history=view.host.button(view.hud,"对局记录",history_rect,view.open_history)
+  history.name="BattleHistory"
  var frame=view.host.style(Color("#101e2b"),view.host.GOLD)
  frame.set_border_width_all(2)
  badge.add_theme_stylebox_override("panel",frame)
@@ -110,6 +116,19 @@ func render_hand_controls():
  count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  count.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  count.add_theme_font_size_override("font_size",metrics.title+6 if view.is_android else 36)
+ position_hand_count()
+
+func position_hand_count():
+ if view.is_android or not is_instance_valid(view.hud):return
+ var badge=view.hud.get_node_or_null("OpponentHandCount")
+ if badge==null:return
+ badge.position=view.OPPONENT_HAND_COUNT.position
+ if view.debug_open and is_instance_valid(view.browser_panel):
+  var popup=view.browser_panel.get_global_rect()
+  var current=badge.get_global_rect()
+  if current.intersects(popup):badge.position.y+=popup.end.y-current.position.y+metrics.gap
+ var history=view.hud.get_node_or_null("BattleHistory")
+ if history!=null:history.position.y=badge.position.y+(badge.size.y-history.size.y)*0.5
 
 func button(parent: Node,caption: String,action: Callable,accent: bool=false) -> Button:
  var result=view.btn(caption,Rect2(),action,accent,parent)
@@ -150,19 +169,19 @@ func begin_frame():
  notice_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  notice_scroll.set_meta("choice_widget",true)
  notice_column=VBoxContainer.new();notice_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;notice_scroll.add_child(notice_column)
- palette_row=HBoxContainer.new();view.hud.add_child(palette_row);palette_row.name="PaletteToolbar"
- palette_row.position=Vector2(safe.position.x,enemy_life.end.y+metrics.gap)
- palette_row.size=Vector2(enemy_life.size.x,metrics.hit*2+metrics.gap)
- # The left rail has two vertically stacked, generous palette targets.
- if view.is_android:
-  palette_row.queue_free()
-  palette_row=null
 
 func tools_actions() -> Array:
- var actions=[["设置",view.settings_menu],["对局记录",view.open_history],["视角复原",view.reset_camera_view],["单位自动排序",view.sort_units]]
- if view.is_android:actions.append(["操作说明",view.open_android_help])
- if view.is_android and view.network_session!=null and not view.network_session.replay_mode and not view.network_session.read_only and view.network_session.room.get("undo_request",{}).is_empty():
-  actions.append(["请求悔棋",func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
+ var actions=[["设置",view.settings_menu],["视角复原",view.reset_camera_view],["单位自动排序",view.sort_units]]
+ if view.is_android:
+  actions.insert(1,["对局记录",view.open_history])
+  actions.append(["操作说明",view.open_android_help])
+ if view.network_session!=null and not view.network_session.replay_mode and not view.network_session.read_only and view.network_session.room.get("undo_request",{}).is_empty():
+  actions.append(["请求悔棋" if view.is_android else "悔棋",func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
+ if view.debug_mode:
+  actions.append(["测试说明",view.open_debug_help,view.modal or view.history_open or view.table.combat_animating])
+  actions.append(["收起调试" if view.debug_open else "调试",view.debug_menu,view.history_open or view.table.combat_animating])
+ if view.network_session==null or not view.network_session.read_only:
+  actions.append(["本局投降",view.confirm_surrender,view.tutorial_runtime!=null or view.network_locked() or view.engine.winner!=-2])
  return actions
 
 func add_phase_action(control: Button):
@@ -177,23 +196,127 @@ func add_phase_action(control: Button):
   control.custom_minimum_size.y=maxf(metrics.hit,text_height+margins.y)
  else:control.custom_minimum_size=Vector2(237,49)
 
-func palette_toggle(who: int,index: int,caption: String) -> Button:
- var rect=Rect2(safe.position.x,enemy_life.end.y+metrics.gap+index*(metrics.hit+metrics.gap),enemy_life.size.x,metrics.hit)
- var result=view.host.button(view.hud,caption,rect,func():view.toggle_android_palette(who),view.android_palette_owner==who)
+func camera_focus_rect() -> Rect2:
+ if not view.is_android:
+  var top=210.0
+  var bottom=view.HAND.position.y-metrics.gap
+  return Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,bottom-top)
+ var bottom=view.HAND.position.y-metrics.gap
+ var top=toolbar_rect.end.y+metrics.gap
+ if view.android_palette_view:
+  top=maxf(log_rect.end.y+metrics.gap+98+metrics.gap,bottom-maxf(150,metrics.hit*2))
+ elif is_instance_valid(view.table) and not view.table.top_down_view and view.hand_display_enabled:
+  # Frame the enemy palette below the opposing hand and move focus toward that end.
+  for card in view.enemy_nodes.values():
+   if is_instance_valid(card):top=maxf(top,card.get_meta("target",card.position).y+card.size.y+metrics.gap)
+  if not view.hand_nodes.is_empty():
+   bottom=view.HAND.end.y
+   for card in view.hand_nodes.values():
+    if is_instance_valid(card):bottom=minf(bottom,view.hand_scroll.position.y+card.get_meta("target",card.position).y-metrics.gap)
+ var height=maxf(1,bottom-top) if view.android_palette_view else maxf(metrics.hit*2,bottom-top)
+ return Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+
+func hand_zone_selector(caption: String,action: Callable) -> Button:
+ # Keep casting-region controls in the left rail, outside the board's focus area.
+ var rect=Rect2(hand_toggle_rect.position-Vector2(0,metrics.hit+metrics.gap),hand_toggle_rect.size)
+ var result=view.btn(caption,rect,action,false,view.hud)
+ result.name="AndroidHandZoneSelector"
  metrics.button(result)
+ result.custom_minimum_size.x=rect.size.x;result.size=rect.size
+ result.tooltip_text="切换使用牌区域"
  return result
 
-func choice_popup_max_height(minimum_height: float=0) -> float:
- var bottom=safe.end.y-metrics.gap
- if view.android_palette_owner>=0:
-  if palette_rect.position.y-metrics.gap-choice_rect.position.y<minimum_height:
-   palette_rect.position.y=minf(safe.end.y-palette_rect.size.y,choice_rect.position.y+minimum_height+metrics.gap)
-   view.ANDROID_PALETTE_RECT=palette_rect
-  bottom=minf(bottom,palette_rect.position.y-metrics.gap)
- return maxf(0,bottom-choice_rect.position.y)
+func camera_focus_toggle() -> Button:
+ var rect=Rect2(safe.position.x,enemy_life.end.y+metrics.gap,enemy_life.size.x,metrics.hit)
+ var caption=("我方颜色盘视角" if view.android_palette_focus_owner()==view.local_seat else "敌方颜色盘视角") if view.android_palette_view else "战场视角"
+ var result=view.host.button(view.hud,caption,rect,view.toggle_android_camera_focus,view.android_palette_view)
+ result.name="AndroidCameraFocusToggle"
+ metrics.button(result)
+ var font=result.get_theme_font("font")
+ var room=rect.size.x-result.get_theme_stylebox("normal").get_minimum_size().x
+ var font_size=metrics.button_font
+ while font_size>16 and font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>room:font_size-=1
+ result.add_theme_font_size_override("font_size",font_size)
+ result.custom_minimum_size.x=rect.size.x;result.size=rect.size
+ result.toggle_mode=true
+ result.set_pressed_no_signal(view.android_palette_view)
+ result.tooltip_text="点按依次切换：战场视角 → 我方颜色盘视角 → 敌方颜色盘视角 → 战场视角"
+ return result
+
+func center_choice_rect() -> Rect2:
+ var center=view.host.get_viewport_rect().get_center()
+ var rail_clearance=maxf(240,(view.SIDEBAR.position.x-metrics.gap-center.x)*2)
+ var dimensions=Vector2(minf(minf(860 if view.is_android else 740,safe.size.x-24),rail_clearance),minf(420,safe.size.y-24))
+ return Rect2(center-dimensions*0.5,dimensions)
+
+func stack_choice_rect() -> Rect2:
+ # Keep target confirmation alongside the rail so every stack card stays usable.
+ var width=choice_rect.size.x
+ var x=maxf(safe.position.x+metrics.gap,view.SIDEBAR.position.x-metrics.gap-width)
+ return Rect2(Vector2(x,choice_rect.position.y),Vector2(width,choice_rect.size.y))
+
+func choice_columns(panel: Panel,count: int) -> int:
+ if not panel.get_meta("centered",false):return 1
+ var cell_width=maxf(160,metrics.body*4.5)
+ var maximum=clampi(floori((panel.size.x-48+metrics.gap)/(cell_width+metrics.gap)),1,3)
+ return mini(2,maximum) if count==4 else mini(count,maximum)
+
+func choice_popup_max_height(panel: Panel=null) -> float:
+ if panel!=null and panel.get_meta("centered",false):
+  var center=view.host.get_viewport_rect().get_center()
+  var top=maxf(safe.position.y+12,toolbar_rect.end.y+metrics.gap if view.is_android else 105)
+  return minf(660,minf((center.y-top)*2,(safe.end.y-12-center.y)*2))
+ return choice_rect.size.y
+
+func side_choice_open() -> bool:
+ return is_instance_valid(view.android_choice_panel) and not view.android_choice_panel.get_meta("centered",false) and not view.android_choice_panel.get_meta("avoid_stack",false)
 
 func wrapped_height(text: String,width: float,font_size: int) -> float:
  return view.host.get_theme_font("font").get_multiline_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,maxf(1,width),font_size).y
+
+func wrap_choice_prompt(text: String,width: float,font_size: int) -> String:
+ var font=view.host.get_theme_font("font")
+ var lines=[]
+ var line=""
+ for character in text:
+  if character=="\n":
+   lines.append(line);line="";continue
+  if not line.is_empty() and font.get_string_size(line+character,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>width:
+   lines.append(line);line=""
+  line+=character
+ lines.append(line)
+ return "\n".join(lines)
+
+func choice_font_size(captions: Array,width: float) -> int:
+ var size=metrics.body
+ var minimum=maxi(16,floori(size*0.8))
+ while size>minimum:
+  var too_tall=false
+  for caption in captions:
+   var display_caption=compact_choice_caption(caption,width-28,size)
+   if wrapped_height(display_caption,width-28,size)+16>metrics.hit:too_tall=true;break
+  if not too_tall:break
+  size-=1
+ return size
+
+func compact_choice_caption(text: String,width: float,font_size: int) -> String:
+ # Explicitly limit central choices to two lines; Button's automatic wrapping
+ # otherwise increases its minimum height even when clipping is enabled.
+ var font=view.host.get_theme_font("font")
+ var lines=[]
+ var line=""
+ for index in range(text.length()):
+  var character=text.substr(index,1)
+  if character=="\n" or font.get_string_size(line+character,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>width:
+   if lines.size()==1:
+    while not line.is_empty() and font.get_string_size(line+"…",HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>width:line=line.left(-1)
+    lines.append(line+"…")
+    return "\n".join(lines)
+   lines.append(line);line=""
+   if character=="\n":continue
+  line+=character
+ lines.append(line)
+ return "\n".join(lines)
 
 func add_choice_notice(label: Label):
  label.reparent(notice_column);label.position=Vector2.ZERO;label.size=Vector2.ZERO
@@ -233,20 +356,21 @@ func choice_footer_button(footer: HBoxContainer,caption: String,action: Callable
  return result
 
 func choice_card_row(parent: Control,card: Dictionary,caption: String,action: Callable,width: float,enabled: bool=true) -> Control:
- var row=HBoxContainer.new();parent.add_child(row);row.add_theme_constant_override("separation",int(metrics.gap))
+ var narrow=width<340
+ var row: BoxContainer=VBoxContainer.new() if narrow else HBoxContainer.new();parent.add_child(row);row.add_theme_constant_override("separation",int(metrics.gap))
  var slot=Control.new();slot.custom_minimum_size=Vector2(132,184);row.add_child(slot)
  var tile=view.card_tile(slot,card,Rect2(0,0,132,184),action if enabled else Callable())
  if not enabled:tile.modulate=Color(0.55,0.55,0.55)
  var select=view.btn(caption,Rect2(),action,false,row);metrics.button(select)
- select.custom_minimum_size=Vector2(0,maxf(metrics.hit,wrapped_height(caption,width-132-metrics.gap-metrics.padding*2,metrics.body)+metrics.padding*2))
+ select.custom_minimum_size=Vector2(0,maxf(metrics.hit,wrapped_height(caption,width-metrics.padding*2 if narrow else width-132-metrics.gap-metrics.padding*2,metrics.body)+metrics.padding*2))
  select.size_flags_horizontal=Control.SIZE_EXPAND_FILL;select.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  select.disabled=not enabled
  return tile
 
 func floating_scroll(panel: Panel,content_height: float,footer_height: float=0,scroll_name: String="BattleChoiceScroll") -> ScrollContainer:
- var top=metrics.hit+22
- var chrome=top+footer_height+23
- var maximum=choice_popup_max_height(chrome+metrics.hit)
+ var top=float(panel.get_meta("choice_content_top",metrics.hit+22))
+ var chrome=top+footer_height+metrics.hit+metrics.gap+24
+ var maximum=choice_popup_max_height(panel)
  panel.size.y=minf(maximum,chrome+maxf(metrics.hit,content_height))
  panel.clip_contents=true
  var scroll=ScrollContainer.new();scroll.name=scroll_name;panel.add_child(scroll)
@@ -255,7 +379,16 @@ func floating_scroll(panel: Panel,content_height: float,footer_height: float=0,s
  return scroll
 
 func position_persistent():
- if not view.is_android:return
+ if is_instance_valid(view.android_zone_shortcuts):view.android_zone_shortcuts.refresh_layout()
+ if not view.is_android:
+  if is_instance_valid(action_column):action_column.visible=not side_choice_open() or view.observing
+  if is_instance_valid(view.stack_panel):
+   var restore_height=view.android_choice_restore.size.y+metrics.gap if is_instance_valid(view.android_choice_restore) else 0.0
+   view.stack_panel.position=view.stack_panel.AREA.position+Vector2(0,restore_height)
+   view.stack_panel.size=view.stack_panel.AREA.size-Vector2(0,restore_height)
+   view.stack_panel.scroll.size.y=view.stack_panel.size.y-33
+   if side_choice_open() and not view.observing:view.stack_panel.hide()
+  return
  if is_instance_valid(view.android_back_button):
   view.android_back_button.position=Vector2(back_rect.position.x,safe.position.y) if is_instance_valid(view.modal_root) else back_rect.position
   view.android_back_button.size=back_rect.size;metrics.button(view.android_back_button)
@@ -269,11 +402,29 @@ func position_persistent():
     view.observe_button.position=observe_slot.global_position;view.observe_button.size=observe_slot.size
  var stack_top=view.OPPONENT_HAND_COUNT.size.y+metrics.gap
  if view.network_session!=null:stack_top+=metrics.small*1.4+metrics.gap
+ if is_instance_valid(view.android_choice_restore) and not view.observing:
+  var restore=view.android_choice_restore
+  restore.position=choice_rect.position
+  var restore_reserve=restore.size.y+metrics.gap
+  var available=back_rect.position.y-metrics.gap-view.SIDEBAR.position.y-stack_top
+  var minimum_action_height=0.0
+  if is_instance_valid(action_column):
+   for action in action_column.get_children():minimum_action_height=maxf(minimum_action_height,action.get_combined_minimum_size().y)
+  var inset=view.stack_panel.ANDROID_PANEL_INSET
+  var compact_heading=ceilf(wrapped_height("堆叠 %d" % view.engine.stack.size(),view.SIDEBAR.size.x-inset*2,metrics.small))+metrics.gap
+  var minimum_stack_height=ceilf(compact_heading+inset*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
+  if view.stack_panel.visible and available-restore_reserve<minimum_action_height+minimum_stack_height:
+   # Leave the entire rail to stack cards and actions when touch density is high.
+   restore.position.x=view.SIDEBAR.position.x-metrics.gap-restore.size.x
+  else:stack_top+=restore_reserve
+ if side_choice_open() and not view.observing:view.stack_panel.hide()
  var rail_top=view.SIDEBAR.position.y+stack_top
  var rail_bottom=back_rect.position.y-metrics.gap
+ var rail_start=rail_top
+ var notice_height=0.0
  if is_instance_valid(notice_scroll) and is_instance_valid(notice_column):
   var popup_open=is_instance_valid(view.android_choice_panel) or is_instance_valid(view.android_choice_restore) or is_instance_valid(view.modal_root)
-  var notice_height=0.0 if popup_open else minf(metrics.hit,notice_column.get_combined_minimum_size().y)
+  notice_height=0.0 if popup_open else minf(metrics.hit,notice_column.get_combined_minimum_size().y)
   notice_scroll.position=Vector2(back_rect.position.x,rail_top)
   notice_scroll.size=Vector2(back_rect.size.x,notice_height)
   notice_scroll.visible=notice_height>0 and not view.observing
@@ -282,21 +433,40 @@ func position_persistent():
  var rail_height=maxf(0,rail_bottom-rail_top)
  var heading_height=metrics.body*3.2+metrics.gap
  var stack_visible=is_instance_valid(view.stack_panel) and view.stack_panel.visible
+ var stack_beside=false
  var actions_top=back_rect.position.y
  if is_instance_valid(action_scroll) and is_instance_valid(action_column):
   var capacity=rail_height
   var minimum_action_height=metrics.hit
-  for action in action_column.get_children():minimum_action_height=maxf(minimum_action_height,action.get_combined_minimum_size().y)
+  var action_count=0
+  var buttons_height=0.0
+  for action in action_column.get_children():
+   if action.visible:
+    action_count+=1
+    var height=action.get_combined_minimum_size().y
+    buttons_height+=height;minimum_action_height=maxf(minimum_action_height,height)
+  var action_gap=int(metrics.gap)
+  if action_count in [2,3]:
+   action_gap=clampi(floori((rail_bottom-rail_start-buttons_height)/(action_count-1)),0,action_gap)
+  if action_column.get_theme_constant("separation")!=action_gap:action_column.add_theme_constant_override("separation",action_gap)
+  var content_height=action_column.get_combined_minimum_size().y
+  var short_choices=action_count in [2,3] and content_height<=rail_bottom-rail_start and not is_instance_valid(view.android_choice_panel) and not is_instance_valid(view.android_choice_restore) and not is_instance_valid(view.modal_root)
+  var required_height=content_height if short_choices else minimum_action_height
   if stack_visible:
    var reserve=ceilf(heading_height+view.stack_panel.ANDROID_PANEL_INSET*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
-   if capacity-reserve<minimum_action_height:
-    heading_height=ceilf(wrapped_height("堆叠 %d" % view.engine.stack.size(),view.SIDEBAR.size.x-view.stack_panel.ANDROID_PANEL_INSET*2,metrics.small))+metrics.gap
+   if capacity-reserve<required_height:
+    heading_height=ceilf(wrapped_height("堆叠 %d" % view.engine.unresolved_stack_entries().size(),view.SIDEBAR.size.x-view.stack_panel.ANDROID_PANEL_INSET*2,metrics.small))+metrics.gap
     reserve=ceilf(heading_height+view.stack_panel.ANDROID_PANEL_INSET*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
-   capacity=maxf(metrics.hit,capacity-reserve)
-  var actions_height=minf(action_column.get_combined_minimum_size().y,minf(rail_height,capacity))
+   # Keep small decisions fully exposed; a stack card can occupy the next column.
+   stack_beside=short_choices and capacity-reserve<content_height
+   capacity=capacity if stack_beside else maxf(metrics.hit,capacity-reserve)
+  if short_choices and capacity<content_height and notice_height>0:
+   notice_scroll.position=Vector2(stack_choice_rect().position.x,toolbar_rect.end.y+metrics.gap)
+   rail_top=rail_start;rail_height=rail_bottom-rail_top;capacity=rail_height
+  var actions_height=minf(content_height,minf(rail_height,capacity))
   action_scroll.size=Vector2(back_rect.size.x,actions_height)
   action_scroll.position=Vector2(back_rect.position.x,rail_bottom-actions_height)
-  action_scroll.visible=actions_height>0 and not view.observing
+  action_scroll.visible=actions_height>0 and not view.observing and not side_choice_open()
   if actions_height>0:actions_top=action_scroll.position.y
  if is_instance_valid(view.stack_panel):
   var stack_inset=view.stack_panel.ANDROID_PANEL_INSET
@@ -304,13 +474,18 @@ func position_persistent():
   view.stack_panel.heading.position=Vector2(stack_inset,stack_inset)
   view.stack_panel.heading.size=Vector2(view.SIDEBAR.size.x-stack_inset*2,heading_height-metrics.gap)
   view.stack_panel.heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  view.stack_panel.heading.text="堆叠 %d" % view.engine.stack.size() if heading_height<metrics.body*3.2 else "堆叠 %d\n从上往下结算" % view.engine.stack.size()
+  view.stack_panel.heading.text="堆叠 %d" % view.engine.unresolved_stack_entries().size() if heading_height<metrics.body*3.2 else "堆叠 %d\n从上往下结算" % view.engine.unresolved_stack_entries().size()
   view.stack_panel.heading.tooltip_text="从上往下结算"
   if view.network_session!=null:
    view.stack_panel.visible=view.stack_panel.visible and view.network_session.room.get("undo_request",{}).is_empty()
   view.stack_panel.position=view.SIDEBAR.position+Vector2(0,stack_top)
   # Reserve the actual phase actions, including extra choices and wrapped text.
   var stack_height=maxf(0,actions_top-metrics.gap-view.stack_panel.position.y)
+  if stack_beside:
+   view.stack_panel.position=Vector2(stack_choice_rect().position.x,rail_start)
+   if notice_height>0 and notice_scroll.position.x<back_rect.position.x:
+    view.stack_panel.position.y=maxf(rail_start,notice_scroll.position.y+notice_height+metrics.gap)
+   stack_height=maxf(0,minf(rail_bottom,view.HAND.position.y-metrics.gap)-view.stack_panel.position.y)
   view.stack_panel.size=Vector2(view.SIDEBAR.size.x,stack_height)
   view.stack_panel.scroll.position=Vector2(stack_inset,heading_height+stack_inset)
   var scroll_height=maxf(0,stack_height-heading_height-stack_inset*2)

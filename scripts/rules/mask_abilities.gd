@@ -188,11 +188,7 @@ static func activation_options(e,c,k) -> Array:
   "courage_die","mask_joy","mask_anger":return e.Pack.all_units(e)
   "tokiko_copy":return e.Pack.objects(e,["道具"],c.owner)
   "mask_sorrow":
-   var result=[]
-   for who in range(2):
-    var choices=e.Roster.pick(e,e.Pack.zone(e,who,"palette"),0,2,e.player_names[who]+"的颜色盘：至多两张","sorrow_"+str(who))
-    result.append_array(choices)
-   return result
+   return [{"player":0},{"player":1}]
  return []
 static func pay_activation(e,c,k):
  if k in ["courage_ping","tokiko_copy"]:e.tap_card(c)
@@ -216,9 +212,7 @@ static func resolve_activation(e,entry):
    if e.Roster.unit(e,t):
     e.apply_turn_buff(t,{"灵力":2});var u=e.find_card(t.uid);u.modifiers=u.get("modifiers",[])+[{"歼灭":true}]
   "mask_sorrow":
-   for r in e.Pack.picked(t):
-    if e.Roster.valid(e,r):e.tap_card(e.find_card(r.uid))
-   e.draw(who)
+   e.Roster.continue_choice(e,entry,"mask_sorrow_choose",e.Roster.pick(e,e.Pack.zone(e,t.player,"palette"),0,2,"横置至多两张颜色盘"))
   "tokiko_copy":
    if e.Roster.valid(e,t):
     var copy=e.Cat.copy_token(e,who,e.find_card(t.uid))

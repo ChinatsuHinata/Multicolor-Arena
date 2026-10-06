@@ -51,6 +51,14 @@ static func flatten(t: Dictionary) -> Array:
   for p in t.parts: out.append_array(flatten(p))
  elif not t.has("none"): out.append(t)
  return out
+static func declared_targets(entry: Dictionary) -> Array:
+ # Paid cost choices remain in the entry for copies and validation, but are
+ # not targets that another effect can redirect.
+ var target=entry.target.duplicate(true)
+ var groups=entry.get("target_spec",{}).get("selection",[])
+ for i in range(mini(groups.size(),target.get("picks",[]).size())):
+  if groups[i].get("cost",false):target.picks[i]=[]
+ return flatten(target)
 static func choice_valid(e,options: Array,t: Dictionary) -> bool:
  if not e.Cat.extra_choice_valid(e,t):return false
  if t in options: return true
@@ -142,7 +150,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
  var info=e.cards[id]; var k=key(info,SPELLS); var units=all_units(e)
  if has(info,"byakuren_x"):
   var options=[]
-  for x in range(e.source_resources(who).size()+1): options.append({"none":true,"x":x,"mode":"X = %d" % x})
+  for x in range(e.VariableChoice.limit(e,id,who)+1): options.append({"none":true,"x":x,"mode":"X = %d" % x})
   return options
  if k.is_empty(): return null
  match k:
@@ -161,7 +169,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
   "spread_damage":
    var count=e.players[who].field.filter(func(c): return e.cards[c.card_id].kind=="结界").size()
    return selection([group(e.ability_targets(),0,count,"按伤害1、2、3…的顺序选目标")],k)
-  "palette_three": return selection([group(zone(e,1-who,"palette"),3,3,"选择三张颜色盘牌")],k)
+  "palette_three": return [{"player":1-who}]
   "shoot_moon": return selection([group(e.ability_targets(),0,1,"选择至多一个目标")],k)
   "spring":
    var options=[]
@@ -173,6 +181,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
 static func continue_choice(e,t: Dictionary,effect: String,options: Array,data: Dictionary={},optional: bool=false):
  if options.is_empty(): return
  var continuation=t.duplicate(true); continuation.effect=effect; continuation.data=data; continuation.optional=optional; continuation.continuation=true; continuation.precon=true
+ if not continuation.has("source"):continuation.source=continuation.card.duplicate(true)
  e.pending={"kind":"effect_choice","owner":t.owner,"trigger":continuation,"options":options}
  e.revision+=1
 static func on_enter(e,c: Dictionary):
@@ -218,7 +227,10 @@ static func reset_allowed(e,c: Dictionary) -> bool:
  return not c.get("lock_sources",[]).any(func(r): return e.Extra.valid(e,r))
 static func base_stat(e,c: Dictionary,k: String) -> int:
  var n=int(c.get("base_override",{}).get(k,e.cards[c.card_id][k]))
- if c.zone=="field": n+=e.players[c.owner].field.filter(func(p): return has(e.cards[p.card_id],"brave_aura")).size()
+ if c.zone=="field":
+  var barrier=e.players[c.owner].get("barrier_base",{})
+  if e.is_unit(c) and barrier.get("turn",-1)==e.turn:n=int(barrier.value)
+  n+=e.players[c.owner].field.filter(func(p): return has(e.cards[p.card_id],"brave_aura")).size()
  return n
 static func ramp(e,who: int,n: int,tapped: bool=true):
  for i in range(n):
@@ -253,7 +265,7 @@ static func trigger_options(e,t: Dictionary) -> Array:
   "sanae_end": return all_units(e,who)
   "tenshi_tap","tenshi_ping": return all_units(e)
   "marisa_untap":
-   return selection([group(objects(e,["单位","自机","结界","道具"],who),0,2,"重置永久物")],"permanents")+selection([group(zone(e,who,"palette"),0,2,"重置颜色盘")],"palette")
+   return selection([group(objects(e,["自机","单位","结界","道具"],who),0,2,"重置永久物")],"permanents")+[{"none":true,"mode":"重置颜色盘"}]
   "scarlet_anthem": return zone(e,who,"grave").filter(func(r): return e.cards[e.find_card(r.uid).card_id].race.any(func(race): return race in ["吸血鬼","人类"]))
  return none()
 static func resolve_trigger(e,t: Dictionary):
@@ -288,8 +300,17 @@ static func resolve_trigger(e,t: Dictionary):
    if e.target_valid(target,true): e.tap_card(e.find_card(target.uid))
   "tenshi_ping": e.damage_target(target,1)
   "marisa_untap":
+   if target.get("mode","")=="重置颜色盘":
+    continue_choice(e,t,"palette_reset",selection([group(zone(e,who,"palette"),0,2,"重置至多两张颜色盘")],"palette"))
+   else:
+    for r in picked(target):
+     if e.Extra.valid(e,r): e.find_card(r.uid).tapped=false
+  "palette_reset":
    for r in picked(target):
-    if e.Extra.valid(e,r): e.find_card(r.uid).tapped=false
+    if e.Extra.valid(e,r):e.find_card(r.uid).tapped=false
+  "palette_three_choose":
+   for r in picked(target):
+    if e.Extra.valid(e,r):e.move_to(e.find_card(r.uid),"grave")
   "larva_draw": e.draw(who,2)
   "byakuren_x": e.gain_life(who,int(data.get("x",0)))
   "chase":
@@ -401,13 +422,11 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
   "counter_three":
    if e.stack.any(func(s): return s.id==t.get("stack_id",-1) and s.kind=="card" and e.Extra.cost_value(e,s.card)<=3): e.counter_entry(t.stack_id)
   "palette_three":
-   for r in picked(t):
-    if e.Extra.valid(e,r): e.move_to(e.find_card(r.uid),"grave")
+   var pool=zone(e,t.player,"palette")
+   if not pool.is_empty():continue_choice(e,entry,"palette_three_choose",selection([group(pool,mini(3,pool.size()),3,"选择三张颜色盘牌")],k))
   "barrier_base":
    for p in range(2):
-    for c in e.units(p):
-     var n=4 if p==who else 2
-     c.base_override={"power":n,"health":n,"spirit":n}
+    e.players[p].barrier_base={"turn":e.turn,"value":4 if p==who else 2}
   "stardust":
    for c in e.units(0)+e.units(1):
     var n=e.Extra.cost_value(e,c)
@@ -440,7 +459,7 @@ static func activation_error(e,c: Dictionary,k: String) -> String:
 static func activation_options(e,c: Dictionary,k: String) -> Array:
  var who=c.owner
  match k:
-  "minoriko_untap": return zone(e,who,"palette")
+  "minoriko_untap": return none()
   "letty_shield","medicine_return": return all_units(e) if k=="medicine_return" else e.ability_targets()
   "laser": return e.Extra.add_mode(e.ability_targets(),"防避4")+e.Extra.add_mode(objects(e,["结界","道具"]),"消灭结界或道具")
   "yukari_active": return all_units(e,who)
@@ -449,7 +468,8 @@ static func activation_options(e,c: Dictionary,k: String) -> Array:
   "wine_discount": return [{"color":"蓝"},{"color":"黄"}]
   "keine_devour":
    if e.players[1-who].deck.is_empty(): return []
-   return selection([group(all_units(e,who).filter(func(r):return e.can_sacrifice(e.find_card(r.uid))),1,1,"牺牲一个单位")],k)
+   var sacrifice=group(all_units(e,who).filter(func(r):return e.can_sacrifice(e.find_card(r.uid))),1,1,"牺牲一个单位");sacrifice.cost=true
+   return e.Roster.filter_options(e,selection([sacrifice,group([{"player":1-who}],1,1,"目标对手")],k),who,false)
   "marisa_recover":
    var spells=zone(e,who,"grave").filter(func(r): return e.cards[e.find_card(r.uid).card_id].kind=="符卡")
    for r in spells: r.choice_name=e.cards[e.find_card(r.uid).card_id].name
@@ -480,7 +500,7 @@ static func resolve_activation(e,entry: Dictionary):
  var t=entry.target; var who=entry.owner; var k=entry.effect
  match k:
   "minoriko_untap":
-   if e.Extra.valid(e,t): e.find_card(t.uid).tapped=false
+   continue_choice(e,entry,"palette_reset",selection([group(zone(e,who,"palette"),1,1,"重置一张颜色盘")],k))
   "letty_shield": shield(e,t,[1,1,1,1,1])
   "laser":
    if t.mode=="防避4": shield(e,t,[4])
@@ -499,8 +519,9 @@ static func resolve_activation(e,entry: Dictionary):
    if e.target_valid(t,true):
     var u=e.find_card(t.uid); u.medicine=u.get("medicine",[])+[{"owner":who,"source":entry.source.duplicate(true)}]
   "keine_devour":
-   if not e.players[1-who].deck.is_empty():
-    var u=e.players[1-who].deck[0]; e.move_to(u,"exile"); u.devour_owner=who
+   var opponents=picked(t,1)
+   if opponents.size()==1 and e.target_valid(opponents[0]) and not e.players[opponents[0].player].deck.is_empty():
+    var u=e.players[opponents[0].player].deck[0]; e.move_to(u,"exile"); u.devour_owner=who
   "marisa_recover":
    for r in picked(t,1):
     if e.Extra.valid(e,r): e.move_to(e.find_card(r.uid),"hand")
@@ -575,7 +596,7 @@ static func ai_target(e,who: int,options: Array,effect: String="") -> Dictionary
    if option.has("value") and e.Cat.field(e,1-who).any(func(c):return e.Roster.permanent(e,c) and e.Extra.cost_value(e,c)==int(option.value)):return option
   return {"none":true,"mode":"停止","copy_stop":true}
  var beneficial=effect in ["tewi_counters","shou_shield","sanae_end","escape","spring","spirit_four","letty_shield","medicine_return","laser"]
- var harmful=effect in ["spread_damage","double_spark","silent_spark","meteor","dream_orbs","cloud_modes","shoot_moon","tenshi_ping","tenshi_tap","standing_blast","kosuzu_destroy","castle_exile","shuffle_field","bind_field"]
+ var harmful=effect in ["spread_damage","double_spark","silent_spark","meteor","dream_orbs","cloud_modes","shoot_moon","tenshi_ping","tenshi_tap","standing_blast","kosuzu_destroy","castle_exile","shuffle_field","bind_field","character-fdf-113","mask_sorrow"]
  var scores=func(t):
   if t.has("stack_id"):
    return 100 if e.stack.any(func(s): return s.id==t.stack_id and s.owner!=who) else -100

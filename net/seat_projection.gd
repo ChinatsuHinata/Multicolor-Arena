@@ -54,6 +54,8 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
   for action in q.actions[c.uid]:
    if action.type=="extension" and action.enabled:q.extension_targets[str(c.uid)+":"+action.key]=e.Extra.activation_options(e,c,action.key).duplicate(true)
  state.pending=e.pending.duplicate(true) if e.pending.get("owner",-1)==seat else {"kind":"network_wait","owner":e.pending.owner} if not e.pending.is_empty() else {}
+ if e.pending.has("resolving_entry"):state.pending.resolving_entry=public_stack([e.pending.resolving_entry])[0]
+ elif e.pending.get("trigger",{}).has("entry"):state.pending.resolving_entry=public_stack([e.pending.trigger.entry])[0]
  if state.pending.get("kind","")=="effect_choice" and state.pending.trigger.effect=="cat:grant":
   var saved=e.pending;var paid=e.paid_cast_uid;var revision=e.revision
   q.grant_options={}
@@ -92,6 +94,9 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  var definitions={}
  for c in all+q.lookup.values():
   if not c.is_empty():definitions[c.card_id]=e.cards[c.card_id]
+ for entry in e.unresolved_stack_entries():
+  var source=entry.get("card",entry.get("source",{}))
+  if not source.is_empty():definitions[source.card_id]=e.cards[source.card_id]
  if not e.players[seat].deck.is_empty() and e.Cat.may_peek(e,seat):
   var top_card=e.players[seat].deck[0]
   definitions[top_card.card_id]=e.cards[top_card.card_id]

@@ -98,7 +98,7 @@ static func on_enter(e,c: Dictionary):
  if e.Pack.has(info,"byakuren_x"):e.Roster.plus(e,c,int(c.get("cast_x",0)))
  if e.Roster.New.has(e,c,"SPX-001"):e.Roster.plus(e,c,1+e.players[c.owner].palette.filter(func(u):return not u.tapped).size(),c.owner)
  if e.Cat.has(e,c,"character-fdf-101"):
-  e.queue_entry_choice(c,"cat:momiji_name",e.Cat.name_options(e),e.Roster.text(info,"character-fdf-101"),{"ref":e.Cat.ref(e,c)})
+  e.queue_entry_choice(c,"cat:momiji_name",e.Cat.name_options(e),e.Roster.text(info,"character-fdf-101"),{"ref":e.Cat.ref(e,c)},true)
  e.Roster.on_enter(e,c)
  e.Pack.on_enter(e,c)
  if e.DB.has_ability(info,"marisa_enter"):e.queue_trigger(c.owner,c,int(e.DB.ability(info,"marisa_enter")["数值"]),"进战场能力")
@@ -168,15 +168,22 @@ static func trigger_options(e,t: Dictionary) -> Array:
    return result
   "enter_blink": return unit_refs(e,who).filter(func(x): return x.uid!=source.uid)
   "enter_fight": return unit_refs(e,1-who)
-  "enter_palette_replace": return zone_refs(e,"palette",1-who)
+  "enter_drain","enter_palette_replace": return [{"player":1-who}]
   "death_poverty":
+   if not t.get("continuation",false):return no_target()
    var cards=zone_refs(e,"palette",1-who); var result=cards.duplicate(true)
    for a in range(cards.size()):
     for b in range(a+1,cards.size()): result.append({"parts":[cards[a],cards[b]]})
    return result
-  "crystal": return zone_refs(e,"palette",who).filter(func(x): return e.find_card(x.uid).tapped)
+  "crystal": return zone_refs(e,"palette",who).filter(func(x): return e.find_card(x.uid).tapped) if t.get("continuation",false) else no_target()
   "sacrifice_choice": return refs(e,e.units(who).filter(func(u):return e.can_sacrifice(u)))
  return no_target()
+
+static func resolution_choice(e,t: Dictionary,effect: String,options: Array):
+ if options.is_empty():return
+ var choice=t.duplicate(true);choice.continuation=true;choice.effect=effect
+ e.pending={"kind":"effect_choice","owner":t.owner,"trigger":choice,"options":options}
+ e.revision+=1
 
 static func resolve_trigger(e,t: Dictionary):
  if t.get("roster",false):e.Roster.resolve_trigger(e,t);return
@@ -196,7 +203,8 @@ static func resolve_trigger(e,t: Dictionary):
      if valid(e,target): e.tap_card(e.find_card(target.uid))
     "抓一张牌": e.draw(who)
   "enter_haste": e.apply_turn_buff(target,{"疾行":true})
-  "enter_drain": e.players[1-who].life-=1
+  "enter_drain":
+   if e.target_valid(target):e.players[target.player].life-=1
   "enter_sweep":
    for u in e.units(1-who): e.damage_target(e.ref_target(u),1)
   "enter_grave_damage":
@@ -214,10 +222,13 @@ static func resolve_trigger(e,t: Dictionary):
    if original and valid(e,target) and e.combat.is_empty():
     e.combat_queue.append({"attacker":e.ref_target(c),"owner":who,"blockers":[target],"blocked":true,"step":"block_window","forced":true})
   "enter_palette_replace":
+   resolution_choice(e,t,"enter_palette_replace_choose",zone_refs(e,"palette",target.player))
+  "enter_palette_replace_choose":
    if valid(e,target):
+    var owner=e.find_card(target.uid).owner
     e.move_to(e.find_card(target.uid),"grave")
-    if not e.players[1-who].deck.is_empty():
-     var u=e.players[1-who].deck[0]; e.move_to(u,"palette"); u.poverty=1
+    if not e.players[owner].deck.is_empty():
+     var u=e.players[owner].deck[0]; e.move_to(u,"palette"); u.poverty=1
   "enter_unblockable":
    if original: e.apply_turn_buff(e.ref_target(c),{"不能被阻挡":true})
   "hand_autumn":
@@ -228,6 +239,9 @@ static func resolve_trigger(e,t: Dictionary):
   "death_palette":
    if dead_valid: e.move_to(dead,"palette"); dead.tapped=true
   "death_poverty":
+   if not t.get("continuation",false):
+    var choice=t.duplicate(true);choice.continuation=true
+    resolution_choice(e,t,effect,trigger_options(e,choice));return
    for chosen in target.get("parts",[target]):
     if valid(e,chosen): e.Roster.Batch.counter(e,e.find_card(chosen.uid),"poverty",1,who)
   "death_undying":
@@ -243,6 +257,11 @@ static func resolve_trigger(e,t: Dictionary):
   "spell_rebirth":
    if dead_valid: e.delayed.append({"owner":who,"phase":"prepare","effect":"return_grave","ref":e.ref_target(dead),"zone":"grave","origin_name":e.cards[source.card_id].name})
   "crystal":
+   if not t.get("continuation",false):
+    if dead_valid:
+     var choice=t.duplicate(true);choice.continuation=true
+     resolution_choice(e,t,effect,trigger_options(e,choice))
+    return
    if dead_valid and valid(e,target) and e.find_card(target.uid).tapped:
     var palette=e.find_card(target.uid); e.move_to(palette,"grave"); e.move_to(dead,"palette"); dead.tapped=false
   "leave_ufo": create_token(e,who,"token_ufo",e.cards[source.card_id].name)
@@ -304,7 +323,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
   "141":
    for p in e.players:
     for c in p.field.duplicate():
-     if e.cards[c.card_id].kind!="符卡": e.move_to(c,"exile")
+     if e.Roster.permanent(e,c): e.move_to(c,"exile")
   "143":
    match t.mode:
     "移回战场":

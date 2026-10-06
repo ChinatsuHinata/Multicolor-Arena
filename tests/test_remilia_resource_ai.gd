@@ -80,13 +80,14 @@ func run():
   e.move_to(fairy,"grave");e.pump_choices()
   expect(e.pending.get("kind","")=="effect_choice","actual Fairy death offers optional crystal choice")
   e.ai_step(0)
+  one();e.ai_step(0)
   expect(e.pending.is_empty() and e.stack.is_empty() and fairy.zone=="grave" and burn.all(func(c):return c.zone=="palette" and c.tapped),"AI safely declines real crystal without destroying burn or hanging")
  setup()
  var aurora=put(AI.AURORA,"palette");aurora.tapped=true
  var fairy=put(AI.FAIRY)
  var big=put(AI.BIG_REMILIA,"palette");big.tapped=true
  put(AI.BIG_REMILIA,"hand");put(AI.AYA,"hand")
- e.move_to(fairy,"grave");e.pump_choices();e.ai_step(0);settle()
+ e.move_to(fairy,"grave");e.pump_choices();e.ai_step(0);one();e.ai_step(0);settle()
  expect(big.zone=="grave" and aurora.zone=="palette" and fairy.zone=="palette" and not fairy.tapped,"real crystal trades a spare large unit for upright Fairy and preserves Aurora")
  expect(e.players[0].hand.any(func(c):return c.card_id==AI.BIG_REMILIA),"real crystal retains the hand copy for six-mana expansion")
  setup()

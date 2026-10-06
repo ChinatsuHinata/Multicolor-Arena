@@ -84,7 +84,7 @@ func run():
   check_options(e.Roster.trigger_options(e,trigger),"trigger "+effect)
  for effect in ["item-ucs-017","spell-fdn-019","character-fdf-112","n21:frog_tap","n21:SPX-005:self"]:
   check_options(e.Roster.activation_options(e,source,effect),"activation "+effect)
- check_fixed_branch(e.Roster.activation_options(e,source,"character-fdf-112"),"doll activation")
+ expect(e.Roster.activation_options(e,source,"character-fdf-112").all(func(option):return option.get("none",false)),"doll activation chooses its mode before resolving sacrifices")
  var spell_specs=0
  for id in e.cards:
   if e.cards[id].kind!="符卡":continue

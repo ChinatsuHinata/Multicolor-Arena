@@ -22,9 +22,11 @@ func check_lily(prefix: String):
  expect(scroll!=null and grid!=null and grid.get_child_count()==e.COLORS.size(),prefix+" all five colors are offered")
  if scroll==null or grid==null:return
  expect(app.ui_metrics.safe.grow(1).encloses(panel.get_global_rect()),prefix+" popup stays in the safe area")
- expect(panel.get_global_rect().end.x<view.responsive.back_rect.position.x,prefix+" popup leaves the right controls clear")
- for tile in grid.get_children():
-  expect(scroll.get_global_rect().grow(1).encloses(tile.get_global_rect()),prefix+" complete color tile visible: "+tile.text)
+ expect(panel.get_global_rect().get_center().distance_to(app.get_viewport_rect().get_center())<1,prefix+" effect choices are centered")
+ expect(grid.columns>=2,prefix+" effect buttons use multiple equal columns")
+ expect(not panel.get_global_rect().intersects(view.android_back_button.get_global_rect()),prefix+" popup leaves back clear")
+ scroll.scroll_vertical=roundi(scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page);await frames()
+ expect(scroll.get_global_rect().grow(1).encloses(grid.get_child(grid.get_child_count()-1).get_global_rect()),prefix+" last color is reachable by scrolling")
  var confirm=panel.find_child("ChoiceConfirm",true,false) as Button
  expect(confirm!=null and not scroll.get_global_rect().intersects(confirm.get_global_rect()),prefix+" colors leave confirmation clear")
  await shot(prefix+"-lily-colors")

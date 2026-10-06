@@ -64,7 +64,7 @@ func run():
  view.render()
  await settle()
  await click(point(attacker.uid))
- expect(view.action_menu_open and view.modal,"unit with multiple actions opens an action menu")
+ expect(view.action_menu_open and is_instance_valid(view.android_choice_panel),"unit with multiple actions opens an action popup")
  await press_a()
  expect(e.combat.get("attacker",{}).get("uid",0)==attacker.uid and attacker.tapped,"A chooses attack from a multi-action unit's menu")
 

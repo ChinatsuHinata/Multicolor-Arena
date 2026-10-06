@@ -142,7 +142,7 @@ func check_choices(prefix: String):
   view.render();await settle();view.render();await frames()
   await check_popup(view.android_choice_panel,prefix+" 60 long options palette="+str(palette))
   if palette and is_instance_valid(view.android_choice_panel):
-   expect(not view.android_choice_panel.get_global_rect().intersects(view.android_palette_panel.get_global_rect()),prefix+" options do not overlap palette")
+   expect(view.android_choice_panel.get_meta("centered",false),prefix+" non-target effects stay centered while palette is open")
   expect(not view.responsive.notice_scroll.visible,prefix+" floating options suppress the duplicated right prompt")
   await shot(prefix+"-options-"+str(palette))
  clean(true);view.android_palette_owner=-1

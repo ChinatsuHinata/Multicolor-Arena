@@ -15,10 +15,9 @@ func run():
  one()
  expect(momiji.zone=="field" and e.pending.get("kind","")=="effect_choice","resolving Momiji asks for its intrinsic entry declaration")
  expect(e.stack.is_empty() and e.triggers.is_empty() and not e.pending.has("stack_id"),"entry declaration creates no ability on the stack")
- expect(e.pending.trigger.get("continuation",false) and e.pending.trigger.get("intrinsic_entry",false) and not e.pending.trigger.optional,"entry declaration is mandatory and resolves directly")
- var before=e.revision
- one();e.choose_effect({})
- expect(e.revision==before and not e.pending.is_empty(),"neither player can pass priority or skip the declaration")
+ expect(e.pending.trigger.get("continuation",false) and e.pending.trigger.get("intrinsic_entry",false) and e.pending.trigger.optional,"entry declaration can be skipped and resolves directly")
+ one()
+ expect(not e.pending.is_empty(),"neither player can pass priority during the declaration")
  var own=SeatView.build(e,0);var enemy=SeatView.build(e,1)
  expect(own.state.pending.trigger.intrinsic_entry and enemy.state.pending.kind=="network_wait","network owner chooses while the opponent waits")
  e.choose_effect(name_choice(name))
@@ -26,6 +25,11 @@ func run():
  expect(not e.source_resources(0).any(func(r):return r.uid==item.uid),"named activated resource is prohibited before priority returns")
  e.Roster.New.force_main_triggers(e,0);e.pump_choices()
  expect(e.stack.is_empty() and e.triggers.is_empty() and e.pending.is_empty() and momiji.locked_name==name,"forcing main triggers cannot repeat Momiji's intrinsic declaration")
+
+ fresh()
+ momiji=enter("character-fdf-101")
+ e.choose_effect({})
+ expect(e.pending.is_empty() and e.stack.is_empty() and not momiji.has("locked_name"),"declining Momiji's name does not leave a pending choice or lock a card")
 
  for lock in ["silent","night","instant"]:
   fresh()
@@ -45,7 +49,7 @@ func run():
  e.cards["entry_test_momiji"].title="";e.cards["entry_test_momiji"].name="进场选择测试复制品"
  var first_momiji=put("character-fdf-101","hand");var second_momiji=put("entry_test_momiji","hand")
  e.Roster.field_many(e,[first_momiji,second_momiji],0);e.pump_choices()
- expect(e.pending.trigger.source.uid==first_momiji.uid and e.entry_choices.size()==1,"simultaneous entries retain both mandatory declarations")
+ expect(e.pending.trigger.source.uid==first_momiji.uid and e.entry_choices.size()==1,"simultaneous entries retain both name choices")
  var graph=Codec.capture(e);e=Duel.new();Codec.restore(e,graph)
  e.choose_effect(name_choice(name))
  expect(e.find_card(first_momiji.uid).locked_name==name and e.pending.trigger.source.uid==second_momiji.uid,"saved entry queue resumes the second declaration after the first")

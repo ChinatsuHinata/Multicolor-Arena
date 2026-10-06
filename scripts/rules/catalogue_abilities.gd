@@ -5,6 +5,8 @@ const CAPTIONS={
  "cat:element_reveal": "牌库顶展示：移除该牌，并选择是否使用。", "cat:flower_cast": "进入颜色盘：可以不支付颜色值使用本牌。", "cat:god_damage": "神子造成伤害：对至多一个目标玩家造成等量伤害。", "cat:hypnosis": "每位玩家弃一张牌，然后对手失去生命。", "cat:imp_growth": "攻击：放置两个+1/+1与+1指示物。", "cat:lie_damage": "硬币反面：对至多一个目标造成1点伤害。", "cat:murder_dolls": "放置计时指示物：对至多一个目标单位造成等量伤害。", "cat:night_timer": "对手单位死去：放置一个计时指示物。", "cat:nuclear_return": "自机单位进场：可以支付1红1黑将本牌从墓地移回手上。", "cat:rank_death": "该单位死去：失去3点生命。", "cat:rank_return": "自机单位攻击：将本牌从墓地移回手上。", "cat:sacrifice_recover": "牺牲单位：可支付1黄1黑抓牌并将本牌横置放入颜色盘。", "cat:tengu_watch": "对手本回合攻击过你：可以检索天狗放进战场。", "cat:top_free_damage": "从牌库顶进场：对目标其他单位造成等同于攻击力的伤害。", "cat:unconscious_return": "硬币反面：将本牌从墓地移回手上。", "cat:utsuho_return": "死去：在下个准备阶段将该牌移回战场。", "cat:delayed": "结算延迟触发效果。"}
 const BOOST_COUNTERS=["plus_counters","drunk_counters","madness"]
 const COUNTER_KEYS=["drunk_counters","plus_counters","minus_counters","leader_counters","courage","scare","poverty","timer","dream","madness"]
+const TOKEN_RACE_CARDS={"月兔":"token-fdf-132","幻象":"token-fdn-085","蝙蝠":"token-kmo-027","鬼":"token-fdf-130","吸血鬼":"token-fdf-133","小人":"token-smm-025","青蛙":"token-ucs-098","半灵":"token-ucs-099"}
+const TOKEN_RACES={"飞头":["飞头"],"虫群":["虫群"],"人偶":["人偶"],"埴轮":["埴轮"],"小鬼":["小鬼"],"御柱":["御柱"],"亡灵":["亡灵"]}
 const Spells=preload("res://scripts/rules/catalogue_spells.gd")
 const State=preload("res://scripts/rules/catalogue_state.gd")
 const Units=preload("res://scripts/rules/catalogue_units.gd")
@@ -65,13 +67,17 @@ static func mill(e,who,n):
  e.mill_cards(e.players[who].deck.slice(0,maxi(0,n)))
 static func random_discard(e,who,n):
  for i in range(mini(n,e.players[who].hand.size())):e.move_to(e.players[who].hand[e.rng.randi_range(0,e.players[who].hand.size()-1)],"grave")
+static func token_races(e,name: String) -> Array:
+ # Generated tokens carry declared races independently of their display name.
+ if name in TOKEN_RACE_CARDS:return e.cards[TOKEN_RACE_CARDS[name]].race.duplicate()
+ return TOKEN_RACES[name].duplicate()
 static func tokens(e,who,count,name,p,h,s,colors,words=[],abilities=[],art=""):
  var list=[]
  for i in range(maxi(0,count)):list.append(token(e,who,name,p,h,s,colors,words,abilities,art,false))
  return e.enter_token_batch(list,who)
 static func token(e,who,name,p,h,s,colors,words=[],abilities=[],art="",enter=true):
  var id="catalogue_token_"+str(e.next_uid)
- var info={"name":name,"kind":"单位","character":name,"title":"","race":[name],"colors":colors,"cost":{},"power":p,"health":h,"spirit":s,"keywords":words,"abilities":abilities,"fast":false,"requires_character":"","rules_text":"、".join(words),"token":true,"constructible":false}
+ var info={"name":name,"kind":"单位","character":name,"title":"","race":token_races(e,name),"colors":colors,"cost":{},"power":p,"health":h,"spirit":s,"keywords":words,"abilities":abilities,"fast":false,"requires_character":"","rules_text":"、".join(words),"token":true,"constructible":false}
  if not art.is_empty():info.copy_source_id=art
  else:
   var printed_art={"月兔":"token-fdf-132","幻象":"token-fdn-085","蝙蝠":"token-kmo-027","鬼":"token-fdf-130"}
@@ -125,6 +131,21 @@ static func continued_move(e,t,list,low,high,zone,title,after={},owner=-1):
 static func continuation(e,t):
  var d=t.get("data",{});var aim=t.target;var who=t.owner
  match t.effect:
+  "cat:palette_reset":
+   if valid(e,aim):e.find_card(aim.uid).tapped=false
+  "cat:futo_palette":
+   if valid(e,aim):e.Roster.Batch.counter(e,e.find_card(aim.uid),"poverty",1,who)
+  "cat:clown_palette":
+   if valid(e,aim):
+    var u=e.find_card(aim.uid);var owner=u.owner;var draw=role(e,u);e.move_to(u,"grave")
+    if not e.players[owner].deck.is_empty():e.move_to(e.players[owner].deck[0],"palette");e.players[owner].palette.back().tapped=true
+    if draw:e.draw(who)
+  "cat:alice_sacrifice":
+   var n=0
+   for u in selected(e,aim):
+    var epoch=u.epoch;e.sacrifice(u)
+    if u.zone!="field" or u.epoch!=epoch:n+=1
+   Spells.search(e,t,e.players[who].deck.filter(func(u):return role(e,u,"爱丽丝") and "终言" not in e.cards[u.card_id].keywords and e.Extra.cost_value(e,u)==n),0,1,"hand")
   "cat:jade_branch":
    if valid(e,aim):
     var u=e.find_card(aim.uid)
@@ -345,7 +366,7 @@ static func paid_cast(e,c,t,controller=-1):
  if id=="spell-fdf-048":
   var list=selected(e,t,1);meta.exiled_hand=list.size()
   for u in list:e.move_to(u,"exile")
- if id in ["spell-fdf-012","spell-fdf-072"] and t.has("picks"):
+ if id=="spell-fdf-012" and t.has("picks"):
   for u in selected(e,t):e.sacrifice(u)
  if id=="spell-fdf-030" and t.get("pitch",false):
   for u in selected(e,t):e.move_to(u,"grave")
@@ -395,6 +416,8 @@ static func milled(e,who,amount):
 
 static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false,preserve_target_count=true):
  var old=entry.target;var options=[]
+ var previous_x_override=e.catalogue_x_override
+ if not repay_cost:e.catalogue_x_override=maxi(e.catalogue_x_override,int(old.get("x",0)))
  e.catalogue_retargeting=not repay_cost
  if entry.kind=="card":
   # These spells paid their sacrifice when cast. The paid unit is no longer
@@ -412,6 +435,7 @@ static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false,pr
   var previous=e.priority;e.priority=entry.owner;options=e.ability_targets();e.priority=previous
  else:options=e.trigger_options(entry)
  e.catalogue_retargeting=false
+ e.catalogue_x_override=previous_x_override
  var result=[]
  for option in options:
   if x>=0 and int(option.get("x",0))!=x:continue

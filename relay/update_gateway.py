@@ -11,6 +11,12 @@ from pathlib import Path
 
 MAX_HEADER = 16384
 ASSET = re.compile(r"^/updates/(\d+\.\d+\.\d+(?:\.\d+)?)/(MulticolorArena-\1-(?:win64-setup\.exe|android\.apk))$")
+PCK_VERSION = r"[0-9]{1,5}(?:\.[0-9]{1,5}){2,3}"
+PCK_ASSET = re.compile(
+    rf"^/updates/pck/(?P<to>{PCK_VERSION})/"
+    rf"(?P<file>MulticolorArena-(?P<from>{PCK_VERSION})-to-(?P=to)-"
+    rf"(?:windows|android)(?:-(?P<hash>[0-9a-f]{{64}}))?\.pck)$"
+)
 RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
@@ -55,13 +61,22 @@ class Handler(socketserver.BaseRequestHandler):
             path = self.server.release_root / "latest.json"
             cache = "no-store"
             content_type = "application/json"
+        elif target in ("/updates/pck/latest.json", "/updates/pck/chain.json"):
+            path = self.server.release_root / "pck" / target.rsplit("/", 1)[1]
+            cache = "no-store"
+            content_type = "application/json"
         else:
             match = ASSET.fullmatch(target)
-            if not match:
-                self.reply(404, b"Not found")
-                return
-            path = self.server.release_root / match[1] / match[2]
-            cache = "public, max-age=31536000, immutable"
+            if match:
+                path = self.server.release_root / match[1] / match[2]
+            else:
+                match = PCK_ASSET.fullmatch(target)
+                if not match:
+                    self.reply(404, b"Not found")
+                    return
+                path = self.server.release_root / "pck" / match["to"] / match["file"]
+            # Only content-addressed PCKs remain immutable on same-version replacement.
+            cache = "no-store" if target.startswith("/updates/pck/") and not match["hash"] else "public, max-age=31536000, immutable"
             content_type = "application/octet-stream"
         if not path.is_file() or not path.resolve().is_relative_to(self.server.release_root):
             self.reply(404, b"Not found")

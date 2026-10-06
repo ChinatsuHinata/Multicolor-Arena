@@ -11,6 +11,9 @@ func touch(at: Vector2,pressed: bool):
 func tap(at: Vector2):
  await touch(at,true);await touch(at,false);await frames()
 
+func inspect_hold(at: Vector2):
+ await touch(at,true);await create_timer(1.12).timeout;await touch(at,false);await frames()
+
 func deck_tiles(node: Node,source: String) -> Array:
  var result=[]
  if node.get_script()==preload("res://scripts/deck_card.gd") and node.source_zone==source:result.append(node)
@@ -113,7 +116,9 @@ func run():
  await tap(ui.list_buttons.main.get_global_rect().get_center());rows=deck_tiles(app.deck_canvas,"main")
  var before=app.draft.duplicate(true)
  await tap(rows[0].get_global_rect().get_center())
- expect(is_instance_valid(ui.details_overlay) and app.draft==before,"deck card tap opens details without changing the draft")
+ expect(not is_instance_valid(ui.details_overlay) and app.draft==before,"short deck card tap leaves details closed")
+ await inspect_hold(rows[0].get_global_rect().get_center())
+ expect(is_instance_valid(ui.details_overlay) and app.draft==before,"deck card hold opens details without changing the draft")
  if not is_instance_valid(ui.details_overlay):quit(1);return
  var picture=app.preview.find_child("CardDetailsArt",true,false)
  var description=app.preview.find_child("CardDescriptionPane",true,false)
@@ -131,7 +136,9 @@ func run():
  expect(app.library.get_child_count()==3 and ui.previous_library_page.disabled and ui.next_library_page.disabled,"single search result keeps its slot and two empty slots")
  before=app.draft.duplicate(true)
  await tap(app.library_rows["39"].row.get_global_rect().get_center())
- expect(is_instance_valid(ui.details_overlay) and app.selected=="39" and app.draft==before,"gallery card tap opens details without auto adding a card")
+ expect(not is_instance_valid(ui.details_overlay),"short gallery tap leaves details closed")
+ await inspect_hold(app.library_rows["39"].row.get_global_rect().get_center())
+ expect(is_instance_valid(ui.details_overlay) and app.selected=="39" and app.draft==before,"gallery card hold opens details without auto adding a card")
  find_button(app.preview,"加入主卡组").pressed.emit();await frames()
  expect(app.draft.main.back()=="39","details can add the inspected card to the main deck")
  find_button(app.preview,"加入副卡组").pressed.emit();await frames()
@@ -158,9 +165,10 @@ func run():
  await touch(held_at,true);await create_timer(0.65).timeout
  expect(app.draft.side==side_before and not root.gui_is_dragging(),"holding a list row for 650ms does not delete a card")
  await create_timer(0.45).timeout
- expect(app.draft.side.count(side_before[0])==side_before.count(side_before[0])-1 and not root.gui_is_dragging() and not is_instance_valid(ui.details_overlay) and app.get_node_or_null("CardArtPicker")==null,"holding a grouped side row removes exactly one copy without dragging or opening a popup")
+ expect(app.draft.side==side_before and not root.gui_is_dragging() and is_instance_valid(ui.details_overlay),"one-second side row hold opens details and preserves every copy")
  await touch(held_at,false);await frames()
- expect(app.draft.side.size()==side_before.size()-1,"release after a long press does not remove a second copy")
+ expect(app.draft.side==side_before,"release after a long press preserves the deck")
+ ui.close_details();await frames()
  await tap(ui.list_buttons.main.get_global_rect().get_center());await frames()
  rows=deck_tiles(app.deck_canvas,"main")
  before=app.draft.duplicate(true)
@@ -170,7 +178,7 @@ func run():
  rows=deck_tiles(app.deck_canvas,"main")
  held_at=rows[0].get_global_rect().get_center()
  await touch(held_at,true);await create_timer(1.1).timeout
- expect(app.draft.main.size()==before.main.size()-1 and app.dirty and not root.gui_is_dragging() and not is_instance_valid(ui.details_overlay),"holding a main row removes one card and marks the draft dirty")
+ expect(app.draft==before and not root.gui_is_dragging() and is_instance_valid(ui.details_overlay),"holding a main row opens details without removing cards")
  await touch(held_at,false);await frames()
  ui.show_details("68");await frames()
  expect(find_button(app.preview,"设为自机")!=null and find_button(app.preview,"加入主卡组")!=null and find_button(app.preview,"加入副卡组")!=null,"leader unit details offer leader selection and both deck additions")
@@ -200,9 +208,12 @@ func run():
  expect(app.draft.main[0]==moving,"deck page retains card drag reordering")
  before=app.draft.duplicate(true);rows=deck_tiles(ui.grid,"main");held_at=rows[0].get_global_rect().get_center()
  await touch(held_at,true);await create_timer(0.65).timeout
- expect(root.gui_is_dragging() and app.draft==before,"deck page retains native long press dragging")
+ expect(not root.gui_is_dragging() and not is_instance_valid(ui.details_overlay) and app.draft==before,"overview holds do not drag or inspect before one second")
+ await create_timer(0.47).timeout
+ expect(is_instance_valid(ui.details_overlay) and app.draft==before,"one-second overview hold opens details")
  await touch(held_at,false);await frames()
- expect(not root.gui_is_dragging() and app.draft==before,"releasing an overview card in place ends its drag")
+ expect(not root.gui_is_dragging() and app.draft==before,"releasing an overview card keeps the draft unchanged")
+ ui.close_details();await frames()
  await shot("overview")
  for dimensions in [Vector2i(1280,720),Vector2i(2400,1080)]:
   root.size=dimensions;app.layout_dpi_override=float(dimensions.y)/3.0

@@ -1235,7 +1235,8 @@ static func combat_response(e,who: int) -> bool:
 static func effect_target(e,who: int,options: Array,trigger: Dictionary) -> Dictionary:
  if options.is_empty():return {}
  var effect=trigger.get("effect","")
- if effect=="crystal" and e.ai_profiles[who]==PROFILE:return crystal_target(e,who,options)
+ if effect=="crystal" and e.ai_profiles[who]==PROFILE:
+  return options[0] if options==[{"none":true}] else crystal_target(e,who,options)
  if effect=="lily_color":
   for t in options:
    if t.get("color","")=="红":return t
@@ -1453,7 +1454,8 @@ static func response_actions(e,who: int,attacker: Dictionary,infer: bool=false,c
    if c.card_id=="114":
     for u in e.units(enemy):targets.append(e.ref_target(u))
    for target in response_targets(e,c,targets):
-    if counters_only and not e.Pack.flatten(target).any(func(r):return r.has("stack_id")):continue
+    var resolution_counter=e.DB.has_ability(e.cards[c.card_id],"counter_card") or e.Pack.has(e.cards[c.card_id],"counter_three")
+    if counters_only and not resolution_counter and not e.Pack.flatten(target).any(func(r):return r.has("stack_id")):continue
     if e.payment(enemy,e.cast_cost(enemy,c,target)).ways>0:actions.append({"uid":c.uid,"card_id":c.card_id,"target":target,"inferred":offer.inferred})
   actual.card_id=original
  actions.sort_custom(func(a,b):return response_priority(e,a,attacker)>response_priority(e,b,attacker))

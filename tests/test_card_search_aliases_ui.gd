@@ -34,6 +34,8 @@ func naming_checks():
   var names=Aliases.matching_names(e.cards,query)
   var rows=search_rows(term)
   expect(not rows.is_empty() and rows.size()==names.size() and rows.all(func(row):return names.has(row.get_meta("card_name",""))),"name picker applies the shared alias rule for "+term)
+ for term in ["神风","神之风"]:
+  expect(search_rows(term).any(func(row):return row.get_meta("card_name","")==e.cards["134"].name),"name picker finds 神ノ风 through "+term)
  expect(search_rows("不存在的卡牌别名").is_empty(),"unknown query hides all unrelated names")
  expect(search_rows("   ").size()==e.pending.options.size(),"blank query restores all legal names")
  expect(JSON.stringify(e.pending)==before,"searching never changes legal options or the pending effect")
@@ -74,6 +76,9 @@ func run():
   app.query=pair[0]
   var ids=app.library_ids();ids.sort();pair[1].sort()
   expect(ids==pair[1],"editor finds "+pair[0])
+ for term in ["神ノ风","神风","神之风"]:
+  app.query=term
+  expect(app.library_ids().has("134"),"editor finds 神ノ风 through "+term)
  app.query="红蓝单位"
  expect(not app.library_ids().is_empty() and app.library_ids().all(func(id):return Store.CARDS[id].kind in ["单位","自机"] and "红" in Store.CARDS[id].colors and "蓝" in Store.CARDS[id].colors),"editor retains combined category and color filters")
  var expected_character_spells=Store.CARDS.keys().filter(func(id):return Store.CARDS[id].get("canonical_id",id)==id and Store.CARDS[id].kind=="符卡" and (not Store.CARDS[id].requires_character.is_empty() or "角色" in Store.CARDS[id].spell_type))
@@ -126,6 +131,10 @@ func run():
  expect(search_field.get_global_rect().has_area() and search_scroll.get_global_rect().has_area() and search_bounds.encloses(search_field.get_global_rect()) and search_bounds.encloses(search_scroll.get_global_rect()) and not search_bounds.intersects(add_confirm.get_global_rect()),"battle search controls fit above the add-card action")
  var warehouse_ids=warehouse.visible_entries().map(func(entry):return str(entry.id))
  expect(warehouse_ids.has("21") and not warehouse_ids.has("rec_unit_097") and warehouse_ids.all(func(id):return e.cards[id].get("canonical_id",id)==id),"battle warehouse shows only canonical card versions")
+ for term in ["神风","神之风"]:
+  warehouse.query=term
+  expect(warehouse.visible_entries().any(func(entry):return str(entry.id)=="134"),"battle warehouse finds 神ノ风 through "+term)
+ warehouse.query=""
  var warehouse_kind=warehouse.find_child("KindFilter",true,false)
  var pc_search_kinds=[]
  for i in range(warehouse_kind.item_count):pc_search_kinds.append(warehouse_kind.get_item_text(i))

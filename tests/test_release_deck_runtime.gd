@@ -49,14 +49,18 @@ func run():
  app.settings_path=test_root.path_join("settings.json")
  root.add_child(app);await get_tree().process_frame
  app.setup()
- var picks=app.screen.get_children().filter(func(node):return node is OptionButton)
- expect(picks.size()==2,"release human-versus-AI screen shows both deck selectors")
+ var picks=[app.screen.find_child("PlayerDeckSelect",true,false),app.screen.find_child("AIDeckSelect",true,false)]
+ expect(picks.all(func(pick):return pick is Button and not pick is OptionButton),"release human-versus-AI screen shows both deck selection buttons")
  var index=-1
- if picks.size()==2:
-  for i in range(picks[1].item_count):
-   if picks[1].get_item_text(i)==remilia.name:index=i;break
-  expect(index>=0,"official Remilia AI is visible in opponent selector")
-  if index>=0:picks[1].item_selected.emit(index)
+ if picks[1]!=null:
+  picks[1].pressed.emit();await get_tree().process_frame
+  app.deck_picker_ui.search.text=remilia.name
+  app.deck_picker_ui.search.text_changed.emit(remilia.name)
+  var tile=app.deck_picker_ui.grid.get_children().filter(func(node):return node is Button and node.get_meta("deck_id","")==remilia.id)
+  expect(tile.size()==1,"official Remilia AI is searchable in opponent gallery")
+  if tile.size()==1:
+   tile[0].pressed.emit()
+   index=app.ai_choice
  if index>=0:
   expect(app.decks[app.ai_choice].id==remilia.id,"selecting opponent chooses delivered AI deck")
   app.begin_battle(true)

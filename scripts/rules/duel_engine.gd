@@ -6,6 +6,7 @@ const DB=preload("res://scripts/card_database.gd")
 const Extra=preload("res://scripts/rules/expanded_abilities.gd")
 const Effects=preload("res://scripts/rules/demo_abilities.gd")
 const ColorCost=preload("res://scripts/rules/color_cost.gd")
+const VariableChoice=preload("res://scripts/rules/variable_choice.gd")
 const RemiliaAI=preload("res://scripts/rules/remilia_aggro_ai.gd")
 const COLORS=["红","蓝","绿","黄","黑"]
 var player_names=["你","人机"]
@@ -20,6 +21,7 @@ var combat: Dictionary={}
 var active=0
 var priority=0
 var phase="mulligan"
+var tutorial_turn_end_blocked=false
 var turn=0
 var first=0
 var passes=0
@@ -59,6 +61,7 @@ var catalogue_death_owner=-1
 var catalogue_serial=0
 var catalogue_target_fast=false
 var catalogue_x_override=0
+var catalogue_x_source: Dictionary={}
 var catalogue_retargeting=false
 var presentation_events: Array=[]
 var reveal_serial=0
@@ -107,10 +110,14 @@ func make_card(id: String, owner: int, location: String, leader: bool=false) -> 
  next_uid+=1
  return c
 func flip_coin(who: int) -> bool:
- var heads=rng.randi_range(0,1)==1
+ var heads=roll_coin()
  show_result(player_names[who]+"掷硬币 · "+("正面" if heads else "反面"))
  Roster.on_coin(self,who);Cat.State.on_coin(self,who,heads)
  return heads
+func roll_coin() -> bool:
+ return rng.randi_range(0,1)==1
+func roll_die() -> int:
+ return rng.randi_range(1,6)
 func shuffle(cards_to_shuffle: Array):
  for i in range(cards_to_shuffle.size()-1,0,-1):
   var j=rng.randi_range(0,i)
@@ -228,7 +235,7 @@ func stackable_members(c: Dictionary) -> Array:
  return players[c.owner].field.filter(func(u):return stackable_signature(u)==signature)
 func can_batch_stackable_sacrifice(c: Dictionary,key: String) -> bool:
  if c.is_empty() or not cards.get(c.card_id,{}).get("stackable",false):return false
- return (c.card_id=="token-fdf-127" and key=="token-fdf-127") or (c.card_id=="token-fdf-128" and key=="wine_discount")
+ return (c.card_id in ["token-fdf-127","token-fdf-129"] and key==c.card_id) or (c.card_id=="token-fdf-128" and key=="wine_discount")
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
  if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
@@ -344,7 +351,10 @@ func cast_error(who: int,uid: int) -> String:
 func targets_for(id: String,acting: int=-1,source_uid: int=-1) -> Array:
  if acting<0: acting=priority
  catalogue_target_fast=cards[id].fast
+ var previous_x_source=catalogue_x_source
+ catalogue_x_source=find_card(source_uid) if source_uid>=0 else {}
  var extended=Extra.spell_options(self,id,acting)
+ catalogue_x_source=previous_x_source
  if extended!=null:
   if source_uid>=0 and Roster.free_cast(self,find_card(source_uid),acting):extended=extended.filter(func(t):return int(t.get("x",0))==0)
   if source_uid>=0:
@@ -445,11 +455,15 @@ func begin_trigger(t: Dictionary):
  var optional=t.get("optional",true)
  var prior_priority=priority
  var prior_passes=passes
- var id=push_trigger(t,{} if optional or options!=[{"none":true}] else options[0])
+ var id=push_trigger(t,{})
  stack.back().no_legal_targets=no_targets
- if optional or options!=[{"none":true}]:
+ if no_targets or not optional and options==[{"none":true}]:
+  stack.back().target=options[0].duplicate(true);accept_trigger(stack.back())
+ if not no_targets and (optional or options!=[{"none":true}]):
   stack.back().awaiting_target=true
   pending={"kind":kind,"owner":t.owner,"trigger":t,"options":options,"stack_id":id,"no_legal_targets":no_targets,"prior_priority":prior_priority,"prior_passes":prior_passes}
+  if not optional and players.size()==2 and options==[{"player":1-t.owner}]:
+   if declare_trigger_target(t,options[0]):pending={}
 func decline_stacked_trigger():
  if not pending.has("stack_id"):return
  for entry in stack.duplicate():
@@ -522,6 +536,7 @@ func choose_return(yes: bool):
  var suika_return=bool(c.get("n21_pending_suika_return",false));c.erase("n21_pending_suika_return")
  var stay_in_exile=bool(c.get("return_stay",false));c.erase("return_stay")
  var shuffle_on_return_deck=bool(c.get("shuffle_on_return_deck",false));c.erase("shuffle_on_return_deck")
+ var return_to_top=bool(c.get("return_to_top",false));c.erase("return_to_top")
  var wind_bounce_spell=int(c.get("wind_bounce_spell",-1));c.erase("wind_bounce_spell")
  var wind_bounce_value=int(c.get("wind_bounce_value",0));c.erase("wind_bounce_value")
  pending={}
@@ -531,7 +546,9 @@ func choose_return(yes: bool):
   note("自机返回自机区 · 计时 2")
  elif not stay_in_exile:
   shift(c,destination); players[c.owner][destination].append(c)
-  if destination=="deck" and shuffle_on_return_deck:shuffle(players[c.owner].deck)
+  if destination=="deck":
+   if return_to_top:players[c.owner].deck.erase(c);players[c.owner].deck.push_front(c)
+   if shuffle_on_return_deck:shuffle(players[c.owner].deck)
   if suika_return and destination=="exile":c.n21_suika_return=true
  if wind_bounce_spell>=0:
   var wind_spell=find_card(wind_bounce_spell)
@@ -561,9 +578,9 @@ func enter_field(c: Dictionary,who: int) -> bool:
  Extra.on_enter(self,c)
  check_komachi_coins()
  return true
-func queue_entry_choice(c: Dictionary,effect: String,options: Array,ability_text: String,data: Dictionary={}):
+func queue_entry_choice(c: Dictionary,effect: String,options: Array,ability_text: String,data: Dictionary={},optional: bool=false):
  if options.is_empty():return
- var choice={"roster":true,"extended":true,"continuation":true,"intrinsic_entry":true,"owner":c.owner,"source":c.duplicate(true),"effect":effect,"optional":false,"data":data.duplicate(true),"name":cards[c.card_id].name,"ability_text":ability_text}
+ var choice={"roster":true,"extended":true,"continuation":true,"intrinsic_entry":true,"owner":c.owner,"source":c.duplicate(true),"effect":effect,"optional":optional,"data":data.duplicate(true),"name":cards[c.card_id].name,"ability_text":ability_text}
  entry_choices.append({"kind":"effect_choice","owner":c.owner,"trigger":choice,"options":options})
 func is_melody(c: Dictionary) -> bool:
  return not c.is_empty() and "乐章" in cards[c.card_id].get("spell_type","")
@@ -614,7 +631,7 @@ func check_komachi_coins():
  for who in range(players.size()):
   if int(players[who].get("coins",0))>=3:losers.append(who)
  if losers.size()==2:
-  winner=-1;phase="over";pending={};note("双方具有三个或更多铜钱指示物，平局")
+  settle_match(-1,"双方具有三个或更多铜钱指示物，平局")
  elif losers.size()==1:lose(losers[0],"具有三个或更多铜钱指示物",true)
 func damage_target(target: Dictionary,amount: int) -> int:
  if amount<=0 or not target_valid(target): return 0
@@ -755,16 +772,22 @@ func judge():
  var dead=[]
  for who in range(2):
   if players[who].life<=0 and not cannot_lose(who): dead.append(who)
- if dead.size()==2: winner=-1; phase="over"; pending={}; note("平局")
+ if dead.size()==2: settle_match(-1,"平局")
  elif dead.size()==1: lose(dead[0],"生命归零")
  judging=false
+
+func settle_match(result: int,message: String):
+ if winner!=-2:return
+ winner=result;phase="over";pending={};note(message)
+
 func lose(who: int,reason: String,forced: bool=false):
  if winner!=-2: return
  if not forced and reason!="投降" and cannot_lose(who): return
- winner=1-who; phase="over"; pending={}; note(player_names[who]+reason)
+ settle_match(1-who,player_names[who]+reason)
 func surrender(who: int): lose(who,"投降")
 func pass_priority(who: int):
  if winner!=-2 or not pending.is_empty() or not entry_choices.is_empty() or phase=="mulligan" or priority!=who: return
+ if tutorial_turn_end_blocked and phase=="main" and stack.is_empty() and combat.is_empty():return
  passes+=1
  if passes<2: priority=1-who; revision+=1; return
  passes=0
@@ -778,7 +801,7 @@ func pass_priority(who: int):
   var source=e.get("card",e.get("source",{}))
   damage_context={"source":source,"single":Pack.single_damage_target(e),"combat":false}
   if e.kind=="ability":
-   if e.get("no_legal_targets",false):pass
+   if e.get("no_legal_targets",false) or e.target.get("invalid",false):pass
    elif e.get("extended",false): Extra.resolve_trigger(self,e)
    elif e.get("activation",false): Extra.resolve_activation(self,e)
    elif e.get("effect","")=="untap":
@@ -803,12 +826,25 @@ func pass_priority(who: int):
   elif cards[e.card.card_id].kind=="符卡" and not spell_target_valid(e.card.card_id,e.target):
    to_grave(e.card); note("目标失效，"+e.name+"不结算")
   else: Effects.resolved(self,e); note(e.name+"结算",history_art(e.card))
+  retain_resolving_entry(e)
   judge(); damage_context={}; priority=active; pump_choices()
  elif not combat.is_empty(): advance_combat()
  else: advance_phase()
  revision+=1
+func retain_resolving_entry(entry: Dictionary):
+ # A continuation is still part of this resolution, though its entry has
+ # already left the rules stack. Keep its public targets until it finishes.
+ if not entry.has("id") or not entry.has("kind") or not pending.get("trigger",{}).get("continuation",false):return
+ pending.resolving_entry=entry.duplicate(true)
+ pending.resolving_entry.erase("target_spec")
+func unresolved_stack_entries() -> Array:
+ var entries=stack.duplicate()
+ var resolving=pending.get("resolving_entry",pending.get("trigger",{}).get("entry",{}))
+ if resolving.has("id") and resolving.has("kind") and not entries.any(func(entry):return entry.id==resolving.id):entries.append(resolving)
+ return entries
 func advance_phase():
  if winner!=-2: return
+ if tutorial_turn_end_blocked and phase=="main":return
  var old_phase=phase
  for p in players:p.mana=[]
  priority=active; passes=0
@@ -889,6 +925,13 @@ func finish_turn():
 func can_attack(who: int,uid: int) -> bool:
  var c=find_card(uid)
  return winner==-2 and pending.is_empty() and priority==who and active==who and phase=="main" and stack.is_empty() and combat.is_empty() and not c.is_empty() and c.owner==who and c.zone=="field" and is_unit(c) and not c.tapped and Cat.State.can_combat(self,c) and payment(who,attack_cost(who)).ways>0 and (not summoning_sick(c) or has_haste(c))
+func attacking_unit_ref() -> Dictionary:
+ # A forced duel uses combat's attacker slot to resolve damage, but nobody declared an attack.
+ if combat.is_empty() or combat.get("forced",false):return {}
+ return combat.get("attacker",{})
+func is_attacking_unit(target: Dictionary) -> bool:
+ var attacker=attacking_unit_ref()
+ return not attacker.is_empty() and target_valid(target,true) and target.get("uid",-1)==attacker.get("uid",-2) and target.get("epoch",-1)==attacker.get("epoch",-2)
 func attack(who: int,uid: int,target: Dictionary={},plan: Array=[]):
  if not can_attack(who,uid): return
  var c=find_card(uid)
@@ -1298,7 +1341,8 @@ func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
  if c.is_empty() or c.owner!=who: return result
  var extra=extra_action(c)
  if not extra.is_empty() and extra.key not in Roster.ACTIVATIONS and c.zone==extension_activation_zone(extra.key):
-  extra.enabled=extension_activation_error(who,c).is_empty()
+  extra.reason=extension_activation_error(who,c,extra.key)
+  extra.enabled=extra.reason.is_empty()
   if extra.enabled or include_disabled: result.append(extra)
  for k in Roster.ACTIVATIONS:
   if not Roster.has(cards[c.card_id],k) or c.zone!=extension_activation_zone(k):continue
@@ -1567,6 +1611,7 @@ func choose_effect(target: Dictionary):
   pending={}
   t.entry.target=target.duplicate(true)
   Effects.resolved(self,t.entry)
+  retain_resolving_entry(t.entry)
   note(t.entry.name+"结算",history_art(t.entry.card))
   judge();damage_context={};priority=active;revision+=1;pump_choices()
   return
@@ -1585,6 +1630,7 @@ func choose_effect(target: Dictionary):
   pending={}
   t.entry.target=target.duplicate(true)
   Roster.Batch.spell_resolve(self,t.entry)
+  retain_resolving_entry(t.entry)
   note(t.entry.name+"结算",history_art(t.entry.card))
   judge();damage_context={};priority=active;revision+=1;pump_choices()
   return
@@ -1595,6 +1641,7 @@ func choose_effect(target: Dictionary):
   var cost=Cat.granted_cost(self,t,target) if t.effect=="cat:grant" else t.data.get("cost",{})
   if not payment_valid(t.owner,cost,target.payment):return
  if t.get("continuation",false):
+  var resolving_entry=pending.get("resolving_entry",{})
   record_declaration(t.owner,target,t.source)
   pending={}
   var previous_context=damage_context;var previous_spell=resolving_spell
@@ -1602,6 +1649,7 @@ func choose_effect(target: Dictionary):
    t.target=target;damage_context={"source":t.source,"combat":false,"single":Pack.single_damage_target(t)}
    resolving_spell=t.get("kind","")=="card" and cards[t.source.card_id].kind=="符卡"
    Extra.resolve_trigger(self,t)
+  retain_resolving_entry(resolving_entry)
   judge();damage_context=previous_context;resolving_spell=previous_spell
  else:
   if not target.is_empty():
@@ -1742,7 +1790,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
   stack.append({"id":next_stack,"kind":"ability","activation":true,"effect":key,"source":source,"owner":who,"target":clean_target.duplicate(true),"name":cards[member.card_id].name})
   if not target_spec.is_empty():stack.back().target_spec=target_spec.duplicate(true)
   if key=="courage_die":
-   stack.back().die=rng.randi_range(1,6);show_result("D6 · %d" % stack.back().die,member)
+   stack.back().die=roll_die();show_result("D6 · %d" % stack.back().die,member)
   if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[member.card_id],key)
   if key in Pack.ACTIVATIONS: stack.back().ability_text=Pack.text(cards[member.card_id],key)
   if key=="laser": stack.back().ability_text="支付黄并移去一个计时指示物："+clean_target.mode+"。"

@@ -16,7 +16,7 @@
 1. 先保存卡组，关闭测试运行。发行预设来源为 `saves/decks.json`；指定速攻蕾米卡组从 `deck` 中按 ID 读取最新版，不依赖文件名。其他人机或测试卡组不随安装包分发。
 2. 重新打开本项目一次，使新增插件生效。在“项目 → 项目设置 → 插件”中确认“卡组发行打包”已启用。
 3. 打开“项目 → 导出”，选择已有的 Windows Desktop 预设。导出模板版本必须与编辑器一致；本次使用 Godot 4.7.2。
-4. 资源页保持“导出项目中的所有资源”，包含过滤为 `cards/*.json,data/*.json,net/*.json`，保留已配置的排除过滤。不要只导出 main.tscn 的依赖，因为卡图由 JSON 路径动态加载；联机也需要规则版本清单。
+4. 资源页保持“导出项目中的所有资源”，包含过滤为 `cards/*.json,data/*.json,data/tutorial/*.json,data/tutorial/*/*.json,net/*.json`，保留已配置的排除过滤。不要只导出 main.tscn 的依赖，因为卡图与教程课程由 JSON 路径动态加载；联机也需要规则版本清单。
 5. 点击“导出项目”，关闭“导出调试”，输出到 `C:/Users/tzx20/Documents/test/builds/Windows-1.0-bugfix0921/MulticolorArena.exe`。不要仅点击“导出 PCK/ZIP”。导出输出中应有 `BUNDLED_DECKS`（当前卡组数）和 `REGISTERED_CARDS: 486`。
 6. 将 Windows 文件夹内的 EXE、同名 PCK 以及导出器附带的其他运行文件一起压缩为 ZIP。朋友先完整解压，再双击 MulticolorArena.exe。不要单发 EXE，也不要单独改名或移动 PCK。
 

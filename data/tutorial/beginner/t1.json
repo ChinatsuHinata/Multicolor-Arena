@@ -1,0 +1,289 @@
+{
+  "category": "beginner",
+  "completion": {
+    "steps": [
+      "d1",
+      "d2",
+      "d3",
+      "d4",
+      "d5",
+      "d6",
+      "d7",
+      "d8",
+      "d9",
+      "d10",
+      "q1",
+      "d11"
+    ],
+    "type": "steps_completed"
+  },
+  "id": "t1",
+  "initial_scenario": "remilia_deck",
+  "scenarios": {
+    "remilia_deck": {
+      "components": {
+        "deck_surface": {
+          "visible": true
+        },
+        "interaction": {
+          "enabled": false
+        }
+      },
+      "deck": {
+        "leader": "74",
+        "main": [
+          "soi_unit_086",
+          "soi_unit_086",
+          "character-fdn-048",
+          "character-fdn-048",
+          "character-fdn-068",
+          "character-fdn-068",
+          "character-fdn-068",
+          "character-fdn-068",
+          "character-fdn-014",
+          "character-fdn-014",
+          "character-fdn-014",
+          "character-fdn-014",
+          "23",
+          "23",
+          "32",
+          "32",
+          "32",
+          "18",
+          "18",
+          "character-fdf-065",
+          "character-fdf-065",
+          "129",
+          "129",
+          "129",
+          "129",
+          "94",
+          "spell-fdf-038",
+          "spell-fdf-038",
+          "spell-fdf-038",
+          "109",
+          "109",
+          "109",
+          "109",
+          "143",
+          "143",
+          "143",
+          "143",
+          "spell-fdf-035",
+          "spell-fdf-035",
+          "spell-ucs-052",
+          "spell-ucs-052",
+          "spell-fdf-037",
+          "spell-fdf-037",
+          "spell-fdf-037",
+          "spell-fdf-037",
+          "spell-fdn-008",
+          "169",
+          "169",
+          "169",
+          "169"
+        ],
+        "name": "蕾米莉亚教学卡组",
+        "rule_set": "official",
+        "side": [
+          "165",
+          "spell-fdn-008"
+        ]
+      },
+      "type": "deck"
+    }
+  },
+  "schema_version": 1.0,
+  "start_step": "d1",
+  "steps": {
+    "d1": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "text": "极彩 Multicolor 是一款东方同人 TCG，具有独特的机制和规则。右侧是这节课使用的蕾米莉亚卡组。"
+      },
+      "next": "d2",
+      "type": "info"
+    },
+    "d10": {
+      "guide": {
+        "focus": {
+          "card_id": "74"
+        },
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "74",
+            "zone": "leader"
+          }
+        ],
+        "text": "右上角颜色块内的数字表示该颜色需要支付多少张牌。蕾米莉亚需要红色 2、黑色 1，颜色值是这些数字的总和，即 3。"
+      },
+      "next": "q1",
+      "type": "info"
+    },
+    "d11": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "text": "以上就是极彩 Multicolor 的两大重要机制：自机和颜色。后面的教程会让你在实际操作中熟悉极彩 Multicolor 的游玩方法。"
+      },
+      "next": "$complete",
+      "type": "info"
+    },
+    "d2": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "74",
+            "zone": "leader"
+          }
+        ],
+        "text": "核心机制之一是自机。一个套牌的自机是整个卡组的核心卡牌。"
+      },
+      "next": "d3",
+      "type": "info"
+    },
+    "d3": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "74",
+            "zone": "leader"
+          }
+        ],
+        "text": "一套卡组由一张套牌自机和主卡组中的 50 张牌组成。每套卡组只能有一张套牌自机。红框标出了这副卡组的自机。"
+      },
+      "next": "d4",
+      "type": "info"
+    },
+    "d4": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "74",
+            "zone": "leader"
+          }
+        ],
+        "text": "若某张单位牌被选为套牌自机，主卡组和副卡组就不能再放入与它同称号、同角色名的自机单位。"
+      },
+      "next": "d5",
+      "type": "info"
+    },
+    "d5": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "129",
+            "zone": "main"
+          }
+        ],
+        "text": "没有特殊规则时，同名卡在主卡组和副卡组合计最多放四张。红框标出了主卡组中的四张「宵暗ノ翼」。"
+      },
+      "next": "d6",
+      "type": "info"
+    },
+    "d6": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "spell-fdf-035",
+            "zone": "main"
+          }
+        ],
+        "text": "有些牌另有构筑限制。例如带有「限制级符卡」规则的牌，同名卡在主卡组和副卡组合计最多放两张。红框标出了两张红符「不夜城-RED-」。"
+      },
+      "next": "d7",
+      "type": "info"
+    },
+    "d7": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "165",
+            "zone": "side"
+          },
+          {
+            "card_id": "spell-fdn-008",
+            "zone": "side"
+          }
+        ],
+        "text": "副卡组用于 BO3 等赛制中，供比赛途中与主卡组换牌。副卡组允许的数量及换牌时机由具体赛制决定；右侧副卡组放了两张示例牌。"
+      },
+      "next": "d8",
+      "type": "info"
+    },
+    "d8": {
+      "guide": {
+        "layout": "side",
+        "next_button": "manual",
+        "text": "颜色是极彩 Multicolor 的另一个重要机制。接下来用蕾米莉亚自机牌认识颜色种类和颜色值。"
+      },
+      "next": "d9",
+      "type": "info"
+    },
+    "d9": {
+      "guide": {
+        "focus": {
+          "card_id": "74"
+        },
+        "layout": "side",
+        "next_button": "manual",
+        "targets": [
+          {
+            "card_id": "74",
+            "zone": "leader"
+          }
+        ],
+        "text": "一张牌具有特定的颜色种类和颜色值。蕾米莉亚自机牌左上角有红、黑两种颜色块，所以它有两种颜色。PC 可右键点击右侧卡图查看完整详情，安卓可长按 1 秒查看。"
+      },
+      "next": "d10",
+      "type": "info"
+    },
+    "q1": {
+      "guide": {
+        "focus": {
+          "card_id": "spell-fdn-008"
+        },
+        "next_button": "hidden",
+        "text": "观察夜王「Deacula Cradle」的卡图：这张牌的颜色值是多少？"
+      },
+      "next": "d11",
+      "task": {
+        "quiz": {
+          "answers": [
+            {
+              "id": "3",
+              "text": "3"
+            },
+            {
+              "id": "4",
+              "text": "4"
+            },
+            {
+              "id": "5",
+              "text": "5"
+            }
+          ],
+          "correct_answer": "5"
+        },
+        "timing": "answer"
+      },
+      "type": "task"
+    }
+  },
+  "title": "欢迎来到极彩 Multicolor"
+}

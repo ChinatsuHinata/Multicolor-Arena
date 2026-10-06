@@ -123,18 +123,9 @@ static func trigger_options(e,t):
   "frog_fire":return e.Pack.all_units(e).filter(func(r):return r.uid!=t.source.uid)
   "SPX-005":return C.name_options(e)
   "LOC-005":
-   var options=[{"none":true,"mode":"抓一张牌，然后弃一张牌"}]
-   for r in e.Pack.all_units(e,who):var o=r.duplicate();o.mode="防避2";options.append(o)
-   return options
-  "ETO-003":
-   var groups=[]
-   var pool=e.players[who].deck.filter(func(c):return c.card_id in [id("ETO-007"),id("ETO-009"),id("ETO-011")])
-   for label in ["置于手牌","置于墓地","横置放入颜色盘"]:groups.append(C.group(e,pool,0,1,label))
-   return e.Pack.selection(groups,"n21:three_books")
+   return [{"none":true,"mode":"抓一张牌，然后弃一张牌"},{"none":true,"mode":"防避2"}]
   "ETO-002":
-   var options=[]
-   for n in range(own(e,who,"ETO-S001").size()+1):options.append({"none":true,"x":n,"mode":"牺牲%d个灵异珠"%n})
-   return options
+   return e.Pack.none()
   "ETO-002:self":
    var pool=[]
    for c in e.leaders(who):
@@ -147,6 +138,14 @@ static func trigger_options(e,t):
    for i in range(3):groups.append(e.Pack.group(e.Pack.all_units(e),1,1,"分配第%d点伤害"%[i+1]))
    return e.Pack.selection(groups,"distribution")
  return e.Pack.none()
+static func three_books_options(e,who):
+ var pool=e.players[who].deck.filter(func(c):return c.card_id in [id("ETO-007"),id("ETO-009"),id("ETO-011")])
+ var names=[];var refs=e.Cat.refs(e,pool)
+ for r in refs:
+  r.choice_name=e.cards[e.find_card(r.uid).card_id].name
+  if r.choice_name not in names:names.append(r.choice_name)
+ refs.sort_custom(func(a,b):return a.uid<b.uid)
+ return e.Pack.selection([e.Pack.group(refs,names.size(),names.size(),"收集歌曲 · 现有的每种各选一张",true)],"n21:three_books_search")
 static func valid_choice(e,t):
  if t.get("selection_id","").begins_with("n21:SPX-005:self"):
   return t.get("mode","")==("-3灵力" if t.selection_id.ends_with("-3") else "+3灵力")
@@ -170,12 +169,14 @@ static func resolve_trigger(e,t):
    choose(e,t,"add_balls",options)
   "add_balls":
    for i in range(a.x):create(e,who,"ETO-S001","deck")
-   if a.x>0:e.shuffle(p.deck)
+   e.shuffle(p.deck)
   "LOC-005":
    if a.mode=="防避2":
-    if C.unit(e,a):e.Pack.shield(e,a,[2],false,false)
+    choose(e,t,"road_shield",e.Pack.all_units(e,who))
    else:
     e.draw(who);C.continued_move(e,t,p.hand,mini(1,p.hand.size()),1,"grave","弃一张牌")
+  "road_shield":
+   if C.unit(e,a):e.Pack.shield(e,a,[2],false,false)
   "SPX-007":
    var n=own(e,who,"SPX-007").size()
    for r in e.Pack.picked(a):
@@ -221,15 +222,24 @@ static func resolve_trigger(e,t):
      e.Roster.field_many(e,[ball],who)
      if not p.deck.is_empty():e.move_to(p.deck[0],"palette")
   "ETO-003":
+   choose(e,t,"three_books_search",three_books_options(e,who))
+  "three_books_search":
+   var books=C.selected(e,a);var groups=[]
+   C.reveal(e,books,false)
+   for label in ["置于手牌（可跳过）","置于墓地（可跳过）","横置放入颜色盘（可跳过）"]:
+    var group=C.group(e,books,0,1,label);group.exclude_previous=true;groups.append(group)
+   choose(e,t,"three_books",e.Pack.selection(groups,"n21:three_books"))
+  "three_books":
    for i in range(3):
     for c in C.selected(e,a,i):
-     e.reveal_card(c);e.move_to(c,["hand","grave","palette"][i]);c.tapped=i==2
+     e.move_to(c,["hand","grave","palette"][i]);c.tapped=i==2
    e.shuffle(p.deck)
   "ETO-002":
    var balls=own(e,who,"ETO-S001")
-   var count=clampi(int(a.get("x",0)),0,balls.size())
+   choose(e,t,"ball_sacrifice",C.pick(e,balls,0,balls.size(),"牺牲任意数量的灵异珠"))
+  "ball_sacrifice":
    var sacrificed=0
-   for c in balls.slice(0,count):
+   for c in C.selected(e,a):
     if not e.can_sacrifice(c):continue
     e.sacrifice(c)
     if c.zone!="field":sacrificed+=1

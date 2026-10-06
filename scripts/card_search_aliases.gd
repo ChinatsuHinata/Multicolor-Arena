@@ -26,10 +26,25 @@ static func find_rule(rules: Dictionary,alias: String) -> Variant:
    return rule
  return null
 
+static func name_contains(name: String,term: String) -> bool:
+ var value=name.to_lower()
+ var wanted=term.to_lower()
+ if wanted in value:return true
+ if "ノ" not in value:return false
+ # Each ノ in a printed name may be kept, omitted, or written as 之.
+ var parts=value.split("ノ")
+ var forms=[parts[0]]
+ for index in range(1,parts.size()):
+  var expanded=[]
+  for form in forms:
+   for joiner in ["ノ","","之"]:expanded.append(form+joiner+parts[index])
+  forms=expanded
+ return forms.any(func(form):return wanted in form)
+
 static func card_matches(info: Dictionary,rule: Variant,card_id: String="") -> bool:
  if rule is Array:
   for part in rule:
-   if part is String and not part.is_empty() and part.to_lower() in info.name.to_lower():return true
+   if part is String and not part.is_empty() and name_contains(info.name,part):return true
   return false
  if not rule is Dictionary:return false
  if not rule.get("colors",[]).all(func(color):return color in info.get("colors",[])):return false
@@ -82,7 +97,7 @@ static func role_spell_characters(cards: Dictionary,term: String,rules: Dictiona
  var characters=[]
  for id in cards:
   var leader=cards[id]
-  var name_match=leader.kind=="自机" and leader_name in leader.name.to_lower()
+  var name_match=leader.kind=="自机" and name_contains(leader.name,leader_name)
   var alias_match=alias_rule!=null and leader.kind in ["单位","自机"] and card_matches(leader,alias_rule,id)
   if not name_match and not alias_match:continue
   var character=leader.get("character","")
@@ -110,7 +125,9 @@ static func matches_query(info: Dictionary,id: String,query: Dictionary) -> bool
  searchable.append_array(info.get("aliases",[]))
  if info.get("token",false):searchable.append("衍生物")
  if not info.get("constructible",false):searchable.append("不可构筑")
- return searchable.any(func(value):return term in str(value).to_lower())
+ if searchable.any(func(value):return term in str(value).to_lower()):return true
+ if name_contains(str(info.name),term):return true
+ return info.get("aliases",[]).any(func(value):return name_contains(str(value),term))
 
 static func matching_names(cards: Dictionary,query: Dictionary) -> Dictionary:
  var names={}

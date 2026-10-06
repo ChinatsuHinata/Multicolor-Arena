@@ -11,7 +11,7 @@ func activity_count() -> int:
  return e.triggers.filter(func(t):return t.effect=="activity_draw").size()
 
 func tokens_named(name: String) -> Array:
- return e.units(0).filter(func(c):return c.get("token",false) and e.cards[c.card_id].name==name)
+ return e.units(0).filter(func(c):return c.get("token",false) and e.cards[c.card_id].name.trim_suffix("衍生物")==name)
 
 func resolve_spell(id: String,x: int=0):
  var c=e.make_card(id,0,"stack")
@@ -46,6 +46,10 @@ func run():
    expect(e.field_slots(0)==before+made.size(),"batch respects remaining slots: "+spec[0])
    expect(activity_count()==0,"same-name spell batch does not trigger Activity: "+spec[0])
    expect(e.players[0].grave.size()==1 and card.zone=="grave","failed tokens do not leave ghost cards in grave: "+spec[0])
+   if spec[0]=="129" and not shortage:
+    expect(made.all(func(c):return c.card_id=="token-kmo-027" and c.token and e.Pack.colors(e,c)==["红","黑"]),"Wings creates the printed red-black bat tokens")
+    expect(made.all(func(c):return e.stat(c,"power")==1 and e.stat(c,"health")==1 and e.stat(c,"spirit")==1 and e.cards[c.card_id].race==["妖怪"]),"Wings bats retain the printed 1/1/1 stats and race")
+    expect(made.all(func(c):return e.cards[c.card_id].image=="res://recourse/数据库/token-kmo-027.jpg"),"Wings bats use the correct bat artwork")
    if spec[0] in ["spell-fdf-037","spell-fdf-058"]:
     expect(e.delayed.size()==made.size(),"only entered tokens receive sacrifice delays: "+spec[0])
    elif spec[0]=="spell-fdf-062":

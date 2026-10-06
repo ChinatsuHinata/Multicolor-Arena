@@ -17,6 +17,19 @@ const RuleSet = preload("res://scripts/deck_rule_set.gd")
 const Art = preload("res://scripts/card_art.gd")
 static var CARDS: Dictionary = Database.load_cards()
 
+static func excludes_deck_colors(id: String) -> bool:
+ var info=CARDS.get(id,{})
+ var canonical=Art.canonical(id,CARDS)
+ var original=CARDS.get(canonical,info)
+ return canonical in ["128","character-soi-006"] or original.get("character","") in ["封兽ぬえ","封兽鵺"] or "极彩" in info.get("keywords",[]) or "极彩" in original.get("keywords",[])
+
+static func deck_color_counts(ids: Array) -> Dictionary:
+ var counts={"红":0,"蓝":0,"绿":0,"黄":0,"黑":0}
+ for id in ids:
+  if excludes_deck_colors(id):continue
+  for color in CARDS.get(id,{}).get("colors",[]):counts[color]+=1
+ return counts
+
 static func blank(title: String = "未命名卡组") -> Dictionary:
  return {"id":str(Time.get_unix_time_from_system()) + "_" + str(randi()), "name":title, "main":[], "side":[], "leader":"","rule_set":RuleSet.OFFICIAL}
 

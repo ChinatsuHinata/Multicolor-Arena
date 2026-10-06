@@ -54,7 +54,7 @@ static func options(e,id,who):
    var g=C.group(e,p.grave.filter(func(c):return e.is_unit(c) and "黄" in e.Pack.colors(e,c)),0,3,"灵力合计至多3的黄色单位");g.sum_stat="spirit";g.sum_max=3
    for r in g.pool:r.choice_weight=e.stat(e.find_card(r.uid),"spirit")
    return e.Pack.selection([g],id)
-  "spell-fdf-052":return e.stack.filter(func(s):return not e.Pack.flatten(s.target).is_empty()).map(func(s):return {"stack_id":s.id})
+  "spell-fdf-052":return e.stack.filter(func(s):return not e.Pack.declared_targets(s).is_empty()).map(func(s):return {"stack_id":s.id})
   "spell-fdf-087":return e.stack.filter(func(s):return s.kind=="card").map(func(s):return {"stack_id":s.id})
   "spell-fdf-063":return all
   "spell-fdf-061":return [{"player":1-who,"mode":"本回合不能使用符卡"},{"player":1-who,"mode":"本回合不能使用单位"}]
@@ -62,12 +62,7 @@ static func options(e,id,who):
   "spell-fdf-124":return [{"player":0},{"player":1}]
   "spell-fdf-072":
    var out=e.Extra.add_mode(rs,"名称改为不明物体并抓牌")
-   var g=C.group(e,own.filter(func(c):return C.is_unknown(e,c)),1,1,"牺牲一个不明物体",true)
-   var spec=e.Pack.selection([g],id)
-   for x in spec:
-    x.mode="牺牲并放入封兽鵺"
-    x.title=x.mode
-   return out+spec
+   return out+[{"none":true,"mode":"牺牲并放入封兽鵺"}]
   "spell-fdf-082":
    var out=[]
    for color in ["无","红","蓝","绿","黄","黑"]:
@@ -89,11 +84,13 @@ static func options(e,id,who):
    for x in range(pool.size()+1):
     var groups=[C.group(e,pool,x,x,"牺牲 %d 个单位" % x,true)]
     for j in range(x):groups.append(e.Pack.group(all,0,1,"选择第 %d 个伤害目标" % [j+1]))
-    var spec=e.Pack.selection(groups,id+":"+str(x));out.append_array(spec)
+    var spec=e.Pack.selection(groups,id+":"+str(x))
+    for option in spec:option.x_input=true
+    out.append_array(spec)
    return out
   "spell-fdf-053","spell-fdf-051","spell-fdf-024":
    var out=[]
-   var max_x=maxi(e.catalogue_x_override,e.source_resources(who).size()+C.counter_total(e,own) if id=="spell-fdf-053" else e.source_resources(who).size())
+   var max_x=e.VariableChoice.limit(e,id,who)
    for x in range(max_x+1):
     if id=="spell-fdf-024":out.append({"none":true,"x":x,"mode":"X = %d" % x});continue
     var targets=C.refs(e,C.field(e).filter(func(c):return e.Roster.permanent(e,c) and e.Extra.cost_value(e,c)==x)) if id=="spell-fdf-051" else e.stack.filter(func(s):return s.kind=="card" and not e.is_unit(s.card) and e.Extra.cost_value(e,s.card)==x).map(func(s):return {"stack_id":s.id})
@@ -156,7 +153,7 @@ static func resolve(e,t):
   "spell-fdf-034":
    var retained="蓝" if aim.mode=="保留蓝色" else "绿"
    var reshuffle=[false,false]
-   var victims=C.field(e).filter(func(u):return retained not in e.Pack.colors(e,u))
+   var victims=C.field(e).filter(func(u):return e.Roster.permanent(e,u) and retained not in e.Pack.colors(e,u))
    for u in victims:
     if u.zone!="field":continue
     var owner=u.get("original_owner",u.owner)
@@ -349,7 +346,7 @@ static func resolve_complex(e,t):
      var u=e.find_card(a.uid);C.rename(e,u,"不明物体")
      e.cards[u.card_id].nightmare_rename=true
     e.draw(who)
-   else:C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"封兽鵺")),0,1,"放入封兽鵺"))
+   else:C.choose(e,t,"cat:nightmare_sacrifice",C.refs(e,e.units(who).filter(func(u):return C.is_unknown(e,u) and e.can_sacrifice(u))))
   "spell-fdf-122":C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(u):return u.zone in ["hand","leader"] and C.character(e,u,"多多良小伞")),1,1,"放入多多良小伞"))
   "spell-fdn-046":search(e,t,(p.hand+p.grave+p.palette+p.deck).filter(func(u):return e.is_unit(u) and C.character(e,u,"歌莉娅人偶")),1,1,"field")
   "spell-fdf-081":
@@ -414,6 +411,11 @@ static func resolve_complex(e,t):
 static func resolve_complex_choice(e,t):
  var C=e.Cat;var who=t.owner;var p=e.players[who];var a=t.target;var d=t.get("data",{})
  match t.effect:
+  "cat:nightmare_sacrifice":
+   if C.valid(e,a):
+    var u=e.find_card(a.uid);var epoch=u.epoch;e.sacrifice(u)
+    if u.zone!="field" or u.epoch!=epoch:
+     C.choose(e,t,"cat:deploy",C.pick(e,(p.hand+[p.leader]).filter(func(card):return card.zone in ["hand","leader"] and C.character(e,card,"封兽鵺")),0,1,"放入封兽鵺"))
   "cat:qed":
    var n=0
    for r in e.Pack.flatten(a):

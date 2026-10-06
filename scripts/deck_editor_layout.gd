@@ -123,15 +123,7 @@ func build_library(right: VBoxContainer):
  scroll.set_drag_forwarding(Callable(),app.can_return_card,app.return_card_to_library)
  app.library=GridContainer.new();app.library.columns=1;scroll.add_child(app.library);expand(app.library)
  app.library.set_drag_forwarding(Callable(),app.can_return_card,app.return_card_to_library)
- app.saved_select=OptionButton.new();app.saved_select.name="SavedDeckSelect";right.add_child(app.saved_select);metrics.button(app.saved_select)
- app.saved_select.fit_to_longest_item=false
- app.enable_android_popup_swipe(app.saved_select.get_popup())
- app.saved_select.add_item("选择卡组")
- for d in app.decks:
-  app.saved_select.add_item(d.name)
-  if d.id==app.draft.id:app.saved_select.select(app.saved_select.item_count-1)
- app.saved_select.item_selected.connect(func(i):
-  if i>0:app.guard(func():app.draft=app.decks[i-1].duplicate(true);app.dirty=false;app.editor()))
+ app.saved_select=action(right,"选择卡组",app.open_editor_deck_picker);app.saved_select.name="SavedDeckSelect"
  var actions=HBoxContainer.new();right.add_child(actions)
  expand(action(actions,"保存",app.save_deck,true))
  expand(action(actions,"使用",app.use_deck))
@@ -230,9 +222,7 @@ func update_deck():
   var tile=app.editor_card(app.draft.main[i],"main",i,Rect2(Vector2.ZERO,tile_size),grid)
   tile.custom_minimum_size=tile_size
  app.main_scroll.set_deferred("scroll_vertical",old_scroll)
- var counts={"红":0,"蓝":0,"绿":0,"黄":0,"黑":0}
- for id in app.draft.main:
-  for color in app.Store.CARDS[id].colors:counts[color]+=1
+ var counts=app.Store.deck_color_counts(app.draft.main)
  var stats=[]
  for color in counts:stats.append("%s %d" % [color,counts[color]])
  side_header=text(app.deck_canvas,"副卡组   ·   "+"  ".join(stats),metrics.small)

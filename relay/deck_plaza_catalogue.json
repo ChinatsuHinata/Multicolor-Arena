@@ -2361,7 +2361,7 @@
     "黑"
    ],
    "constructible": true,
-   "exclude_colors": false,
+   "exclude_colors": true,
    "leader": false,
    "name": "未知力量X「封兽ぬえ」",
    "search": [
@@ -3467,7 +3467,7 @@
     "黑"
    ],
    "constructible": true,
-   "exclude_colors": false,
+   "exclude_colors": true,
    "leader": true,
    "name": "平安时代的妖怪「封兽鵺」",
    "search": [
@@ -6095,7 +6095,7 @@
     "黑"
    ],
    "constructible": true,
-   "exclude_colors": false,
+   "exclude_colors": true,
    "leader": true,
    "name": "未确认幻想飞行物「封兽ぬえ」",
    "search": [

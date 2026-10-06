@@ -74,7 +74,7 @@ func run():
  view.set_response_mode(view.ResponseMode.ON)
  before=snapshot()
  await press_q()
- expect(snapshot()==before and find_button(view.ui,"结束主要阶段")!=null,"Q does not end the active player's main phase")
+ expect(snapshot()==before and view.hud.find_child("MainPhaseEnd",true,false)!=null,"Q does not end the active player's main phase")
  print("RESPONSE SHORTCUT: ",checks," checks; failures=",failures.size())
  app.queue_free()
  await process_frame

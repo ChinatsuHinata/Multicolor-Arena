@@ -7,6 +7,7 @@ import time
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "relay"))
 import account_store as accounts
@@ -84,7 +85,7 @@ class DeckPlazaTests(unittest.TestCase):
             self.assertNotIn("player_id", post)
         self.assertFalse(self.request({"action": "detail", "token": self.login["token"], "id": -1})["ok"])
 
-    def test_colors_exclude_lily_stone_and_every_rainbow_card(self):
+    def test_colors_exclude_nue_lily_stone_and_every_rainbow_card(self):
         excluded = [card_id for card_id, info in plaza.catalogue().items() if info["exclude_colors"] and info["constructible"]]
         parts = ["极彩排除测试", "70", excluded, [], "test"]
         _, colors = plaza.deck_metadata(parts)
@@ -95,6 +96,16 @@ class DeckPlazaTests(unittest.TestCase):
         self.assertIn("128", excluded)
         self.assertIn("character-soi-006", excluded)
         self.assertIn("spell-htk-004", excluded)
+        for card_id in ("64", "soi_unit_086", "character-fdf-117"):
+            self.assertIn(card_id, excluded)
+
+    def test_nue_leader_main_and_side_do_not_add_colors(self):
+        parts = ["封兽颜色测试", "character-fdf-117", ["64"], ["soi_unit_086"], "test"]
+        _, colors = plaza.deck_metadata(parts)
+        self.assertEqual(colors, "")
+        parts[2].append("100")
+        _, colors = plaza.deck_metadata(parts)
+        self.assertEqual(colors, "黄")
 
     def test_search_all_pages_leader_aliases_colors_and_tags(self):
         self.request(dict(self.payload, tags=["早期套牌"] ))
@@ -110,6 +121,19 @@ class DeckPlazaTests(unittest.TestCase):
         self.assertFalse(self.request(dict(query, color_text="单红蓝"))["ok"])
         self.assertEqual(plaza.color_query(" 红 "), ["红"])
         self.assertEqual(plaza.color_query("红蓝"), ["红", "蓝"])
+
+    def test_leader_name_forms_allow_optional_no(self):
+        self.assertEqual(set(plaza.card_name_forms("神ノ风")), {"神ノ风", "神风", "神之风"})
+        self.assertIn("幻波之影、狂气瞳", plaza.card_name_forms("幻波ノ影、狂气ノ瞳"))
+        self.assertEqual(plaza.card_name_forms("神风"), ["神风"])
+
+        cards = dict(plaza.catalogue())
+        cards["70"] = dict(cards["70"], search=["神ノ风"])
+        with mock.patch.object(plaza, "catalogue", return_value=cards):
+            self.assertTrue(self.request(self.payload)["ok"])
+        query = {"action": "list", "token": self.login["token"]}
+        for term in ("神ノ风", "神风", "神之风"):
+            self.assertEqual(self.request(dict(query, leader=term))["total"], 1)
 
     def test_comma_tags_require_every_term_before_pagination(self):
         both = self.request(self.payload)["id"]

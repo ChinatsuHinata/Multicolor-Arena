@@ -36011,7 +36011,7 @@
     "effect_text": "",
     "effect_text_en": "",
     "flavor_text": null,
-    "active_ability": "当一个妖精单位进入你的战场时，若其时本回合中第一个进入你战场的妖精单位，则本回合中它获得疾行和+X/+0与+X灵力。（X为你颜色盘中不同名的妖精牌数）",
+    "active_ability": "当一个妖精单位进入你的战场时，若其是本回合中第一个进入你战场的妖精单位，则本回合中它获得疾行和+X/+0与+X灵力。（X为你颜色盘中不同名的妖精牌数）",
     "protagonist_ability": "",
     "note": "",
     "ability_tags": [

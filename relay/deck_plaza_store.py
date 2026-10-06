@@ -21,6 +21,15 @@ def catalogue():
     return json.loads(Path(__file__).with_name("deck_plaza_catalogue.json").read_text(encoding="utf-8"))["cards"]
 
 
+def card_name_forms(value):
+    """Match the client's printed-name rule for ノ in leader searches."""
+    forms = [""]
+    for index, part in enumerate(value.split("ノ")):
+        forms = [prefix + joiner + part for prefix in forms
+                 for joiner in (("",) if index == 0 else ("ノ", "", "之"))]
+    return forms
+
+
 def deck_metadata(parts):
     cards = catalogue()
     leader = cards.get(parts[1], {})
@@ -39,7 +48,8 @@ def deck_metadata(parts):
             info = cards.get(card_id, {})
             if info.get("canonical") != card_id or art_id not in info.get("arts", []):
                 raise ValueError("异画编号无效")
-    return " ".join(leader["search"]).casefold(), "".join(color for color in COLORS if color in found_colors)
+    search = [form for term in leader["search"] for form in card_name_forms(term)]
+    return " ".join(search).casefold(), "".join(color for color in COLORS if color in found_colors)
 
 
 def initialize(conn):

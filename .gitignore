@@ -5,6 +5,13 @@
 /builds/
 __pycache__/
 
+# Generated PCK packages and local test/run artifacts
+*.pck
+*.log
+/work/
+/replay/
+/saves/
+
 # 编辑器本地设置
 .vscode/*
 !.vscode/tasks.json

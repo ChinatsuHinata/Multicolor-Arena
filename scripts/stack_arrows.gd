@@ -21,3 +21,7 @@ func _draw():
   var direction=(to-bend).normalized()
   var normal=Vector2(-direction.y,direction.x)
   draw_colored_polygon(PackedVector2Array([to,to-direction*17+normal*7,to-direction*17-normal*7]),Color("#ffe8a2"))
+  if not arrow.get("valid",true):
+   draw_circle(to,9,Color("#101c28"))
+   draw_line(to-Vector2(5,5),to+Vector2(5,5),Color("#ff8276"),3,true)
+   draw_line(to+Vector2(-5,5),to+Vector2(5,-5),Color("#ff8276"),3,true)

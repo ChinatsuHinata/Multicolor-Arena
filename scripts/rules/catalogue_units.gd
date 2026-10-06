@@ -44,6 +44,7 @@ static func on_leave(e,before,c):
   for r in before.get("catalogue_castle",[]):
    if C.valid(e,r):var u=e.find_card(r.uid);e.Roster.field_many(e,[u],u.owner)
 static func on_sacrifice_or_exile(e,c):
+ if not e.Roster.permanent(e,c):return
  for u in e.units(c.owner)+([c] if not e.units(c.owner).any(func(u):return u.uid==c.uid) else []):
   if e.Cat.has(e,u,"character-htk-005"):e.Cat.events(e,u,"character-htk-005")
 static func on_death(e,c,before):
@@ -89,7 +90,7 @@ static func on_phase(e,phase):
      if C.has(e,u,k):C.events(e,u,k)
     for k in ["character-fdf-119:self","character-fdn-025:self"]:
      if C.enabled(e,u,k):C.events(e,u,k,true)
-    if C.has(e,u,"character-ucs-056"):C.events(e,u,"character-ucs-056")
+    if C.has(e,u,"character-ucs-056"):C.events(e,u,"character-ucs-056",true)
   elif phase=="end" and C.has(e,u,"spell-fdf-042"):C.events(e,u,"spell-fdf-042")
  if phase=="end":
   for watch in e.players[who].get("tengu_watches",[]):
@@ -127,7 +128,7 @@ static func options(e,t):
   "character-fdf-029:self":return C.refs(e,e.players[who].grave.filter(func(c):return C.role(e,c,"小野冢小町")))
   "spell-ucs-059":return C.refs(e,e.units(who).filter(func(c):return e.cards[c.card_id].kind=="自机"))
   "character-fdf-117":return C.pick(e,e.units(who),0,1,"变为不明物体",k)
-  "character-fdf-093":return C.refs(e,e.players[1-who].palette)
+  "character-fdf-093":return [{"player":1-who}]
   "character-fdn-045":return e.Extra.add_mode(e.ability_targets(),"造成4点伤害")+[{"none":true,"mode":"对对方所有单位造成2点伤害"},{"none":true,"mode":"获得5点生命"}]
   "spell-fdf-018":return e.Pack.none()
   "spell-fdf-123","cat:lie_damage","cat:god_damage","cat:murder_dolls":return C.pick(e,units,0,1,"至多一个目标单位",k) if k in ["spell-fdf-123","cat:murder_dolls"] else e.Pack.selection([e.Pack.group(e.ability_targets() if k=="cat:lie_damage" else C.opponents(),0,1,"至多一个目标")],k)
@@ -250,7 +251,7 @@ static func resolve(e,t):
    var u=C.token(e,who,"幻象",3,3,2,["红","黑"],["先制"])
    if not u.is_empty():u.reisen_illusion=true
   "character-fdn-025":C.token(e,who,"吸血鬼",2,2,2,["红","黑","黄","蓝"],["吸血1","不占战场格"])
-  "character-fdf-093":if C.valid(e,a):e.Roster.Batch.counter(e,e.find_card(a.uid),"poverty",1,who)
+  "character-fdf-093":C.choose(e,t,"cat:futo_palette",C.refs(e,e.players[a.player].palette))
   "character-fdf-109":
    if same and c.zone=="grave":e.move_to(c,"palette");c.tapped=true
    e.gain_life(who,2)
@@ -345,11 +346,10 @@ static func activation_options(e,c,k):
   "character-fdn-006":return e.Pack.selection([C.group(e,p.hand.filter(func(u):return e.is_unit(u)),1,1,"弃一张单位牌",true)],k)
   "character-fdn-043":return C.pick(e,e.players[0].grave+e.players[1].grave,0,3,"移除墓地中的牌",k)
   "character-fdf-112":
-   var out=[{"none":true,"mode":"创造两个人偶"}];var pool=e.units(who).filter(func(u):return C.race(e,u,"人偶"))
-   out.append_array(e.Pack.selection([C.group(e,pool,0,pool.size(),"牺牲X个人偶并检索",true)],k));return out
+   return [{"none":true,"mode":"创造两个人偶"},{"none":true,"mode":"牺牲人偶并检索"}]
   "character-fdf-102":return e.Pack.selection([C.group(e,p.hand.filter(func(u):return C.role(e,u,"魂魄妖梦")),1,1,"将角色符卡横置放入颜色盘",true),C.group(e,e.units(who).filter(func(u):return C.race(e,u,"亡灵") or C.race(e,u,"半灵")),1,1,"重置亡灵或半灵")],k)
   "character-fdn-027":return C.refs(e,units.filter(func(u):return e.cards[u.card_id].kind=="自机"))
-  "character-fdf-113":return C.refs(e,e.players[0].palette+e.players[1].palette)
+  "character-fdf-113":return C.opponents()
   "character-fdf-111":
    var out=[]
    for player in range(2):
@@ -360,13 +360,13 @@ static func activation_options(e,c,k):
   "character-ucs-065:health","character-ucs-065:spirit":return e.Pack.selection([C.group(e,p.hand,1,1,"弃一张牌",true)],k)
   "spell-fdn-032":return C.refs(e,units)
   "spell-fdf-059":return e.Pack.selection([C.group(e,e.units(who).filter(func(u):return C.race(e,u,"小人")),1,1,"牺牲一个小人",true)],k)
-  "spell-fdn-019":return e.Pack.selection([C.group(e,e.units(who),1,1,"牺牲一个单位",true),C.group(e,p.palette,1,1,"重置一张颜色盘")],k)
+  "spell-fdn-019":return e.Pack.selection([C.group(e,e.units(who),1,1,"牺牲一个单位",true)],k)
   "token-fdf-129":return e.ability_targets()
  return []
 static func pay_activation(e,c,k,t):
  var C=e.Cat
  if k in ["item-fdn-044","item-lof-009","item-ucs-017","item-fdf-096","character-fdn-006","character-fdf-112","character-fdn-027","character-fdf-113","character-fdn-041"]:e.tap_card(c)
- if k in ["item-lof-009","item-ucs-017","spell-fdf-059","spell-fdn-019"] or k=="character-fdf-112" and t.has("picks"):
+ if k in ["item-lof-009","item-ucs-017","spell-fdf-059","spell-fdn-019"]:
   for u in C.selected(e,t):e.sacrifice(u)
  if k in ["item-ucs-013","item-htk-008","character-fdn-043","character-smm05","character-fdf-113","token-fdf-127","token-fdf-129"]:e.sacrifice(c)
  if k in ["character-fdn-006","character-ucs-065:health","character-ucs-065:spirit"]:
@@ -402,18 +402,18 @@ static func resolve_activation(e,t):
    for u in e.units(who):
     if u.get("token",false):C.buff(e,u,0,0,1,["英勇"])
   "character-fdf-112":
-   if a.has("picks"):
-    var n=a.picks[0].size();C.Spells.search(e,t,p.deck.filter(func(u):return C.role(e,u,"爱丽丝") and "终言" not in e.cards[u.card_id].keywords and e.Extra.cost_value(e,u)==n),0,1,"hand")
+   if a.mode=="牺牲人偶并检索":
+    var pool=e.units(who).filter(func(u):return C.race(e,u,"人偶"))
+    var g=C.group(e,pool,0,pool.size(),"牺牲X个人偶并检索");g.x_input=true
+    C.choose(e,t,"cat:alice_sacrifice",e.Pack.selection([g],k))
    else:
     C.tokens(e,who,2,"人偶",1,1,1,["黄"])
-  "character-fdf-102","spell-fdn-019":
+  "character-fdf-102":
    for u in C.selected(e,a,1):u.tapped=false
+  "spell-fdn-019":C.choose(e,t,"cat:palette_reset",C.refs(e,p.palette))
   "character-fdn-027":if C.unit(e,a):C.buff(e,e.find_card(a.uid),0,0,0,["防避3"])
   "character-fdf-113":
-   if C.valid(e,a):
-    var u=e.find_card(a.uid);var owner=u.owner;var draw=C.role(e,u);e.move_to(u,"grave")
-    if not e.players[owner].deck.is_empty():e.move_to(e.players[owner].deck[0],"palette");e.players[owner].palette.back().tapped=true
-    if draw:e.draw(who)
+   C.choose(e,t,"cat:clown_palette",C.refs(e,e.players[a.player].palette))
   "character-fdf-111":
    if same and c.zone=="grave":e.Roster.field_many(e,[c],who)
    e.players[1-who].life-=3

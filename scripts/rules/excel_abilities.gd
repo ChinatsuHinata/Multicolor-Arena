@@ -49,6 +49,7 @@ static func permanent(e,c: Dictionary) -> bool: return e.cards[c.card_id].kind i
 static func to_top(e,c: Dictionary):
  e.move_to(c,"deck")
  if c.zone=="deck": e.players[c.owner].deck.erase(c); e.players[c.owner].deck.push_front(c)
+ elif c.zone=="return_pending" and c.get("return_destination","")=="deck":c.return_to_top=true
 static func field_many(e,list: Array,who: int,tapped: bool=false):
  var eligible=list.filter(func(c): return e.field_error(c,who).is_empty()); var names={}; var slots=0
  for c in eligible:
@@ -103,7 +104,7 @@ static func keyword(e,c: Dictionary,k: String) -> bool:
  if k=="不占战场格" and e.players[c.owner].get("dolls_free",false) and race(e,c,"人偶"): return true
  return k in c.get("extra_keywords",[])
 static func fast(e,c: Dictionary,who: int) -> bool:
- return (Cat.enabled(e,c,"character-fdn-036:self")) or (has(e.cards[c.card_id],"kogasa_flash") and not e.combat.is_empty() and e.combat.owner!=who) or forced(e,c,who)
+ return (Cat.enabled(e,c,"character-fdn-036:self")) or (has(e.cards[c.card_id],"kogasa_flash") and not e.attacking_unit_ref().is_empty() and e.combat.owner!=who) or forced(e,c,who)
 static func forced(e,c: Dictionary,who: int) -> bool: return e.forced_cast.get("uid",-1)==c.uid and e.forced_cast.get("owner",-1)==who
 static func permission(e,c: Dictionary,who: int) -> bool:
  if forced(e,c,who) or Cat.State.permission(e,c,who): return true
@@ -137,7 +138,7 @@ static func protected(e,t: Dictionary,who: int,spell: bool) -> bool:
  if not t.has("uid"): return false
  var c=e.find_card(t.uid)
  if c.is_empty() or c.zone!="field": return false
- return e.players[c.owner].get("shroud_turn",-1)==e.turn or spell and who!=c.owner and has(e.cards[c.card_id],"nitori_ward")
+ return (permanent(e,c) and e.players[c.owner].get("shroud_turn",-1)==e.turn) or (spell and who!=c.owner and has(e.cards[c.card_id],"nitori_ward"))
 static func filter_options(e,options: Array,who: int,spell: bool) -> Array:
  var result=[]
  for o in options:
@@ -216,12 +217,11 @@ static func spell_options(e,id: String,who: int) -> Variant:
      for a in modes[i]:
       for b in modes[j]:options.append({"parts":[a,b]})
   "cloud_attack":
-   if not e.combat.is_empty() and unit(e,e.combat.attacker):options=[e.combat.attacker]
+   var attacker=e.attacking_unit_ref()
+   if unit(e,attacker):options=[attacker]
   _:options=e.Pack.none()
  if not e.cards[id].get("variable_cost","").is_empty():
-  var limit=e.source_resources(who).size(); var expanded=[]
-  if has(e.cards[id],"miko_discount"):limit+=(e.units(0).size()+e.units(1).size())/2
-  if (not e.forced_cast.is_empty() and e.forced_cast.get("free",true) and e.paid_cast_uid!=e.forced_cast.uid) or (e.paid_cast_uid<0 and e.players[who].field.any(func(u):return has(e.cards[u.card_id],"free_anthem"))):limit=0
+  var limit=e.VariableChoice.limit(e,id,who); var expanded=[]
   for x in range(limit+1):
    for o in options:
     var copy=o.duplicate(true);copy.x=x;copy.mode="X = %d" % x;expanded.append(copy)
@@ -297,6 +297,7 @@ static func trigger_options(e,t: Dictionary) -> Array:
  if batch!=null:return batch
  var who=t.owner
  match t.effect:
+  "seiga_death":return [{"player":1-who}]
   "coin_damage":return e.ability_targets()
   "kogasa_scare":return e.Pack.all_units(e,1-who)
   "orin_discard":return e.Pack.all_units(e,1-who).filter(func(r):return e.cards[e.find_card(r.uid).card_id].kind=="单位")
@@ -315,6 +316,10 @@ static func trigger_options(e,t: Dictionary) -> Array:
   "satori_scry":return [{"player":0},{"player":1}]
  return e.Pack.none()
 static func resolve_trigger(e,t: Dictionary):
+ if t.effect=="mask_sorrow_choose":
+  for r in e.Pack.picked(t.target):
+   if valid(e,r):e.tap_card(e.find_card(r.uid))
+  e.draw(t.owner);return
  if New.resolve_trigger(e,t):return
  if t.effect=="reset_four_choose":
   for r in e.Pack.picked(t.target):
@@ -413,10 +418,11 @@ static func resolve_trigger(e,t: Dictionary):
   "shanghai_draw","activity_draw":e.draw(who)
   "mystia_life":e.gain_life(who,1)
   "seiga_death":
-   var enemy=e.units(1-who);var highest=-999
+   if not e.target_valid(aim):return
+   var enemy=e.units(aim.player);var highest=-999
    for c in enemy:highest=maxi(highest,e.stat(c,"power"))
    if enemy.is_empty():e.players[who].life-=2
-   else:continue_choice(e,t,"seiga_sacrifice",pick(e,refs(e,enemy.filter(func(c):return e.stat(c,"power")==highest)),1,1,"牺牲攻击力最高的单位"),{"controller":who},false,1-who)
+   else:continue_choice(e,t,"seiga_sacrifice",pick(e,refs(e,enemy.filter(func(c):return e.stat(c,"power")==highest)),1,1,"牺牲攻击力最高的单位"),{"controller":who},false,aim.player)
   "seiga_sacrifice":
    for r in e.Pack.picked(aim):
     if unit(e,r):e.sacrifice(e.find_card(r.uid))
@@ -598,7 +604,10 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
     if e.cards[u.card_id].kind=="符卡":e.move_to(u,"exile");u.excel_access={"owner":who,"turn":e.turn,"ignore":true}
    bottom_rest(e,top,who);exile=true
   "two_bats":
-   create_tokens(e,who,2,"bat",1,["红","黑"])
+   var bats=[]
+   for i in range(2):
+    var bat=e.make_card("token-kmo-027",who,"token");bat.token_colors=["红","黑"];bats.append(bat)
+   e.enter_token_batch(bats,who)
   "ghost_imp":
    if valid(e,t):
     var victim=e.find_card(t.uid);var n=e.Extra.cost_value(e,victim);e.move_to(victim,"exile")
@@ -682,7 +691,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
       if valid(e,r):e.destroy(e.find_card(r.uid))
      "造成2点伤害":e.damage_target(r,2)
   "cloud_attack":
-   if unit(e,t):
+   if e.is_attacking_unit(t):
     var u=e.find_card(t.uid);var can_destroy=not e.Extra.keyword(e,u,"不会被消灭");e.destroy(u)
     if can_destroy:continue_choice(e,entry,"cloud_blink",pick(e,e.Pack.all_units(e,who),0,1,"选择一个单位暂时除外"))
   "rest_life":e.gain_life(who,8 if e.players[who].life<=5 else 4)
@@ -846,9 +855,12 @@ static func end_now(e):
 static func register_tokens(e):
  for kind in ["imp","pillar","kobito","ghost","bat","frog"]:
   var names={"imp":"小鬼","pillar":"御柱","kobito":"小人","ghost":"亡灵","bat":"蝙蝠","frog":"青蛙"}
-  e.cards["roster_token_"+kind]={"name":names[kind],"kind":"单位","character":names[kind],"title":"","race":[names[kind]],"colors":["黑"],"cost":{},"power":1,"health":1,"spirit":1,"keywords":[],"abilities":[],"fast":false,"requires_character":"","rules_text":"","token":true,"constructible":false}
+  e.cards["roster_token_"+kind]={"name":names[kind],"kind":"单位","character":names[kind],"title":"","race":Cat.token_races(e,names[kind]),"colors":["黑"],"cost":{},"power":1,"health":1,"spirit":1,"keywords":[],"abilities":[],"fast":false,"requires_character":"","rules_text":"","token":true,"constructible":false}
   if kind in ["bat","kobito"]:e.cards["roster_token_"+kind].copy_source_id="token-kmo-027" if kind=="bat" else "token-smm-025"
-  if kind in ["pillar","frog"]:e.cards["roster_token_"+kind].image="res://assets/token_cards/"+kind+".jpg"
+  if kind=="pillar":e.cards["roster_token_pillar"].image="res://assets/token_cards/pillar.jpg"
+  if kind=="frog":
+   e.cards["roster_token_frog"].image="res://recourse/数据库/token-ucs-098.jpg"
+   e.cards["roster_token_frog"].copy_source_id="token-ucs-098"
 static func create_tokens(e,who: int,count: int,kind: String,n: int,colors: Array,keywords: Array=[]) -> Array:
  var list=[]
  for i in range(maxi(0,count)):list.append(create_token(e,who,kind,n,colors,keywords,false))
@@ -863,7 +875,7 @@ static func create_token(e,who: int,kind: String,n: int,colors: Array,keywords: 
  return c if not enter or e.enter_field(c,who) else {}
 static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  var id="roster_copy_"+str(e.next_uid);var info=e.cards[source.card_id].duplicate(true)
- info.name="偶像";info.character="偶像";info.title="";info.race=["埴轮"];info.token=true;info.constructible=false;info.copy_source_id=source.card_id
+ info.name="偶像";info.character="偶像";info.title="";info.token=true;info.constructible=false;info.copy_source_id=source.card_id
  info.copy_marker="keiki"
  e.cards[id]=info
  var c=e.make_card(id,who,"token")
@@ -872,6 +884,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
 static func target_survives(e,id: String,t: Dictionary) -> bool:
  if has(e.cards[id],"n21:ETO-011"):return true
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
+ if has(e.cards[id],"cloud_attack"):return e.is_attacking_unit(t)
  if has(e.cards[id],"angry_mask"):return unit(e,t)
  if has(e.cards[id],"emotions") and e.Pack.flatten(t).is_empty():return true
  if key(e.cards[id],["discard_draw","door_reveal"])!="":return true
@@ -900,7 +913,7 @@ static func on_ability_announced(e,entry: Dictionary):
  if entry.get("tax_announced",false) or entry.kind!="ability" or entry.get("awaiting_target",false):return
  entry.tax_announced=true
  var opponent=1-entry.owner
- if not e.Pack.flatten(entry.target).any(func(r):return r.get("player",-1)==opponent or unit(e,r) and e.find_card(r.uid).owner==opponent):return
+ if not e.Pack.declared_targets(entry).any(func(r):return r.get("player",-1)==opponent or unit(e,r) and e.find_card(r.uid).owner==opponent):return
  for c in e.players[opponent].field:
   if has(e.cards[c.card_id],"backpack"):event(e,c,"backpack_tax",false,{"id":entry.id,"payer":entry.owner})
 static func tax_options(e,who: int) -> Array:

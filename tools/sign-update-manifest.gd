@@ -3,7 +3,20 @@ extends SceneTree
 
 func _initialize():
  var args=OS.get_cmdline_user_args()
- if args.size()!=2:push_error("Usage: sign-update-manifest.gd -- <payload.json> <signed.json>");quit(2);return
+ if args.size()!=2 and args.size()!=3:push_error("Usage: sign-update-manifest.gd -- <payload.json> <signed.json> [test-key]");quit(2);return
+ var payload=FileAccess.get_file_as_bytes(args[0])
+ if payload.is_empty() or payload.size()>60000:push_error("Invalid release payload");quit(2);return
+ var decoded=JSON.parse_string(payload.get_string_from_utf8())
+ var test_only=decoded is Dictionary and decoded.get("test_only",false)==true
+ if args.size()==3:
+  if not test_only:push_error("Custom signing keys require a TEST_ONLY payload");quit(2);return
+  var test_key=CryptoKey.new()
+  if test_key.load(args[2])!=OK:push_error("Cannot load isolated test signing key");quit(2);return
+  if test_key.save_to_string(true)==FileAccess.get_file_as_string("res://data/update_public.pem"):
+   push_error("Test artifacts require a key different from the release key");quit(2);return
+  _sign(payload,test_key,args[1])
+  return
+ if test_only:push_error("Refusing to sign test artifacts with the release key");quit(2);return
  var private_path="res://.godot-toolchain/release-signing.key"
  var public_path="res://data/update_public.pem"
  var key: CryptoKey
@@ -22,16 +35,17 @@ func _initialize():
   if public_file==null:push_error("Could not write release public key");quit(2);return
   public_file.store_string(public_pem)
   public_file.close()
- var payload=FileAccess.get_file_as_bytes(args[0])
- if payload.is_empty() or payload.size()>60000:push_error("Invalid release payload");quit(2);return
+ _sign(payload,key,args[1])
+
+func _sign(payload: PackedByteArray,key: CryptoKey,output_path: String):
  var hashing=HashingContext.new()
  hashing.start(HashingContext.HASH_SHA256)
  hashing.update(payload)
  var signature=Crypto.new().sign(HashingContext.HASH_SHA256,hashing.finish(),key)
  if signature.is_empty():push_error("Could not sign release payload");quit(2);return
- var output=FileAccess.open(args[1],FileAccess.WRITE)
+ var output=FileAccess.open(output_path,FileAccess.WRITE)
  if output==null:push_error("Could not write signed manifest");quit(2);return
  output.store_string(JSON.stringify({"payload":Marshalls.raw_to_base64(payload),"signature":Marshalls.raw_to_base64(signature)}))
  output.close()
- print("Signed release manifest: ",args[1])
+ print("Signed manifest: ",output_path)
  quit(0)
