@@ -9,6 +9,7 @@ var body: VBoxContainer
 var middle: BoxContainer
 var heading: Label
 var message: RichTextLabel
+var illustration
 var scroll: ScrollContainer
 var footer: VBoxContainer
 var secondary_actions: HBoxContainer
@@ -26,6 +27,10 @@ var step: Dictionary={}
 var original_visibility: Dictionary={}
 var focus_card: TextureRect
 var focus_kind=""
+var focus_id=""
+var focus_finger=-1
+var focus_hold_origin=Vector2.ZERO
+var focus_hold_ring: Control
 var inspection: VBoxContainer
 var inspection_overlay: Control
 var inspection_popup: PanelContainer
@@ -53,11 +58,15 @@ func build(owner_view,flow):
  focus_card=TextureRect.new();focus_card.name="TutorialFocusCard";middle.add_child(focus_card)
  focus_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;focus_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  focus_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
- focus_card.mouse_filter=Control.MOUSE_FILTER_IGNORE;focus_card.hide()
+ focus_card.mouse_filter=Control.MOUSE_FILTER_STOP if view.is_android else Control.MOUSE_FILTER_IGNORE;focus_card.hide()
+ if view.is_android:focus_card.tooltip_text="长按 1 秒：查看详情"
  scroll=ScrollContainer.new();middle.add_child(scroll);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
- message=RichTextLabel.new();message.name="TutorialText";scroll.add_child(message)
+ var content=VBoxContainer.new();scroll.add_child(content);content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ message=RichTextLabel.new();message.name="TutorialText";content.add_child(message)
  message.fit_content=true;message.scroll_active=false;message.size_flags_horizontal=Control.SIZE_EXPAND_FILL;message.bbcode_enabled=false
+ illustration=preload("res://scripts/tutorial/guide_image_gallery.gd").new();illustration.name="TutorialGuideImage";content.add_child(illustration)
+ illustration.configure(self,view.host);illustration.hide()
  answers_scroll=ScrollContainer.new();answers_scroll.name="TutorialAnswersScroll";body.add_child(answers_scroll)
  answers_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;answers_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  answers=GridContainer.new();answers.name="TutorialAnswers";answers_scroll.add_child(answers)
@@ -85,6 +94,7 @@ func build(owner_view,flow):
 
 func detach_runtime():
  # queue_free happens after the step signal; retire this guide immediately.
+ cancel_focus_hold()
  for pair in [[runtime.step_changed,show_step],[runtime.completed,finish],[runtime.failed,show_error],[runtime.task_failed,show_task_failure],[runtime.sequence_changed,show_sequence_state]]:
   if pair[0].is_connected(pair[1]):pair[0].disconnect(pair[1])
  set_process(false);set_process_input(false)
@@ -99,9 +109,10 @@ func show_step(_id: String,value: Dictionary):
  practice_feedback="";practice_feedback_index=-1
  hide_button.show();exit_button.text="教程目录" if not runtime.course_path.is_empty() else "退出教程"
  message.text=value.guide.text;scroll.scroll_vertical=0
+ illustration.set_data(value.guide.get("image",{}))
  var focus=value.guide.get("focus",runtime.adapter.scene_config.get("focus",{}))
  var entity=runtime.adapter.entity(focus.get("alias",""))
- var focus_id=str(focus.get("card_id",entity.get("card_id","")))
+ focus_id=str(focus.get("card_id",entity.get("card_id","")))
  focus_card.visible=view.host.Store.CARDS.has(focus_id)
  focus_kind=view.host.Store.CARDS.get(focus_id,{}).get("kind","")
  if focus_card.visible:focus_card.texture=view.host.preview_texture(focus_id,entity.get("art_id",""))
@@ -176,6 +187,7 @@ func finish(_id: String):
  update_card_highlights([])
  if view.has_method("apply_tutorial_presentation"):view.apply_tutorial_presentation({"camera_view":runtime.presentation.camera_view,"open_zone":{}})
  heading.text="教程完成";message.text="已完成本课的全部步骤。"
+ illustration.hide();illustration.clear()
  next_button.hide();hide_button.hide();exit_button.text="返回教程目录" if not runtime.course_path.is_empty() else "返回教程列表"
  reset_button.hide()
  build_answers()
@@ -186,6 +198,7 @@ func show_error(reason: String):
  update_card_highlights([])
  if view.has_method("apply_tutorial_presentation"):view.apply_tutorial_presentation({"camera_view":runtime.presentation.camera_view,"open_zone":{}})
  heading.text="教程配置或执行错误";message.text=reason
+ illustration.hide();illustration.clear()
  reset_button.hide()
  next_button.hide();hide_button.hide();build_answers();set_popup(true)
 
@@ -270,6 +283,7 @@ func relayout():
  var height=minf(340 if not view.is_android else maxf(360,m.hit*3+m.body*5),safe.size.y)
  if focus_card.visible and not embedded:
   width=minf(1000,safe.size.x);height=safe.size.y if view.is_android else minf(800 if focus_kind in ["符卡","结界"] else 640,safe.size.y)
+ if illustration.visible and not embedded:height=maxf(height,minf(640,safe.size.y))
  if runtime.answering():
   width=safe.size.x;height=safe.size.y
  panel.position=safe.get_center()-Vector2(width,height)*0.5;panel.size=Vector2(width,height)
@@ -356,6 +370,8 @@ func relayout():
   focus_card.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   focus_card.size_flags_vertical=Control.SIZE_FILL
   focus_card.custom_minimum_size.y=minf(400,panel.size.y*(0.30 if view.is_android else 0.43))
+ if illustration.visible:
+  illustration.set_height_limit(minf(320,maxf(64,scroll.size.y*0.80)))
  if restore_button.visible:place_restore(safe)
  fit_card_details()
 
@@ -473,6 +489,8 @@ func fit_card_details():
   inspection_art.custom_minimum_size.y=minf(view.size.y*0.3,width*(0.72 if view.host.landscape_card(inspection_id) else 1.397))
 
 func close_card_details():
+ if is_instance_valid(illustration):illustration.close_preview()
+ cancel_focus_hold()
  if is_instance_valid(inspection_overlay):
   remove_child(inspection_overlay);inspection_overlay.queue_free()
  inspection_overlay=null;inspection_popup=null;inspection_art=null;inspection_id=""
@@ -543,10 +561,43 @@ func _process(_delta):
 
 func owns_pointer_event(event: InputEvent) -> bool:
  if not (event is InputEventMouseButton or event is InputEventMouseMotion or event is InputEventScreenTouch or event is InputEventScreenDrag):return false
- return (is_instance_valid(inspection_overlay) and inspection_overlay.is_visible_in_tree()) or (panel.is_visible_in_tree() and panel.get_global_rect().has_point(event.position)) or (restore_button.is_visible_in_tree() and restore_button.get_global_rect().has_point(event.position))
+ return (is_instance_valid(illustration.overlay) and illustration.overlay.is_visible_in_tree()) or (is_instance_valid(inspection_overlay) and inspection_overlay.is_visible_in_tree()) or (panel.is_visible_in_tree() and panel.get_global_rect().has_point(event.position)) or (restore_button.is_visible_in_tree() and restore_button.get_global_rect().has_point(event.position))
+
+func cancel_focus_hold():
+ if is_instance_valid(focus_hold_ring):focus_hold_ring.queue_free()
+ focus_hold_ring=null;focus_finger=-1
+
+func _exit_tree():cancel_focus_hold()
+
+func _notification(what):
+ if what in [NOTIFICATION_WM_WINDOW_FOCUS_OUT,NOTIFICATION_APPLICATION_PAUSED]:cancel_focus_hold()
+
+func focus_card_touch(event: InputEvent) -> bool:
+ if not (event is InputEventScreenTouch or event is InputEventScreenDrag):return false
+ if event is InputEventScreenTouch and event.pressed:
+  if focus_finger>=0:
+   cancel_focus_hold();return false
+  if not popup_open or is_instance_valid(inspection_overlay) or view.host.menu_popup_open() or not focus_card.is_visible_in_tree() or not focus_card.get_global_rect().has_point(event.position):return false
+  focus_finger=event.index;focus_hold_origin=event.position
+  var id=focus_id;var generation=runtime.epoch
+  focus_hold_ring=preload("res://scripts/card_hold_ring.gd").new()
+  focus_hold_ring.position=event.position
+  focus_hold_ring.valid=func():return not is_queued_for_deletion() and popup_open and focus_card.is_visible_in_tree() and runtime.epoch==generation and focus_id==id and focus_finger>=0 and not is_instance_valid(inspection_overlay) and not view.host.menu_popup_open()
+  get_viewport().add_child(focus_hold_ring)
+  focus_hold_ring.completed.connect(func():
+   show_answer_details(id)
+   inspection_art.texture=focus_card.texture)
+ elif event.index!=focus_finger:return false
+ elif event is InputEventScreenDrag:
+  if event.position.distance_to(focus_hold_origin)>12:cancel_focus_hold()
+ else:cancel_focus_hold()
+ get_viewport().set_input_as_handled()
+ return true
 
 func _input(event: InputEvent):
- if view!=null and view.is_android and popup_open:swipe_scroll.handle(event,inspection_overlay if is_instance_valid(inspection_overlay) else self)
+ if view!=null and view.is_android:
+  if focus_card_touch(event):return
+  if popup_open:swipe_scroll.handle(event,inspection_overlay if is_instance_valid(inspection_overlay) else self)
 
 func _draw():
  if runtime==null:return

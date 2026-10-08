@@ -36,6 +36,11 @@ func render():
   hud.show();arrow_layer.show()
   if is_instance_valid(android_back_button):android_back_button.show()
 
+func refresh_observation():
+ super.refresh_observation()
+ # The condition workspace already provides its own editing and recording controls.
+ if is_instance_valid(observe_button):observe_button.hide()
+
 func _input(event: InputEvent):
  if not workspace.capturing:
   if event is InputEventScreenTouch and event.pressed and STAGE.has_point(event.position):

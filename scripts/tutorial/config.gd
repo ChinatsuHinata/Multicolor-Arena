@@ -1,6 +1,7 @@
 extends RefCounted
 ## Versioned, closed JSON schema. Reject unsupported data before touching a duel.
 const Actions=preload("res://scripts/tutorial/ui_actions.gd")
+const GuideImage=preload("res://scripts/tutorial/guide_image.gd")
 const COMPONENTS=["battlefield","hand","opponent_hand","inspection","hud","stack","interaction","deck_surface","editor_surface"]
 const EVENTS=["state_changed","phase_changed","priority_changed","command_accepted","step_entered","ui_action_accepted"]
 const ZONES=["deck","hand","field","palette","grave","exile"]
@@ -14,6 +15,10 @@ const PLAYER_COUNTS=["turns","possession_count"]
 var errors: Array=[]
 var course="?"
 var definitions: Dictionary
+
+static func leader_zone(player: Dictionary) -> String:
+ var zone=player.get("leader_zone","field" if player.get("leader_on_field",false) else "leader")
+ return zone if zone is String or zone is StringName else "leader"
 
 func error(path: String,reason: String):
  errors.append("课程 %s · %s：%s" % [course,path,reason])
@@ -120,11 +125,12 @@ func scenario(s: Variant,path: String,steps: Dictionary) -> Dictionary:
   if players.size()!=2:error(path+".players","必须恰好配置双方")
   for i in range(players.size()):
    var p=players[i];var pp=path+".players."+str(i)
-   if not object(p,pp,["name","life","leader","leader_on_field","extra_leaders","deck_order","hand","field","palette","grave","exile","state"]):continue
+   if not object(p,pp,["name","life","leader","leader_zone","leader_on_field","extra_leaders","deck_order","hand","field","palette","grave","exile","state"]):continue
    if p.has("name"):text_value(p.name,pp+".name")
    integer(p.get("life",20),pp+".life",1)
    state(p.get("state",{}),pp+".state",PLAYER_FLAGS,PLAYER_COUNTS)
    card(p.get("leader"),pp+".leader","leader",aliases)
+   if p.has("leader_zone"):choice(p.leader_zone,pp+".leader_zone",ZONES+["leader"])
    if p.has("leader_on_field"):boolean(p.leader_on_field,pp+".leader_on_field")
    if array(p.get("extra_leaders",[]),pp+".extra_leaders"):
     for index in range(p.get("extra_leaders",[]).size()):
@@ -141,7 +147,7 @@ func scenario(s: Variant,path: String,steps: Dictionary) -> Dictionary:
     var entries=p.get(key,[])
     if not array(entries,pp+"."+key):continue
     if zone=="palette":
-     var extra_count=0
+     var extra_count=1 if leader_zone(p)=="palette" else 0
      if p.get("extra_leaders",[]) is Array:
       for extra in p.get("extra_leaders",[]):
        if extra is Dictionary and extra.get("zone","leader")==zone:extra_count+=1
@@ -155,7 +161,6 @@ func scenario(s: Variant,path: String,steps: Dictionary) -> Dictionary:
       if integer(slot,cp+".position"):
        if slot>=entries.size() or slot in slots:error(cp+".position","位置须唯一且在本方战场数组范围内")
        slots.append(slot)
-   # A leader_on_field scenario reuses the actual leader instance in the field.
  components(s.get("components",{}),path+".components")
  opponent(s.get("opponent",{"strategy":"paused"}),path+".opponent",steps)
  return aliases
@@ -230,8 +235,11 @@ func step(s: Variant,path: String,steps: Dictionary,scenarios: Dictionary):
   if s.get(key)!="$complete":check_ref(s.get(key),path+"."+key,steps)
  if s.has("restore_on_failure"):boolean(s.restore_on_failure,path+".restore_on_failure")
  var g=s.get("guide")
- if object(g,path+".guide",["text","targets","popup","next_button","layout","focus"]):
+ if object(g,path+".guide",["text","targets","popup","next_button","layout","focus","image"]):
   text_value(g.get("text"),path+".guide.text")
+  if g.has("image"):
+   var reason=GuideImage.validate(g.image,definitions)
+   if not reason.is_empty():error(path+".guide.image",reason)
   choice(g.get("popup","show"),path+".guide.popup",["show","hidden"])
   if g.has("layout"):choice(g.layout,path+".guide.layout",["modal","side"])
   if g.has("focus"):
@@ -408,6 +416,7 @@ func condition(c: Variant,path: String,steps: Dictionary,depth: int=0):
  var kind=c.get("type")
  var keys={"always":["type"],"all":["type","conditions"],"any":["type","conditions"],"not":["type","condition"],"steps_completed":["type","steps"],"phase":["type","value"],"priority":["type","value"],"pending":["type","kind","owner"],"combat_attacker":["type","alias"],"entity_zone":["type","alias","zone"],"entity_state":["type","alias","key","value"],"entity_color_counter":["type","alias","color"],"player_count":["type","player","key","value","op"],"life":["type","player","value","op"],"deck_count":["type","zone","value","op"],"entity_count":["type","alias","key","value","op"],"zone_count":["type","player","zone","card_id","kind","value","op"]}
  keys.combat_step=["type","value"]
+ keys.combat_attacker_rank=["type","player","key","count","count_player","ties"]
  keys.deck_count.append("card_id")
  keys.ui_action=["type","action"]
  for entity_type in ENTITY_CONDITIONS:keys[entity_type].append("created")
@@ -432,6 +441,12 @@ func condition(c: Variant,path: String,steps: Dictionary,depth: int=0):
   "priority":choice(c.get("value"),path+".value",[0,1])
   "pending":choice(c.get("kind"),path+".kind",["possession","discard","block","damage_assignment","trigger_order","ward_order","trigger","leader_return","grave_replacement","effect_choice","timer"]);choice(c.get("owner"),path+".owner",[0,1])
   "combat_step":choice(c.get("value"),path+".value",["none","attack_window","block_window","first_damage_window","damage_window"])
+  "combat_attacker_rank":
+   choice(c.get("player"),path+".player",[0,1]);choice(c.get("key"),path+".key",["spirit","power","health"])
+   if c.has("count")==c.has("count_player"):error(path,"排名范围需要且只能指定 count 或 count_player 中的一项")
+   if c.has("count"):integer(c.count,path+".count",1)
+   if c.has("count_player"):choice(c.count_player,path+".count_player",[0,1])
+   if c.has("ties"):choice(c.ties,path+".ties",["all","field_order"])
   "entity_zone":choice(c.get("zone"),path+".zone",ZONES+["leader","stack"])
   "entity_state":
    choice(c.get("key"),path+".key",CARD_FLAGS)
@@ -452,14 +467,15 @@ func condition(c: Variant,path: String,steps: Dictionary,depth: int=0):
   "ui_action":ui_action(c.get("action"),path+".action")
 
 func opponent(o: Variant,path: String,steps: Dictionary):
- if not object(o,path,["strategy","rules"]):return
+ if not object(o,path,["strategy","rules","auto_response"]):return
+ if o.has("auto_response"):boolean(o.auto_response,path+".auto_response")
  choice(o.get("strategy","paused"),path+".strategy",["paused","rules"])
  var rules=o.get("rules",[]);var ids=[]
  if not array(rules,path+".rules"):return
  if o.get("strategy","paused")=="paused" and not rules.is_empty():error(path+".rules","paused 策略不能配置响应规则")
  for i in range(rules.size()):
   var r=rules[i];var rp=path+".rules."+str(i)
-  if not object(r,rp,["id","event","when","action","max_times","on_action","sequence"]):continue
+  if not object(r,rp,["id","event","when","action","max_times","on_action","sequence","otherwise"]):continue
   if text_value(r.get("id"),rp+".id"):
    if r.id in ids:error(rp+".id","规则 ID 重复")
    ids.append(r.id)
@@ -472,6 +488,10 @@ func opponent(o: Variant,path: String,steps: Dictionary):
     for a in r.sequence.actions:
      if a is Dictionary and a.get("type")!="delay" and a.get("player")!=1:error(rp+".sequence.actions","AI 响应序列只能包含对方动作")
   else:opponent_action(r.get("action"),rp+".action")
+  if r.has("otherwise"):
+   choice(r.otherwise,rp+".otherwise",["no_block"])
+   if not r.get("action") is Dictionary or r.action.get("type")!="block" or not r.action.has("priorities"):error(rp+".otherwise","自动放行需要按优先级阻挡响应")
+   if r.get("event")!="state_changed" or r.has("on_action"):error(rp+".otherwise","自动放行须监听 state_changed 且不限定操作")
   if r.has("on_action"):
    if r.get("event")!="command_accepted":error(rp+".on_action","动作触发须监听 command_accepted")
    sequence_action(r.on_action,rp+".on_action")
@@ -482,12 +502,15 @@ func opponent_action(a: Variant,path: String):
  if a is String:
   choice(a,path,["pass_priority"]);return
  if not a is Dictionary:error(path,"动作必须是字符串或对象");return
- var keys={"pass_priority":["type"],"block":["type","cards"],"cast":["type","card","target"],"ability":["type","source","index","key","target"]}
+ var keys={"pass_priority":["type"],"block":["type","cards","priorities"],"cast":["type","card","target"],"ability":["type","source","index","key","target"]}
  var kind=a.get("type")
  if not keys.has(kind):error(path+".type","不支持的对手动作："+str(kind));return
  object(a,path,keys[kind])
  if a.get("type")=="pass_priority":
   if a.has("cards"):error(path+".cards","让过执行权不接受卡牌参数")
+ elif kind=="block" and a.has("priorities"):
+  if a.has("cards"):error(path,"阻挡只能指定 cards 或 priorities 中的一项")
+  block_priorities(a.priorities,path+".priorities")
  elif a.get("type")=="block" and array(a.get("cards"),path+".cards"):
   if a.cards.size()>100:error(path+".cards","最多选择 100 张牌")
   var chosen=[]
@@ -505,6 +528,23 @@ func opponent_action(a: Variant,path: String):
   if a.has("index"):integer(a.index,path+".index")
   if a.has("key"):text_value(a.key,path+".key")
   if a.has("target"):opponent_target(a.target,path+".target")
+
+func block_priorities(options: Variant,path: String):
+ if not array(options,path):return
+ if options.is_empty() or options.size()>5:error(path,"阻挡优先级需要 1 至 5 个选项")
+ var strategies=[];var enabled=false
+ for i in range(options.size()):
+  var option=options[i];var op=path+"."+str(i)
+  if not object(option,op,["strategy","enabled","cards"]):continue
+  choice(option.get("strategy"),op+".strategy",preload("res://scripts/tutorial/block_priorities.gd").STRATEGIES)
+  if option.get("strategy") in strategies:error(op+".strategy","不能重复设置同一种阻挡方案")
+  strategies.append(option.get("strategy"))
+  if option.has("enabled"):boolean(option.enabled,op+".enabled")
+  if option.get("enabled",true) is bool and option.get("enabled",true):enabled=true
+  if option.get("strategy")=="selected":
+   opponent_action({"type":"block","cards":option.get("cards")},op)
+  elif option.has("cards"):error(op+".cards","只有指定单位阻挡接受卡牌参数")
+ if not enabled:error(path,"请至少启用一种阻挡方案")
 
 func opponent_card(c: Variant,path: String,allow_definition: bool=false):
  if not object(c,path,["alias","created","card_id"] if allow_definition else ["alias","created"]):return
@@ -632,7 +672,7 @@ func check_scene_fields(value: Variant,path: String,kind: String,available: Arra
    for id in value:
     if id not in available:error(path+"."+id,"当前场景没有该组件")
   if value.has("component") and value.component not in available:error(path+".component","当前场景没有该组件")
-  if kind!="battlefield" and value.get("type") in ["phase","priority","pending","combat_attacker","combat_step","entity_zone","entity_state","entity_color_counter","entity_count","zone_count","player_count","life"]:error(path+".type","当前界面不支持该对局条件")
+  if kind!="battlefield" and value.get("type") in ["phase","priority","pending","combat_attacker","combat_attacker_rank","combat_step","entity_zone","entity_state","entity_color_counter","entity_count","zone_count","player_count","life"]:error(path+".type","当前界面不支持该对局条件")
   if kind=="battlefield" and value.get("type") in ["deck_count","ui_action"]:error(path+".type","该条件适用于卡组或游戏内界面")
   for key in value:check_scene_fields(value[key],path+"."+str(key),kind,available)
  elif value is Array:

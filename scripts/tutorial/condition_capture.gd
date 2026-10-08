@@ -64,7 +64,13 @@ static func trigger(recorder,index: int,existing: Dictionary) -> Dictionary:
  while last+1<recorder.actions.size() and recorder.actions[last+1].get("player")==1:last+=1
  if last>=first:
   var response=recorder.response_rule(index,first,last,false)
-  rule.erase("action");rule.sequence=response.sequence
+  rule.erase("action");rule.erase("otherwise");rule.sequence=response.sequence
+ elif rule.get("action") is Dictionary and rule.action.has("priorities") and rule.on_action.type=="attack" and rule.on_action.player==0:
+  # A recorded attack can update the preset's subject without replacing its
+  # ordered block response with a command that runs before blocking is offered.
+  rule.event="state_changed";rule.when={"type":"combat_attacker"};rule.when.merge(rule.on_action.card)
+  rule.erase("on_action");rule.erase("otherwise")
+ elif rule.has("otherwise"):rule.erase("otherwise")
  return rule
 
 static func references(c: Dictionary,adapter) -> Array:
@@ -80,6 +86,7 @@ static func references(c: Dictionary,adapter) -> Array:
  if c.has("player"):
   if c.get("type")=="zone_count":result.append({"kind":"zone","player":int(c.player),"zone":c.zone})
   else:result.append({"kind":"player","player":int(c.player)})
+ if c.get("type")=="combat_attacker_rank" and c.has("count_player"):result.append({"kind":"zone","player":int(c.count_player),"zone":"field"})
  if c.get("type")=="priority":result.append({"kind":"player","player":int(c.value)})
  if c.get("type")=="pending":result.append({"kind":"player","player":int(c.owner)})
  if c.get("type") in ["phase","combat_step"]:result.append({"kind":"phase"})

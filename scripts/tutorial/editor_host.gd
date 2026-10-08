@@ -146,6 +146,7 @@ func recording_dialog_open() -> bool:
 
 func guide_input_at(point: Vector2) -> bool:
  var guide=owner_view.tutorial_guide
+ if is_instance_valid(guide) and is_instance_valid(guide.illustration.overlay) and guide.illustration.overlay.is_visible_in_tree():return true
  if is_instance_valid(guide) and flow.answering():return true
  return is_instance_valid(guide) and ((is_instance_valid(guide.inspection_overlay) and guide.inspection_overlay.is_visible_in_tree()) or (guide.panel.is_visible_in_tree() and guide.panel.get_global_rect().has_point(point)) or (guide.restore_button.is_visible_in_tree() and guide.restore_button.get_global_rect().has_point(point)))
 

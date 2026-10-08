@@ -154,7 +154,7 @@ static func on_damage(e,t,n,remaining):
   for c in C.with_key(e,who,"character-fdf-041:self"):C.events(e,c,"character-fdf-041:self",true)
 static func on_palette(e,c):
  var C=e.Cat
- if e.active==c.owner and C.has(e,c,"spell-fdf-031"):C.events(e,c,"cat:flower_cast",true)
+ if e.active==c.owner and C.has(e,c,"spell-fdf-031") and e.Pack.has_character(e,c.owner,"风见幽香"):C.events(e,c,"cat:flower_cast",true)
  if e.phase=="main" and e.active==c.owner:
   for u in C.with_key(e,c.owner,"character-ucs-044"):C.events(e,u,"character-ucs-044",true)
 static func on_coin(e,who,heads):

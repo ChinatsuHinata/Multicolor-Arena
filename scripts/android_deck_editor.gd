@@ -181,9 +181,9 @@ func build_library_gallery(body: VBoxContainer):
  body.name="LibraryGalleryCards"
  library_search_bar=HBoxContainer.new();library_search_bar.name="LibrarySearchBar";toolbar.add_child(library_search_bar);expand(library_search_bar)
  toolbar.move_child(library_search_bar,1)
- var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 别名 / 颜色 / 类别";search.text=app.query
+ var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 描述 / 颜色";search.text=app.query
+ search.tooltip_text="搜索卡名 / 描述 / 别名 / 颜色 / 类别"
  library_search_bar.add_child(search);editor_button(search);expand(search)
- search.placeholder_text="搜索卡名 / 颜色 / 类别"
  search.custom_minimum_size.x=120
  search.clear_button_enabled=true
  search.text_changed.connect(func(value):app.query=value;app.update_library())

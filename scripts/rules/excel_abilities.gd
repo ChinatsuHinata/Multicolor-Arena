@@ -104,7 +104,7 @@ static func keyword(e,c: Dictionary,k: String) -> bool:
  if k=="不占战场格" and e.players[c.owner].get("dolls_free",false) and race(e,c,"人偶"): return true
  return k in c.get("extra_keywords",[])
 static func fast(e,c: Dictionary,who: int) -> bool:
- return (Cat.enabled(e,c,"character-fdn-036:self")) or (has(e.cards[c.card_id],"kogasa_flash") and not e.attacking_unit_ref().is_empty() and e.combat.owner!=who) or forced(e,c,who)
+ return (Cat.enabled(e,c,"character-fdn-036:self")) or (has(e.cards[c.card_id],"kogasa_flash") and not e.combat.is_empty() and e.combat.owner!=who) or forced(e,c,who)
 static func forced(e,c: Dictionary,who: int) -> bool: return e.forced_cast.get("uid",-1)==c.uid and e.forced_cast.get("owner",-1)==who
 static func permission(e,c: Dictionary,who: int) -> bool:
  if forced(e,c,who) or Cat.State.permission(e,c,who): return true
@@ -217,8 +217,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
      for a in modes[i]:
       for b in modes[j]:options.append({"parts":[a,b]})
   "cloud_attack":
-   var attacker=e.attacking_unit_ref()
-   if unit(e,attacker):options=[attacker]
+   if not e.combat.is_empty() and unit(e,e.combat.attacker):options=[e.combat.attacker]
   _:options=e.Pack.none()
  if not e.cards[id].get("variable_cost","").is_empty():
   var limit=e.VariableChoice.limit(e,id,who); var expanded=[]
@@ -691,7 +690,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
       if valid(e,r):e.destroy(e.find_card(r.uid))
      "造成2点伤害":e.damage_target(r,2)
   "cloud_attack":
-   if e.is_attacking_unit(t):
+   if unit(e,t):
     var u=e.find_card(t.uid);var can_destroy=not e.Extra.keyword(e,u,"不会被消灭");e.destroy(u)
     if can_destroy:continue_choice(e,entry,"cloud_blink",pick(e,e.Pack.all_units(e,who),0,1,"选择一个单位暂时除外"))
   "rest_life":e.gain_life(who,8 if e.players[who].life<=5 else 4)
@@ -884,7 +883,6 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
 static func target_survives(e,id: String,t: Dictionary) -> bool:
  if has(e.cards[id],"n21:ETO-011"):return true
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
- if has(e.cards[id],"cloud_attack"):return e.is_attacking_unit(t)
  if has(e.cards[id],"angry_mask"):return unit(e,t)
  if has(e.cards[id],"emotions") and e.Pack.flatten(t).is_empty():return true
  if key(e.cards[id],["discard_draw","door_reveal"])!="":return true

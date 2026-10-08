@@ -89,11 +89,17 @@ func run():
   app.is_android=mobile
   app.layout_dpi_override=360 if mobile else 0
   app.layout_safe_override=Rect2(40,0,1200,680) if mobile else Rect2()
+  app.account_page();await frames()
+  check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：%d" % app.account_elo,"account Elo remains available on "+("Android" if mobile else "PC"))
+  check(app.account_old_password_input!=null and app.account_password_change_button!=null,"password change remains available on "+("Android" if mobile else "PC"))
+  if mobile:
+   var settings_scroll=app.screen.find_child("AccountSettingsScroll",true,false) as ScrollContainer
+   check(settings_scroll!=null and app.screen.get_global_rect().grow(2).encloses(settings_scroll.get_global_rect()),"Android signed-in settings use a local scroll inside the account panel")
   app.online()
   await frames()
   var lobby=find_lobby()
   check(lobby!=null,"online lobby opens on "+("Android" if mobile else "PC"))
-  lobby.cloud_selected=true
+  lobby.mode_selected=true;lobby.cloud_selected=true
   lobby.cloud_directory.rooms=[{"id":"ABCDEF123456","name":"测试房间","owner":"玩家甲","locked":false,"format":3,"status":"lobby","version":lobby.session.fingerprint,"seats":["玩家甲","","","","","","",""]}]
   lobby.refresh(true)
   await frames()
@@ -143,7 +149,7 @@ func run():
  app.refresh_responsive_layout()
  await frames()
  var wide_lobby=find_lobby()
- wide_lobby.cloud_selected=true
+ wide_lobby.mode_selected=true;wide_lobby.cloud_selected=true
  wide_lobby.cloud_directory.rooms=[{"id":"ABCDEF123456","name":"测试房间","locked":false,"format":3,"status":"lobby","version":wide_lobby.session.fingerprint,"seats":["玩家甲","","","","","","",""]}]
  wide_lobby.refresh(true)
  await frames()

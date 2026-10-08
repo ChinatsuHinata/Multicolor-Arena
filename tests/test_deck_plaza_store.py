@@ -41,7 +41,10 @@ class DeckPlazaTests(unittest.TestCase):
         detail = self.request({"action": "detail", "token": self.login["token"], "id": result["id"]})["deck"]
         self.assertEqual(detail["title"], "灵梦套牌")
         self.assertEqual(detail["description"], "第一行\n第二行")
-        self.assertEqual(detail["username"], "plaza_player")
+        self.assertEqual(detail["nickname"], "plaza_player")
+        self.assertNotIn("username", detail)
+        self.assertNotIn("player_id", detail)
+        self.assertNotIn("elo", detail)
         self.assertEqual(detail["tags"], ["灵梦", "速攻"])
         self.assertEqual(plaza.deck_parts(detail["deck_code"])[5], {"70": "tts_151600"})
         self.assertEqual(plaza.deck_parts(detail["deck_code"])[0], detail["title"])
@@ -83,6 +86,8 @@ class DeckPlazaTests(unittest.TestCase):
             self.assertNotIn("token", post)
             self.assertNotIn("device", post)
             self.assertNotIn("player_id", post)
+            self.assertNotIn("username", post)
+            self.assertNotIn("elo", post)
         self.assertFalse(self.request({"action": "detail", "token": self.login["token"], "id": -1})["ok"])
 
     def test_colors_exclude_nue_lily_stone_and_every_rainbow_card(self):
@@ -193,6 +198,43 @@ class DeckPlazaTests(unittest.TestCase):
         detail = self.request({"action": "detail", "id": post_id, "token": self.login["token"]})["deck"]
         self.assertEqual(detail["colors"], ["红", "黄"])
         self.assertEqual(self.request({"action": "list", "token": self.login["token"], "leader": "灵梦"})["total"], 1)
+
+    def test_follow_author_persistence_filter_and_unfollow(self):
+        own = self.request(self.payload)["id"]
+        accounts.handle(self.conn, {"action": "register", "username": "followed_author", "password": "password123!", "device": "b" * 32})
+        other = accounts.handle(self.conn, {"action": "login", "username": "followed_author", "password": "password123!", "device": "b" * 32})
+        ids = [self.request(dict(self.payload, token=other["token"], title=f"关注套牌{i}"))["id"] for i in range(8)]
+        query = {"action": "list", "token": self.login["token"], "following": True}
+        self.assertEqual(self.request(query)["total"], 0)
+        follow = {"action": "follow", "token": self.login["token"], "id": ids[0], "following": True}
+        self.assertTrue(self.request(follow)["deck"]["following"])
+        self.assertTrue(self.request(follow)["ok"])
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM player_follows").fetchone()[0], 1)
+        self.conn.close()
+        self.conn = accounts.database(self.path)
+        first = self.request(query)
+        self.assertEqual(first["total"], 8)
+        self.assertEqual(first["pages"], 2)
+        self.assertTrue(all(deck["following"] and not deck["owned"] for deck in first["decks"]))
+        self.assertNotIn(own, [deck["id"] for deck in first["decks"]])
+        self.assertEqual(self.request(dict(query, tag="速攻", leader="灵梦", colors=["红"]))["total"], 8)
+        self.assertEqual(self.request(dict(query, tag="不存在"))["total"], 0)
+        self.assertEqual(self.request(dict(query, token=other["token"]))["total"], 0)
+        # A follow belongs to the author even if the original deck is deleted.
+        self.assertTrue(self.request({"action": "delete", "id": ids[0], "token": other["token"]})["ok"])
+        self.assertEqual(self.request(query)["total"], 7)
+        follow["id"] = ids[1]
+        self.assertFalse(self.request(dict(follow, following=False))["deck"]["following"])
+        self.assertEqual(self.request(query)["total"], 0)
+        self.assertTrue(self.request(dict(follow, following=False))["ok"])
+
+    def test_follow_rejects_self_forgery_and_malformed_values(self):
+        own = self.request(self.payload)["id"]
+        follow = {"action": "follow", "token": self.login["token"], "id": own, "following": True}
+        for change in ({}, {"id": -1}, {"id": True}, {"id": 999999}, {"following": "true"}, {"player_id": 42}, {"username": "someone"}):
+            self.assertFalse(self.request(dict(follow, **change))["ok"])
+        self.assertFalse(self.request({"action": "list", "token": self.login["token"], "following": "true"})["ok"])
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM player_follows").fetchone()[0], 0)
 
 
 if __name__ == "__main__":

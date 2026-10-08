@@ -20,12 +20,14 @@ var tile_layout_pending=false
 var busy=false
 var client
 var mine=false
+var following=false
 var filters={"leader":"","tag":"","color_text":"","colors":[]}
 var search_fields={}
 var color_filters_open=false
 var color_filters: VBoxContainer
 var color_filter_button: Button
 var mine_button: Button
+var following_button: Button
 var back_button: Button
 var detail_panes: HBoxContainer
 var detail_info: PanelContainer
@@ -80,6 +82,7 @@ func _ready():
   notice=text(title_row,"",app.ui_metrics.small,app.MUTED)
   notice.autowrap_mode=TextServer.AUTOWRAP_OFF;notice.clip_text=true
  mine_button=action(toolbar,"我的上传",toggle_mine);mine_button.name="PlazaMineButton"
+ following_button=action(toolbar,"只看关注",toggle_following);following_button.name="PlazaFollowingButton";following_button.toggle_mode=true
  upload_button=action(toolbar,"上传套牌" if app.is_android else "上传当前套牌",app.upload_current_deck);upload_button.name="PlazaUploadButton"
  refresh_button=action(toolbar,"刷新",func():fetch_list(page_index,page_offset))
  back_button=action(toolbar,"返回" if app.is_android else "返回编辑器",app.editor);back_button.name="PlazaBackButton"
@@ -89,6 +92,7 @@ func _ready():
  body.resized.connect(queue_tile_layout)
  resized.connect(queue_tile_layout)
  mine=app.deck_plaza_browser.get("mine",false)
+ following=app.deck_plaza_browser.get("following",false) and not mine
  filters=app.deck_plaza_browser.get("filters",filters).duplicate(true)
  if mode in ["upload","edit"]:show_upload()
  elif mode=="detail":show_detail()
@@ -106,9 +110,10 @@ func clear_body():
  back_button.visible=mode!="detail"
  upload_button.visible=mode=="list";refresh_button.visible=mode=="list"
  mine_button.visible=mode=="list";mine_button.text="全部套牌" if mine else "我的上传"
+ following_button.visible=mode=="list";following_button.set_pressed_no_signal(following)
 
 func show_list():
- mode="list";clear_body();heading.text="我的上传" if mine else "套牌广场"
+ mode="list";clear_body();heading.text="我的上传" if mine else "关注的套牌" if following else "套牌广场"
  build_search()
  var scroll=ScrollContainer.new();scroll.name="PlazaScroll";body.add_child(scroll);expand(scroll,true)
  list_scroll=scroll
@@ -195,7 +200,15 @@ func toggle_color(color: String):
 
 func toggle_mine():
  if busy:return
- capture_search();mine=not mine;posts=[];page_index=0;show_list();fetch_list(0)
+ capture_search();mine=not mine;following=false;posts=[];page_index=0;show_list();fetch_list(0)
+
+func toggle_following():
+ if busy:return
+ capture_search();following=not following;mine=false;posts=[];page_index=0;show_list();fetch_list(0)
+
+func toggle_author_follow():
+ if busy or current_post.get("owned",false):return
+ send({"action":"follow","id":int(current_post.id),"following":not current_post.get("following",false)},"正在更新关注…")
 
 func decoded(post: Dictionary) -> Dictionary:
  return Store.decode(str(post.get("deck_code",""))).get("deck",{})
@@ -232,7 +245,7 @@ func make_tile(post: Dictionary):
  column.mouse_filter=Control.MOUSE_FILTER_IGNORE
  if app.is_android:column.add_theme_constant_override("separation",4 if compact_tiles else maxi(4,int(app.ui_metrics.gap*0.5)))
  tile_text(column,str(post.title),app.ui_metrics.body+4,app.GOLD)
- tile_text(column,"上传："+str(post.get("nickname",post.get("username",""))),app.ui_metrics.small,app.MUTED)
+ tile_text(column,"上传："+str(post.get("nickname","")),app.ui_metrics.small,app.MUTED)
  var tags="，".join(post.get("tags",[]))
  var colors=" / ".join(post.get("colors",[])) if not post.get("colors",[]).is_empty() else "无色"
  if app.is_android and compact_tiles:
@@ -347,7 +360,7 @@ func show_upload():
  text(form,"标签（最多十个，用中文逗号 ， 分隔；每个最多 20 字）",app.ui_metrics.body,app.GOLD)
  tags_input=LineEdit.new();tags_input.name="PlazaTags";form.add_child(tags_input)
  tags_input.text=saved.get("tags","");tags_input.placeholder_text="例如：灵梦，速攻，官限";tags_input.custom_minimum_size.y=app.ui_metrics.hit
- text(form,"上传玩家："+app.account_nickname+"（"+app.account_name+"）",app.ui_metrics.body,app.MUTED)
+ text(form,"上传玩家："+app.account_nickname,app.ui_metrics.body,app.MUTED)
  submit_button=action(form,"保存套牌更新" if updating else "上传到套牌广场",submit_upload,true);submit_button.name="PlazaSubmit"
  tags_input.text_changed.connect(func(value):
   var parsed=parse_tags(value)
@@ -376,9 +389,9 @@ func submit_upload():
 func fetch_list(index: int,offset: int=0):
  if busy:return
  requested_offset=offset
- app.deck_plaza_browser={"mine":mine,"filters":filters.duplicate(true)}
- var payload=filters.duplicate(true);payload.merge({"action":"list","page":maxi(0,index),"mine":mine},true)
- send(payload,"正在加载我的上传…" if mine else "正在加载套牌广场…")
+ app.deck_plaza_browser={"mine":mine,"following":following,"filters":filters.duplicate(true)}
+ var payload=filters.duplicate(true);payload.merge({"action":"list","page":maxi(0,index),"mine":mine,"following":following},true)
+ send(payload,"正在加载我的上传…" if mine else "正在加载关注的套牌…" if following else "正在加载套牌广场…")
 
 func fetch_detail(post_id: int):
  if busy:return
@@ -410,7 +423,7 @@ func receive(answer: Dictionary,operation: String):
    app.deck_plaza_form={};notice.text="套牌已上传到广场。";mode="list";show_list();fetch_list(0)
   "edit":
    app.cloud_edit_post=answer.get("deck",app.cloud_edit_post)
-   app.deck_plaza_form={};mine=true;mode="list";show_list();fetch_list(0)
+   app.deck_plaza_form={};mine=true;following=false;mode="list";show_list();fetch_list(0)
   "delete":
    if int(app.cloud_edit_post.get("id",0))==int(answer.get("id",0)):app.cloud_edit_post={}
    mode="list";show_list();fetch_list(page_index,page_offset)
@@ -423,10 +436,15 @@ func receive(answer: Dictionary,operation: String):
    if edit_after_detail:
     edit_after_detail=false;app.edit_uploaded_deck(current_post)
    else:show_detail()
+  "follow":
+   current_post=answer.get("deck",current_post)
+   for post in posts:
+    if int(post.id)==int(current_post.id):post.following=current_post.get("following",false)
+   show_detail();notice.text=str(answer.get("message","关注已更新"))
 
 func set_busy(value: bool):
  busy=value
- for b in [upload_button,refresh_button,submit_button,mine_button]:
+ for b in [upload_button,refresh_button,submit_button,mine_button,following_button]:
   if is_instance_valid(b):b.disabled=value
  if is_instance_valid(grid) and is_instance_valid(page_label):
   page_label.text="第 %d / %d 页" % [visible_page()+1,visible_pages()]
@@ -450,7 +468,10 @@ func show_detail():
  var deck=decoded(current_post)
  detail_deck=deck
  text(column,str(current_post.get("title","")),app.ui_metrics.title,app.GOLD)
- text(column,"上传玩家：%s（%s）" % [current_post.get("nickname",""),current_post.get("username","")],app.ui_metrics.body,app.MUTED)
+ text(column,"上传玩家："+str(current_post.get("nickname","")),app.ui_metrics.body,app.MUTED).name="PlazaAuthorNickname"
+ if not current_post.get("owned",false):
+  var follow=action(column,"取消关注作者" if current_post.get("following",false) else "关注作者",toggle_author_follow)
+  follow.name="PlazaFollowAuthor";follow.disabled=busy
  text(column,"标签："+("，".join(current_post.get("tags",[])) if not current_post.get("tags",[]).is_empty() else "无"),app.ui_metrics.body,app.GOLD).name="PlazaDetailTags"
  text(column,"套牌颜色："+(" / ".join(current_post.get("colors",[])) if not current_post.get("colors",[]).is_empty() else "无色"),app.ui_metrics.body,app.MUTED)
  text(column,str(current_post.get("description","")) if not str(current_post.get("description","")).is_empty() else "暂无描述",app.ui_metrics.body).name="PlazaDetailDescription"
@@ -462,7 +483,7 @@ func show_detail():
   var owner_actions=VBoxContainer.new();info.add_child(owner_actions)
   var edit=action(owner_actions,"进入编辑器修改",func():app.edit_uploaded_deck(current_post));edit.name="PlazaEdit";edit.disabled=deck.is_empty();expand(edit)
   expand(action(owner_actions,"删除上传套牌",func():delete_post(current_post)))
- action(info,"返回广场",func():show_list();notice.text="点击套牌查看详情").name="PlazaReturnToList"
+ action(info,"返回广场",func():show_list();fetch_list(page_index,page_offset)).name="PlazaReturnToList"
  var overview_panel=PanelContainer.new();overview_panel.name="PlazaDeckPanel";detail_panes.add_child(overview_panel);expand(overview_panel,true)
  overview_panel.add_theme_stylebox_override("panel",app.ui_metrics.panel_style())
  if not deck.is_empty():

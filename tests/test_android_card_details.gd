@@ -119,17 +119,18 @@ func run():
  await touch(at,false)
 
  clean();reset_details();view.android_palette_owner=-1
- for i in range(5):
-  var card=e.make_card(["100","53","164","169","100"][i],0,"stack")
+ for i in range(16):
+  var card=e.make_card(["100","53","164","169","100"][i%5],0,"stack")
   e.stack.append({"id":500+i,"kind":"card","card":card,"owner":0,"target":{"none":true},"name":e.cards[card.card_id].name})
  view.render();await process_frame
- var stacked=e.stack.back().card
- await tap(view.stack_panel.entry_rect(504).get_center())
+ var stacked_entry=e.stack.back()
+ var stacked=stacked_entry.card
+ await tap(view.stack_panel.entry_rect(stacked_entry.id).get_center())
  expect(not view.inspection.visible,"short stack tap leaves card details closed")
- await hold(view.stack_panel.entry_rect(504).get_center())
+ await hold(view.stack_panel.entry_rect(stacked_entry.id).get_center())
  expect(view.inspect_uid==stacked.uid and view.inspection.visible,"one-second stack hold opens its rules")
  await shot("android-stack-hold-details")
- await release(view.stack_panel.entry_rect(504).get_center())
+ await release(view.stack_panel.entry_rect(stacked_entry.id).get_center())
  reset_details()
  var scroll=view.stack_panel.scroll
  at=scroll.get_global_rect().position+Vector2(44,65)
@@ -167,7 +168,8 @@ func run():
  expect(view.history_panel.find_child("HistoryTitle",true,false).get_theme_font_size("font_size")>=app.ui_metrics.title,"history heading uses the larger title font")
  await shot("android-history-layout")
  await tap(shown.get_global_rect().get_center())
- expect(not view.inspection.visible,"short history tap leaves details closed")
+ expect(not view.inspection.visible and is_instance_valid(view.history_detail_panel),"short history tap opens the record without opening card inspection")
+ view.close_history_entry();await process_frame
  await hold(shown.get_global_rect().get_center())
  expect(view.inspection.visible and view.inspect_id==history_art.card_id and view.inspect_uid==0,"history card hold opens the recorded card snapshot")
  expect(view.ui.get_children().find(view.inspection)>view.ui.get_children().find(view.history_root),"history card details appear above the history panel")

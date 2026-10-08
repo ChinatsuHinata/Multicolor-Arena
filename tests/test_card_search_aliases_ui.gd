@@ -70,8 +70,21 @@ func cast_for_name(id: String,target: Dictionary={}):
 
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/card-search-aliases-ui/"+str(Time.get_ticks_usec()))
- app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ app=load("res://main.tscn").instantiate()
+ app.tutorial_local_directory="res://work/account-plaza-checks/tutorials"
+ DirAccess.make_dir_recursive_absolute(app.tutorial_local_directory)
+ root.add_child(app);await process_frame
  app.draft=Store.blank("别名搜索测试");app.draft.leader="70";app.editor()
+ var description_search=app.screen.find_child("LibrarySearch",true,false)
+ description_search.text="复制";description_search.text_changed.emit("复制")
+ var copy_results=app.library_ids()
+ expect(copy_results.any(func(id):return Store.CARDS[id].kind in ["单位","自机"]) and copy_results.any(func(id):return Store.CARDS[id].kind=="符卡"),"desktop editor finds both units and spells through printed copy descriptions")
+ app.is_android=true;app.editor()
+ description_search=app.screen.find_child("LibrarySearch",true,false)
+ description_search.text="复制";description_search.text_changed.emit("复制")
+ copy_results=app.library_ids()
+ expect(copy_results.any(func(id):return Store.CARDS[id].kind in ["单位","自机"]) and copy_results.any(func(id):return Store.CARDS[id].kind=="符卡"),"Android editor finds both units and spells through printed copy descriptions")
+ app.is_android=false;app.query="";app.editor()
  for pair in [["小妖梦",["39"]],["小猫车",["character-ucs-038"]],["炸弹人",["78","character-fdn-042"]],["转转",["32"]],["夜雀",["22","character-fdf-094","token-fdf-127"]],["夜雀道具",["token-fdf-127"]],["红饼",["165"]],["蓝饼",["167"]],["绿饼",["166"]],["黄饼",["164"]],["黑饼",["168"]],["红饼道具",["165"]]]:
   app.query=pair[0]
   var ids=app.library_ids();ids.sort();pair[1].sort()

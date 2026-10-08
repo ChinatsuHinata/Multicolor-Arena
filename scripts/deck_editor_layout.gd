@@ -98,10 +98,16 @@ func build(host,swapping: bool):
  catalogue=panel(columns);catalogue.name="LibraryPanel"
  var right=column(catalogue)
  if swapping:
-  text(right,"调整方法",metrics.title)
-  var instructions=text(right,"点击或拖动卡牌，在主卡组和副卡组之间移动。\n拖到卡牌上可交换；同组拖动可排序。\n完成时须符合登记牌池与张数限制。")
+  var reveal=HBoxContainer.new();reveal.name="SideboardLeaderReveal";right.add_child(reveal)
+  app.sideboard_leader_card=app.public_leader_card(reveal,app.sideboard_session.room,1-app.sideboard_session.seat)
+  app.sideboard_info=text(reveal,"");app.sideboard_info.name="SideboardInfo";app.sideboard_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;expand(app.sideboard_info)
+  var scroll=ScrollContainer.new();scroll.name="SideboardPreparationScroll";right.add_child(scroll);expand(scroll,true)
+  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+  var preparation=VBoxContainer.new();scroll.add_child(preparation);expand(preparation)
+  text(preparation,"调整方法",metrics.title)
+  var instructions=text(preparation,app.sideboard_instructions_text())
   instructions.name="SideboardInstructions";instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  app.sideboard_status=text(right,"");app.sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;expand(app.sideboard_status,true)
+  app.sideboard_status=text(right,"");app.sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   app.sideboard_done=action(right,"更换完成",app.complete_sideboard,true)
  else:build_library(right)
  columns.resized.connect(relayout)
@@ -115,7 +121,7 @@ func build(host,swapping: bool):
 func build_library(right: VBoxContainer):
  app.color_buttons.clear()
  app.library_sort_choice=null
- var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 颜色 / 类别";search.text=app.query
+ var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 描述 / 颜色 / 类别";search.text=app.query
  search.custom_minimum_size.y=metrics.hit;right.add_child(search)
  search.text_changed.connect(func(value):app.query=value;app.update_library())
  var scroll=ScrollContainer.new();scroll.name="LibraryScroll";right.add_child(scroll);expand(scroll,true)

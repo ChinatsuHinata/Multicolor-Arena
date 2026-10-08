@@ -36,7 +36,7 @@ func remember_setup_unit_states():
  setup_unit_states.clear()
  for p in scene.players:
   var entries=p.get("field",[]).duplicate()
-  if p.get("leader_on_field",false):entries.append(p.leader)
+  if Config.leader_zone(p)=="field":entries.append(p.leader)
   entries.append_array(p.get("extra_leaders",[]).filter(func(entry):return entry.get("zone","leader")=="field"))
   for entry in entries:
    var state=entry.get("state",{});var card=adapter.entity(entry.alias)
@@ -173,7 +173,8 @@ func tableau() -> Dictionary:
   var p=e.players[who];var source=value.players[who]
   source.life=int(p.life);source.name=e.player_names[who];source.state={}
   for key in Config.PLAYER_FLAGS+Config.PLAYER_COUNTS:source.state[key]=p[key]
-  source.leader=card_entry(p.leader);source.leader_on_field=p.leader.zone=="field"
+  source.leader=card_entry(p.leader);source.leader_zone=p.leader.zone
+  source.erase("leader_on_field")
   source.extra_leaders=[]
   for card in p.get("extra_leaders",[]):
    var entry=card_entry(card);entry.zone=card.zone

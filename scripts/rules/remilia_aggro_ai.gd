@@ -76,6 +76,7 @@ static func step_decision(e,who: int) -> bool:
  if not e.pending.is_empty():
   if e.pending.owner!=who:return true
   match e.pending.kind:
+   "reveal_review":e.confirm_revealed(who,e.pending.serial);return true
    "effect_choice":e.choose_effect(effect_target(e,who,e.pending.options,e.pending.trigger));return true
    "block":e.block(defensive_blocks(e));return true
    "damage_assignment":
@@ -1472,6 +1473,7 @@ static func settle_response(e,stop_stack: int=-1) -> bool:
   e.pump_choices()
   if not e.pending.is_empty():
    match e.pending.kind:
+    "reveal_review":e.confirm_revealed(e.pending.owner,e.pending.serial)
     "trigger_order":e.choose_trigger_order(0)
     "effect_choice":e.choose_effect(effect_target(e,e.pending.owner,e.pending.options,e.pending.trigger))
     "leader_return":e.choose_return(false)
@@ -1916,6 +1918,7 @@ static func settle_sim(e,who: int) -> bool:
   e.pump_choices()
   if not e.pending.is_empty():
    match e.pending.kind:
+    "reveal_review":e.confirm_revealed(e.pending.owner,e.pending.serial)
     "block":e.block(simulated_blocks(e,who))
     "trigger_order":e.choose_trigger_order(0)
     "effect_choice":e.choose_effect(effect_target(e,e.pending.owner,e.pending.options,e.pending.trigger))

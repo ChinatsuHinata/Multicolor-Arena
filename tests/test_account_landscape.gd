@@ -38,6 +38,24 @@ func controls_fit(captions: Array) -> bool:
    return false
  return true
 
+func signed_in_settings_fit() -> bool:
+ var bounds=app.screen.get_global_rect().grow(2)
+ var panel=app.screen.find_child("AccountPanel",true,false) as Control
+ var scroll=app.screen.find_child("AccountSettingsScroll",true,false) as ScrollContainer
+ var rating=app.screen.find_child("AccountElo",true,false) as Label
+ if panel==null or scroll==null or rating==null:return false
+ if not bounds.encloses(panel.get_global_rect()) or not bounds.encloses(scroll.get_global_rect()) or not bounds.encloses(rating.get_global_rect()):return false
+ var controls=[app.account_username_input,app.account_old_password_input,app.account_password_input,app.account_confirm_input]
+ for caption in ["保存昵称","修改密码","退出账号","返回主菜单"]:controls.append(find_button(app.screen,caption))
+ for control in controls:
+  if not is_instance_valid(control):return false
+  scroll.ensure_control_visible(control)
+  await frames()
+  if not scroll.get_global_rect().grow(2).encloses(control.get_global_rect()):
+   print("Account setting cannot be fully reached: ",control.name," ",control.get_global_rect()," viewport=",scroll.get_global_rect())
+   return false
+ return true
+
 func run():
  root.mode=Window.MODE_WINDOWED
  root.content_scale_size=Vector2i(1600,900)
@@ -69,10 +87,20 @@ func run():
   check(controls_fit(["登录","注册","返回主菜单"]),size_label+" login fits one screen")
   app.account_name="sample_user";app.account_nickname="玩家甲";app.account_page()
   await frames()
-  check(controls_fit(["保存昵称","退出账号","返回主菜单"]),size_label+" signed-in account fits one screen")
+  check(await signed_in_settings_fit(),size_label+" signed-in identity fits and every setting is reachable in the local scroll")
+  check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：%d" % app.account_elo,size_label+" signed-in account retains personal Elo")
+  app.account_old_password_input.text="password123!"
+  app.account_password_input.text="new-password!"
+  app.account_confirm_input.text="new-password!"
+  app.account_confirm_input.text_changed.emit(app.account_confirm_input.text)
+  check(not app.account_password_change_button.disabled,size_label+" valid password change can be submitted")
+  app.account_old_password_input.grab_focus();app.account_old_password_input.set_caret_column(3)
+  app.account_page();await frames()
+  check(app.account_old_password_input.text=="password123!" and app.account_password_input.text=="new-password!" and app.account_confirm_input.text=="new-password!",size_label+" signed-in reflow retains password change fields")
+  check(app.account_old_password_input.has_focus() and app.account_old_password_input.get_caret_column()==3,size_label+" signed-in reflow restores old password focus and caret")
   app.account_name="abcdefghijklmnopqrstuvwx";app.account_nickname="昵称".repeat(10);app.account_page()
   await frames()
-  check(controls_fit(["保存昵称","退出账号","返回主菜单"]),size_label+" long account identity fits one screen")
+  check(await signed_in_settings_fit(),size_label+" long account identity fits beside reachable settings")
   app.account_name=""
  app.is_android=false
  app.layout_dpi_override=0

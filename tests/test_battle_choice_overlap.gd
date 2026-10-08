@@ -25,6 +25,8 @@ func check_button_clear(button: Button,label: String):
   expect(not rect.intersects(other.get_global_rect()),label+" leaves the lower action clear: "+other.text)
  if view.stack_panel.is_visible_in_tree():
   expect(not rect.intersects(view.stack_panel.get_global_rect()),label+" leaves the visible stack panel clear")
+  var toggle=view.stack_panel.toggle_button
+  if is_instance_valid(toggle) and toggle.is_visible_in_tree():expect(not rect.intersects(toggle.get_global_rect()),label+" leaves the external stack toggle clear")
   for id in view.stack_panel.tiles:expect(not rect.intersects(view.stack_panel.entry_rect(id)),label+" leaves stack card %s clear" % id)
 
 func stack_fixture():
@@ -55,6 +57,18 @@ func check_state(prefix: String,actions: bool):
  var confirm=find_button(panel,"确定")
  if confirm!=null:expect(not hide.get_global_rect().intersects(confirm.get_global_rect()),label+" hide and confirm do not overlap")
  expect(view.stack_panel.is_visible_in_tree() and not panel.get_global_rect().intersects(view.stack_panel.get_global_rect()),label+" centered ability popup leaves the stack visible and clear")
+ if view.is_android:
+  var toggle=view.stack_panel.toggle_button
+  expect(is_instance_valid(toggle) and toggle.is_visible_in_tree() and not panel.get_global_rect().intersects(toggle.get_global_rect()),label+" entire popup clears the external stack toggle")
+  for choice in visible_buttons(panel):
+   expect(not choice.get_global_rect().intersects(toggle.get_global_rect()),label+" popup action clears the stack toggle: "+choice.text)
+  if not actions:
+   var before_toggle=snapshot()
+   view.stack_panel.set_collapsed(true);view.render();await frames()
+   panel=view.android_choice_panel;hide=find_button(panel,"隐藏")
+   expect(view.stack_panel.collapsed and is_instance_valid(panel),label+" popup can open while the stack is folded")
+   view.stack_panel.set_collapsed(false);await frames()
+   expect(not panel.get_global_rect().intersects(view.stack_panel.toggle_button.get_global_rect()) and snapshot()==before_toggle,label+" reopening the stack leaves the existing popup clear without changing duel state")
  var before=snapshot()
  await click(hide.get_global_rect().get_center());await frames()
  expect(snapshot()==before and view.android_choice_panel==null,label+" hide click only collapses the popup")

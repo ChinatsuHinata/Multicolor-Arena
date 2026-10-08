@@ -221,7 +221,28 @@ func camera_focus_rect() -> Rect2:
    for card in view.hand_nodes.values():
     if is_instance_valid(card):bottom=minf(bottom,view.hand_scroll.position.y+card.get_meta("target",card.position).y-metrics.gap)
  var height=maxf(1,bottom-top) if view.android_palette_view else maxf(metrics.hit*2,bottom-top)
- return Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+ var area=Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+ if view.android_palette_view:
+  # Target panels can sit beside the stack, inside the board's normal focus area.
+  # Fit the palette into the largest usable part of that area after HUD layout.
+  var overlays=[view.android_choice_panel,view.android_choice_restore,view.stack_panel]
+  if is_instance_valid(view.stack_panel):overlays.append(view.stack_panel.toggle_button)
+  for control in overlays:
+   if not is_instance_valid(control) or not control.is_visible_in_tree():continue
+   var blocked=area.intersection(control.get_global_rect().grow(metrics.gap))
+   if not blocked.has_area():continue
+   var candidates=[
+    Rect2(area.position,Vector2(blocked.position.x-area.position.x,area.size.y)),
+    Rect2(Vector2(blocked.end.x,area.position.y),Vector2(area.end.x-blocked.end.x,area.size.y)),
+    Rect2(area.position,Vector2(area.size.x,blocked.position.y-area.position.y)),
+    Rect2(Vector2(area.position.x,blocked.end.y),Vector2(area.size.x,area.end.y-blocked.end.y))]
+   var best_fit=0.0
+   var clear=area
+   for candidate in candidates:
+    var fit=minf(candidate.size.x/area.size.x,candidate.size.y/area.size.y)
+    if fit>best_fit:best_fit=fit;clear=candidate
+   area=clear
+ return area
 
 func hand_zone_selector(caption: String,action: Callable) -> Button:
  # Keep casting-region controls in the left rail, outside the board's focus area.
@@ -250,16 +271,25 @@ func camera_focus_toggle() -> Button:
  result.tooltip_text="点按依次切换：战场视角 → 我方颜色盘视角 → 敌方颜色盘视角 → 战场视角"
  return result
 
+func stack_choice_right_edge() -> float:
+ var edge=view.SIDEBAR.position.x-metrics.gap
+ # Reserve the external collapse button even while folded: reopening the stack
+ # must not cover a choice that was opened without rebuilding the popup.
+ if view.is_android and is_instance_valid(view.stack_panel) and view.stack_panel.visible:
+  edge-=view.stack_panel.TOGGLE_SIZE.x
+ return edge
+
 func center_choice_rect() -> Rect2:
  var center=view.host.get_viewport_rect().get_center()
- var rail_clearance=maxf(240,(view.SIDEBAR.position.x-metrics.gap-center.x)*2)
+ var rail_clearance=maxf(240,(stack_choice_right_edge()-center.x)*2)
  var dimensions=Vector2(minf(minf(860 if view.is_android else 740,safe.size.x-24),rail_clearance),minf(420,safe.size.y-24))
  return Rect2(center-dimensions*0.5,dimensions)
 
 func stack_choice_rect() -> Rect2:
  # Keep target confirmation alongside the rail so every stack card stays usable.
- var width=choice_rect.size.x
- var x=maxf(safe.position.x+metrics.gap,view.SIDEBAR.position.x-metrics.gap-width)
+ var right=stack_choice_right_edge()
+ var width=minf(choice_rect.size.x,maxf(1,right-safe.position.x-metrics.gap))
+ var x=maxf(safe.position.x+metrics.gap,right-width)
  return Rect2(Vector2(x,choice_rect.position.y),Vector2(width,choice_rect.size.y))
 
 func choice_columns(panel: Panel,count: int) -> int:
@@ -430,7 +460,7 @@ func position_persistent():
   var minimum_stack_height=view.stack_panel.TOGGLE_SIZE.y if view.stack_panel.collapsed else ceilf(compact_heading+inset*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
   if view.stack_panel.visible and available-restore_reserve<minimum_action_height+minimum_stack_height:
    # Leave the entire rail to stack cards and actions when touch density is high.
-   restore.position.x=view.SIDEBAR.position.x-metrics.gap-restore.size.x
+   restore.position.x=maxf(safe.position.x+metrics.gap,stack_choice_right_edge()-restore.size.x)
   else:stack_top+=restore_reserve
  if side_choice_open() and not view.observing:view.stack_panel.hide()
  var rail_top=view.SIDEBAR.position.y+stack_top

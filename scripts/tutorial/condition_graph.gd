@@ -2,9 +2,10 @@ extends Control
 ## A tree of real engine predicates, drawn as draggable connected nodes.
 signal edited(value: Dictionary)
 signal focused(value: Dictionary)
-const TYPES={"always":"始终成立","all":"全部满足 AND","any":"任一满足 OR","not":"取反 NOT","life":"生命值","entity_zone":"卡牌所在区域","entity_state":"卡牌横置／攻击","entity_color_counter":"卡牌颜色指示物","entity_count":"卡牌伤害／计数","zone_count":"区域卡牌数量","combat_attacker":"指定攻击者","combat_step":"战斗响应时点","phase":"对局阶段","priority":"执行权","pending":"等待玩家选择","player_count":"玩家计数","deck_count":"卡组张数","steps_completed":"已完成步骤"}
+const TYPES={"always":"始终成立","all":"全部满足 AND","any":"任一满足 OR","not":"取反 NOT","life":"生命值","entity_zone":"卡牌所在区域","entity_state":"卡牌横置／攻击","entity_color_counter":"卡牌颜色指示物","entity_count":"卡牌伤害／计数","zone_count":"区域卡牌数量","combat_attacker":"指定攻击者","combat_attacker_rank":"攻击单位数值排名","combat_step":"战斗响应时点","phase":"对局阶段","priority":"执行权","pending":"等待玩家选择","player_count":"玩家计数","deck_count":"卡组张数","steps_completed":"已完成步骤"}
 const PHASE_NAMES={"prepare":"准备","main":"主要","end":"结束","reset":"重置","draw":"抓牌","possession":"凭依","over":"结束对局","mulligan":"起手调度"}
 const COMBAT_NAMES={"none":"没有战斗","attack_window":"攻击响应","block_window":"阻挡响应","first_damage_window":"先制伤害响应","damage_window":"伤害响应"}
+const RANK_STATS={"spirit":"灵力","power":"攻击力","health":"剩余血量"}
 var condition: Dictionary={"type":"always"}
 var aliases: Array=[]
 var steps: Array=[]
@@ -42,6 +43,12 @@ static func describe(c: Dictionary,cards: Dictionary={}) -> String:
   "combat_step":return "战斗时点："+COMBAT_NAMES.get(c.get("value"),str(c.get("value","none")))
   "pending":return ("我方" if int(c.get("owner",0))==0 else "对方")+"正在选择："+str(c.get("kind",""))
   "combat_attacker":return subject_name(c)+"正在攻击"
+  "combat_attacker_rank":
+   var metric=RANK_STATS.get(c.get("key","spirit"),"灵力")
+   var count="x" if c.has("count_player") else str(int(c.get("count",1)))
+   var range_text=metric+"最高" if not c.has("count_player") and int(c.get("count",1))==1 and c.get("ties","field_order")=="all" else metric+"前 "+count+" 名"
+   var source="x = "+("我方" if int(c.count_player)==0 else "对方")+"场上单位数；" if c.has("count_player") else ""
+   return side+range_text+"的单位正在攻击（"+source+("同值全包含" if c.get("ties","field_order")=="all" else "同值按战场顺序")+"）"
   "player_count":return side+"的"+str(c.get("key","计数"))+op+str(c.get("value",0))
   _:return TYPES.get(c.get("type"),"未设置条件")
 
@@ -91,6 +98,7 @@ func default_condition(kind: String) -> Dictionary:
   "entity_count":return {"type":kind,"alias":alias,"key":"damage","op":"ge","value":1}
   "zone_count":return {"type":kind,"player":1,"zone":"field","kind":"单位","op":"le","value":0}
   "combat_attacker":return {"type":kind,"alias":alias}
+  "combat_attacker_rank":return {"type":kind,"player":0,"key":"spirit","count":1,"ties":"all"}
   "combat_step":return {"type":kind,"value":"attack_window"}
   "phase":return {"type":kind,"value":"main"}
   "priority":return {"type":kind,"value":0}
@@ -163,6 +171,21 @@ func build_node(c: Dictionary,id: String,depth: int,remove: Callable) -> GraphNo
   option(body,c,"key",preload("res://scripts/tutorial/config.gd").CARD_FLAGS,["横置","已攻击"])
   option(body,c,"value",[true,false],["是","否"])
  if type=="entity_color_counter":option(body,c,"color",["红","蓝","绿","黄","黑"])
+ if type=="combat_attacker_rank":
+  if not c.has("ties"):c.ties="field_order"
+  option(body,c,"key",RANK_STATS.keys(),RANK_STATS.values()).name="AttackRankStat"
+  var source=OptionButton.new();source.name="AttackRankCountSource";body.add_child(source)
+  for label in ["固定前 N 名","前 x 名：x = 我方场上单位数","前 x 名：x = 对方场上单位数"]:source.add_item(label)
+  source.select(int(c.count_player)+1 if c.has("count_player") else 0)
+  source.item_selected.connect(func(index):
+   c.erase("count");c.erase("count_player")
+   if index==0:c.count=1
+   else:c.count_player=index-1
+   changed(c);rebuild())
+  if c.has("count"):
+   var count=SpinBox.new();count.name="AttackRankCount";body.add_child(count);count.min_value=1;count.max_value=100000;count.value=c.count
+   count.value_changed.connect(func(value):c.count=int(value);changed(c))
+  option(body,c,"ties",["all","field_order"],["同值全部符合","同值按战场顺序取前 N 个"]).name="AttackRankTies"
  if type=="entity_count":option(body,c,"key",preload("res://scripts/tutorial/config.gd").CARD_COUNTS)
  if type=="zone_count":
   option(body,c,"zone",["deck","hand","field","palette","grave","exile"],["牌库","手牌","战场","颜色盘","墓地","除外"])

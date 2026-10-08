@@ -36,16 +36,20 @@ var presentation: Dictionary={"camera_view":"","open_zone":{}}
 func _init():
  adapter.observed.connect(observe)
 
-func start(data: Dictionary,cards: Dictionary) -> String:
+func start(data: Dictionary,cards: Dictionary,entry_step: String="",entry_scene: String="",prior_steps: Array=[]) -> String:
  # Callers provide Config's validated copy; still validate at this public entry.
  var checked=preload("res://scripts/tutorial/config.gd").new().validate(data,cards)
  if not checked.ok:return stop("\n".join(checked.errors))
  tutorial=checked.data;definitions=cards
+ if not entry_step.is_empty() and not tutorial.steps.has(entry_step):return stop("试玩节点不存在："+entry_step)
+ if not entry_scene.is_empty() and not tutorial.scenarios.has(entry_scene):return stop("试玩场景不存在："+entry_scene)
  completed_steps=[];events=[];action_failures=[];scenario_states={};history=[];finished=false;running=true;last_error=""
  adapter.scenario_id=""
- var reason=load_scenario(tutorial.initial_scenario)
+ for id in prior_steps:
+  if tutorial.steps.has(id) and id not in completed_steps:completed_steps.append(id)
+ var reason=load_scenario(tutorial.initial_scenario if entry_scene.is_empty() else entry_scene)
  if not reason.is_empty():return reason
- enter(tutorial.start_step)
+ enter(tutorial.start_step if entry_step.is_empty() else entry_step)
  return last_error
 
 func load_scenario(id: String,mode: String="reset") -> String:

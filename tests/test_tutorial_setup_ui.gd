@@ -131,6 +131,63 @@ func battle_setup():
  editor.close_recording();await frames()
  expect(app.decks==decks,"all node setup operations preserve player decks")
 
+func tenshi_readiness_setup():
+ app.tutorial_editor("res://data/tutorial/beginner/t4.json");await frames();editor=app.screen.get_child(0)
+ editor.selected_step="step_1";editor.refresh();await frames()
+ var source=editor.model.data.scenarios[editor.scene_id]
+ source.players[0].leader.state.entered=int(source.turn)
+ source.players[0].leader.state.entered_turns=int(source.players[0].state.turns)
+ editor.model.saved_text=JSON.stringify(editor.model.data)
+ var original=editor.model.data.duplicate(true);var original_scene=editor.scene_id
+ await open_board()
+ var tenshi=view.engine.players[0].leader;var alias=source.players[0].leader.alias
+ expect(tenshi.card_id=="character-fdf-ex04" and view.engine.summoning_sick(tenshi),"nonspell task starts with fresh battlefield Tenshi for the save regression")
+ view.selection=[int(tenshi.uid)];await key(KEY_P)
+ expect(view.engine.can_attack(0,int(tenshi.uid)),"P alone makes the nonspell task's Tenshi able to attack")
+ await quiet();await click(editor.find_child("ApplyTutorialInitialBoard",true,false).get_global_rect().get_center());await frames()
+ var target=editor.model.data.steps.step_1.scenario
+ expect(target!=original_scene and editor.model.dirty() and editor.model.data.scenarios[original_scene]==original.scenarios[original_scene],"readiness-only apply saves a private scene and leaves the shared source intact")
+ var path=OUTPUT.path_join("tenshi-ready.json")
+ expect(editor.model.save_course(path).is_empty(),"Tenshi readiness-only edit saves the course")
+ app.tutorial_editor(path);await frames();editor=app.screen.get_child(0);editor.selected_step="step_1";editor.refresh();await frames()
+ await open_board();tenshi=editor.recorder.adapter.entity(alias)
+ expect(view.engine.can_attack(0,int(tenshi.uid)),"closing and reopening the saved course keeps Tenshi able to attack in setup")
+ var saved=editor.model.data.duplicate(true);var undo_count=editor.model.undo_stack.size()
+ editor.apply_initial_board();await frames()
+ expect(editor.model.data==saved and editor.model.undo_stack.size()==undo_count,"reapplying saved readiness leaves the course unchanged")
+ editor.test_course();await frames();var flow=editor.playtest.runtime;flow.set_process(false)
+ tenshi=flow.adapter.entity(alias)
+ expect(flow.current_step=="step_1" and flow.adapter.engine.can_attack(0,int(tenshi.uid)),"saved Tenshi is also able to attack when previewing the actual task")
+ flow.adapter.engine.attack(0,int(tenshi.uid));flow.tick();await frames()
+ expect(tenshi.attacked,"saved Tenshi can submit a real attack in the task")
+ expect(flow.reset_task() and flow.adapter.engine.can_attack(0,int(flow.adapter.entity(alias).uid)),"task reset restores Tenshi's saved attack readiness")
+ editor.stop_test();await frames()
+
+func leader_zone_setup():
+ for zone in ["grave","palette","exile"]:
+  app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+  editor.model.data.scenarios.scene_1.players[0].leader_on_field=true
+  var before=editor.model.data.duplicate(true);editor.refresh();await frames();await open_board()
+  for who in range(2):
+   var leader=view.engine.players[who].leader
+   expect(view.engine.debug_move(int(leader.uid),zone).is_empty(),"setup moves either player's actual leader: "+zone+str(who))
+   leader.leader_counters=2+who
+  view.render();await frames();await quiet()
+  await click(editor.find_child("ApplyTutorialInitialBoard",true,false).get_global_rect().get_center());await frames()
+  var target=editor.model.data.steps.step_2.scenario
+  expect(editor.record_view==null and target!="scene_1" and editor.model.data.scenarios.scene_1==before.scenarios.scene_1,"apply saves placed leaders in the selected node's private scene: "+zone)
+  var path=OUTPUT.path_join("initial-leader-"+zone+".json")
+  expect(editor.model.save_course(path).is_empty() and editor.model.load_course(path).is_empty(),"course with placed leaders saves and reopens: "+zone)
+  var adapter=Adapter.new();expect(adapter.load_scenario(target,editor.model.data.scenarios[target],Store.CARDS).is_empty(),"runtime loads saved leader placement: "+zone)
+  for who in range(2):
+   var leader=adapter.entity("student_leader" if who==0 else "enemy_leader")
+   expect(is_same(leader,adapter.engine.players[who].leader) and leader.zone==zone and adapter.engine.players[who][zone].count(leader)==1 and leader.leader_counters==2+who,"saved leader retains identity, zone and counters: "+zone+str(who))
+  editor.refresh();await frames();await open_board()
+  for who in range(2):expect(view.engine.players[who].leader.zone==zone,"reopening initial scene keeps leader placement: "+zone+str(who))
+  var saved=editor.model.data.duplicate(true);var undo_count=editor.model.undo_stack.size()
+  editor.apply_initial_board();await frames()
+  expect(editor.model.data==saved and editor.model.undo_stack.size()==undo_count,"reapplying unchanged leader placement creates no new scene: "+zone)
+
 func deck_setup():
  for kind in ["in_game","deck"]:
   app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.change_scene(kind);await frames()
@@ -170,7 +227,7 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(OUTPUT.path_join("fixtures-"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.size=Vector2i(1600,900)
  app=load("res://main.tscn").instantiate();app.settings_path=OUTPUT.path_join("missing-settings.json");app.account_session_path=OUTPUT.path_join("missing-account.json")
- root.add_child(app);await frames();await battle_setup();await deck_setup();await recorded_and_mulligan_setup()
+ root.add_child(app);await frames();await battle_setup();await tenshi_readiness_setup();await leader_zone_setup();await deck_setup();await recorded_and_mulligan_setup()
  app.free();await frames()
  print("TUTORIAL SETUP UI: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)
