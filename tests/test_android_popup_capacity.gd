@@ -75,7 +75,15 @@ func check_right_actions(prefix: String):
   expect(area.position.y>=view.OPPONENT_HAND_COUNT.end.y,prefix+" many actions leave opponent hand count clear")
   expect(area.end.y<=view.android_back_button.get_global_rect().position.y-app.ui_metrics.gap+1,prefix+" many actions leave back clear")
   expect(view.stack_panel.visible and not area.intersects(view.stack_panel.get_global_rect()),prefix+" many actions retain a separate stack")
-  expect(view.stack_panel.scroll.size.y>=view.stack_panel.ANDROID_CARD_SIZE.y,prefix+" stack still shows a complete card")
+  var stack_scroll=view.stack_panel.scroll
+  var minimum_stack_view=maxf(app.ui_metrics.hit,view.stack_panel.ANDROID_CARD_SIZE.y*0.45)
+  expect(stack_scroll.size.y>=minimum_stack_view,prefix+" stack shows at least a touch-sized half card")
+  var top_tile=view.stack_panel.column.get_child(0).get_child(0) as Control
+  var stack_view=stack_scroll.get_global_rect()
+  stack_scroll.scroll_vertical=ceili(stack_scroll.scroll_vertical+top_tile.get_global_rect().end.y-stack_view.end.y)+2
+  await frames()
+  expect(top_tile.get_global_rect().end.y<=stack_view.end.y+1 and top_tile.get_global_rect().end.y>stack_view.position.y,prefix+" stack card bottom is reachable by scrolling")
+  stack_scroll.scroll_vertical=0;await frames()
   var bar=action_scroll.get_v_scroll_bar()
   action_scroll.scroll_vertical=roundi(bar.max_value-bar.page);await frames()
   var last=view.responsive.action_column.get_child(view.responsive.action_column.get_child_count()-1)
@@ -98,23 +106,18 @@ func check_right_actions(prefix: String):
 
 func check_palette(prefix: String):
  for who in [0,1]:
-  clean(true);view.android_palette_owner=who
+  clean(true);view.set_android_camera_focus(who)
   for count in [0,1,0]:
    e.players[who].palette=[]
    if count>0:put("53","palette",who)
    view.render();await frames()
-   var panel=view.android_palette_panel
-   var heading=panel.get_node("AndroidPaletteHeading") as Label
-   var hint=panel.get_node("AndroidPaletteHint") as Label
-   var close=panel.get_node("AndroidPaletteClose") as Button
-   expect(heading.text==("我方" if who==view.local_seat else "敌方")+"颜色盘  %d 张" % count,prefix+" palette count and owner remain correct")
-   expect(hint.text==("颜色盘中没有卡牌" if count==0 else "点按卡牌操作，长按查看详情"),prefix+" palette displays the hint for its current contents")
-   var labels=panel.find_children("*","Label",true,false).filter(func(child):return child.text=="颜色盘中没有卡牌" or child.text=="点按卡牌操作，长按查看详情")
-   expect(labels.size()==1,prefix+" palette has exactly one status hint")
-   expect(not hint.get_global_rect().intersects(heading.get_global_rect()) and not hint.get_global_rect().intersects(close.get_global_rect()) and not hint.get_global_rect().intersects(view.android_palette_scroll.get_global_rect()),prefix+" palette hint leaves title, close and cards clear")
-   expect(panel.get_global_rect().encloses(hint.get_global_rect()) and hint.size.y>=hint.get_theme_font("font").get_height(hint.get_theme_font_size("font_size")),prefix+" palette hint fits its panel and font")
+   var toggle=view.hud.find_child("AndroidCameraFocusToggle",true,false) as Button
+   expect(view.android_palette_view and view.android_palette_focus_owner()==who,prefix+" palette camera stays focused on the selected owner")
+   expect(toggle!=null and toggle.text==("我方颜色盘视角" if who==view.local_seat else "敌方颜色盘视角"),prefix+" palette focus is identified by the camera control")
+   expect(not is_instance_valid(view.android_palette_panel),prefix+" palette camera has no obscuring popup")
+   expect(e.players[who].palette.size()==count,prefix+" palette cards remain in the selected zone")
   await shot(prefix+"-empty-palette-"+str(who))
- view.android_palette_owner=-1
+ view.set_android_camera_focus(-1)
 
 func check_notices(prefix: String):
  clean(true);view.render();await frames()
@@ -194,8 +197,11 @@ func check_dialogs(prefix: String):
  await shot(prefix+"-wards")
  view.close_overlay();e.pending={}
  view.settings_menu();await frames()
- await check_popup(view.modal_root.get_child(0),prefix+" battle settings")
- view.close_overlay()
+ expect(is_instance_valid(view.android_battle_menu_root),prefix+" unified battle settings opens")
+ if is_instance_valid(view.android_battle_menu_root):
+  await check_popup(view.android_battle_menu_root.get_node("AndroidBattleMenu"),prefix+" battle settings")
+  expect(view.android_battle_menu_root.find_child("BattleSettingsTab",true,false)!=null,prefix+" settings remains a menu tab")
+ view.close_android_battle_menu()
  var blockers=[]
  for i in range(14):blockers.append(e.ref_target(put("53","field")))
  e.combat={"attacker":e.ref_target(unit),"blockers":blockers}

@@ -5,6 +5,7 @@
 ## 打开和编译
 
 - 双击项目根目录的 `启动Godot.cmd` 打开编辑器。
+- 编辑器须使用**空格缩进、宽度 1**（Godot：编辑器设置 → 文本编辑器 → 行为 → 缩进）。项目内便携版的设置保存在 `.godot-toolchain/editor/editor_data/editor_settings-4.7.tres`；用其他未配置的 Godot 编辑器打开旧脚本，可能在恢复标签页时把四个空格改成 Tab。当前电脑请使用 `启动Godot.cmd`，并在编辑后运行缩进检查脚本。
 - 双击 `编译Windows.cmd` 执行资源导入并正式导出。生成 `builds/Windows-1.2/MulticolorArena.exe` 和同名 `.pck`；分享时两者必须放在一起。
 - 命令行也可运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-windows.ps1`。
 
@@ -14,13 +15,15 @@ Android 工具放在以下位置，供本项目的便携 Godot 编辑器使用�
 
 | 组件 | 位置或版本 |
 | --- | --- |
-| Godot 编辑器 | `.godot-toolchain/editor/Godot_v4.7.2-stable_win64.exe` |
+| Godot 编辑器 | `.godot-toolchain/editor/Godot_v4.7.2-stable_win64.exe` 与同版本的 `_console.exe` 命令行包装程序 |
 | Android 导出模板 | `.godot-toolchain/editor/editor_data/export_templates/4.7.2.stable/android_debug.apk`、`android_release.apk` |
 | Android SDK | `.godot-toolchain/android-sdk/` |
-| JDK 17 | `C:\Program Files\Microsoft\jdk-17.0.10.7-hotspot` |
+| JDK 17 | `.godot-toolchain/jdk-17/`（Microsoft OpenJDK 17） |
 | 调试签名密钥 | `.godot-toolchain/editor/editor_data/keystores/debug.keystore` |
 
 SDK 包含 Android Platform-Tools 35.0.0 或更新版本、Build-Tools 35.0.1、Platform 35、Command-line Tools (latest)、CMake 3.10.2.4988404 和 NDK 28.1.13356709。在便携编辑器的**编辑器设置 → 导出 → Android** 中，`Java SDK Path` 应指向上述 JDK 根目录，`Android SDK Path` 应指向本项目的 `.godot-toolchain/android-sdk`；`Debug Keystore` 应指向实际存在的调试密钥。设置保存在 `.godot-toolchain/editor/editor_data/editor_settings-4.7.tres`。若设置时编辑器已经打开，请重启编辑器以载入新路径。
+
+`.godot-toolchain/` 不随 Git 源码同步。迁移到另一台电脑时，需要重新安装同版本的 Godot 导出模板、JDK 17 和 Android SDK，并重新设置以上路径。调试签名密钥也位于此目录；若希望新 APK 能覆盖安装旧版，请妥善保留原密钥。
 
 在项目根目录运行：
 
@@ -28,9 +31,9 @@ SDK 包含 Android Platform-Tools 35.0.0 或更新版本、Build-Tools 35.0.1、
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\build-android.ps1
 ```
 
-脚本先导入资源，再使用现有的 `Android` 预设和 `--export-debug` 生成包含 arm64 与 x86_64 的 `builds/Android-debug/MulticolorArena-debug.apk`，分别支持实体设备和本项目的 x86_64 模拟器。它检查 Godot 及模板版本、SDK 组件、JDK 17、编辑器路径设置、导出日志、APK 内容与签名；日志写入 `.godot-toolchain/logs/android-*.log`。可用 `-OutputPath 'builds/Android-debug/其他名称.apk'` 指定项目内的 APK 路径；其他机器上的 JDK 路径可用 `-JavaSdkPath` 指定，同时应更新便携编辑器设置。
+脚本先导入资源，再使用现有的 `Android` 预设和 `--export-debug` 生成包含 arm64 与 x86_64 的 `builds/Android-debug/Mtest.apk`，分别支持实体设备和本项目的 x86_64 模拟器。它检查 Godot 及模板版本、SDK 组件、JDK 17、编辑器路径设置、导出日志、APK 内容与签名；日志写入 `.godot-toolchain/logs/android-*.log`。可用 `-OutputPath 'builds/Android-debug/其他名称.apk'` 指定项目内的 APK 路径；其他机器上的 JDK 路径可用 `-JavaSdkPath` 指定，同时应更新便携编辑器设置。
 
-VS Code 的 **Android: 导出 APK** 可单独执行上述命令，不需要启动模拟器。每次 Windows 或 Android 导出前，`tools/sync-export-version.ps1` 都会从 `project.godot` 的 `config/version` 同步 Windows 文件版本及 Android 的 `versionName`、`versionCode`，并检查两平台的资源包含与排除规则相同。修改版本号只需修改 `project.godot`。
+VS Code 的 **Android: 导出 APK** 可单独执行上述命令，不需要启动模拟器。每次 Windows 或 Android 导出前，`tools/sync-export-version.ps1` 都会从 `project.godot` 的 `config/version` 同步 Windows 文件版本及 Android 的 `versionName`、`versionCode`，并检查两平台的资源包含与排除规则相同。预发布后缀（如 `1.2.7.5-beta`）保留在 Android 的 `versionName` 中；Windows 文件版本和 Android `versionCode` 使用数字部分。修改版本号只需修改 `project.godot`。
 
 发布版本请运行 **发布: 导出 Windows 和 Android APK**。它依次重新导出 `builds/installer-staging/<版本>/MulticolorArena.exe`、同名 PCK，以及 `builds/Android-debug/MulticolorArena-<版本>-debug.apk`；随后对实际 PCK 与 APK 的卡牌、数据及网络 JSON 逐个比较 SHA-256，检查核心规则脚本在两边都存在、版本号一致。校验范围不包含界面脚本和布局，因此已有的 Android/PC 界面与输入差异会保留。任一检查失败，任务会报错，不能把两平台视为一组完成的发布构建。命令行使用 `tools/build-both.ps1`；需要安装包或差分补丁时，使用同脚本的 `-Installer` 或 `-FromVersion <旧版本>`。这些任务生成的 Android 包仍是调试签名 APK。
 
@@ -50,7 +53,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\run-android-emul
 
 ```powershell
 & .\.godot-toolchain\android-sdk\platform-tools\adb.exe devices
-& .\.godot-toolchain\android-sdk\platform-tools\adb.exe install -r .\builds\Android-debug\MulticolorArena-debug.apk
+& .\.godot-toolchain\android-sdk\platform-tools\adb.exe install -r .\builds\Android-debug\Mtest.apk
 ```
 
 相同包名如果此前使用另一密钥签名，覆盖安装会失败；需要先在设备上处理旧安装及其数据。
@@ -75,9 +78,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\share-apk-lan.ps
 
 - 按 `F5`，选择 **Godot: 调试游戏**，运行主场景并使用断点调试。
 - 在“运行和调试”下拉框选择 **Godot: 调试当前场景**，可调试当前 `.tscn`，或与当前 `.gd` 同名的 `.tscn`。
-- 按 `Shift+Alt+F`，使用插件的 GDScript 格式化功能。
+- 本项目现有 GDScript 采用每级 1 个空格缩进。不要对既有 `.gd` 文件使用 `Shift+Alt+F` 批量格式化或转换缩进；这可能把部分行改为 Tab，使 Godot 因缩进混用而无法解析。编辑后可运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/check-gdscript-indent.ps1` 检查。
 
-配置位于 `.vscode/settings.json`、`.vscode/launch.json` 和 `.vscode/extensions.json`。语言服务地址为 `127.0.0.1:6005`；无窗口模式和 VS Code 调试器会自动分配可用端口。便携 Godot 的外部脚本编辑器已设为本机 VS Code，并启用外部脚本修改后的自动重载；其他电脑需在 Godot“编辑器设置 → 文本编辑器 → 外部”更新 VS Code 路径。安装后若已有 VS Code 窗口未识别插件，运行命令 **Developer: Reload Window（开发人员: 重新加载窗口）**。
+`.editorconfig` 规定仓库的 GDScript 缩进方式。`.vscode/settings.json` 是每台电脑各自保存的设置，不随 Git 提交；编辑 `.gd` 时请在该文件的 `[gdscript]` 配置中设置 `editor.insertSpaces: true`、`editor.tabSize: 1`、`editor.detectIndentation: false`、`editor.formatOnSave: false`。语言服务地址为 `127.0.0.1:6005`；无窗口模式和 VS Code 调试器会自动分配可用端口。便携 Godot 的外部脚本编辑器已设为本机 VS Code，并启用外部脚本修改后的自动重载；其他电脑需在 Godot“编辑器设置 → 文本编辑器 → 外部”更新 VS Code 路径。安装后若已有 VS Code 窗口未识别插件，运行命令 **Developer: Reload Window（开发人员: 重新加载窗口）**。
 
 ## 在 VS Code 启动和运行测试
 

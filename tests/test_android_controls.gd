@@ -82,10 +82,11 @@ func run():
  app.library_sort_mode="名字"
  app.editor()
  await process_frame
- expect(find_button(app.screen,"排序")!=null,"Android deck sorting remains available")
+ expect(app.screen.find_child("LibraryFilterButton",true,false)!=null,"Android collection exposes the filter dialog")
  expect(app.screen.find_child("LibrarySearch",true,false)!=null,"Android library search remains available")
- expect(app.color_buttons.is_empty() and app.screen.find_child("LibraryKindFilter",true,false)==null and app.screen.find_child("LibrarySortChoice",true,false)==null,"Android library filter and sort controls are removed")
- expect(app.selected_colors.is_empty() and app.filter_kind=="全部" and app.library_sort_mode=="类别","hidden Android library filters and sort choice reset")
+ expect(not app.editor_ui.library_filter_overlay.visible and app.screen.find_child("LibraryKindFilter",true,false)!=null and app.screen.find_child("LibrarySortChoice",true,false)!=null,"Android type, color and sort controls live in a closed dialog")
+ expect(app.selected_colors==["红"] and app.filter_kind=="符卡" and app.library_sort_mode=="名字","reopening the editor retains selected library filters and sorting")
+ app.selected_colors.clear();app.filter_kind="全部";app.refresh_color_buttons()
  app.query=Store.CARDS["100"].name
  app.update_library()
  await process_frame
@@ -95,26 +96,30 @@ func run():
  var before=deck.main.duplicate()
  app.selected="70"
  await click(tile.get_global_rect().get_center())
- expect(app.draft.main==before and app.selected==tile.card_id,"Android tap previews a deck card without removing it")
+ expect(app.draft.main==before and app.selected==tile.card_id and is_instance_valid(app.editor_ui.details_overlay),"Android deck card tap opens details without removing it")
+ app.editor_ui.close_details();await process_frame
  var leader_tile=deck_tile(app.deck_canvas,"leader")
  await click(leader_tile.get_global_rect().get_center())
- expect(app.draft.leader=="70" and app.get_node_or_null("LeaderPicker")!=null,"Android tap opens leader selection without removing the leader")
- app.get_node("LeaderPicker").queue_free()
+ expect(app.draft.leader=="70" and find_button(app.preview,"更换自机")!=null,"Android leader details offer a change-leader action")
+ app.editor_ui.close_details()
  await process_frame
  await click(row.get_global_rect().get_center())
- expect(app.draft.main.size()==before.size()+1,"Android tap adds a library card to the deck")
+ expect(app.draft.main.size()==before.size() and is_instance_valid(app.editor_ui.details_overlay),"Android library card tap opens details without adding it")
+ find_button(app.preview,"加入主卡组").pressed.emit();await process_frame
+ expect(app.draft.main.size()==before.size()+1,"Android library details add a card to the deck")
+ app.editor_ui.close_details()
  tile=deck_tile(app.deck_canvas,"main")
  var held_count=app.draft.main.size()
  await hold(tile.get_global_rect().get_center())
- expect(app.get_node_or_null("CardArtPicker")!=null,"Android long press opens alternate art")
- expect(app.draft.main.size()==held_count,"long press does not remove a deck card")
- if app.get_node_or_null("CardArtPicker")!=null:app.get_node("CardArtPicker").queue_free()
+ expect(app.draft.main.size()==held_count,"holding a deck row does not remove a card")
+ app.editor_ui.close_details()
  await process_frame
+ row=app.library_rows["100"].row
  await drag(row.get_global_rect().get_center(),app.main_content.get_global_rect().position+Vector2(450,55))
- expect(app.draft.main.size()==before.size()+2,"Android library cards can still be added by dragging")
+ expect(app.draft.main.size()==before.size()+1,"Android collection ignores library dragging")
  tile=deck_tile(app.deck_canvas,"main")
  await drag(tile.get_global_rect().get_center(),row.get_global_rect().get_center())
- expect(app.draft.main.size()==before.size()+1,"Android drag to the library still removes a deck card")
+ expect(app.draft.main.size()==before.size()+1,"Android collection ignores deck-to-library dragging")
  app.query=""
  app.update_library()
  await process_frame
@@ -122,8 +127,9 @@ func run():
  var library_size=app.draft.main.size()
  var library_start=library_scroll.get_global_rect().position+Vector2(110,260)
  await swipe(library_start,library_start+Vector2(0,-170))
- expect(library_scroll.scroll_vertical>0,"Android swipe scrolls the deck builder library")
+ expect(library_scroll.scroll_vertical==0,"Android fixed gallery pages do not scroll vertically")
  expect(app.draft.main.size()==library_size,"swiping the library does not add a card")
+ app.editor_ui.show_details("100");await process_frame
  var preview_scroll=app.preview.find_child("CardTextScroll",true,false) as ScrollContainer
  var extra=Label.new()
  extra.text="卡牌说明\n".repeat(40)
@@ -232,33 +238,32 @@ func run():
  await process_frame
  clean()
  view.render()
- var back_button=find_button(view.ui,"后退")
+ var back_button=find_button(view.ui,"取消")
  var tools_menu=view.hud.get_node("BattleToolbar/BattleTools") as Button
  tools_menu.pressed.emit();await process_frame
- var popup=app.menu_popup
- var help_index=-1
- for i in range(popup.actions.size()):
-  if popup.actions[i].text=="操作说明":help_index=i
- expect(back_button!=null and find_button(view.ui,"测试说明")==null,"Android battle keeps a back button and no debug controls")
- expect(help_index>=0,"Android battle exposes the operation guide in its menu")
- if help_index>=0:popup.actions[help_index].pressed.emit()
+ var help=find_button(view.android_battle_menu_root,"操作说明")
+ expect(back_button!=null and not back_button.visible and find_button(view.ui,"测试说明")==null,"Android battle hides cancel until a card is selected")
+ expect(help!=null,"Android battle exposes the operation guide in its menu")
+ if help!=null:help.pressed.emit()
  expect(view.modal and find_button(view.modal_root,"返回对局")!=null,"operation guide opens a closeable dialog")
  await click(find_button(view.modal_root,"返回对局").get_global_rect().get_center())
  expect(not view.modal,"operation guide closes back to the battle")
- await click(back_button.get_global_rect().get_center())
- expect(view.modal,"back opens settings when no selection is active")
- back_button=find_button(view.ui,"后退")
- expect(back_button!=null,"back remains available while settings are open")
- if back_button:await click(back_button.get_global_rect().get_center())
- expect(not view.modal,"back closes the settings dialog")
+ expect(not view.modal and not is_instance_valid(view.android_battle_menu_root),"closing the guide returns to the battle")
+ tools_menu.pressed.emit();await process_frame
+ var settings_tab=find_button(view.android_battle_menu_root,"对战设置")
+ expect(settings_tab!=null,"settings are available inside the unified battle menu")
+ if settings_tab:settings_tab.pressed.emit();await process_frame
+ expect(find_button(view.android_battle_menu_root,"3D 斜视")!=null,"battle settings appear in the menu's right pane")
+ view.close_android_battle_menu()
  await touch(0,Vector2(1540,500),true)
  await touch_drag(0,Vector2(1380,505))
  await touch(0,Vector2(1380,505),false)
- expect(view.modal,"swiping left from the right edge uses back to open settings")
+ expect(not view.modal and not is_instance_valid(view.android_battle_menu_root),"idle back swipe does not open settings")
+ tools_menu.pressed.emit();await process_frame
  await touch(0,Vector2(1540,500),true)
  await touch_drag(0,Vector2(1380,505))
  await touch(0,Vector2(1380,505),false)
- expect(not view.modal,"swiping left again closes settings")
+ expect(not is_instance_valid(view.android_battle_menu_root),"back swipe closes the unified battle menu")
 
  clean()
  view.render()
@@ -315,6 +320,7 @@ func run():
  await touch(0,central_palette_point,true)
  await touch(0,central_palette_point,false)
  expect(view.selected_in_zone("palette")==palette_card.uid,"the central palette card selects the possession source")
+ expect(back_button.visible and back_button.text=="取消","selecting a card reveals the concise cancel button")
  expect(not view.inspection.visible,"short palette tap selects without opening details")
  central_palette_point=view.android_palette_tiles[palette_card.uid].get_global_rect().get_center()
  await touch(0,central_palette_point,true)
@@ -322,7 +328,8 @@ func run():
  expect(view.inspection.visible and view.inspect_uid==palette_card.uid,"long palette press opens card details")
  await touch(0,central_palette_point,false)
  expect(view.selected_in_zone("palette")==palette_card.uid,"long palette press keeps the selected source")
- await click(find_button(view.inspection,"关闭详情").get_global_rect().get_center())
+ await click(Vector2(800,350))
+ expect(not view.inspection.visible,"tapping outside the details closes them")
  own_palette_toggle=find_button(view.hud,"我方颜色盘")
  await click(own_palette_toggle.get_global_rect().get_center())
  expect(view.android_palette_owner==-1 and not is_instance_valid(view.android_palette_panel),"tapping the active palette button closes the panel")
@@ -332,11 +339,9 @@ func run():
  await touch(0,palette_point,true)
  await touch(0,palette_point,false)
  expect(view.selected_in_zone("palette")==palette_card.uid,"one Android tap keeps the possession palette card selected")
- await click(find_button(view.inspection,"关闭详情").get_global_rect().get_center())
  await touch(0,palette_point,true)
  await touch(0,palette_point,false)
  expect(view.selected_in_zone("palette")==palette_card.uid,"repeated palette tap does not clear the possession choice")
- await click(find_button(view.inspection,"关闭详情").get_global_rect().get_center())
  view.table.set_top_down_view(true)
  view.render()
  await settle()

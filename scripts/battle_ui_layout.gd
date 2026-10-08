@@ -147,17 +147,15 @@ func begin_frame():
  if view.network_session!=null and view.network_session.ended():phase.text="连接中断，对局结束"
  phase.add_theme_font_size_override("font_size",metrics.body+2);phase.add_theme_color_override("font_color",view.host.GOLD)
  phase.clip_text=true;phase.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ var toolbar_button_width=maxf(metrics.hit,(toolbar_rect.size.x-maxf(150,toolbar_rect.size.x*0.29)-metrics.gap*4)/4.0)
  for mode in [view.ResponseMode.ON,view.ResponseMode.OFF]:
   var toggle=button(toolbar,"全响应" if mode==view.ResponseMode.ON else "不响应",func():view.set_response_mode(view.ResponseMode.DEFAULT if view.response_mode==mode else mode),view.response_mode==mode)
+  fit_toolbar_button(toggle,toolbar_button_width)
   toggle.toggle_mode=true;toggle.set_pressed_no_signal(view.response_mode==mode)
- var observe_slot=Control.new();observe_slot.name="ObserveSlot";observe_slot.custom_minimum_size=Vector2(metrics.body*5.6,metrics.hit);toolbar.add_child(observe_slot)
- observe_slot.resized.connect(func():
-  if is_instance_valid(view.observe_button):
-   view.observe_button.size=observe_slot.size
-   view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,safe.position.y) if is_instance_valid(view.modal_root) else observe_slot.global_position)
- observe_slot.item_rect_changed.connect(func():
-  if is_instance_valid(view.observe_button):view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,safe.position.y) if is_instance_valid(view.modal_root) else observe_slot.global_position)
+ var history=button(toolbar,"对局记录",view.open_history);history.name="BattleHistory"
+ fit_toolbar_button(history,toolbar_button_width)
  var more=button(toolbar,"菜单",view.open_tools_menu);more.name="BattleTools"
+ fit_toolbar_button(more,toolbar_button_width)
  action_scroll=ScrollContainer.new();action_scroll.name="PhaseActionScroll";view.hud.add_child(action_scroll)
  action_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  action_scroll.follow_focus=true;action_scroll.set_meta("choice_widget",true)
@@ -170,17 +168,26 @@ func begin_frame():
  notice_scroll.set_meta("choice_widget",true)
  notice_column=VBoxContainer.new();notice_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;notice_scroll.add_child(notice_column)
 
+func fit_toolbar_button(control: Button,max_width: float):
+ control.custom_minimum_size.x=minf(control.custom_minimum_size.x,max_width)
+ var font=control.get_theme_font("font")
+ var available=control.custom_minimum_size.x-control.get_theme_stylebox("normal").get_minimum_size().x
+ var size=metrics.button_font
+ while size>14 and font.get_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>available:size-=1
+ control.add_theme_font_size_override("font_size",size)
+
 func tools_actions() -> Array:
- var actions=[["设置",view.settings_menu],["视角复原",view.reset_camera_view],["单位自动排序",view.sort_units]]
+ var actions=[["视角复原",view.reset_camera_view],["单位自动排序",view.sort_units]]
  if view.is_android:
-  actions.insert(1,["对局记录",view.open_history])
+  actions.push_front(["对局记录",view.open_history])
   actions.append(["操作说明",view.open_android_help])
+ else:actions.push_front(["设置",view.settings_menu])
  if view.network_session!=null and not view.network_session.replay_mode and not view.network_session.read_only and view.network_session.room.get("undo_request",{}).is_empty():
   actions.append(["请求悔棋" if view.is_android else "悔棋",func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
  if view.debug_mode:
   actions.append(["测试说明",view.open_debug_help,view.modal or view.history_open or view.table.combat_animating])
   actions.append(["收起调试" if view.debug_open else "调试",view.debug_menu,view.history_open or view.table.combat_animating])
- if view.network_session==null or not view.network_session.read_only:
+ if not view.is_android and (view.network_session==null or not view.network_session.read_only):
   actions.append(["本局投降",view.confirm_surrender,view.tutorial_runtime!=null or view.network_locked() or view.engine.winner!=-2])
  return actions
 
@@ -392,14 +399,22 @@ func position_persistent():
  if is_instance_valid(view.android_back_button):
   view.android_back_button.position=Vector2(back_rect.position.x,safe.position.y) if is_instance_valid(view.modal_root) else back_rect.position
   view.android_back_button.size=back_rect.size;metrics.button(view.android_back_button)
+  view.android_back_button.visible=view.android_cancel_selection_available()
  if is_instance_valid(view.observe_button):
   metrics.button(view.observe_button)
-  if is_instance_valid(view.modal_root):
-   view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,safe.position.y)
-  elif is_instance_valid(toolbar):
-   var observe_slot=toolbar.get_node_or_null("ObserveSlot") as Control
-   if observe_slot!=null:
-    view.observe_button.position=observe_slot.global_position;view.observe_button.size=observe_slot.size
+  view.observe_button.size=Vector2(minf(back_rect.size.x,metrics.hit*2.7),metrics.hit)
+  if view.observing:
+   view.observe_button.position=Vector2(back_rect.position.x,back_rect.position.y-metrics.hit-metrics.gap)
+  elif is_instance_valid(view.android_battle_menu_root):
+   var menu_close=view.android_battle_menu_root.get_node_or_null("AndroidBattleMenu/CloseBattleMenu") as Button
+   if menu_close!=null:
+    view.observe_button.position=Vector2(menu_close.get_global_rect().position.x-metrics.gap-view.observe_button.size.x,menu_close.get_global_rect().position.y)
+  elif is_instance_valid(view.modal_root) and view.modal_root.visible and view.modal_root.get_child_count()>0 and view.modal_root.get_child(0) is Control:
+   var dialog=view.modal_root.get_child(0) as Control
+   view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,
+    maxf(safe.position.y,dialog.get_global_rect().position.y-view.observe_button.size.y-metrics.gap))
+  else:
+   view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,toolbar_rect.end.y+metrics.gap)
  var stack_top=view.OPPONENT_HAND_COUNT.size.y+metrics.gap
  if view.network_session!=null:stack_top+=metrics.small*1.4+metrics.gap
  if is_instance_valid(view.android_choice_restore) and not view.observing:
@@ -412,7 +427,7 @@ func position_persistent():
    for action in action_column.get_children():minimum_action_height=maxf(minimum_action_height,action.get_combined_minimum_size().y)
   var inset=view.stack_panel.ANDROID_PANEL_INSET
   var compact_heading=ceilf(wrapped_height("堆叠 %d" % view.engine.stack.size(),view.SIDEBAR.size.x-inset*2,metrics.small))+metrics.gap
-  var minimum_stack_height=ceilf(compact_heading+inset*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
+  var minimum_stack_height=view.stack_panel.TOGGLE_SIZE.y if view.stack_panel.collapsed else ceilf(compact_heading+inset*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
   if view.stack_panel.visible and available-restore_reserve<minimum_action_height+minimum_stack_height:
    # Leave the entire rail to stack cards and actions when touch density is high.
    restore.position.x=view.SIDEBAR.position.x-metrics.gap-restore.size.x
@@ -431,9 +446,8 @@ func position_persistent():
   if notice_height>0:
    stack_top+=notice_height+metrics.gap;rail_top+=notice_height+metrics.gap
  var rail_height=maxf(0,rail_bottom-rail_top)
- var heading_height=metrics.body*3.2+metrics.gap
+ var heading_height=metrics.body*1.6+metrics.gap
  var stack_visible=is_instance_valid(view.stack_panel) and view.stack_panel.visible
- var stack_beside=false
  var actions_top=back_rect.position.y
  if is_instance_valid(action_scroll) and is_instance_valid(action_column):
   var capacity=rail_height
@@ -451,18 +465,13 @@ func position_persistent():
   if action_column.get_theme_constant("separation")!=action_gap:action_column.add_theme_constant_override("separation",action_gap)
   var content_height=action_column.get_combined_minimum_size().y
   var short_choices=action_count in [2,3] and content_height<=rail_bottom-rail_start and not is_instance_valid(view.android_choice_panel) and not is_instance_valid(view.android_choice_restore) and not is_instance_valid(view.modal_root)
-  var required_height=content_height if short_choices else minimum_action_height
+  var stack_reserve=0.0
   if stack_visible:
-   var reserve=ceilf(heading_height+view.stack_panel.ANDROID_PANEL_INSET*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
-   if capacity-reserve<required_height:
-    heading_height=ceilf(wrapped_height("堆叠 %d" % view.engine.unresolved_stack_entries().size(),view.SIDEBAR.size.x-view.stack_panel.ANDROID_PANEL_INSET*2,metrics.small))+metrics.gap
-    reserve=ceilf(heading_height+view.stack_panel.ANDROID_PANEL_INSET*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
-   # Keep small decisions fully exposed; a stack card can occupy the next column.
-   stack_beside=short_choices and capacity-reserve<content_height
-   capacity=capacity if stack_beside else maxf(metrics.hit,capacity-reserve)
+   stack_reserve=view.stack_panel.TOGGLE_SIZE.y+metrics.gap if view.stack_panel.collapsed else ceilf(heading_height+view.stack_panel.ANDROID_PANEL_INSET*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
+   capacity=maxf(minimum_action_height,capacity-stack_reserve)
   if short_choices and capacity<content_height and notice_height>0:
    notice_scroll.position=Vector2(stack_choice_rect().position.x,toolbar_rect.end.y+metrics.gap)
-   rail_top=rail_start;rail_height=rail_bottom-rail_top;capacity=rail_height
+   rail_top=rail_start;rail_height=rail_bottom-rail_top;capacity=maxf(minimum_action_height,rail_height-stack_reserve)
   var actions_height=minf(content_height,minf(rail_height,capacity))
   action_scroll.size=Vector2(back_rect.size.x,actions_height)
   action_scroll.position=Vector2(back_rect.position.x,rail_bottom-actions_height)
@@ -470,27 +479,21 @@ func position_persistent():
   if actions_height>0:actions_top=action_scroll.position.y
  if is_instance_valid(view.stack_panel):
   var stack_inset=view.stack_panel.ANDROID_PANEL_INSET
-  view.stack_panel.heading.add_theme_font_size_override("font_size",metrics.small if heading_height<metrics.body*3.2 else metrics.body+2)
+  view.stack_panel.heading.add_theme_font_size_override("font_size",metrics.body)
   view.stack_panel.heading.position=Vector2(stack_inset,stack_inset)
   view.stack_panel.heading.size=Vector2(view.SIDEBAR.size.x-stack_inset*2,heading_height-metrics.gap)
-  view.stack_panel.heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  view.stack_panel.heading.text="堆叠 %d" % view.engine.unresolved_stack_entries().size() if heading_height<metrics.body*3.2 else "堆叠 %d\n从上往下结算" % view.engine.unresolved_stack_entries().size()
+  view.stack_panel.heading.text="堆叠 %d" % view.engine.unresolved_stack_entries().size()
   view.stack_panel.heading.tooltip_text="从上往下结算"
   if view.network_session!=null:
    view.stack_panel.visible=view.stack_panel.visible and view.network_session.room.get("undo_request",{}).is_empty()
   view.stack_panel.position=view.SIDEBAR.position+Vector2(0,stack_top)
   # Reserve the actual phase actions, including extra choices and wrapped text.
-  var stack_height=maxf(0,actions_top-metrics.gap-view.stack_panel.position.y)
-  if stack_beside:
-   view.stack_panel.position=Vector2(stack_choice_rect().position.x,rail_start)
-   if notice_height>0 and notice_scroll.position.x<back_rect.position.x:
-    view.stack_panel.position.y=maxf(rail_start,notice_scroll.position.y+notice_height+metrics.gap)
-   stack_height=maxf(0,minf(rail_bottom,view.HAND.position.y-metrics.gap)-view.stack_panel.position.y)
+  var stack_height=view.stack_panel.TOGGLE_SIZE.y if view.stack_panel.collapsed else maxf(0,actions_top-metrics.gap-view.stack_panel.position.y)
   view.stack_panel.size=Vector2(view.SIDEBAR.size.x,stack_height)
   view.stack_panel.scroll.position=Vector2(stack_inset,heading_height+stack_inset)
   var scroll_height=maxf(0,stack_height-heading_height-stack_inset*2)
   view.stack_panel.scroll.size=Vector2(view.SIDEBAR.size.x-stack_inset*2,scroll_height)
-  view.stack_panel.visible=view.stack_panel.visible and scroll_height>=maxf(metrics.hit,view.stack_panel.scroll.get_combined_minimum_size().y)
+  view.stack_panel.visible=view.stack_panel.visible and stack_height>=view.stack_panel.TOGGLE_SIZE.y
  if is_instance_valid(view.inspection) and not view.is_android:
   view.inspection.position=view.INSPECTION.position;view.inspection.size=view.INSPECTION.size
 

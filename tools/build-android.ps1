@@ -1,6 +1,6 @@
 param(
-    [string]$OutputPath = 'builds/Android-debug/MulticolorArena-debug.apk',
-    [string]$JavaSdkPath = 'C:\Program Files\Microsoft\jdk-17.0.10.7-hotspot'
+    [string]$OutputPath = 'builds/Android-debug/Mtest.apk',
+    [string]$JavaSdkPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path '.godot-toolchain/jdk-17')
 )
 
 $ErrorActionPreference = 'Stop'

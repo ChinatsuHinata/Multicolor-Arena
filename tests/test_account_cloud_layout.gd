@@ -31,6 +31,25 @@ func visible_text(node: Node) -> Array:
 func frames(count: int=3):
  for index in range(count):await process_frame
 
+func account_controls_fit(captions: Array) -> bool:
+ var bounds=app.screen.get_global_rect().grow(2)
+ var panel=app.screen.find_child("AccountPanel",true,false) as Control
+ if panel==null:return false
+ if not bounds.encloses(panel.get_global_rect()):
+  print("ACCOUNT OUTSIDE PANEL: ",panel.get_global_rect()," screen=",bounds)
+  return false
+ for control in [app.account_username_input,app.account_password_input,app.account_confirm_input,app.account_status_label]:
+  if control!=null and not bounds.encloses(control.get_global_rect()):
+   print("ACCOUNT OUTSIDE CONTROL: ",control.name," ",control.get_global_rect()," screen=",bounds)
+   return false
+ for caption in captions:
+  var action=find_button(app.screen,caption)
+  if action==null:return false
+  if not bounds.encloses(action.get_global_rect()):
+   print("ACCOUNT OUTSIDE ACTION: ",caption," ",action.get_global_rect()," screen=",bounds)
+   return false
+ return true
+
 func run():
  root.mode=Window.MODE_WINDOWED
  root.size=Vector2i(1280,720)
@@ -46,9 +65,8 @@ func run():
  app.account_mode="register"
  app.account_page()
  await frames()
- var scroll=app.screen.find_child("AccountScroll",true,false) as ScrollContainer
- check(scroll!=null,"Android account form has a scroll viewport")
- check(scroll.get_v_scroll_bar().max_value>scroll.get_v_scroll_bar().page,"large touch controls can scroll on a short landscape screen")
+ check(app.screen.find_child("AccountScroll",true,false)==null,"Android account page does not need a vertical scroll viewport")
+ check(account_controls_fit(["登录","注册","注册账号","返回主菜单"]),"Android registration fits in one landscape screen")
  app.account_username_input.text="sample_user"
  app.account_password_input.text="password123!"
  app.account_confirm_input.text="password123!"
@@ -58,25 +76,10 @@ func run():
  await frames()
  check(app.account_username_input.text=="sample_user" and app.account_password_input.text=="password123!" and app.account_confirm_input.text=="password123!","Android reflow retains unfinished registration")
  check(app.account_confirm_input.has_focus() and app.account_confirm_input.get_caret_column()==5,"Android reflow retains the active input and caret")
- scroll=app.screen.find_child("AccountScroll",true,false) as ScrollContainer
- scroll.scroll_vertical=0
- await frames()
- var start=scroll.get_global_rect().get_center()
- var touch=InputEventScreenTouch.new();touch.index=0;touch.position=start;touch.pressed=true;root.push_input(touch,true)
- for step in range(1,5):
-  var drag=InputEventScreenDrag.new();drag.index=0;drag.position=start-Vector2(0,step*80);root.push_input(drag,true)
-  await process_frame
- touch=touch.duplicate();touch.position=start-Vector2(0,320);touch.pressed=false;root.push_input(touch,true)
- await frames()
- check(scroll.scroll_vertical>0,"Android finger swipe scrolls registration form")
- var submit=find_button(app.screen,"注册账号")
- var back=find_button(app.screen,"返回主菜单")
- scroll.ensure_control_visible(submit)
- await frames()
- check(submit!=null and scroll.get_global_rect().grow(2).encloses(submit.get_global_rect()),"registration submit is reachable by scrolling")
- scroll.ensure_control_visible(back)
- await frames()
- check(back!=null and scroll.get_global_rect().grow(2).encloses(back.get_global_rect()),"account back action is reachable by scrolling")
+ check(account_controls_fit(["登录","注册","注册账号","返回主菜单"]),"registration still fits after Android reflow")
+ app.account_mode="login";app.account_page();await frames()
+ check(account_controls_fit(["登录","注册","返回主菜单"]),"Android login fits in one landscape screen")
+ app.account_mode="register";app.account_page();await frames()
 
  app.account_name="sample_user";app.account_nickname="玩家甲";app.account_token="f".repeat(64)
  var home_text_pc=[]

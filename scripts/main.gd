@@ -571,41 +571,76 @@ func account_page():
  clear_page("account")
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding))
- var scroll=ScrollContainer.new();scroll.name="AccountScroll";margin.add_child(scroll)
- scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
- var center=CenterContainer.new();scroll.add_child(center)
- center.custom_minimum_size=Vector2(maxf(0,screen.size.x-ui_metrics.padding*2-16),maxf(0,screen.size.y-ui_metrics.padding*2))
- center.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var panel=PanelContainer.new();center.add_child(panel)
- panel.custom_minimum_size.x=minf(760 if is_android else 560,maxf(0,screen.size.x-ui_metrics.padding*4))
- panel.add_theme_stylebox_override("panel",ui_metrics.panel_style())
- var body=VBoxContainer.new();panel.add_child(body)
- body.add_theme_constant_override("separation",int(ui_metrics.gap))
- var heading=Label.new();heading.text="玩家账号";heading.add_theme_font_size_override("font_size",ui_metrics.title);heading.add_theme_color_override("font_color",GOLD);body.add_child(heading)
- var note=Label.new();note.text="登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(note)
- if not account_name.is_empty():
-  var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+account_nickname;body.add_child(current)
-  account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";body.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
-  var change=button(body,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
-  var logout=button(body,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
+ var scroll: ScrollContainer=null
+ var center=CenterContainer.new()
+ if is_android:
+  margin.add_child(center)
+  center.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  center.size_flags_vertical=Control.SIZE_EXPAND_FILL
  else:
-  var tabs=HBoxContainer.new();body.add_child(tabs)
+  scroll=ScrollContainer.new();scroll.name="AccountScroll";margin.add_child(scroll)
+  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+  scroll.add_child(center)
+  center.custom_minimum_size=Vector2(maxf(0,screen.size.x-ui_metrics.padding*2-16),maxf(0,screen.size.y-ui_metrics.padding*2))
+  center.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var panel=PanelContainer.new();panel.name="AccountPanel";center.add_child(panel)
+ panel.custom_minimum_size.x=minf(1120 if is_android else 560,maxf(0,screen.size.x-ui_metrics.padding*4))
+ var panel_style=ui_metrics.panel_style()
+ if is_android:panel_style.set_content_margin_all(minf(ui_metrics.padding,16))
+ panel.add_theme_stylebox_override("panel",panel_style)
+ var body: Container=HBoxContainer.new() if is_android else VBoxContainer.new();panel.add_child(body)
+ body.add_theme_constant_override("separation",int(ui_metrics.gap))
+ var info: Container=body
+ var form: Container=body
+ var compact_hit=clampf((screen.size.y-ui_metrics.padding*4-ui_metrics.gap*8)/6.0,64.0,104.0)
+ var compact_font=maxi(24,mini(ui_metrics.body,roundi(compact_hit*0.4)))
+ if is_android:
+  info=VBoxContainer.new();body.add_child(info)
+  info.custom_minimum_size.x=minf(380,panel.custom_minimum_size.x*0.34)
+  info.add_theme_constant_override("separation",maxi(8,int(ui_metrics.gap*0.65)))
+  form=VBoxContainer.new();body.add_child(form)
+  form.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  form.add_theme_constant_override("separation",maxi(8,int(ui_metrics.gap*0.65)))
+ var heading=Label.new();heading.text="玩家账号";heading.add_theme_font_size_override("font_size",ui_metrics.title);heading.add_theme_color_override("font_color",GOLD);info.add_child(heading)
+ var note=Label.new();note.text="登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(note)
+ if is_android:note.add_theme_font_size_override("font_size",mini(ui_metrics.small,32))
+ if not account_name.is_empty():
+  var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+account_nickname;info.add_child(current)
+  if is_android:
+   current.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+   current.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
+  account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";form.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
+  var change=button(form,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
+  var logout=button(form,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
+ else:
+  var tabs=HBoxContainer.new();form.add_child(tabs)
   var login_button=button(tabs,"登录",Rect2(),func():account_mode="login";account_page(),account_mode=="login");ui_metrics.button(login_button)
   var register_button=button(tabs,"注册",Rect2(),func():account_mode="register";account_page(),account_mode=="register");ui_metrics.button(register_button)
-  account_username_input=LineEdit.new();account_username_input.name="AccountUsername";account_username_input.text=saved_username;account_username_input.placeholder_text="账号：3–24 位英文字母、数字或下划线";account_username_input.max_length=24;body.add_child(account_username_input)
-  account_password_input=preload("res://scripts/password_edit.gd").new();account_password_input.name="AccountPassword";account_password_input.text=saved_password;account_password_input.placeholder_text="密码：8–64 位英文字母、数字或英文符号";account_password_input.max_length=64;body.add_child(account_password_input)
+  account_username_input=LineEdit.new();account_username_input.name="AccountUsername";account_username_input.text=saved_username;account_username_input.placeholder_text="账号：3–24 位英文字母、数字或下划线";account_username_input.max_length=24;form.add_child(account_username_input)
+  account_password_input=preload("res://scripts/password_edit.gd").new();account_password_input.name="AccountPassword";account_password_input.text=saved_password;account_password_input.placeholder_text="密码：8–64 位英文字母、数字或英文符号";account_password_input.max_length=64;form.add_child(account_password_input)
   account_password_input.text_changed.connect(func(value):account_password_text_changed(account_password_input,value))
   if account_mode=="register":
-   account_confirm_input=preload("res://scripts/password_edit.gd").new();account_confirm_input.name="AccountConfirm";account_confirm_input.text=saved_confirm;account_confirm_input.placeholder_text="再次输入密码（仅英文字符）";account_confirm_input.max_length=64;body.add_child(account_confirm_input)
+   account_confirm_input=preload("res://scripts/password_edit.gd").new();account_confirm_input.name="AccountConfirm";account_confirm_input.text=saved_confirm;account_confirm_input.placeholder_text="再次输入密码（仅英文字符）";account_confirm_input.max_length=64;form.add_child(account_confirm_input)
    account_confirm_input.text_changed.connect(func(value):account_password_text_changed(account_confirm_input,value))
   else:account_confirm_input=null
   for field in [account_username_input,account_password_input,account_confirm_input]:
    if field!=null:field.custom_minimum_size.y=ui_metrics.hit
-  var submit=button(body,"注册账号" if account_mode=="register" else "登录",Rect2(),account_submit,true);ui_metrics.button(submit);submit.disabled=account_pending
+  var submit=button(form,"注册账号" if account_mode=="register" else "登录",Rect2(),account_submit,true);ui_metrics.button(submit);submit.disabled=account_pending
   account_password_input.text_submitted.connect(func(_value):account_submit())
   if account_confirm_input!=null:account_confirm_input.text_submitted.connect(func(_value):account_submit())
- account_status_label=Label.new();account_status_label.name="AccountStatus";account_status_label.text=saved_status;account_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(account_status_label)
- var back=button(body,"返回主菜单" if deck_account_return.is_empty() else "返回套牌编辑器",Rect2(),return_from_account);ui_metrics.button(back)
+ account_status_label=Label.new();account_status_label.name="AccountStatus";account_status_label.text=saved_status;account_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(account_status_label)
+ if is_android:account_status_label.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
+ var back=button(form,"返回主菜单" if deck_account_return.is_empty() else "返回套牌编辑器",Rect2(),return_from_account);ui_metrics.button(back)
+ if is_android:
+  for child in form.get_children():
+   if child is Button or child is LineEdit:
+    child.custom_minimum_size.y=compact_hit
+    child.add_theme_font_size_override("font_size",compact_font)
+   elif child is HBoxContainer:
+    for tab in child.get_children():
+     if tab is Button:
+      tab.custom_minimum_size.y=compact_hit
+      tab.add_theme_font_size_override("font_size",compact_font)
  var focus_target: LineEdit=null
  if is_instance_valid(account_username_input) and account_username_input.name==focused_name:focus_target=account_username_input
  elif is_instance_valid(account_password_input) and account_password_input.name==focused_name:focus_target=account_password_input
@@ -613,7 +648,7 @@ func account_page():
  if focus_target!=null:
   focus_target.grab_focus.call_deferred()
   focus_target.set_caret_column.call_deferred(focused_caret)
-  scroll.ensure_control_visible.call_deferred(focus_target)
+  if scroll!=null:scroll.ensure_control_visible.call_deferred(focus_target)
 
 func account_password_text_changed(field: LineEdit,value: String):
  var filtered=preload("res://scripts/account_client.gd").filter_password_chars(value)
@@ -1078,7 +1113,6 @@ func editor(sideboarding: bool=false):
   desktop_editor(sideboarding)
   return
  if not sideboarding:reload_decks()
- library_sort_mode="类别"
  clear_page("sideboard" if sideboarding else "editor")
  editor_ui=preload("res://scripts/deck_editor_layout.gd").new() if sideboarding else preload("res://scripts/android_deck_editor.gd").new()
  editor_ui.build(self,sideboarding)
@@ -1386,9 +1420,9 @@ func update_deck_rows():
   return
  if page not in ["editor","sideboard"] or not is_instance_valid(deck_canvas):return
  name_label.text=draft.name+(" *" if dirty else "")
- counts.text="主卡组 %d / %d   ·   副卡组 %d / 10   ·   自机 %d / 1" % [draft.main.size(),RuleSet.main_limit(str(draft.get("rule_set",RuleSet.OFFICIAL))),draft.side.size(),0 if draft.leader.is_empty() else 1]
+ counts.text="%d/%d·%d/10" % [draft.main.size(),RuleSet.main_limit(str(draft.get("rule_set",RuleSet.OFFICIAL))),draft.side.size()]
  if sideboard_session!=null:
-  counts.text="主卡组 %d / %d   ·   副卡组 %d / 10   ·   自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
+  counts.text="%d/%d·%d/10" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
   if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
  editor_ui.update_deck()
  if page=="editor" and is_instance_valid(library):refresh_library_limits()
@@ -1450,7 +1484,7 @@ func show_deck_tutorial():
   guide.text=guide.text.replace("；“打开截图文件夹”可查看 deck/image 截图目录", "")
   guide.text=guide.text.replace("左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。", "轻点图鉴和卡组列表中的牌即可打开详情。通过详情中的“加入主卡组”或“加入副卡组”添加一张，“移出卡组”移除一张；自机单位也可以加入主副卡组，或选择“设为自机”。详情大图右下角显示同名牌余量，下方按钮切换主、副卡组列表。")
   guide.text=guide.text.replace("主、副卡组中的卡牌左键再加一张，右键移除；在同一组的卡牌之间拖动可调整顺序，拖到另一组的卡牌上可直接交换两张，拖到另一组的空白处可移动一张，拖回右侧卡库可移除。顶部“排序卡组”整理主、副卡组的排列。", "切换到卡组页后，可拖动主、副卡组中的卡牌调整顺序，拖到另一组的卡牌上可交换两张，拖到另一组空白处可移动一张；轻触详情中的“移出卡组”可移除一张。菜单中的“排序”整理主、副卡组。")
-  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "图鉴左侧为类型和纵向颜色筛选，搜索与筛选会叠加；颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选。每页显示三张卡牌，使用卡牌行下方的左右箭头翻页。")
+  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "点击顶部搜索栏右侧的“筛选”打开类型、颜色和排序窗口。颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选；搜索与其他筛选会叠加。每页显示两行四列共八张完整卡面，卡面下方显示余量，使用卡面区两侧箭头翻页。")
   guide.text=guide.text.replace("右下角可保存、使用、清空或删除卡组；", "卡组页右侧可保存卡组，菜单中可清空或删除卡组；图鉴页及卡组页均有“返回主菜单”按钮。")
   guide.text=guide.text.replace("鼠标中键点击仓库、主副卡组或自机位的牌可更换异画", "卡牌详情中的“更换异画”可更换图片")
  dialog.add_child(guide)

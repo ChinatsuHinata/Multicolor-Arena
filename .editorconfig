@@ -2,3 +2,11 @@ root = true
 
 [*]
 charset = utf-8
+indent_style = space
+
+# GDScript：本仓库约定 1 空格缩进，禁止 Tab（混用会导致 Parse Error 打不开游戏）
+[*.gd]
+indent_size = 1
+
+[*.{json,cfg}]
+indent_size = 2

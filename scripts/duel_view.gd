@@ -114,6 +114,10 @@ var deck_cast_tiles={}
 var deck_peek_tile
 var badges: Control
 var inspection: Control
+var android_inspection_dismiss: Control
+var android_inspection_dismiss_until=0
+var android_inspection_dismiss_point=Vector2.ZERO
+var android_inspection_dismiss_finger=-1
 var hand_nodes={}
 var enemy_nodes={}
 var card_badges={}
@@ -144,6 +148,7 @@ var is_android=OS.has_feature("android")
 var android_swipe_scroll=AndroidSwipeScroll.new()
 var android_card_touch=preload("res://scripts/android_card_touch.gd").new()
 var android_back_button: Button
+var android_battle_menu_root: Control
 var android_zone_shortcuts: Control
 var android_back_swipe_index=-1
 var android_back_swipe_start=Vector2.ZERO
@@ -288,7 +293,23 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  hand_layer=Control.new();hand_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;hand_scroll.add_child(hand_layer)
  opponent_layer=layer(ui); hud=layer(ui)
  ui.move_child(arrow_layer,-1)
+ if is_android:
+  android_inspection_dismiss=Control.new();android_inspection_dismiss.name="InspectionDismiss"
+  android_inspection_dismiss.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  android_inspection_dismiss.mouse_filter=Control.MOUSE_FILTER_STOP
+  android_inspection_dismiss.z_index=202;android_inspection_dismiss.visible=false
+  ui.add_child(android_inspection_dismiss)
+  android_inspection_dismiss.gui_input.connect(func(event):
+   if not (event is InputEventScreenTouch or event is InputEventMouseButton) or not event.pressed:return
+   android_inspection_dismiss.accept_event()
+   android_inspection_dismiss_until=Time.get_ticks_msec()+250
+   android_inspection_dismiss_point=event.position
+   suppress_touch_mouse_until=android_inspection_dismiss_until
+   suppress_touch_mouse_point=event.position
+   if event is InputEventScreenTouch:android_inspection_dismiss_finger=event.index
+   inspect_id="";update_inspection())
  inspection=Control.new(); inspection.position=INSPECTION.position; inspection.size=INSPECTION.size; ui.add_child(inspection)
+ if is_android:inspection.z_index=203
  effects=layer(ui)
  stack_panel=preload("res://scripts/duel_stack.gd").new(); ui.add_child(stack_panel); stack_panel.build(self)
  if is_android:
@@ -301,7 +322,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  observe_button=btn("观察战场",Rect2(1248,12,152,40),toggle_observation,false,ui)
  observe_button.visible=false
  if is_android:
-  android_back_button=host.button(ui,"后退",Rect2(1516,ANDROID_ACTION_FOOTER_Y,68,ANDROID_ACTION_FOOTER_HEIGHT),android_back)
+  android_back_button=host.button(ui,"取消",Rect2(1516,ANDROID_ACTION_FOOTER_Y,68,ANDROID_ACTION_FOOTER_HEIGHT),android_back)
   android_back_button.z_index=102
   android_zone_shortcuts=preload("res://scripts/android_zone_shortcuts.gd").new()
   ui.add_child(android_zone_shortcuts);android_zone_shortcuts.build(self)
@@ -1603,6 +1624,7 @@ func update_inspection():
  var declared=card_context_caption(current) if inspect_id not in ["back","potato"] else ""
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
  inspection.visible=(is_android or host.show_card_inspection or tutorial_runtime!=null and not tutorial_controls_enabled) and not inspect_id.is_empty()
+ if is_instance_valid(android_inspection_dismiss):android_inspection_dismiss.visible=inspection.visible
  var counters=counter_lines(current)
  var shown_id=current.card_id if not current.is_empty() and inspect_id not in ["back","potato"] else inspect_id
  var info=engine.cards.get(shown_id,{})
@@ -1667,7 +1689,7 @@ func update_inspection():
  for line in counters:inspection_text.add_text("\n"+line)
  if not current.get("moods",[]).is_empty():inspection_text.add_text("\n已选心情："+"、".join(current.moods))
  inspection_text.set_meta("leader_enabled",enabled)
- layout_inspection(bg,image,title)
+ layout_inspection(bg,image,title,info)
 
 func board_counter_text(c: Dictionary) -> String:
  var marks=[]
@@ -1707,7 +1729,7 @@ func render_prompt():
    responsive.add_choice_notice(network_status_label)
   network_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   if network_session.ended() or network_session.read_only and not network_session.replay_mode:
-   battle_button("返回联机房间",Rect2(1330,799,237,49),ANDROID_ACTION_CONFIRM_Y,func():host.online(),true)
+   if not is_android or not spectator_view():battle_button("返回联机房间",Rect2(1330,799,237,49),ANDROID_ACTION_CONFIRM_Y,func():host.online(),true)
   else:
    if network_session.wait_choice_pending:
     battle_button("继续等待",Rect2(1300,750,267,49),695,func():network_session.continue_waiting(),true)
@@ -1815,6 +1837,7 @@ func shortcut_attack() -> bool:
 
 func _unhandled_key_input(event: InputEvent):
  if tutorial_runtime!=null and not tutorial_controls_enabled:return
+ if is_instance_valid(android_battle_menu_root):return
  if host.menu_popup_open():return
  if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A,KEY_G,KEY_H]:return
  if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:return
@@ -1942,6 +1965,25 @@ func tutorial_blocker_input(event: InputEvent,point: Vector2):
   tutorial_blocker_finger=-1;android_card_touch.cancel_ring()
 
 func _input(event: InputEvent):
+ if is_android and event is InputEventScreenTouch:
+  if event.index==android_inspection_dismiss_finger:
+   if not event.pressed:android_inspection_dismiss_finger=-1
+   get_viewport().set_input_as_handled();return
+  if event.pressed and Time.get_ticks_msec()<android_inspection_dismiss_until and event.position.distance_to(android_inspection_dismiss_point)<28:
+   android_inspection_dismiss_finger=event.index
+   get_viewport().set_input_as_handled();return
+ if is_android and event is InputEventScreenDrag and event.index==android_inspection_dismiss_finger:
+  get_viewport().set_input_as_handled();return
+ if is_android and inspection.visible and (event is InputEventScreenTouch or event is InputEventMouseButton) and event.pressed and not inspection.get_global_rect().has_point(make_input_local(event).position):return
+ if is_android and event is InputEventMouseButton and Time.get_ticks_msec()<android_inspection_dismiss_until and event.position.distance_to(android_inspection_dismiss_point)<28:
+  get_viewport().set_input_as_handled();return
+ if is_android and event is InputEventMouseButton and Time.get_ticks_msec()<suppress_touch_mouse_until and event.position.distance_to(suppress_touch_mouse_point)<28:
+  get_viewport().set_input_as_handled();return
+ if is_instance_valid(android_battle_menu_root):
+  if is_android and touch_android_back_swipe(event):return
+  if event is InputEventKey and event.pressed and (event.keycode==KEY_ESCAPE or event.keycode==KEY_BACK):
+   close_android_battle_menu();get_viewport().set_input_as_handled()
+  return
  if tutorial_runtime!=null and tutorial_runtime.playing_sequence():
   get_viewport().set_input_as_handled();return
  if tutorial_runtime!=null and not tutorial_controls_enabled:
@@ -2136,7 +2178,15 @@ func right_cancel():
  elif picker_active(): picker.path=[]; picker.normalize(); render()
  elif engine.pending.get("kind","")=="possession": selection=[]; render()
  elif is_instance_valid(table.inspect_root): table.inspect_root.queue_free()
+func spectator_view() -> bool:
+ return network_session!=null and network_session.read_only and not network_session.replay_mode
+
+func android_cancel_selection_available() -> bool:
+ if not is_android or spectator_view():return false
+ return not selection.is_empty() or not local.is_empty() or attack_preview_uid!=0 or android_action_uid>0 or picker_active() and not picker.path.is_empty()
+
 func android_back():
+ if is_instance_valid(android_battle_menu_root):close_android_battle_menu();return
  if host.menu_popup_open():host.close_menu_popup();return
  var had_details=is_android and inspection.visible
  if had_details:inspect_id="";update_inspection()
@@ -2154,7 +2204,6 @@ func android_back():
  if not selection.is_empty():selection=[];render();return
  if is_instance_valid(table.inspect_root):table.inspect_root.queue_free();return
  if had_details:return
- settings_menu()
 func open_android_help():
  if not is_android or modal or history_open or revealing() or table.combat_animating:return
  var panel=overlay("安卓操作说明")
@@ -2165,7 +2214,7 @@ func open_android_help():
  guide.bbcode_enabled=true;guide.scroll_active=true
  guide.add_theme_font_size_override("normal_font_size",m.body)
  guide.add_theme_color_override("default_color",host.WHITE)
- guide.text="[b]卡牌与颜色盘[/b]\n点按卡牌进行选择或查看操作；能力／效果选项在屏幕中央分列显示，目标直接点选战场高亮对象，右侧弹窗用于确认或重选。点按面板左下角「隐藏」可收起，再点「展开」继续选择。点按左侧视角开关可直接操作我方或敌方颜色盘。颜色盘和双方单位栏每页显示十张，超过十张时点按对应区域右下角箭头翻页，末页继续点按返回第一页。\n\n[b]结束主要阶段[/b]\n在设置中开启「延迟回合结束」后，连续按住「结束主要阶段」1 秒，圆环画满后结束主要阶段。松开或移出按钮会取消并重置进度。关闭后点按即可结束主要阶段。\n\n[b]滚动列表[/b]\n在堆叠、卡库、记录等区域上下滑动浏览；横向卡列左右滑动。\n\n[b]快捷操作[/b]\n快速双击战场空白处：跳过可响应时点。快速双击可攻击的己方单位：发起攻击。\n\n[b]战场视角[/b]\n点按左侧视角开关依次切换「战场视角／我方颜色盘视角／敌方颜色盘视角」。颜色盘视角直接聚焦对应颜色盘，并避开手牌；凭依阶段可自由切换视角。长按并拖动战场：平移视角。双指张开或捏合：缩放视角。点按「视角复原」恢复当前视角的对焦位置。\n\n[b]回退[/b]\n点按「后退」，或从屏幕右侧边缘向左滑动：关闭当前选择、面板或弹窗。"
+ guide.text="[b]卡牌与颜色盘[/b]\n点按卡牌进行选择或查看操作；能力／效果选项在屏幕中央分列显示，目标直接点选战场高亮对象，右侧弹窗用于确认或重选。点按面板左下角「隐藏」可收起，再点「展开」继续选择。点按左侧视角开关可直接操作我方或敌方颜色盘。颜色盘和双方单位栏每页显示十张，超过十张时点按对应区域右下角箭头翻页，末页继续点按返回第一页。长按卡牌查看详情，点按详情以外区域关闭。\n\n[b]结束主要阶段[/b]\n在对战设置中开启「延迟回合结束」后，连续按住「结束主要阶段」1 秒，圆环画满后结束主要阶段。松开或移出按钮会取消并重置进度。关闭后点按即可结束主要阶段。\n\n[b]滚动列表[/b]\n在堆叠、卡库、记录等区域上下滑动浏览；横向卡列左右滑动。\n\n[b]快捷操作[/b]\n快速双击战场空白处：跳过可响应时点。快速双击可攻击的己方单位：发起攻击。\n\n[b]战场视角[/b]\n点按左侧视角开关依次切换「战场视角／我方颜色盘视角／敌方颜色盘视角」。颜色盘视角直接聚焦对应颜色盘，并避开手牌；凭依阶段可自由切换视角。长按并拖动战场：平移视角。双指张开或捏合：缩放视角。点按「视角复原」恢复当前视角的对焦位置。\n\n[b]取消[/b]\n有选择时点按「取消」，或从屏幕右侧边缘向左滑动：关闭当前选择、面板或弹窗。空闲时通过「菜单」进入战斗菜单或对战设置。"
  panel.add_child(guide)
  var back=btn("返回对局",Rect2(28,panel.size.y-m.hit-20,panel.size.x-56,m.hit),close_overlay,false,panel)
  m.button(back)
@@ -2621,7 +2670,90 @@ func open_tools_menu():
  android_card_touch.cancel()
  android_swipe_scroll.reset()
  camera_touches.clear();camera_touch_mode=""
+ if is_android:
+  open_android_battle_menu()
+  return
  host.open_menu_popup("战斗菜单",responsive.tools_actions())
+
+func open_android_battle_menu(tab: String="battle"):
+ close_android_battle_menu()
+ var shade=ColorRect.new();shade.name="AndroidBattleMenuRoot"
+ shade.color=Color(0,0,0,0.72)
+ shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade.mouse_filter=Control.MOUSE_FILTER_STOP
+ shade.z_index=110
+ ui.add_child(shade)
+ android_battle_menu_root=shade
+ shade.gui_input.connect(func(event):
+  if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:close_android_battle_menu())
+ var panel=host.box(shade,Rect2(0,0,900,600),Color("#101c28"),host.GOLD)
+ panel.name="AndroidBattleMenu"
+ var m=host.ui_metrics
+ panel.size=Vector2(minf(1120,m.safe.size.x-24),minf(760,m.safe.size.y-24))
+ panel.clip_contents=true
+ center_panel(panel)
+ var title=txt("战斗菜单",Rect2(),m.title,host.GOLD,panel)
+ title.name="DialogTitle"
+ title.position=Vector2(20,12)
+ var close_width=maxf(96,m.hit*1.45)
+ title.size=Vector2(panel.size.x-close_width-56,m.hit)
+ title.add_theme_font_size_override("font_size",m.title)
+ var close=host.button(panel,"关闭",Rect2(panel.size.x-close_width-20,12,close_width,m.hit),close_android_battle_menu)
+ close.name="CloseBattleMenu";m.button(close)
+ close.custom_minimum_size=Vector2(close_width,m.hit);close.size=Vector2(close_width,m.hit)
+ var top=m.hit+m.gap+22
+ var inset=20.0
+ var sidebar_width=minf(maxf(m.hit*3,panel.size.x*0.26),panel.size.x*0.32)
+ var left=VBoxContainer.new();left.name="BattleMenuNavigation";panel.add_child(left)
+ left.position=Vector2(inset,top);left.size=Vector2(sidebar_width,panel.size.y-top-inset)
+ left.add_theme_constant_override("separation",int(m.gap))
+ for item in [["战斗菜单","battle","BattleMenuTab"],["对战设置","settings","BattleSettingsTab"]]:
+  var tab_key=str(item[1])
+  var switch=host.button(left,str(item[0]),Rect2(),func():open_android_battle_menu(tab_key),tab==tab_key)
+  switch.name=str(item[2]);m.button(switch)
+  switch.custom_minimum_size=Vector2(0,m.hit);switch.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var watching=spectator_view()
+ var match_exit=host.button(left,"离开对战" if watching else "投降",Rect2(),func():
+  close_android_battle_menu()
+  if watching:
+   if network_session!=null:host.online()
+   else:host.setup()
+  else:confirm_surrender())
+ match_exit.name="BattleMenuMatchExit";m.button(match_exit)
+ match_exit.custom_minimum_size=Vector2(0,m.hit);match_exit.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ match_exit.disabled=not watching and (tutorial_runtime!=null or network_locked() or engine.winner!=-2)
+ match_exit.add_theme_stylebox_override("normal",host.style(Color("#70282b"),Color("#d87777")))
+ match_exit.add_theme_stylebox_override("hover",host.style(Color("#933337"),Color("#ef9999")))
+ match_exit.add_theme_stylebox_override("pressed",host.style(Color("#592024"),Color("#ef9999")))
+ match_exit.add_theme_stylebox_override("disabled",host.style(Color("#48282b"),Color("#83585a")))
+ match_exit.add_theme_color_override("font_color",host.WHITE)
+ var right=ScrollContainer.new();right.name="BattleMenuContents";panel.add_child(right)
+ right.position=Vector2(left.position.x+sidebar_width+m.gap,top)
+ right.size=Vector2(panel.size.x-right.position.x-inset,panel.size.y-top-inset)
+ right.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;right.follow_focus=true
+ var column=VBoxContainer.new();column.name="BattleMenuActions";right.add_child(column)
+ column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ column.add_theme_constant_override("separation",int(m.gap))
+ if tab=="settings":
+  build_battle_settings_options(column)
+ else:
+  for entry in responsive.tools_actions():
+   var action: Callable=entry[1]
+   var choice=host.button(column,str(entry[0]),Rect2(),func():close_android_battle_menu();action.call())
+   choice.name="BattleMenuAction";m.button(choice)
+   choice.custom_minimum_size=Vector2(0,m.hit);choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+   choice.disabled=entry.size()>2 and bool(entry[2])
+   choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ refresh_observation()
+
+func close_android_battle_menu():
+ if is_instance_valid(android_battle_menu_root):
+  android_battle_menu_root.get_parent().remove_child(android_battle_menu_root)
+  android_battle_menu_root.queue_free()
+ android_battle_menu_root=null
+ if is_instance_valid(observe_button):
+  observe_button.z_index=0
+  refresh_observation()
 
 func confirm_surrender():
  if tutorial_runtime!=null or network_locked() or engine.winner!=-2:return
@@ -2630,6 +2762,9 @@ func confirm_surrender():
   modal=false;local={};engine.surrender(local_seat);render())
 
 func settings_menu():
+ if is_android:
+  open_android_battle_menu("settings")
+  return
  var panel=overlay("对战设置")
  var m=host.ui_metrics
  var rows=7+(2 if is_android else 0)+(1 if debug_mode or (replay_view() and host.is_test_build and not is_android) else 0)
@@ -2645,11 +2780,18 @@ func settings_menu():
   scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true
   scroll.add_child(column);column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  else:margin.add_child(column)
+ build_battle_settings_options(column)
+ var resume=btn("继续游戏",Rect2(),func():modal=false;render(),true,column);m.button(resume)
+ if network_session!=null and not network_session.replay_mode:
+  var lobby=btn("返回联机房间",Rect2(),func():host.online(),false,column);m.button(lobby)
+
+func build_battle_settings_options(column: VBoxContainer):
+ var m=host.ui_metrics
  var toolkit=preload("res://scripts/menu_ui_layout.gd").new();toolkit.app=host;toolkit.metrics=m
  var views=HBoxContainer.new();column.add_child(views)
  for entry in [["3D 斜视",false],["2D 上方俯视",true]]:
   var choice=btn(entry[0],Rect2(),func():set_card_view(entry[1]),table.top_down_view==entry[1],views)
-  m.button(choice);choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  m.button(choice);choice.custom_minimum_size.x=0;choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  toolkit.check(column,"显示左侧卡牌效果说明栏",host.show_card_inspection,func(value):host.set_show_card_inspection(value);update_inspection())
  toolkit.check(column,"延迟回合结束（长按 1 秒）",host.delay_turn_end,host.set_delay_turn_end).name="DelayTurnEnd"
  var auto_focus=toolkit.check(column,"自动跳转视角",host.auto_camera_focus,host.set_auto_camera_focus)
@@ -2661,9 +2803,12 @@ func settings_menu():
  toolkit.check(column,"显示手牌",hand_display_enabled,set_hand_display)
  if debug_mode:toolkit.check(column,"允许调试拖动放入战场",host.debug_drag_to_field,host.set_debug_drag_to_field)
  if replay_view() and host.is_test_build and not is_android:toolkit.check(column,"回放训练模式：标注步骤与推荐招法",host.replay_training_mode,host.set_replay_training_mode)
- var resume=btn("继续游戏",Rect2(),func():modal=false;render(),true,column);m.button(resume)
- if network_session!=null and not network_session.replay_mode:
-  var lobby=btn("返回联机房间",Rect2(),func():host.online(),false,column);m.button(lobby)
+ if is_android:
+  for row in column.get_children():
+   if row is CheckButton:
+    row.custom_minimum_size.x=0
+    row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    row.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 
 func set_card_view(top_down: bool):
  if table.top_down_view==top_down:return
@@ -2790,19 +2935,22 @@ func refresh_observation():
  if is_instance_valid(debug_free_checkbox):
   debug_free_checkbox.set_pressed_no_signal(engine.debug_free_payment)
   debug_free_checkbox.disabled=modal or not local.is_empty() or not engine.pending.is_empty()
- observe_button.visible=true
+ var obscured=is_instance_valid(modal_root) and modal_root.visible or is_instance_valid(android_choice_panel) and android_choice_panel.visible or debug_open and is_instance_valid(browser_panel) and browser_panel.visible or is_instance_valid(android_battle_menu_root) and android_battle_menu_root.visible
+ observe_button.visible=not is_android or (observing or obscured) and not history_open
  observe_button.text="返回选择" if observing else "观察战场"
  ui.move_child(inspection,-1)
  ui.move_child(observe_button,-1)
  if is_instance_valid(debug_controls): ui.move_child(debug_controls,-1)
  if history_open and is_instance_valid(history_root): ui.move_child(history_root,-1)
  raise_card_search_overlay()
+ if is_instance_valid(android_battle_menu_root):observe_button.z_index=111
  if is_android and inspection.visible:ui.move_child(inspection,-1)
  if is_instance_valid(android_back_button):ui.move_child(android_back_button,-1)
  responsive.position_persistent()
 func toggle_observation():
  observing=not observing
  if is_instance_valid(modal_root): modal_root.visible=not observing
+ if is_instance_valid(android_battle_menu_root):android_battle_menu_root.visible=not observing
  if is_instance_valid(stack_panel):stack_panel.visible=not engine.unresolved_stack_entries().is_empty() and (not modal or observing)
  if is_instance_valid(debug_root): debug_root.visible=not observing
  for child in hud.get_children():
@@ -3916,6 +4064,7 @@ func build_android_history():
 func close_history():
  if is_instance_valid(history_root): history_root.queue_free()
  history_root=null; history_open=false; clock_time=0
+ refresh_observation()
 func region_atoms() -> Array:
  if not picker_active(): return []
  return picker.available().filter(func(atom):
@@ -4082,6 +4231,8 @@ func center_panel(panel: Control):
   panel.size=Vector2(minf(panel.size.x,available.size.x-24),minf(panel.size.y,available.size.y-24))
  panel.position=available.position+(available.size-panel.size)*0.5
  if panel.has_node("DialogTitle"): panel.get_node("DialogTitle").size.x=panel.size.x-60
+ if is_android and is_instance_valid(modal_root) and panel.get_parent()==modal_root and is_instance_valid(responsive):
+  responsive.position_persistent()
 
 
 func can_begin_debug_drag() -> bool:
@@ -4168,23 +4319,38 @@ func player_caption(who: int) -> String:
  if tutorial_runtime!=null:return engine.player_names[who]
  return engine.player_names[who] if network_session!=null else ("你" if who==0 else "试验 AI" if experiment_agent.enabled else "人机")
 
-func layout_inspection(bg: Control,image: TextureRect,title: Label):
+func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Dictionary):
  if not is_android:return
- var width=minf(620,host.ui_metrics.safe.size.x*0.42)
- inspection.position=Vector2(host.ui_metrics.safe.position.x,host.ui_metrics.safe.position.y+host.ui_metrics.hit+host.ui_metrics.gap)
- inspection.size=Vector2(width,host.ui_metrics.safe.size.y-host.ui_metrics.hit-host.ui_metrics.gap)
+ var m=host.ui_metrics
+ # Keep the panel beside the play area, while using a little of its empty gutter.
+ var width=clampf(responsive.palette_rect.position.x-m.safe.position.x+minf(48.0,m.hit*0.55),160.0,m.safe.size.x*0.45)
+ inspection.position=Vector2(m.safe.position.x,m.safe.position.y+m.hit+m.gap)
+ inspection.size=Vector2(width,m.safe.end.y-inspection.position.y)
+ inspection.clip_contents=true
  bg.size=inspection.size
+ bg.clip_contents=true
  bg.mouse_filter=Control.MOUSE_FILTER_STOP
  var backing=host.box(bg,Rect2(Vector2.ZERO,inspection.size),Color("#101c28"))
  bg.move_child(backing,0)
- image.position=Vector2(16,16);image.size=Vector2(width*0.43,inspection.size.y*0.48)
- title.position=Vector2(image.size.x+32,host.ui_metrics.hit+24);title.size=Vector2(width-title.position.x-16,host.ui_metrics.body*4)
+ var padding=12.0
+ var landscape=host.landscape_card(inspect_id)
+ var image_width=minf(width-padding*2,216.0 if landscape else 190.0)
+ var image_height=minf(image_width*(156.0/218.0 if landscape else 305.0/218.0),inspection.size.y*0.36)
+ image.position=Vector2((width-image_width)*0.5,padding)
+ image.size=Vector2(image_width,image_height)
+ var title_size=maxi(20,mini(28,roundi(m.title*0.72)))
+ title.position=Vector2(padding,image.position.y+image.size.y+m.gap)
  title.name="InspectionTitle"
- title.add_theme_font_size_override("font_size",host.ui_metrics.title)
- title.size.y=host.ui_metrics.title*4.4
+ title.add_theme_font_size_override("font_size",title_size)
+ var title_height=title.get_theme_font("font").get_multiline_string_size(title.text,HORIZONTAL_ALIGNMENT_LEFT,width-padding*2,title_size).y
+ title.size=Vector2(width-padding*2,maxf(title_size*1.4,title_height+4))
+ var cost_bottom=title.position.y+title.size.y
  for child in bg.get_children():
-  if child.get_script()==HexCost:child.position=Vector2(title.position.x,title.position.y+title.size.y+8)
- inspection_text.position=Vector2(16,image.size.y+32);inspection_text.size=Vector2(width-32,inspection.size.y-inspection_text.position.y-16)
- inspection_text.add_theme_font_size_override("normal_font_size",host.ui_metrics.body)
- var close=host.button(bg,"关闭详情",Rect2(width-180,16,164,host.ui_metrics.hit),func():inspect_id="";update_inspection())
- host.ui_metrics.button(close)
+  if child.get_script()==HexCost:
+   child.configure(info.cost,false,width-padding*2,minf(34.0,width*0.18),info.get("variable_cost",""))
+   child.position=Vector2(padding,cost_bottom+m.gap)
+   cost_bottom=child.position.y+child.size.y
+ inspection_text.position=Vector2(padding,cost_bottom+m.gap)
+ inspection_text.size=Vector2(width-padding*2,maxf(0,inspection.size.y-inspection_text.position.y-padding))
+ inspection_text.add_theme_font_size_override("normal_font_size",maxi(18,mini(24,m.body-2)))
+ inspection_text.scroll_active=true

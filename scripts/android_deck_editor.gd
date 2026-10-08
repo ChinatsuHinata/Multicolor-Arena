@@ -21,6 +21,7 @@ class LibraryPageArrow extends Button:
 var overview=false
 var view_switch: CheckButton
 var management: VBoxContainer
+var management_scroll: ScrollContainer
 var toolbar: HBoxContainer
 var tools_menu: Button
 var rules_menu: PopupMenu
@@ -28,7 +29,9 @@ var switchers: HBoxContainer
 var deck_panel: PanelContainer
 var library_scroll: ScrollContainer
 var library_status: Label
-const LIBRARY_PAGE_SIZE=3
+const LIBRARY_COLUMNS=4
+const LIBRARY_ROWS=2
+const LIBRARY_PAGE_SIZE=LIBRARY_COLUMNS*LIBRARY_ROWS
 var library_page=0
 var library_pages=1
 var library_filter_state={}
@@ -37,6 +40,10 @@ var previous_library_page: Button
 var next_library_page: Button
 var library_page_label: Label
 var library_tile_size=Vector2(150,232)
+var library_filter_button: Button
+var library_filter_overlay: Control
+var library_filter_popup: PanelContainer
+var library_search_bar: HBoxContainer
 var list_height=72.0
 var detail_zone="library"
 var detail_index=-1
@@ -68,6 +75,13 @@ var editor_heading: Label
 var overview_menu: PanelContainer
 var catalogue_back: Button
 
+func editor_button(control: Control):
+ if control is BaseButton:metrics.button(control)
+ else:
+  control.custom_minimum_size.y=metrics.hit
+  control.add_theme_font_size_override("font_size",metrics.button_font)
+ return control
+
 func build(host,_swapping: bool=false):
  app=host;metrics=app.ui_metrics;overview=app.android_editor_overview
  list_zone=str(app.get_meta("android_editor_list_zone","main"))
@@ -78,28 +92,33 @@ func build(host,_swapping: bool=false):
  root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  toolbar=HBoxContainer.new();root.add_child(toolbar)
  editor_heading=text(toolbar,"卡组编辑器",metrics.title);expand(editor_heading)
+ editor_heading.add_theme_font_size_override("font_size",30)
  editor_heading.add_theme_color_override("font_color",app.GOLD)
  build_switchers()
  catalogue_back=action(toolbar,"返回主菜单",func():app.guard(app.menu))
+ editor_button(catalogue_back)
  catalogue_back.name="LibraryBackToMenu"
  # Keep the view switch at the right edge when the collection back button hides.
  view_switch=CheckButton.new();view_switch.name="DeckViewSwitch";view_switch.text="切换图鉴/卡组"
  toolbar.add_child(view_switch);metrics.button(view_switch)
- view_switch.custom_minimum_size.x+=metrics.hit
+ editor_button(view_switch);view_switch.custom_minimum_size.x+=metrics.hit
  view_switch.set_pressed_no_signal(overview)
  view_switch.toggled.connect(set_overview)
  overview_menu=panel(root);overview_menu.name="DeckMenuPanel"
- management=column(overview_menu);management.name="DeckManagement"
+ management_scroll=ScrollContainer.new();management_scroll.name="DeckManagementScroll";overview_menu.add_child(management_scroll);expand(management_scroll,true)
+ management_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ management_scroll.set_meta("android_swipe_prefer_vertical",true)
+ management=column(management_scroll);management.name="DeckManagement"
  build_management()
  columns=HBoxContainer.new();columns.name="DeckEditorPanes";root.add_child(columns);expand(columns,true)
  catalogue=panel(columns);catalogue.name="LibraryPanel";expand(catalogue,true)
  build_library_gallery(column(catalogue))
  deck_panel=panel(columns);deck_panel.name="DeckPanel";expand(deck_panel,true)
  center=column(deck_panel)
- app.name_label=text(center,"",metrics.body+3);app.name_label.clip_text=true
+ app.name_label=text(center,"",28);app.name_label.clip_text=true
  app.name_label.add_theme_color_override("font_color",app.GOLD)
  app.deck_canvas=VBoxContainer.new();app.deck_canvas.name="DeckCanvas";center.add_child(app.deck_canvas);expand(app.deck_canvas,true)
- app.counts=text(center,"",metrics.small);app.counts.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ app.counts=text(center,"",24)
  build_list_switchers()
  # The preview lives off screen until a card is tapped.
  details=panel(root);details.name="CardDetailsPanel";details.hide()
@@ -131,8 +150,8 @@ func set_list_zone(source: String):
 func build_switchers():
  switchers=HBoxContainer.new();switchers.name="DeckSwitchers";toolbar.add_child(switchers);expand(switchers)
  app.saved_select=action(switchers,"选择卡组",app.open_editor_deck_picker);app.saved_select.name="SavedDeckSelect"
- metrics.button(app.saved_select);expand(app.saved_select);app.saved_select.custom_minimum_size.x=metrics.body*8
- var rules=OptionButton.new();rules.name="DeckRuleSet";switchers.add_child(rules);metrics.button(rules)
+ editor_button(app.saved_select);expand(app.saved_select)
+ var rules=OptionButton.new();rules.name="DeckRuleSet";switchers.add_child(rules);editor_button(rules)
  for caption in app.RuleSet.LABELS:rules.add_item("规则："+caption)
  rules.select(maxi(0,app.RuleSet.IDS.find(str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))))
  rules.item_selected.connect(func(index):app.change_deck_rule_set(app.RuleSet.IDS[index]))
@@ -155,62 +174,115 @@ func build_management():
  tools_menu.add_theme_stylebox_override("pressed",app.style(Color("#615135"),app.GOLD))
  tools_menu.add_theme_stylebox_override("focus",app.style(Color.TRANSPARENT,app.GOLD))
  var back=action(management,"返回主菜单",func():app.guard(app.menu));back.name="DeckBackToMenu";expand(back,true)
+ for control in management.get_children():editor_button(control)
 
 func build_library_gallery(body: VBoxContainer):
  app.color_buttons.clear();app.library_sort_choice=null
- var gallery=HBoxContainer.new();gallery.name="LibraryGalleryPanes";body.add_child(gallery);expand(gallery,true)
- build_library_filters(column(gallery))
- var cards=column(gallery);cards.name="LibraryGalleryCards"
+ body.name="LibraryGalleryCards"
+ library_search_bar=HBoxContainer.new();library_search_bar.name="LibrarySearchBar";toolbar.add_child(library_search_bar);expand(library_search_bar)
+ toolbar.move_child(library_search_bar,1)
  var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 别名 / 颜色 / 类别";search.text=app.query
- search.custom_minimum_size.y=metrics.hit;cards.add_child(search)
+ library_search_bar.add_child(search);editor_button(search);expand(search)
+ search.placeholder_text="搜索卡名 / 颜色 / 类别"
+ search.custom_minimum_size.x=120
  search.clear_button_enabled=true
  search.text_changed.connect(func(value):app.query=value;app.update_library())
- library_status=text(cards,"",metrics.small);library_status.name="LibraryStatus"
+ library_filter_button=action(library_search_bar,"筛选",toggle_library_filters);editor_button(library_filter_button);library_filter_button.name="LibraryFilterButton"
+ library_status=text(body,"",metrics.small);library_status.name="LibraryStatus"
  library_status.clip_text=true
+ library_status.add_theme_font_size_override("font_size",22)
  library_status.add_theme_color_override("font_color",app.MUTED)
- library_scroll=ScrollContainer.new();library_scroll.name="LibraryScroll";cards.add_child(library_scroll);expand(library_scroll,true)
+ var gallery=HBoxContainer.new();gallery.name="LibraryGallerySides";body.add_child(gallery);expand(gallery,true)
+ var previous_rail=VBoxContainer.new();gallery.add_child(previous_rail)
+ var previous_space=Control.new();previous_rail.add_child(previous_space);expand(previous_space,true)
+ previous_library_page=page_arrow(previous_rail,-1,func():change_library_page(library_page-1));previous_library_page.name="PreviousLibraryPage"
+ var previous_bottom=Control.new();previous_rail.add_child(previous_bottom);expand(previous_bottom,true)
+ library_scroll=ScrollContainer.new();library_scroll.name="LibraryScroll";gallery.add_child(library_scroll);expand(library_scroll,true)
+ var next_rail=VBoxContainer.new();gallery.add_child(next_rail)
+ var next_space=Control.new();next_rail.add_child(next_space);expand(next_space,true)
+ next_library_page=page_arrow(next_rail,1,func():change_library_page(library_page+1));next_library_page.name="NextLibraryPage"
+ var next_bottom=Control.new();next_rail.add_child(next_bottom);expand(next_bottom,true)
  library_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  # DISABLED propagates the cards' previous minimum height into the root and
  # prevents the gallery from shrinking when the available height decreases.
  library_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
  library_scroll.set_meta("android_swipe_handled",true)
- app.library=GridContainer.new();app.library.name="LibraryCardGrid";app.library.columns=LIBRARY_PAGE_SIZE
+ app.library=GridContainer.new();app.library.name="LibraryCardGrid";app.library.columns=LIBRARY_COLUMNS
  app.library.add_theme_constant_override("h_separation",int(metrics.gap))
- library_scroll.add_child(app.library);expand(app.library)
- var pagination=HBoxContainer.new();pagination.name="LibraryPagination";cards.add_child(pagination)
- previous_library_page=page_arrow(pagination,-1,func():change_library_page(library_page-1));previous_library_page.name="PreviousLibraryPage"
+ app.library.add_theme_constant_override("v_separation",int(metrics.gap))
+ library_scroll.add_child(app.library)
+ app.library.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var pagination=HBoxContainer.new();pagination.name="LibraryPagination";body.add_child(pagination)
  library_page_label=text(pagination,"",metrics.small);library_page_label.name="LibraryPageLabel"
  library_page_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;expand(library_page_label)
- next_library_page=page_arrow(pagination,1,func():change_library_page(library_page+1));next_library_page.name="NextLibraryPage"
  var tutorial=action(pagination,"组卡教程",app.show_deck_tutorial);tutorial.name="LibraryDeckTutorialButton"
+ editor_button(tutorial)
+ build_library_filters()
 
-func build_library_filters(filters: VBoxContainer):
- filters.name="LibraryFilters";filters.size_flags_horizontal=Control.SIZE_FILL
- var kind=OptionButton.new();kind.name="LibraryKindFilter";filters.add_child(kind);metrics.button(kind)
- kind.custom_minimum_size.x=metrics.body*4+metrics.padding*2+metrics.hit*0.4
+func build_library_filters():
+ library_filter_overlay=Control.new();library_filter_overlay.name="LibraryFilterOverlay";app.screen.add_child(library_filter_overlay)
+ library_filter_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ library_filter_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+ var shade=ColorRect.new();shade.color=Color(0,0,0,0.76);library_filter_overlay.add_child(shade)
+ shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade.gui_input.connect(func(event):
+  if event is InputEventMouseButton and not event.pressed and event.button_index==MOUSE_BUTTON_LEFT:close_library_filters())
+ library_filter_popup=panel(library_filter_overlay);library_filter_popup.name="LibraryFilterPopup"
+ var filters=column(library_filter_popup);filters.name="LibraryFilters"
+ var heading=HBoxContainer.new();filters.add_child(heading)
+ var title=text(heading,"筛选卡牌",32);title.add_theme_color_override("font_color",app.GOLD);expand(title)
+ editor_button(action(heading,"关闭",close_library_filters))
+ var options=HBoxContainer.new();filters.add_child(options)
+ var type_column=column(options)
+ var sort_column=column(options)
+ text(type_column,"卡牌类型",24)
+ var kind=OptionButton.new();kind.name="LibraryKindFilter";type_column.add_child(kind);editor_button(kind)
  kind.fit_to_longest_item=false;kind.tooltip_text="类型筛选"
  for value in app.SearchAliases.ANDROID_FILTER_KINDS:kind.add_item("全部类型" if value=="全部" else value)
  kind.select(maxi(0,app.SearchAliases.ANDROID_FILTER_KINDS.find("自机单位" if app.filter_kind=="自机" else app.filter_kind)))
  kind.item_selected.connect(func(index):app.filter_kind=app.SearchAliases.ANDROID_FILTER_KINDS[index];app.update_library())
  app.enable_android_popup_swipe(kind.get_popup())
- # Six full-size touch targets can exceed a high-density phone's landscape
- # height. Scroll the colors locally so they cannot push either footer off screen.
- var color_scroll=ScrollContainer.new();color_scroll.name="LibraryColorScroll";filters.add_child(color_scroll);expand(color_scroll,true)
+ text(filters,"颜色（可以多选）",24)
+ var color_scroll=ScrollContainer.new();color_scroll.name="LibraryColorScroll";filters.add_child(color_scroll)
+ color_scroll.custom_minimum_size.y=metrics.hit*2+metrics.gap
  color_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  color_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
  color_scroll.set_meta("android_swipe_prefer_vertical",true)
- var colors=VBoxContainer.new();colors.name="LibraryColorFilters";color_scroll.add_child(colors);expand(colors,true)
+ var colors=GridContainer.new();colors.name="LibraryColorFilters";colors.columns=3;color_scroll.add_child(colors);expand(colors)
  var swatches=[Color("#344553"),Color("#a83035"),Color("#337aa7"),Color("#39794d"),Color("#ac963b"),Color("#383a42")]
  var values=["全部"]+app.SearchAliases.COLORS
  for i in range(values.size()):
   var value=values[i]
   var choice=action(colors,value,func():app.toggle_color(value));choice.name="LibraryColor"+value
-  choice.toggle_mode=true;expand(choice,true)
+  editor_button(choice);choice.toggle_mode=true;expand(choice)
   choice.add_theme_stylebox_override("normal",app.style(swatches[i]))
   choice.add_theme_stylebox_override("hover",app.style(swatches[i].lightened(0.15),app.GOLD))
   choice.add_theme_stylebox_override("pressed",app.style(swatches[i],app.GOLD))
   app.color_buttons[value]=choice
+ text(sort_column,"卡库排序",24)
+ var sort=OptionButton.new();sort.name="LibrarySortChoice";sort_column.add_child(sort);editor_button(sort)
+ sort.fit_to_longest_item=false
+ for mode in ["类别","颜色值","名字"]:sort.add_item(mode)
+ sort.select(maxi(0,["类别","颜色值","名字"].find(app.library_sort_mode)))
+ sort.item_selected.connect(func(index):app.library_sort_mode=["类别","颜色值","名字"][index];app.update_library())
+ app.library_sort_choice=sort;app.enable_android_popup_swipe(sort.get_popup())
  app.refresh_color_buttons()
+ library_filter_overlay.hide()
+
+func toggle_library_filters():
+ if library_filter_overlay.visible:close_library_filters()
+ else:
+  layout_library_filters()
+  library_filter_overlay.show()
+  library_filter_overlay.move_to_front()
+
+func close_library_filters():
+ if is_instance_valid(library_filter_overlay):library_filter_overlay.hide()
+
+func layout_library_filters():
+ if not is_instance_valid(library_filter_popup):return
+ library_filter_popup.size=Vector2(minf(800,app.screen.size.x-metrics.padding*2),app.screen.size.y-metrics.padding*2)
+ library_filter_popup.position=(app.screen.size-library_filter_popup.size)*0.5
 
 func page_arrow(parent: Node,direction: int,callback: Callable) -> Button:
  var arrow=LibraryPageArrow.new();arrow.direction=direction;parent.add_child(arrow)
@@ -231,7 +303,18 @@ func set_overview(value: bool):
  app.main_scroll.set_deferred("scroll_vertical",scroll_positions[overview])
 
 func apply_view():
- editor_heading.show()
+ close_library_filters()
+ editor_heading.visible=overview
+ library_search_bar.visible=not overview
+ if overview:
+  if app.name_label.get_parent()!=toolbar:app.name_label.reparent(toolbar)
+  toolbar.move_child(app.name_label,1)
+  editor_heading.size_flags_horizontal=Control.SIZE_FILL
+  expand(app.name_label)
+ else:
+  if app.name_label.get_parent()!=center:app.name_label.reparent(center)
+  center.move_child(app.name_label,0)
+  expand(editor_heading)
  switchers.visible=overview
  if not overview and overview_menu.get_parent()!=editor_root:overview_menu.reparent(editor_root)
  overview_menu.visible=overview;catalogue.visible=not overview
@@ -244,7 +327,8 @@ func apply_view():
 func relayout():
  if not is_instance_valid(columns):return
  deck_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL if overview else Control.SIZE_FILL
- deck_panel.custom_minimum_size.x=0 if overview else clampf(app.screen.size.x*0.30,metrics.hit*3.6,app.screen.size.x*0.42)
+ deck_panel.custom_minimum_size.x=0 if overview else clampf(app.screen.size.x*0.28,metrics.hit*3.4,app.screen.size.x*0.38)
+ layout_library_filters()
  resize_library();resize_grid()
  if is_instance_valid(detail_popup):
   detail_popup.size=Vector2(minf(1200,app.screen.size.x-metrics.padding*2),app.screen.size.y-metrics.padding*2)
@@ -254,15 +338,20 @@ func relayout():
 func resize_library():
  if not is_instance_valid(library_scroll) or library_scroll.size.x<100 or library_scroll.size.y<100:return
  var width=library_scroll.size.x
- var tile_width=maxf(1,(width-metrics.gap*(LIBRARY_PAGE_SIZE-1))/LIBRARY_PAGE_SIZE)
- library_tile_size=Vector2(tile_width,minf(library_scroll.size.y,tile_width*1.397+metrics.body+8))
+ var height=library_scroll.size.y
+ var row_height=maxf(1,(height-metrics.gap*(LIBRARY_ROWS-1))/LIBRARY_ROWS)
+ var tile_width=floorf(maxf(1,(width-metrics.gap*(LIBRARY_COLUMNS-1))/LIBRARY_COLUMNS))
+ library_tile_size=Vector2(tile_width,row_height)
+ app.library.custom_minimum_size.x=LIBRARY_COLUMNS*tile_width+metrics.gap*(LIBRARY_COLUMNS-1)
  for item in app.library.get_children():item.custom_minimum_size=library_tile_size
  queue_gallery_art()
 
 func update_library():
- var filters={"query":app.query,"kind":app.filter_kind,"colors":app.selected_colors.duplicate()}
+ var filters={"query":app.query,"kind":app.filter_kind,"colors":app.selected_colors.duplicate(),"sort":app.library_sort_mode}
  if filters!=library_filter_state:library_page=0
  library_filter_state=filters;library_filtered_ids=app.library_ids()
+ var selected_count=app.selected_colors.size()+int(app.filter_kind!="全部")+int(app.library_sort_mode!="类别")
+ library_filter_button.text="筛选" if selected_count==0 else "筛选 · %d" % selected_count
  library_pages=maxi(1,ceili(float(library_filtered_ids.size())/LIBRARY_PAGE_SIZE))
  library_page=clampi(library_page,0,library_pages-1)
  render_library_page()
@@ -279,7 +368,7 @@ func render_library_page():
  library_scroll.scroll_vertical=0
  app.set_meta("android_editor_library_page",library_page);app.set_meta("android_editor_library_filters",library_filter_state.duplicate(true))
  var rule_set=str(app.draft.get("rule_set",app.RuleSet.OFFICIAL))
- library_status.text="%d 张卡牌 · 点击查看详情并加入卡组" % library_filtered_ids.size() if not library_filtered_ids.is_empty() else "没有匹配的卡牌，试试其他关键词"
+ library_status.text="%d 张卡牌 · 长按查看详情并加入卡组" % library_filtered_ids.size() if not library_filtered_ids.is_empty() else "没有匹配的卡牌，试试其他关键词"
  library_page_label.text="%d / %d" % [library_page+1,library_pages]
  previous_library_page.disabled=library_page==0;next_library_page.disabled=library_page==library_pages-1
  resize_library()
@@ -295,17 +384,16 @@ func render_library_page():
   tile.texture_provider=func():return app.texture(id)
   tile.draggable=false;tile.set_meta("card_id",id)
   tile.custom_minimum_size=library_tile_size
-  tile.add_theme_stylebox_override("panel",metrics.panel_style())
+  tile.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
   app.library.add_child(tile)
-  var content=VBoxContainer.new();tile.add_child(content);content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-  content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_theme_constant_override("separation",2)
   var picture=TextureRect.new();picture.name="LibraryCardArt"
   picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-  content.add_child(picture);expand(picture,true);picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  tile.add_child(picture);picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  tile.resized.connect(func():layout_gallery_tile(tile))
   if not available:picture.modulate=Color(0.6,0.6,0.6)
-  var caption=HBoxContainer.new();content.add_child(caption);caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
-  caption.alignment=BoxContainer.ALIGNMENT_END
-  var inventory=text(caption,"余 %d" % remaining if remaining>=0 else "余 ∞",metrics.small)
+  var inventory=text(tile,"余 %d" % remaining if remaining>=0 else "余 ∞",metrics.small)
+  inventory.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  inventory.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
   inventory.name="LibraryRemaining"
   inventory.add_theme_color_override("font_color",app.GOLD if remaining!=0 else app.MUTED)
   var remaining_label: Label=inventory if available and remaining>=0 else null
@@ -320,6 +408,18 @@ func render_library_page():
   empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;app.library.add_child(empty)
  queue_gallery_art()
 
+func layout_gallery_tile(tile: Control):
+ var picture=tile.find_child("LibraryCardArt",true,false) as TextureRect
+ if picture==null:return
+ var caption_height=maxf(32,metrics.small*1.4)
+ var art_height=maxf(1,tile.size.y-caption_height-4)
+ var art_width=minf(tile.size.x,art_height/1.397)
+ picture.size=Vector2(art_width,art_width*1.397)
+ picture.position=Vector2((tile.size.x-picture.size.x)*0.5,0)
+ var inventory=tile.find_child("LibraryRemaining",true,false) as Label
+ inventory.position=Vector2(picture.position.x,picture.size.y+4)
+ inventory.size=Vector2(picture.size.x,caption_height)
+
 func queue_gallery_art():
  if gallery_art_pending:return
  gallery_art_pending=true;call_deferred("refresh_gallery_art")
@@ -330,6 +430,7 @@ func refresh_gallery_art():
  var visible_area=library_scroll.get_global_rect().grow(library_tile_size.y)
  for id in app.library_rows:
   var tile=app.library_rows[id].row
+  layout_gallery_tile(tile)
   var picture=tile.find_child("LibraryCardArt",true,false)
   if not visible_area.intersects(tile.get_global_rect()):picture.texture=null
   else:picture.texture=thumbnail(id)
@@ -348,29 +449,30 @@ func thumbnail(id: String) -> Texture2D:
  return result
 
 func update_deck():
+ if app.counts.get_parent()!=center:app.counts.reparent(center)
  if overview:
   update_overview_deck()
   return
  var old_scroll=app.main_scroll.scroll_vertical if is_instance_valid(app.main_scroll) else scroll_positions[false]
  app.free_children(app.deck_canvas);list_sections.clear();list_rows.clear();grid=null;side_grid=null
  for source in list_buttons:list_buttons[source].set_pressed_no_signal(source==list_zone)
- list_height=maxf(metrics.hit,metrics.body*2.4)
+ list_height=clampf(app.screen.size.y*0.05,36,44)
  app.main_scroll=ScrollContainer.new();app.main_scroll.name="DeckListScroll";app.deck_canvas.add_child(app.main_scroll);expand(app.main_scroll,true)
  app.main_scroll.set_meta("android_swipe_prefer_vertical",true)
  app.main_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  app.main_content=VBoxContainer.new();app.main_content.name="DeckListCards";app.main_scroll.add_child(app.main_content);expand(app.main_content)
  var width=maxf(1,app.deck_canvas.size.x-metrics.padding*2-20)
- text(app.main_content,"自机",metrics.small)
  var leader_section=Control.new();app.main_content.add_child(leader_section);leader_section.custom_minimum_size.y=list_height
  if app.draft.leader.is_empty():
   var choose=action(leader_section,"选择自机",app.open_leader_picker,true)
-  choose.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  editor_button(choose);choose.add_theme_font_size_override("font_size",24)
+  choose.name="ChooseDeckLeader";choose.custom_minimum_size=Vector2(150,list_height)
+  choose.size=choose.custom_minimum_size
  else:
   var leader=row_card(app.draft.leader,"leader",0,leader_section,width)
   leader.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  for source in [list_zone]:
   var entries=grouped_list(source);list_rows[source]=entries
-  text(app.main_content,("主卡组" if source=="main" else "副卡组")+"  %d" % app.draft[source].size(),metrics.small)
   var section=Control.new();section.name="MainDeckList" if source=="main" else "SideDeckList";app.main_content.add_child(section)
   var height=maxf(list_height,entries.size()*(list_height+deck_gap)-deck_gap)
   section.custom_minimum_size.y=height;list_sections[source]=section
@@ -409,10 +511,10 @@ func row_card(id: String,source: String,index: int,parent: Node,width: float,cop
  margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",4)
  var line=HBoxContainer.new();margin.add_child(line);line.mouse_filter=Control.MOUSE_FILTER_IGNORE
  line.add_theme_constant_override("separation",8)
- var name=text(line,app.Store.CARDS[id].name,metrics.small);name.name="DeckListName";name.clip_text=true;expand(name)
+ var name=text(line,app.Store.CARDS[id].name,22);name.name="DeckListName";name.clip_text=true;expand(name)
  name.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  if source!="leader":
-  var quantity=text(line,"×%d" % copies,metrics.small);quantity.name="DeckListQuantity"
+  var quantity=text(line,"×%d" % copies,22);quantity.name="DeckListQuantity"
   quantity.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;quantity.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   quantity.add_theme_color_override("font_color",app.GOLD)
  return tile
@@ -422,8 +524,8 @@ func remove_list_card(id: String,source: String,index: int):
  app.dirty=true;app.update_deck_rows();app.update_preview()
 
 func overview_geometry(width: float,height: float) -> Dictionary:
- var header_height=metrics.hit if main_pages>1 else metrics.small*1.4
- var menu_width=maxf(260,maxf(metrics.body*8+metrics.padding*2,overview_menu.get_minimum_size().x))
+ var header_height=metrics.hit if main_pages>1 else 34.0
+ var menu_width=maxf(260,maxf(28*8+metrics.padding*2,overview_menu.get_minimum_size().x))
  var available=width-menu_width-metrics.gap*3-deck_gap*(MAIN_COLUMNS+SIDE_COLUMNS-2)
  var width_limit=available/(MAIN_COLUMNS+SIDE_COLUMNS+2.5)
  var height_limit=(height-header_height-metrics.gap-deck_gap*(OVERVIEW_ROWS-1))/OVERVIEW_ROWS/1.397
@@ -431,7 +533,8 @@ func overview_geometry(width: float,height: float) -> Dictionary:
  var card_height=floorf(card_width*1.397)
  var grid_height=OVERVIEW_ROWS*card_height+(OVERVIEW_ROWS-1)*deck_gap
  var leader_available=available-(MAIN_COLUMNS+SIDE_COLUMNS)*card_width
- var hero_width=minf(leader_available,grid_height/1.397)
+ var stats_height=40+metrics.gap
+ var hero_width=minf(leader_available,maxf(1,(height-header_height-metrics.gap*2-stats_height)/1.397))
  menu_width+=maxf(0,leader_available-hero_width)
  return {"card":Vector2(card_width,card_height),
   "main_width":MAIN_COLUMNS*card_width+(MAIN_COLUMNS-1)*deck_gap,
@@ -461,7 +564,7 @@ func update_overview_deck():
  deck_columns=MAIN_COLUMNS;tile_size=geometry.card;leader_width=geometry.leader_width
  overview_panes=HBoxContainer.new();overview_panes.name="OverviewDeckPanes";app.deck_canvas.add_child(overview_panes);expand(overview_panes,true)
  var hero=column(overview_panes);hero.name="OverviewLeaderPane";hero.size_flags_horizontal=Control.SIZE_FILL;hero.custom_minimum_size.x=leader_width
- var hero_title=text(hero,"自机",metrics.small);hero_title.custom_minimum_size.y=geometry.header_height
+ var hero_title=text(hero,"自机",24);hero_title.custom_minimum_size.y=geometry.header_height
  hero_title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;hero_title.add_theme_color_override("font_color",app.GOLD)
  var leader=Control.new();hero.add_child(leader);leader.custom_minimum_size=Vector2(leader_width,leader_width*1.397)
  var leader_drop=app.make_drop_zone("leader",Rect2(0,0,leader_width,leader_width*1.397),leader)
@@ -470,15 +573,16 @@ func update_overview_deck():
   var hint=text(leader_drop,"选择自机",metrics.small);hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;hint.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  else:app.editor_card(app.draft.leader,"leader",0,Rect2(0,0,leader_width,leader_width*1.397),leader)
+ app.counts.reparent(hero);app.counts.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var left=column(overview_panes);left.name="OverviewMainPane"
  left.size_flags_horizontal=Control.SIZE_FILL;left.custom_minimum_size.x=geometry.main_width
  var heading=HBoxContainer.new();left.add_child(heading);heading.custom_minimum_size.y=geometry.header_height
- var caption=text(heading,"主卡组",metrics.small);expand(caption);caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ var caption=text(heading,"主卡组",24);expand(caption);caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  caption.add_theme_color_override("font_color",app.GOLD)
  if main_pages>1:
-  var previous=action(heading,"上一页",func():change_main_page(main_page-1));previous.name="PreviousMainPage";previous.disabled=main_page==0
-  text(heading,"%d / %d" % [main_page+1,main_pages],metrics.small)
-  var next=action(heading,"下一页",func():change_main_page(main_page+1));next.name="NextMainPage";next.disabled=main_page==main_pages-1
+  var previous=action(heading,"上一页",func():change_main_page(main_page-1));editor_button(previous);previous.name="PreviousMainPage";previous.disabled=main_page==0
+  text(heading,"%d / %d" % [main_page+1,main_pages],24)
+  var next=action(heading,"下一页",func():change_main_page(main_page+1));editor_button(next);next.name="NextMainPage";next.disabled=main_page==main_pages-1
  app.main_scroll=ScrollContainer.new();app.main_scroll.name="MainDeckScroll";left.add_child(app.main_scroll);expand(app.main_scroll,true)
  app.main_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  app.main_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -497,7 +601,7 @@ func update_overview_deck():
   else:overview_slot(grid)
  var right=column(overview_panes);right.name="OverviewSidePane"
  right.size_flags_horizontal=Control.SIZE_FILL;right.custom_minimum_size.x=geometry.side_width
- side_header=text(right,"副卡组",metrics.small)
+ side_header=text(right,"副卡组",24)
  side_header.custom_minimum_size.y=geometry.header_height
  side_header.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;side_header.add_theme_color_override("font_color",app.GOLD)
  side_scroll=ScrollContainer.new();side_scroll.name="SideDeckScroll";right.add_child(side_scroll);expand(side_scroll,true)

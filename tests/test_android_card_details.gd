@@ -43,6 +43,7 @@ func run():
  view.render();await settle()
  var at=view.hand_nodes[hand.uid].get_global_rect().get_center()
  var before=snapshot()
+ expect(not view.android_back_button.visible,"cancel stays hidden before selecting a card")
  await touch(at,true);await create_timer(0.55).timeout
  expect(not view.inspection.visible and is_instance_valid(view.android_card_touch.ring),"hand details stay closed before one second with visible hold feedback")
  expect(view.android_card_touch.ring.position.is_equal_approx(at),"hold ring appears at the touch point")
@@ -51,15 +52,29 @@ func run():
  expect(view.inspection.visible and view.inspect_id==hand.card_id,"native hand long press opens card rules before release")
  expect(snapshot()==before and view.local.is_empty(),"holding a hand card does not play or select it")
  var title=view.inspection.find_child("InspectionTitle",true,false)
- expect(title!=null and title.get_theme_font_size("font_size")>=app.ui_metrics.title,"card details use the larger title font")
+ expect(title!=null and title.get_theme_font_size("font_size")>=20,"card details keep a readable title font")
+ expect(view.inspection.get_global_rect().end.x>view.responsive.palette_rect.position.x and view.inspection.get_global_rect().end.x<=view.responsive.palette_rect.position.x+50,"card details use the empty gutter beside the battlefield")
+ expect(view.inspection.find_child("关闭详情",true,false)==null and find_button(view.inspection,"关闭详情")==null,"card details have no close button")
+ expect(view.inspection_text.scroll_active and view.inspection_text.size.x<=view.inspection.size.x-20 and view.inspection_text.size.y>200,"long card rules have a readable scrolling area")
  await shot("android-hand-long-press")
  await touch(at,false)
  await click(at)
- expect(snapshot()==before and view.local.is_empty(),"long press release and its mouse echo do not play the hand card")
- reset_details();await create_timer(0.3).timeout
+ expect(not view.inspection.visible and snapshot()==before and view.local.is_empty(),"mouse tap outside closes details without playing the hand card")
+ await create_timer(0.3).timeout
+ await hold(at);await release(at)
+ expect(view.inspection.visible,"holding the same hand card reopens details")
+ var mouse_echo=InputEventMouseButton.new();mouse_echo.device=-1;mouse_echo.position=at;mouse_echo.global_position=at
+ mouse_echo.button_index=MOUSE_BUTTON_LEFT;mouse_echo.pressed=true
+ root.push_input(mouse_echo,true);await process_frame
+ await touch(at,true);await touch(at,false)
+ mouse_echo=mouse_echo.duplicate();mouse_echo.pressed=false;root.push_input(mouse_echo,true);await process_frame
+ expect(not view.inspection.visible and snapshot()==before and view.local.is_empty(),"emulated mouse followed by native touch closes details without selecting the card")
+ await create_timer(0.3).timeout
  await tap(at)
  expect(view.local.get("uid",0)==hand.uid and not view.inspection.visible,"short hand tap keeps its play action without opening details")
+ expect(view.android_back_button.visible and view.android_back_button.text=="取消","selecting a hand card reveals the cancel button")
  view.cancel_cast();reset_details()
+ expect(not view.android_back_button.visible,"cancel hides after abandoning the selection")
  await touch(at,true)
  var cancel=InputEventScreenTouch.new();cancel.index=0;cancel.position=at;cancel.pressed=false;cancel.canceled=true
  root.push_input(cancel,true);await process_frame;await create_timer(1.12).timeout

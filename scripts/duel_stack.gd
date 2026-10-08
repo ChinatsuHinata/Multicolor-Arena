@@ -3,13 +3,15 @@ const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
 ## Screen-space stack, outside the battlefield's input and rendering rectangle.
 const AREA=Rect2(1358,148,236,452)
 const CARD_SIZE=Vector2(218,305)
-const ANDROID_CARD_SIZE=Vector2(92,128)
+const ANDROID_CARD_SIZE=Vector2(200,280)
 const ANDROID_PANEL_INSET=8.0
+const TOGGLE_SIZE=Vector2(90,90)
 var view
 var scroll: ScrollContainer
 var column: VBoxContainer
 var heading: Label
-var background: Panel
+var toggle_button: Button
+var collapsed=false
 var tiles={}
 var signature=""
 func chosen_mode(entry: Dictionary) -> String:
@@ -54,13 +56,7 @@ func entry_caption(entry: Dictionary) -> String:
  return caption+"\n"+mode if not mode.is_empty() else caption
 func build(owner_view):
  view=owner_view;position=AREA.position;size=AREA.size;mouse_filter=Control.MOUSE_FILTER_IGNORE
- if view.is_android:
-  clip_contents=true
-  background=view.host.box(self,Rect2(Vector2.ZERO,size),Color("#101c28"),Color("#637a93"))
-  background.name="StackBackground"
-  background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-  # The opaque panel also shields the leader beneath empty stack space.
-  background.mouse_filter=Control.MOUSE_FILTER_STOP
+ clip_contents=false
  heading=view.txt("",Rect2(3,0,230,29),20,view.host.GOLD,self)
  scroll=ScrollContainer.new();scroll.position=Vector2(0,33);scroll.size=Vector2(236,419)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
@@ -68,10 +64,40 @@ func build(owner_view):
  column=VBoxContainer.new()
  column.add_theme_constant_override("separation",6 if view.is_android else 15)
  column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
+ if view.is_android:
+  toggle_button=view.host.button(self,"›",Rect2(Vector2.ZERO,TOGGLE_SIZE),func():set_collapsed(not collapsed))
+  toggle_button.name="StackToggle"
+  toggle_button.add_theme_font_size_override("font_size",40)
+  toggle_button.z_index=2
+  resized.connect(update_toggle_position)
+  update_toggle_position()
+
+func set_collapsed(value: bool):
+ if not view.is_android:return
+ collapsed=value
+ apply_collapsed_state()
+ if is_instance_valid(view.responsive):view.responsive.position_persistent()
+
+func apply_collapsed_state():
+ if not view.is_android:return
+ heading.visible=not collapsed
+ scroll.visible=not collapsed
+ if is_instance_valid(toggle_button):
+  toggle_button.text="‹" if collapsed else "›"
+  toggle_button.tooltip_text="展开堆叠" if collapsed else "收起堆叠"
+  update_toggle_position()
+
+func update_toggle_position():
+ if not is_instance_valid(toggle_button):return
+ toggle_button.size=TOGGLE_SIZE
+ toggle_button.position=Vector2(maxf(0,size.x-TOGGLE_SIZE.x) if collapsed else -TOGGLE_SIZE.x,
+  maxf(0,minf(size.y-TOGGLE_SIZE.y,32)))
 func sync():
  var unresolved=view.engine.unresolved_stack_entries()
  visible=not unresolved.is_empty()
- heading.text="堆叠 %d\n从上往下结算" % unresolved.size() if view.is_android else "堆叠  %d" % unresolved.size()
+ if view.is_android and not view.table.targetable_stacks.is_empty():collapsed=false
+ apply_collapsed_state()
+ heading.text="堆叠  %d" % unresolved.size()
  var resolving_id=view.engine.pending.get("resolving_entry",view.engine.pending.get("trigger",{}).get("entry",{})).get("id",-1)
  var next=JSON.stringify(unresolved.map(func(e):return [e.id,e.get("ability_text",""),e.get("awaiting_target",false),chosen_mode(e),e.id==resolving_id]))
  if next!=signature:
@@ -83,12 +109,13 @@ func sync():
   for index in range(entries.size()):
    var entry=entries[index]
    var card=entry.card if entry.kind=="card" else entry.source
-   var row: BoxContainer=HBoxContainer.new() if view.is_android else VBoxContainer.new()
-   row.set_meta("stack_id",entry.id);row.add_theme_constant_override("separation",8 if view.is_android else 5)
+   var row=VBoxContainer.new()
+   row.set_meta("stack_id",entry.id);row.add_theme_constant_override("separation",5)
    column.add_child(row)
    var tile=preload("res://scripts/live_tooltip_panel.gd").new()
    var card_size=ANDROID_CARD_SIZE if view.is_android else CARD_SIZE
    tile.custom_minimum_size=Vector2(card_size.x,card_size.x*156.0/218.0) if view.host.landscape_card(card.card_id) else card_size
+   tile.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
    tile.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
    tile.set_meta("uid",card.uid);tile.set_meta("card_id",card.card_id);row.add_child(tile)
    if view.is_android:
@@ -106,26 +133,19 @@ func sync():
    var details: VBoxContainer
    if view.is_android:
     details=VBoxContainer.new()
-    details.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     details.add_theme_constant_override("separation",4)
     row.add_child(details)
     var order=Label.new();order.name="StackOrder"
     order.text="正在结算" if entry.id==resolving_id else "%d · %s" % [index+1,"先结算" if index==0 else "随后结算"]
     order.add_theme_font_size_override("font_size",view.host.ui_metrics.small)
-    order.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     order.add_theme_color_override("font_color",view.host.GOLD)
     order.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(order)
    var caption_text=entry_caption(entry)
    if entry.id==resolving_id and not view.is_android:caption_text="正在结算\n"+caption_text
    var caption=Label.new();caption.text=caption_text
-   caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size.x=details.custom_minimum_size.x if view.is_android else card_size.x
-   if view.is_android:
-    if entry.kind=="card" and entry.card.card_id in ["176","161","spell-htk-003"]:
-     caption.max_lines_visible=-1
-     caption.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
-    else:
-     caption.max_lines_visible=4
-     caption.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+   caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.custom_minimum_size.x=card_size.x
+   caption.max_lines_visible=-1
+   caption.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
    caption.add_theme_font_size_override("font_size",view.host.ui_metrics.small if view.is_android else 15);caption.add_theme_color_override("font_color",view.host.WHITE)
    caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.visible=not caption.text.is_empty()
    if view.is_android:details.add_child(caption)
@@ -149,11 +169,11 @@ func sync():
   tile.add_theme_stylebox_override("panel",style);tile.set_meta("selected",selected);tile.set_meta("legal",legal)
   ConditionalFrame.apply(tile,style,conditional and not selected)
 func entry_rect(id:int) -> Rect2:
- if not visible or not tiles.has(id):return Rect2()
+ if not visible or collapsed or not tiles.has(id):return Rect2()
  var rect=tiles[id].tile.get_global_rect().intersection(scroll.get_global_rect())
  return rect if rect.has_area() else Rect2()
 func arrow_rect(id:int) -> Rect2:
- if not visible or not tiles.has(id):return Rect2()
+ if not visible or collapsed or not tiles.has(id):return Rect2()
  return view.clipped_arrow_rect(tiles[id].tile.get_global_rect(),scroll.get_global_rect())
 func caption_for(entry: Dictionary) -> String:
  return entry_caption(entry)
@@ -162,6 +182,7 @@ func card_rect(uid:int) -> Rect2:
   if tiles[id].tile.get_meta("uid")==uid:return arrow_rect(id)
  return Rect2()
 func arrival_rect() -> Rect2:
+ if collapsed and is_instance_valid(toggle_button):return toggle_button.get_global_rect()
  return Rect2(scroll.get_global_rect().position,ANDROID_CARD_SIZE if view.is_android else CARD_SIZE)
 func inspect_at(point:Vector2) -> bool:
  for id in tiles:

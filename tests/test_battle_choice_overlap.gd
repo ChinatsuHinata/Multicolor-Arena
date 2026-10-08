@@ -63,7 +63,7 @@ func check_state(prefix: String,actions: bool):
  if not is_instance_valid(restore):return
  check_button_clear(restore,label+" expand")
  expect(view.stack_panel.is_visible_in_tree(),label+" hidden popup exposes the stack")
- expect(view.stack_panel.scroll.size.y>=view.stack_panel.ANDROID_CARD_SIZE.y if view.is_android else view.stack_panel.scroll.size.y>=view.stack_panel.CARD_SIZE.y,label+" hidden popup exposes a complete stack card")
+ expect(view.stack_panel.scroll.size.y>=180 if view.is_android else view.stack_panel.scroll.size.y>=view.stack_panel.CARD_SIZE.y,label+" hidden popup leaves a readable, scrollable stack area")
  if view.stack_panel.is_visible_in_tree():
   var bar=view.stack_panel.scroll.get_v_scroll_bar()
   view.stack_panel.scroll.scroll_vertical=roundi(bar.max_value-bar.page);await frames()
@@ -74,8 +74,12 @@ func check_state(prefix: String,actions: bool):
   await shot(label.replace(" ","-")+"-hidden")
  var menu=view.hud.find_child("BattleTools",true,false) as Button
  await click(menu.get_global_rect().get_center());await frames()
- expect(app.menu_popup_open() and snapshot()==before,label+" menu remains clickable after hiding")
- app.close_menu_popup();await frames()
+ if view.is_android:
+  expect(is_instance_valid(view.android_battle_menu_root) and snapshot()==before,label+" unified menu preserves a hidden choice")
+  view.close_android_battle_menu();await frames()
+ else:
+  expect(app.menu_popup_open() and snapshot()==before,label+" menu remains clickable after hiding")
+  app.close_menu_popup();await frames()
  await click(restore.get_global_rect().get_center());await frames()
  expect(is_instance_valid(view.android_choice_panel) and snapshot()==before,label+" expand restores the popup without submitting an action")
  check_button_clear(find_button(view.android_choice_panel,"隐藏"),label+" restored hide")

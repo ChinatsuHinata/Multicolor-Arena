@@ -6,9 +6,9 @@ $project = Get-Content -LiteralPath (Join-Path $root 'project.godot') -Raw -Enco
 $match = [regex]::Match($project, '(?m)^config/version="([^"]+)"\r?$')
 if (-not $match.Success) { throw 'project.godot is missing config/version.' }
 $version = $match.Groups[1].Value
-$numberMatch = [regex]::Match($version, '^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$')
+$numberMatch = [regex]::Match($version, '^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$')
 if (-not $numberMatch.Success) {
-    throw "Export version must be three or four numeric components: $version"
+    throw "Export version must have three or four numeric components and an optional prerelease suffix: $version"
 }
 $parts = @(1..4 | ForEach-Object { $numberMatch.Groups[$_].Value }) | ForEach-Object {
     if ([string]::IsNullOrEmpty($_)) { 0 } else { [int]$_ }
