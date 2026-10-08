@@ -110,7 +110,7 @@
 | 安卓使用牌区域入口、五种区域切换、慧音吞食对方牌的使用与支付取消、三种视角及高密度 2D／3D 避让、桌面页签保留；有界面运行时保存截图 | `test_android_cast_zones.gd` |
 | 安卓弹窗容量、60 个长选项、40 项右侧菜单、联机堆叠避让及空颜色盘提示 | `test_android_popup_capacity.gd` |
 | 联机状态保存与投影 | `test_network_state.gd` |
-| 联机战斗悔棋与逐步回放 | `test_network_undo.gd` |
+| 悔棋回到双方可操作的战况：跳过空响应阶段、保留合法高速或异能及主要阶段，双方同意／拒绝、观战同步与回放裁剪，桌面／安卓自动推进暂停 | `test_undo_checkpoints.gd`、`test_network_undo.gd`、`test_undo_ui.gd` |
 | 回放双方完整手牌与结束后同步 | `test_replay_hands.gd`、`test_replay_hands_ui.gd` |
 | 回放训练标注、文件与界面 | `test_replay_training.gd`、`test_replay_training_ui.gd` |
 | 联机与断线恢复 | `test_network.gd`、`test_disconnect_wait_ui.gd` |

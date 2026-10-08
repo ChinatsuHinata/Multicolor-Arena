@@ -76,11 +76,12 @@ func run():
  expect(find_button(view.hud,"悔棋")==null,"PC has no separate undo button")
  view.observe_rewind({"sequence":41,"rewinds":[{"id":41,"from":view.local_seat}]})
  var paused_until=view.undo_auto_pause_until
- expect(paused_until-Time.get_ticks_msec()>3900,"approved undo pauses the requester's automatic actions for four seconds")
+ expect(paused_until-Time.get_ticks_msec()>3900,"approved undo pauses this player's automatic actions for four seconds")
  view.observe_rewind({"sequence":41,"rewinds":[{"id":41,"from":view.local_seat}]})
  expect(view.undo_auto_pause_until==paused_until,"repeated snapshot does not restart the pause")
+ await create_timer(0.03).timeout
  view.observe_rewind({"sequence":42,"rewinds":[{"id":42,"from":1-view.local_seat}]})
- expect(view.undo_auto_pause_until==paused_until,"opponent undo does not pause this side")
+ expect(view.undo_auto_pause_until>paused_until,"opponent undo also pauses this side's automatic actions")
  var previous_phase=view.engine.phase
  var previous_active=view.engine.active
  app.auto_camera_focus=true

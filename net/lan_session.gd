@@ -799,14 +799,14 @@ func handle_undo_action(actor: int,action: Dictionary):
  if name=="undo_request":
   if not undo_request.is_empty():return reject(actor,"已有悔棋请求")
   if int(action.get("_expected",-1))!=sequence or action.get("_game","")!=series.state.game_id:return reject(actor,"战况已更新，请重新发起悔棋")
-  if not undo_history.available(authority,series.state.game_id):return reject(actor,"对抗为空且有上一战况时才能悔棋")
-  undo_request={"id":Identity.token(),"from":actor,"game":series.state.game_id,"target":undo_history.previous().sequence}
+  if not undo_history.available(authority,series.state.game_id):return reject(actor,"对抗为空且有上一可操作战况时才能悔棋")
+  undo_request={"id":Identity.token(),"from":actor,"game":series.state.game_id,"target":undo_history.previous(authority,series.state.game_id).sequence}
  elif name in ["undo_accept","undo_decline","undo_cancel"]:
   if undo_request.is_empty() or action.get("ticket","")!=undo_request.id:return reject(actor,"悔棋请求已失效")
   if name=="undo_cancel" and actor!=undo_request.from or name!="undo_cancel" and actor==undo_request.from:return reject(actor,"只能由另一位玩家决定是否同意")
   if name=="undo_accept":
    var old=Codec.capture(authority);var checkpoints=undo_history.entries.duplicate();var request=undo_request.duplicate(true)
-   var restored=undo_history.restore_previous(authority)
+   var restored=undo_history.restore_previous(authority,series.state.game_id)
    if restored.is_empty():return reject(actor,"无法恢复上一战况")
    var old_receipt=receipts[actor];receipts[actor]=replying[actor]
    sequence+=1;restored.id=sequence;restored.from=request.from;rewind_events.append(restored);undo_request={};refresh_undo_status()

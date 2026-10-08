@@ -941,7 +941,8 @@ func observe_rewind(packet: Dictionary):
  if id<=last_rewind_id:return
  last_rewind_id=id
  if network_session==null or network_session.replay_mode or network_session.read_only:return
- if id!=int(packet.get("sequence",-1)) or int(latest.get("from",-1))!=local_seat:return
+ if id!=int(packet.get("sequence",-1)):return
+ # Both players can review and act on the restored decision before auto-passing.
  undo_auto_pause_until=Time.get_ticks_msec()+UNDO_AUTO_PAUSE_MS
  clock_time=0
 

@@ -37,35 +37,118 @@ func finish_combat():
   if not e.pending.is_empty():break
   await passes()
  check(e.combat.is_empty() and e.pending.is_empty(),"combat completed")
-func undo_to(before: Dictionary,target_sequence: int):
+func undo_to(before: Dictionary,target_sequence: int,requesting_seat: int=1):
  var frames=[]
  for session in [host,guest,watcher]:
   var count=0
   for i in range(session.recording.frames.size()):
    if session.recording.frame(i).sequence<=target_sequence:count+=1
   frames.append(count)
- guest.room_action({"name":"undo_request"})
+ var requester=host if requesting_seat==0 else guest
+ var responder=guest if requesting_seat==0 else host
+ requester.room_action({"name":"undo_request"})
  check(await until(func():return not host.undo_request.is_empty() and not guest.room.get("undo_request",{}).is_empty()),"undo request synchronized")
  if host.undo_request.is_empty():return
- check(host.undo_request.target==target_sequence,"undo targets state before attack")
+ check(host.undo_request.target==target_sequence,"undo targets the previous actionable state")
  check(not host.can_act(true) and not guest.can_act(true),"agreement locks both players")
  var sequence=host.sequence
- host.room_action({"name":"undo_accept","ticket":host.undo_request.id})
+ responder.room_action({"name":"undo_accept","ticket":host.undo_request.id})
  check(await until(func():return host.sequence>sequence and guest.sequence==host.sequence and watcher.sequence==host.sequence and host.can_act() and guest.can_act()),"approved undo synchronized to players and spectator")
- check(not host.rewind_events.is_empty() and int(host.rewind_events.back().get("from",-1))==1,"rewind snapshot identifies the requesting seat")
+ check(not host.rewind_events.is_empty() and int(host.rewind_events.back().get("from",-1))==requesting_seat,"rewind snapshot identifies the requesting seat")
  sync_views()
- check(host.Codec.capture(e)==before,"undo restores complete pre-attack graph and RNG")
+ check(host.Codec.capture(e)==before,"undo restores the complete selected state and RNG")
  check(host.latest_snapshot.recovery and guest.latest_snapshot.recovery and watcher.latest_snapshot.recovery,"all viewers discard combat animations")
- check(host.recording.frames.size()==frames[0] and guest.recording.frames.size()==frames[1] and watcher.recording.frames.size()==frames[2],"all replays discard the entire combat branch")
+ check(host.recording.frames.size()==frames[0] and guest.recording.frames.size()==frames[1] and watcher.recording.frames.size()==frames[2],"all replays discard the entire rewound branch")
  check(host.latest_snapshot.projection.state.combat.is_empty() and guest.latest_snapshot.projection.state.combat.is_empty(),"neither player returns to an intermediate combat step")
+
+func exchange_fixture() -> Dictionary:
+ fresh()
+ var incoming=put("119","hand")
+ var outgoing=put("53","palette")
+ e.phase="possession";e.pending={"kind":"possession","owner":0}
+ return {"palette":outgoing.uid,"hand":incoming.uid}
+
+func response_for(seat: int) -> bool:
+ var saved={}
+ for key in ["priority","catalogue_target_fast","catalogue_x_override","catalogue_x_source","catalogue_retargeting","paid_cast_uid","forced_cast","revision"]:saved[key]=e.get(key)
+ var memo=e.payment_memo.duplicate(true);var groups=e.payment_groups.duplicate(true)
+ e.priority=seat
+ var answer=e.has_response(seat)
+ for key in saved:e.set(key,saved[key])
+ e.payment_memo=memo;e.payment_groups=groups
+ return answer
+
+func phase_undo_cases():
+ # Completing an exchange leaves only pass commands before the main phase.
+ var exchange=exchange_fixture()
+ await checkpoint();var before=host.Codec.capture(e);var target=host.sequence
+ await send(0,{"name":"possession","args":[exchange.palette,exchange.hand]})
+ check(e.phase=="possession" and e.pending.is_empty() and not response_for(0) and not response_for(1),"completed exchange has no legal fast card or activated ability for either seat")
+ await passes()
+ check(e.phase=="main" and host.room.undo_available,"entering main still permits an agreed undo")
+ var unchanged=host.Codec.capture(e);var sequence=host.sequence
+ host.room_action({"name":"undo_request"})
+ check(await until(func():return not host.undo_request.is_empty() and not guest.room.get("undo_request",{}).is_empty()),"host can request a phase undo")
+ if not host.undo_request.is_empty():
+  guest.room_action({"name":"undo_decline","ticket":host.undo_request.id})
+  check(await until(func():return host.undo_request.is_empty() and guest.room.get("undo_request",{}).is_empty() and watcher.room.get("undo_request",{}).is_empty() and host.can_act(true) and guest.can_act(true)),"declining clears the request for both players and spectator")
+  check(host.sequence==sequence and host.Codec.capture(e)==unchanged,"declining never rewinds the phase or game state")
+ await undo_to(before,target,0)
+ check(e.phase=="possession" and e.pending.get("kind","")=="possession" and not host.room.undo_available,"main undo skips the no-action response window and returns to exchange selection")
+
+ # A legal opponent response preserves the same phase even without local actions.
+ exchange=exchange_fixture()
+ var response=put("177","hand",1);e.cards["177"].cost={}
+ var recipient=put("53","field",1);recipient.tapped=true
+ await checkpoint();var exchange_before=host.Codec.capture(e);var exchange_sequence=host.sequence
+ await send(0,{"name":"possession","args":[exchange.palette,exchange.hand]})
+ check(not response_for(0) and response_for(1),"opponent alone can legally play a fast card after the exchange")
+ before=host.Codec.capture(e);target=host.sequence
+ await passes();await undo_to(before,target)
+ check(e.phase=="possession" and e.pending.is_empty() and e.find_card(response.uid).zone=="hand","undo preserves the opponent's legal fast response window")
+ await undo_to(exchange_before,exchange_sequence,0)
+ check(e.pending.get("kind","")=="possession" and not host.room.undo_available,"a second agreed undo reaches the exchange boundary without crossing its start")
+
+ # A genuine field activation must also prevent skipping a response window.
+ exchange=exchange_fixture();var source=put("token-fdf-127")
+ await checkpoint()
+ await send(0,{"name":"possession","args":[exchange.palette,exchange.hand]})
+ check(e.available_actions(0,source.uid).any(func(action):return action.type=="extension" and action.enabled),"grilled lamprey has a legal sacrifice activation outside main")
+ before=host.Codec.capture(e);target=host.sequence
+ await passes();await undo_to(before,target,0)
+ check(e.phase=="possession" and e.pending.is_empty() and e.find_card(source.uid).zone=="field","undo preserves a phase with a legal activated ability")
+
+ # End, preparation and draw can all have no player decision between boundaries.
+ fresh()
+ e.players[1].deck=[]
+ put("119","deck",1);put("119","deck",1);put("53","palette",1)
+ await checkpoint();before=host.Codec.capture(e);target=host.sequence
+ await passes();check(e.phase=="end","main advances to the empty end window")
+ await passes();check(e.phase=="prepare" and e.active==1,"empty end advances to the opponent preparation")
+ await passes();check(e.phase=="draw" and not response_for(0) and not response_for(1),"opponent draw has no legal response")
+ await passes();check(e.pending.get("kind","")=="possession" and e.active==1,"later exchange remains a real decision")
+ await undo_to(before,target)
+ check(e.phase=="main" and e.active==0 and not host.room.undo_available,"one undo skips all automatic end, preparation and draw checkpoints")
+
+ # Main itself remains a choice: the active player can choose to end the phase.
+ await passes();check(e.phase=="end","main can advance again after a rewind")
+ await undo_to(before,host.undo_history.entries[0].sequence,0)
+ check(e.phase=="main","undo from end retains the active player's main phase")
+
+ var boundary=Undo.new();boundary.remember(e,"round-a",1)
+ e.revision+=1;boundary.remember(e,"round-a",2)
+ check(boundary.available(e,"round-a"),"same-round actionable states remain undoable")
+ boundary.remember(e,"round-b",3)
+ check(boundary.entries.size()==1 and not boundary.available(e,"round-b"),"starting a different game removes all previous-round undo targets")
 
 func run():
  host=Session.new();guest=Session.new();root.add_child(host);root.add_child(guest)
  var storage="res://work/network-undo/"+str(Time.get_ticks_usec())
  host.initialize(storage+"/host");guest.initialize(storage+"/guest")
  host.error_raised.connect(func(_message):pass);guest.error_raised.connect(func(_message):pass)
- check(host.create_room(3,false,47989,"127.0.0.1").is_empty(),"host listens")
- guest.join_room("127.0.0.1",47989)
+ var game_port=49000+int(Time.get_ticks_usec()%10000)
+ check(host.create_room(3,false,game_port,"127.0.0.1").is_empty(),"host listens")
+ guest.join_room("127.0.0.1",game_port)
  check(await until(func():return not host.applicant.is_empty()),"guest joins")
  host.accept_applicant(true)
  check(await until(func():return host.can_act() and guest.can_act()),"both connected")
@@ -74,8 +157,10 @@ func run():
  await until(func():return guest.sequence==host.sequence)
  await prepare()
  watcher=Session.new();root.add_child(watcher);watcher.initialize(storage+"/watcher")
- watcher.join_spectator("127.0.0.1",47989)
+ watcher.join_spectator("127.0.0.1",game_port)
  check(await until(func():return not watcher.latest_snapshot.is_empty()),"spectator connected")
+
+ await phase_undo_cases()
 
  # An unblocked attack includes its resource payment and damage window.
  fresh();var attacker=put("53");put("spell-ucs-031","field",1);var resource=put("164","palette")
