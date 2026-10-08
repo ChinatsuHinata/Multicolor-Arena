@@ -147,20 +147,25 @@ func run():
   for cloud in [false,true]:
    var session=Session.new();root.add_child(session)
    session.initialize(output.path_join("session-"+str(android)+"-"+str(cloud)));session.set_process(false)
-   session.is_host=true;session.cloud_mode=cloud;session.cloud_slot=1;session.seat=0
+   var own_seat=1 if cloud else 0
+   session.is_host=true;session.cloud_mode=cloud;session.cloud_slot=own_seat+1;session.seat=own_seat
    session.cloud_seats=["房主","玩家","","","","","",""]
    session.room_id="picker-test-room";session.connected=true;session.paused=false
    session.series.setup(1,false,"test");session.series.state.names=["房主","玩家"]
-   session.room=session.series.public_state(0);app.lan_session=session;app.online();await frames()
+   session.room=session.series.public_state(own_seat);app.lan_session=session;app.online();await frames()
    var lobby=app.screen.get_children().filter(func(child):return child.get_script()==preload("res://net/lan_lobby.gd"))[0]
    var pick=app.screen.find_child("NetworkDeckSelect",true,false)
    expect(pick is Button and not pick is OptionButton,"LAN and cloud room selectors use gallery buttons")
    await activate(pick);await choose_fixture("picker_13")
    expect(app.page=="online" and app.decks[lobby.deck_index].id=="picker_13","room gallery returns the selected deck to its lobby")
-   expect(session.series.state.decks[0].is_empty(),"gallery selection preserves the explicit room registration action")
+   expect(session.series.state.decks[own_seat].get("id","")=="picker_13" and not session.room.ready[own_seat],"room gallery registers the selected deck and clears previous ready")
+   if cloud:
+    # This isolated fixture has no relay peer to send the normal synchronization acknowledgment.
+    session.paused=false;lobby.refresh(true);await frames()
    var register=find_button(app.screen,"选择此卡组")
    await activate(register)
-   expect(session.series.state.decks[0].get("id","")=="picker_13","room registration submits the deck selected in the gallery")
+   expect(session.series.state.decks[own_seat].get("id","")=="picker_13","room registration submits the deck selected in the gallery")
+   if cloud:session.paused=false;lobby.refresh(true);await frames()
    if android:
     app.online();await frames()
     lobby=app.screen.get_children().filter(func(child):return child.get_script()==preload("res://net/lan_lobby.gd"))[0]

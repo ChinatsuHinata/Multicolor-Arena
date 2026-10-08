@@ -15,6 +15,38 @@ func shot(title: String):
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png("res://work/tutorial-interaction/"+title+".png")
 
+func check_focus_card(guide,flow,id: String):
+ var at=guide.focus_card.get_global_rect().get_center()
+ var step_id=flow.current_step;var generation=flow.epoch
+ var before=flow.adapter.ui_deck.duplicate(true);var completed=flow.completed_steps.duplicate(true)
+ var selected=guide.selected_answer;var message=guide.message.text
+ await touch(at,true);await touch(at,false);await create_timer(1.12).timeout
+ expect(guide.inspection_id.is_empty(),"Android short focus-card tap leaves details closed in "+step_id)
+ await touch(at,true);await create_timer(0.55).timeout
+ expect(guide.inspection_id.is_empty() and is_instance_valid(guide.focus_hold_ring),"Android focus card shows hold feedback before one second in "+step_id)
+ await create_timer(0.57).timeout
+ expect(guide.inspection_id==id and is_instance_valid(guide.inspection_overlay),"Android focus-card hold opens details before release in "+step_id)
+ expect(guide.inspection_art.texture==guide.focus_card.texture,"Android focus details preserve the displayed artwork in "+step_id)
+ expect(app.ui_metrics.safe.grow(1).encloses(guide.inspection_popup.get_global_rect()),"Android focus details fit the safe area in "+step_id)
+ await touch(at,false);await click(at)
+ expect(flow.current_step==step_id and flow.epoch==generation and flow.completed_steps==completed and flow.action_failures.is_empty(),"Android focus inspection and mouse echo keep tutorial progress in "+step_id)
+ expect(flow.adapter.ui_deck==before and guide.selected_answer==selected,"Android focus inspection keeps the teaching deck and answer in "+step_id)
+ await shot("Android-"+step_id+"-focus-details")
+ var close=guide.find_child("TutorialCloseCardDetails",true,false)
+ await click(close.get_global_rect().get_center());await frames()
+ expect(guide.inspection_id.is_empty() and guide.middle.visible and guide.message.text==message,"Android closing focus details restores the same dialogue in "+step_id)
+ await touch(at,true)
+ var drag_event=InputEventScreenDrag.new();drag_event.index=0;drag_event.position=at+Vector2(30,0);drag_event.relative=Vector2(30,0)
+ root.push_input(drag_event,true);await create_timer(1.12).timeout;await touch(drag_event.position,false)
+ expect(guide.inspection_id.is_empty(),"Android focus-card movement cancels inspection in "+step_id)
+ await touch(at,true)
+ var cancel=InputEventScreenTouch.new();cancel.index=0;cancel.position=at;cancel.pressed=false;cancel.canceled=true
+ root.push_input(cancel,true);await create_timer(1.12).timeout
+ expect(guide.inspection_id.is_empty(),"Android interrupted focus touch cancels inspection in "+step_id)
+ await touch(at,true);guide.notification(Control.NOTIFICATION_APPLICATION_PAUSED)
+ await create_timer(1.12).timeout;await touch(at,false)
+ expect(guide.inspection_id.is_empty(),"Android pausing cancels focus inspection in "+step_id)
+
 func check_deck(mobile: bool):
  app.is_android=mobile;app.layout_dpi_override=240 if mobile else 0
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND if mobile else Window.CONTENT_SCALE_ASPECT_KEEP
@@ -60,8 +92,21 @@ func check_deck(mobile: bool):
   guide.close_card_details()
  expect(flow.next() and flow.current_step=="d2",label+" ordinary dialogue advances without performing an operation")
  await frames()
+ while flow.current_step!="d9":flow.next()
+ await frames()
+ if mobile:
+  await check_focus_card(guide,flow,"74")
+  var at=guide.focus_card.get_global_rect().get_center()
+  await touch(at,true);guide.set_popup(false)
+  await create_timer(1.12).timeout;await touch(at,false)
+  expect(guide.inspection_id.is_empty(),"Android hiding the guide cancels focus inspection")
+  guide.set_popup(true);await frames()
+  await touch(at,true);flow.next()
+  await create_timer(1.12).timeout;await touch(at,false)
+  expect(flow.current_step=="d10" and guide.inspection_id.is_empty(),"Android changing steps cancels focus inspection")
  while flow.current_step!="q1":flow.next()
  await frames()
+ if mobile:await check_focus_card(guide,flow,"spell-fdn-008")
  expect(not flow.authorize_ui_action("editor.inspect",{"card_id":"74"}),label+" answer dialogue blocks background deck input")
  expect(flow.current_step=="q1" and flow.action_failures.is_empty(),label+" blocked quiz background input is not a task failure")
 

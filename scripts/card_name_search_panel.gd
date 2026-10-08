@@ -56,7 +56,7 @@ func _ready():
  preview_card=VBoxContainer.new();preview_card.name="CardPreview";left.add_child(preview_card);preview_card.size_flags_vertical=Control.SIZE_EXPAND_FILL
  var right=VBoxContainer.new();root.add_child(right);right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  right.custom_minimum_size.x=layout_metrics.hit*6+layout_metrics.gap*5
- search_input=LineEdit.new();search_input.name="SearchInput";search_input.placeholder_text="搜索名称 / 编号 / 颜色 / 类别";search_input.text=query
+ search_input=LineEdit.new();search_input.name="SearchInput";search_input.placeholder_text="搜索名称 / 描述 / 编号 / 颜色 / 类别";search_input.text=query
  search_input.custom_minimum_size.y=layout_metrics.hit;right.add_child(search_input)
  search_input.text_changed.connect(func(value):query=value;update_results())
  if show_filter_controls:

@@ -61,6 +61,15 @@ func trigger_conditions():
  expect(Capture.trigger(r,-1,existing).is_empty() and Capture.trigger(r,5,existing).is_empty(),"invalid trigger selection is rejected")
  var last=Capture.trigger(r,1,existing)
  expect(last.action=="pass_priority" and not last.has("sequence"),"recording without subsequent opponent actions preserves configured response")
+ var attack_record=make_recorder();attack_record.adapter.engine.attack(0,int(attack_record.adapter.entity("attacker").uid));attack_record.finish()
+ var preset=existing.duplicate(true);preset.action={"type":"block","priorities":[{"strategy":"all"}]}
+ var captured=Capture.trigger(attack_record,0,preset)
+ expect(captured.event=="state_changed" and captured.when=={"type":"combat_attacker","alias":"attacker"} and not captured.has("on_action") and captured.action==preset.action,"recorded player attack updates preset subject and preserves blocker priorities")
+ preset.when={"type":"combat_attacker_rank","player":0,"key":"spirit","count_player":1};preset.otherwise="no_block"
+ captured=Capture.trigger(attack_record,0,preset)
+ expect(not captured.has("otherwise") and captured.when.type=="combat_attacker","recording a specific attack removes the previous automatic rank fallback")
+ captured=Capture.trigger(r,0,preset)
+ expect(captured.has("sequence") and not captured.has("otherwise"),"recording a fixed response removes automatic decline from the sequence rule")
 
 func generated_conditions():
  var r=Recorder.new();var reason=r.configure(Generated.scene(),Store.CARDS)

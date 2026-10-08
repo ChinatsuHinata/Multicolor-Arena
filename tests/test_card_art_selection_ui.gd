@@ -26,9 +26,50 @@ func check_gallery(prefix: String):
  if not is_instance_valid(panel):return
  var grid=panel.find_child("RegionChoiceGrid",true,false)
  expect(grid!=null and grid.get_meta("columns",1)>=mini(2,view.region_tiles.size()),prefix+" card art uses multiple columns when there are multiple cards")
- expect(grid.find_children("*","Button",true,false).is_empty() and grid.find_children("*","Label",true,false).is_empty(),prefix+" cards have no name buttons or name labels")
+ expect(grid.find_children("*","Button",true,false).is_empty() and grid.find_children("*","Label",true,false).all(func(label):return label.name=="RegionOwnerLabel"),prefix+" cards have no name buttons or name labels")
+ for tile in view.region_tiles.values():
+  var card=view.region_card(tile.get_meta("choice_atom"))
+  var owner_label=tile.get_parent().get_node_or_null("RegionOwnerLabel")
+  if card.zone=="grave":
+   expect(owner_label!=null and owner_label.text==view.player_caption(card.owner)+"的墓地",prefix+" grave card identifies its graveyard owner")
+  else:expect(owner_label==null,prefix+" other zones have no graveyard owner label")
  expect(app.ui_metrics.safe.grow(1).encloses(panel.get_global_rect()),prefix+" gallery stays in the safe area")
  expect(panel.get_global_rect().encloses(panel.find_child("RegionConfirm",true,false).get_global_rect()),prefix+" confirmation stays inside the gallery")
+
+func grave_owners_flow(prefix: String):
+ clean(true)
+ var source=put("character-fdn-043","field")
+ var own=put("53","grave")
+ for who in range(2):
+  for i in range(5):put("164","grave",who)
+ var other=put("53","grave",1)
+ await reset_presentations()
+ view.begin_action({"type":"extension","uid":source.uid,"key":"character-fdn-043"});await frames()
+ check_gallery(prefix+" Fujimi graveyards")
+ expect(view.region_tiles.size()==12,prefix+" Fujimi shows both complete graveyards")
+ for uid in view.region_tiles:
+  var tile=view.region_tiles[uid]
+  var label=tile.get_parent().get_node("RegionOwnerLabel")
+  expect(label.get_meta("region_owner")==e.find_card(uid).owner,prefix+" identical card art retains the correct graveyard owner")
+  expect(label.get_global_rect().end.y<=tile.get_global_rect().position.y and tile.get_parent().get_global_rect().encloses(label.get_global_rect()),prefix+" owner label stays above the card inside its cell")
+ var scroll=view.android_choice_panel.find_child("RegionChoiceScroll",true,false)
+ scroll.scroll_vertical=0;await frames()
+ await tap_card(own.uid)
+ scroll.scroll_vertical=10000;await frames()
+ await tap_card(other.uid)
+ expect(view.region_batch.size()==2 and view.region_batch.any(func(atom):return atom.value.uid==own.uid) and view.region_batch.any(func(atom):return atom.value.uid==other.uid),prefix+" same-name cards in different graveyards can both be selected")
+ await shot(prefix+"-fujimi-graveyard-owners")
+ var hide=view.android_choice_panel.get_node("AndroidChoiceHide" if view.is_android else "DesktopChoiceHide")
+ await click(hide.get_global_rect().get_center());await frames()
+ await click(view.android_choice_restore.get_global_rect().get_center());await frames()
+ check_gallery(prefix+" Fujimi restored")
+ expect(view.region_batch.size()==2,prefix+" hiding and reopening preserves both graveyard selections")
+ var confirm=view.android_choice_panel.find_child("RegionConfirm",true,false)
+ await click(confirm.get_global_rect().get_center());await frames()
+ expect(source.zone=="grave" and e.stack.size()==1,prefix+" Fujimi sacrifices itself after target confirmation")
+ resolve()
+ expect(own.zone=="exile" and other.zone=="exile" and e.players[0].grave.size()==6 and e.players[1].grave.size()==5,prefix+" resolution removes the exact selected cards from each graveyard")
+ await reset_presentations()
 
 func fairy_flow(prefix: String):
  clean(true);e.debug_free_payment=true
@@ -161,13 +202,15 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(output.path_join("fixtures/"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.gui_embed_subwindows=true
  root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames();app.load_test_decks()
+ app=load("res://main.tscn").instantiate();app.tutorial_local_directory=Store.Paths.root_override.path_join("tutorials")
+ root.add_child(app);await frames();app.load_test_decks()
  for fixture in [{"size":Vector2i(1600,900),"dpi":0.0},{"size":Vector2i(1280,720),"dpi":240.0},{"size":Vector2i(2340,1080),"dpi":420.0}]:
   if is_instance_valid(view):view.queue_free();app.duel_view=null;await frames()
   root.size=fixture.size;app.is_android=fixture.dpi>0;app.layout_dpi_override=fixture.dpi
   app.layout_safe_override=Rect2(60,0,fixture.size.x-84,fixture.size.y-24) if app.is_android else Rect2()
   await frames();app.refresh_responsive_layout();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine;await frames()
   var prefix="android-%dx%d" % [fixture.size.x,fixture.size.y] if app.is_android else "desktop"
+  await grave_owners_flow(prefix)
   await fairy_flow(prefix)
   await books_flow(prefix,["ETO-007","ETO-009","ETO-011"])
   await books_flow(prefix,["ETO-009","ETO-011"])

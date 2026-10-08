@@ -31,7 +31,9 @@ func receive(id: int,message: Dictionary):
  var type=message.get("type","")
  if type=="watch":
   if message.get("version")!=session.fingerprint or session.room_id.is_empty():transport.drop(id);return
-  if not watchers.has(id):watchers[id]={"seen":Time.get_ticks_msec(),"sent":-1,"ack":-1}
+  if not watchers.has(id):
+   watchers[id]={"seen":Time.get_ticks_msec(),"sent":-1,"ack":-1}
+   if not shared_transport:session.room_joined.emit()
   dirty=true;return
  if not watchers.has(id):return
  if type not in ["replay_request","watch_ack","ping","leave"]:return

@@ -214,7 +214,26 @@ func camera_focus_rect() -> Rect2:
    for card in view.hand_nodes.values():
     if is_instance_valid(card):bottom=minf(bottom,view.hand_scroll.position.y+card.get_meta("target",card.position).y-metrics.gap)
  var height=maxf(1,bottom-top) if view.android_palette_view else maxf(metrics.hit*2,bottom-top)
- return Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+ var area=Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+ if view.android_palette_view:
+  # Target panels can sit beside the stack, inside the board's normal focus area.
+  # Fit the palette into the largest usable part of that area after HUD layout.
+  for control in [view.android_choice_panel,view.android_choice_restore,view.stack_panel]:
+   if not is_instance_valid(control) or not control.is_visible_in_tree():continue
+   var blocked=area.intersection(control.get_global_rect().grow(metrics.gap))
+   if not blocked.has_area():continue
+   var candidates=[
+    Rect2(area.position,Vector2(blocked.position.x-area.position.x,area.size.y)),
+    Rect2(Vector2(blocked.end.x,area.position.y),Vector2(area.end.x-blocked.end.x,area.size.y)),
+    Rect2(area.position,Vector2(area.size.x,blocked.position.y-area.position.y)),
+    Rect2(Vector2(area.position.x,blocked.end.y),Vector2(area.size.x,area.end.y-blocked.end.y))]
+   var best_fit=0.0
+   var clear=area
+   for candidate in candidates:
+    var fit=minf(candidate.size.x/area.size.x,candidate.size.y/area.size.y)
+    if fit>best_fit:best_fit=fit;clear=candidate
+   area=clear
+ return area
 
 func hand_zone_selector(caption: String,action: Callable) -> Button:
  # Keep casting-region controls in the left rail, outside the board's focus area.

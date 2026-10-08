@@ -66,7 +66,7 @@ func run():
  if not result.get("ok",false):print(result);quit(1);return
  var post_id=int(result.id)
  result=await request({"action":"detail","id":post_id},account.token)
- check(result.get("ok",false) and result.get("deck",{}).get("username","")==username,"cloud attributes upload to the authenticated account")
+ check(result.get("ok",false) and result.get("deck",{}).get("nickname","")==username and not result.get("deck",{}).has("username"),"cloud exposes the author's nickname without their login id")
  if not result.get("ok",false):print("DETAIL FAILURE: ",result);quit(1);return
  var post=result.deck
  var deck=Store.decode(post.deck_code).get("deck",{})
@@ -77,6 +77,8 @@ func run():
  result=await request(dict_extra(upload,{"tags":["1","2","3","4","5","6","7","8","9","10","11"]}),account.token)
  check(not result.get("ok",false),"cloud rejects eleven tags")
  app=load("res://main.tscn").instantiate()
+ app.tutorial_local_directory="res://work/account-plaza-checks/tutorials"
+ DirAccess.make_dir_recursive_absolute(app.tutorial_local_directory)
  app.account_session_path="res://work/deck-plaza-tests/no-session.json"
  app.deck_plaza_server_url=server_url;root.add_child(app);await process_frame
  app.draft=source.duplicate(true);app.dirty=true;app.editor();await process_frame
@@ -101,7 +103,7 @@ func run():
  var color_bar=view.body.find_child("PlazaColorFilters",true,false)
  check(color_bar.get_child(1).size.y<=app.ui_metrics.hit+1 and color_bar.get_child(0).get_global_rect().end.x<=color_bar.get_child(1).get_global_rect().position.x,"desktop color swatches stay at button height without covering the caption")
  view.search_fields.leader.text="灵梦";view.search_fields.tag.text=username;view.search_fields.color_text.text="红黄";view.apply_search();await settled(view)
- print("SEARCH DIAGNOSTIC: notice=",view.notice.text," posts=",view.posts.map(func(p):return {"id":p.id,"username":p.username,"tags":p.tags,"colors":p.colors})," filters=",view.filters)
+ print("SEARCH DIAGNOSTIC: notice=",view.notice.text," posts=",view.posts.map(func(p):return {"id":p.id,"nickname":p.nickname,"tags":p.tags,"colors":p.colors})," filters=",view.filters)
  check(view.posts.size()==1 and int(view.posts[0].id)==post_id,"combined leader, tag and text color search finds the deck across the plaza")
  for tags in [username+"，异画"," 异画 , "+username+",异画， "]:
   view.search_fields.tag.text=tags;view.apply_search();await settled(view)
@@ -118,8 +120,8 @@ func run():
  await screenshot("res://work/deck-plaza-tests/desktop-plaza.png")
  view.fetch_detail(post_id);await settled(view)
  check(view.mode=="detail" and view.current_post.title=="异画灵梦","tile opens full deck detail")
- var picture=view.body.find_child("PlazaLeaderArt",true,false)
- check(picture.texture==app.texture("70","tts_151600"),"plaza displays the original uploader's alternate leader art")
+ var overview=view.body.find_child("PlazaDeckOverview",true,false)
+ check(overview!=null and overview.faces.get("70")==app.texture("70","tts_151600"),"plaza displays the original uploader's alternate leader art")
  await screenshot("res://work/deck-plaza-tests/desktop-detail.png")
  view.download_deck()
  var downloaded=app.decks.filter(func(d):return d.name=="异画灵梦")
@@ -196,7 +198,7 @@ func run():
   plaza_scroll=view.body.find_child("PlazaScroll",true,false) as ScrollContainer
   check(plaza_scroll.size.y>=app.screen.size.y*0.6,"Android %s keeps most of the safe height for decks" % dimensions)
   var safe=app.screen.get_global_rect().grow(1)
-  var controls=view.search_fields.values()+[view.color_filter_button,view.body.find_child("PlazaSearchButton",true,false),view.body.find_child("PlazaClearSearch",true,false)]
+  var controls=view.search_fields.values()+[view.color_filter_button,view.body.find_child("PlazaSearchButton",true,false),view.body.find_child("PlazaClearSearch",true,false),view.mine_button,view.following_button,view.upload_button,view.refresh_button,view.back_button]
   check(controls.all(func(control):return safe.encloses(control.get_global_rect()) and control.size.y>=app.ui_metrics.hit),"Android %s search controls fit with full touch targets" % dimensions)
   check(view.grid.get_child_count()<=view.grid.columns and plaza_scroll.get_global_rect().grow(1).encloses(view.grid.get_global_rect()) and plaza_scroll.scroll_vertical==0,"Android %s fits a complete deck row without scrolling" % dimensions)
   check(safe.encloses(view.previous_button.get_global_rect()) and safe.encloses(view.next_button.get_global_rect()),"Android %s keeps pagination visible" % dimensions)
@@ -216,7 +218,7 @@ func run():
  app.editor();app.dirty=false;app.open_deck_plaza();view=app.deck_plaza_ui;await settled(view)
  for id in pagination_ids:await request({"action":"delete","id":id},account.token)
  view.toggle_mine();await settled(view)
- check(view.mine and view.posts.size()==2 and view.posts.all(func(p):return p.owned and p.username==username),"my uploads lists only the signed-in player's posts")
+ check(view.mine and view.posts.size()==2 and view.posts.all(func(p):return p.owned and p.nickname==username and not p.has("username")),"my uploads lists only the signed-in player's posts")
  plaza_scroll=view.body.find_child("PlazaScroll",true,false) as ScrollContainer
  check(plaza_scroll.get_global_rect().grow(1).encloses(view.grid.get_global_rect()),"Android my uploads also fits a complete row")
  await screenshot("res://work/deck-plaza-tests/android-my-uploads.png")
@@ -235,6 +237,29 @@ func run():
  var other=await account_request("register",other_username,"password123!")
  other=await account_request("login",other_username,"password123!")
  if not other.ok:check(false,"other player logs in for ownership checks");print("OTHER LOGIN FAILURE: ",other.message);quit(1);return
+ var nickname_client=Account.new();root.add_child(nickname_client);nickname_client.server_url=server_url
+ nickname_client.call_deferred("update_nickname","关注作者昵称",other.token);await nickname_client.finished;nickname_client.queue_free()
+ var foreign_upload=await request(dict_extra(upload,{"title":"关注作者套牌"}),other.token)
+ if not foreign_upload.get("ok",false):check(false,"other author uploads a deck for following");quit(1);return
+ var foreign_id=int(foreign_upload.id)
+ view.fetch_detail(foreign_id);await settled(view)
+ var follow_button=view.body.find_child("PlazaFollowAuthor",true,false)
+ var author_label=view.body.find_child("PlazaAuthorNickname",true,false)
+ check(follow_button!=null and author_label.text=="上传玩家：关注作者昵称" and not author_label.text.contains(other_username),"follow entry is in deck detail and displays only the author's nickname")
+ check(not view.current_post.has("elo") and not view.current_post.has("username") and not view.current_post.has("player_id"),"deck detail does not expose Elo or account ids")
+ follow_button.pressed.emit();await settled(view)
+ check(view.current_post.following and view.body.find_child("PlazaFollowAuthor",true,false).text=="取消关注作者","detail follow button persists the author follow")
+ view.body.find_child("PlazaReturnToList",true,false).pressed.emit();await settled(view)
+ check(view.body.find_child("PlazaFollowAuthor",true,false)==null,"following authors is available from detail")
+ view.following_button.pressed.emit();await settled(view)
+ check(view.following and not view.mine and view.posts.size()==1 and int(view.posts[0].id)==foreign_id,"only-followed filter shows uploaded decks from followed authors")
+ app.editor();app.open_deck_plaza();view=app.deck_plaza_ui;await settled(view)
+ check(view.following and view.posts.size()==1,"reopening the plaza preserves the only-followed filter")
+ view.fetch_detail(foreign_id);await settled(view);view.body.find_child("PlazaFollowAuthor",true,false).pressed.emit();await settled(view)
+ view.body.find_child("PlazaReturnToList",true,false).pressed.emit();await settled(view)
+ check(view.following and view.posts.is_empty(),"unfollowing refreshes the filtered plaza")
+ view.toggle_mine();await settled(view)
+ await request({"action":"delete","id":foreign_id},other.token)
  result=await request({"action":"delete","id":post_id},other.token)
  check(not result.get("ok",false) and result.get("message","").contains("只能编辑或删除"),"cloud rejects deletion by another player")
  result=await request(dict_extra(upload,{"action":"edit","id":post_id}),other.token)

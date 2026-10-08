@@ -41,11 +41,29 @@ func check(parent: Node,caption: String,checked: bool,callback: Callable) -> Che
  result.button_pressed=checked;result.toggled.connect(callback)
  return result
 
+func room_join_volume_control(parent: Node) -> HBoxContainer:
+ var row=HBoxContainer.new();row.name="RoomJoinVolumeControl";parent.add_child(row)
+ row.add_theme_constant_override("separation",metrics.gap)
+ text(row,"房间加入提醒音量")
+ var slider=HSlider.new();slider.name="RoomJoinVolume";row.add_child(slider);expand(slider)
+ slider.min_value=0;slider.max_value=100;slider.step=1;slider.value=roundf(app.room_join_volume*100.0)
+ slider.custom_minimum_size=Vector2(metrics.hit*3,metrics.hit)
+ slider.tooltip_text="玩家或观众加入时提醒房主；0% 为静音。"
+ var value_label=text(row,"%d%%" % slider.value);value_label.name="RoomJoinVolumeValue"
+ value_label.custom_minimum_size.x=metrics.body*3.0;value_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+ var host=app
+ slider.value_changed.connect(func(value):
+  value_label.text="%d%%" % value
+  host.set_room_join_volume(value/100.0))
+ action(row,"试听",host.preview_room_join_sound).name="PreviewRoomJoinSound"
+ return row
+
 func build_settings(host):
  var root=page(host,"设置")
  var scroll=ScrollContainer.new();root.add_child(scroll);expand(scroll,true)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var body=column(scroll)
+ room_join_volume_control(body)
  if not app.is_android:
   check(body,"全屏显示",app.fullscreen,func(value):
    app.fullscreen=value

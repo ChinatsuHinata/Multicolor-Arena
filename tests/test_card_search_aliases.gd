@@ -18,6 +18,16 @@ func found(term: String,rules: Dictionary,character_spell_filter: bool=false) ->
 
 func _initialize():
  var rules=Aliases.load_rules()
+ var copies=found("复制",rules)
+ expect(copies.any(func(id):return Store.CARDS[id].kind in ["单位","自机"]),"printed copy effects find units")
+ expect(copies.any(func(id):return Store.CARDS[id].kind=="符卡"),"printed copy effects find spells")
+ for id in Store.CARDS:
+  var info=Store.CARDS[id]
+  if "复制" in str(info.description)+str(info.rules_text):expect(id in copies,"copy text is searchable: "+id)
+ var description_query=Aliases.prepare_query(Store.CARDS,"独有说明检索词",rules)
+ var text_only=Store.CARDS["87"].duplicate(true);text_only.description="独有说明检索词";text_only.rules_text="能力内容检索词"
+ expect(Aliases.matches_query(text_only,"87",description_query),"full description participates in search")
+ expect(Aliases.matches_query(text_only,"87",Aliases.prepare_query(Store.CARDS,"能力内容检索词",rules)),"ability text participates in search")
  for pair in [["小妖梦",["39"]],["小猫车",["character-ucs-038"]],["炸弹人",["78","character-fdn-042"]],["转转",["32"]],["夜雀",["22","character-fdf-094","token-fdf-127"]],["夜雀道具",["token-fdf-127"]],["红饼",["165"]],["蓝饼",["167"]],["绿饼",["166"]],["黄饼",["164"]],["黑饼",["168"]],["饼",["164","165","166","167","168"]],["530",["spell-fdf-085"]],["小妖梦普通单位",["39"]],["小猫车普通单位",["character-ucs-038"]],["红饼道具",["165"]],["红色饼",["165"]],["小妖梦自机",[]]]:
   pair[1].sort()
   expect(found(pair[0],rules)==pair[1],"exact search results for "+pair[0])

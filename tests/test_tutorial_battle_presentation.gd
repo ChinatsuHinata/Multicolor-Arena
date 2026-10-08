@@ -77,7 +77,8 @@ func check_course(mobile: bool,external: bool,top_down: bool):
  app.layout_safe_override=Rect2(40,12,1200,684) if mobile else Rect2()
  root.size=Vector2i(1280,720) if mobile else Vector2i(1600,900)
  app.top_down_view=top_down;app.refresh_responsive_layout();await frames()
- var flow=Runtime.new();expect(flow.start(fixture(),Store.CARDS).is_empty(),"runtime accepts battle presentation")
+ var data=fixture();data.steps.board.guide.focus={"alias":"unit0"}
+ var flow=Runtime.new();expect(flow.start(data,Store.CARDS).is_empty(),"runtime accepts battle presentation")
  flow.set_process(false)
  var scene
  if external:
@@ -93,6 +94,16 @@ func check_course(mobile: bool,external: bool,top_down: bool):
  expect(not red(copy.uid) and view.table.visuals.has("card_"+str(copy.uid)),prefix+" marked stackable copy stays distinct from the unmarked copy")
  expect(view.table.camera.projection==(Camera3D.PROJECTION_ORTHOGONAL if top_down else Camera3D.PROJECTION_PERSPECTIVE),prefix+" step camera preserves projection")
  expect(not view.tutorial_controls_enabled and guide.blocker.visible,prefix+" visible dialogue blocks battle controls")
+ if mobile:
+  var at=guide.focus_card.get_global_rect().get_center();var revision=e.revision;var generation=flow.epoch
+  var touch=InputEventScreenTouch.new();touch.index=0;touch.position=at;touch.pressed=true
+  root.push_input(touch,true);await create_timer(1.12).timeout
+  expect(guide.inspection_id==unit.card_id and is_instance_valid(guide.inspection_overlay),prefix+" alias focus-card hold opens tutorial details")
+  touch=touch.duplicate();touch.pressed=false;root.push_input(touch,true);await frames()
+  expect(e.revision==revision and flow.current_step=="board" and flow.epoch==generation and view.local.is_empty(),prefix+" focus details keep the battlefield and tutorial progress")
+  var close=guide.find_child("TutorialCloseCardDetails",true,false)
+  await click(close.get_global_rect().get_center());await frames()
+  expect(guide.inspection_id.is_empty() and guide.popup_open,prefix+" closing focus details restores the battlefield guide")
  guide.set_popup(false);await frames()
  expect(red(unit.uid),prefix+" hiding the guide retains red frames")
  expect(not view.tutorial_controls_enabled and guide.blocker.visible,prefix+" hidden dialogue keeps battle controls blocked")

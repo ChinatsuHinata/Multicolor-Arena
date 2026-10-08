@@ -105,7 +105,7 @@ static func on_enter(e,c: Dictionary):
  if has(info,"leader_enter_modes") and e.has_leader_ability(c): event(e,c,"leader_enter_modes",true)
  for key in ["enter_haste","enter_drain","enter_grave_damage","enter_sweep","enter_color_evasion","enter_blink","enter_fight","enter_palette_replace","enter_unblockable","enter_halfghost"]:
   if has(info,key): event(e,c,key,key in ["enter_grave_damage","enter_blink","enter_palette_replace"])
- if e.is_unit(c) and info.colors.any(func(color): return color in ["红","黄"]):
+ if e.is_unit(c) and e.Pack.colors(e,c).any(func(color): return color in ["红","黄"]):
   for hand in e.players[c.owner].hand:
    if has(e.cards[hand.card_id],"hand_autumn"): event(e,hand,"hand_autumn",true,{"ref":e.ref_target(hand)})
 static func on_leave(e,c: Dictionary):
@@ -280,7 +280,11 @@ static func resolve_trigger(e,t: Dictionary):
   "token_sacrifice":
    if original: e.sacrifice(c)
   "miracle":
-   if not c.is_empty() and c.zone=="hand" and c.epoch==source.epoch and not e.miracle_blocked(c,who):
+   if not c.is_empty() and c.zone=="hand" and c.owner==who and c.epoch==source.epoch and not e.miracle_blocked(c,who) and e.field_error(c,who).is_empty():
+    if not t.get("continuation",false):
+     var options=e.targets_for(c.card_id,who,c.uid) if e.cards[c.card_id].kind=="符卡" else no_target()
+     resolution_choice(e,t,"miracle",options)
+     return
     var cast_target=target if e.cards[c.card_id].kind=="符卡" else {"none":true}
     if e.cards[c.card_id].kind=="符卡" and not e.Pack.choice_valid(e,e.targets_for(c.card_id,who,c.uid),cast_target):return
     e.detach(c); e.shift(c,"stack")

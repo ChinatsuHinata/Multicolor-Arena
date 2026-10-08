@@ -5,6 +5,8 @@ const Runtime=preload("res://scripts/tutorial/runtime.gd")
 const Conditions=preload("res://scripts/tutorial/condition_graph.gd")
 const Actions=preload("res://scripts/tutorial/ui_actions.gd")
 const OrderStep=preload("res://scripts/tutorial/order_step.gd")
+const GuideImage=preload("res://scripts/tutorial/guide_image.gd")
+const GuideImageGallery=preload("res://scripts/tutorial/guide_image_gallery.gd")
 var host
 var is_android=false
 var tutorial_guide
@@ -89,6 +91,7 @@ func build_toolbar():
  action(toolbar,"打开",func():guard_discard(open_file))
  action(toolbar,"保存",save)
  action(toolbar,"录制",open_recording).name="OpenRecording"
+ action(toolbar,"试验当前节点",test_course).name="TestCurrentTutorialStep"
  action(toolbar,"返回",func():guard_discard(host.tutorials))
  status_label=Label.new();toolbar.add_child(status_label);status_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;status_label.clip_text=true
  status_label.add_theme_color_override("font_color",host.GOLD)
@@ -252,6 +255,7 @@ func rebuild_form():
  option(form,kinds,step.type,change_step_type,kinds.map(func(kind):return {"info":"讲解","task":"功能任务","wait":"等待事件"}[kind]))
  var paragraph=TextEdit.new();form.add_child(paragraph);paragraph.custom_minimum_size.y=120;paragraph.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY;paragraph.text=step.guide.text
  paragraph.name="AuthoringGuideText";paragraph.text_changed.connect(func():edit(func():step.guide.text=paragraph.text);rebuild_nodes())
+ build_guide_image(step)
  text(form,"教程位置 · 第 %d 步 / 共 %d 步" % [model.ordered_steps().find(selected_step)+1,model.data.steps.size()])
  text(form,"教学场景")
  var kind=model.data.scenarios[scene_id].get("type","battlefield")
@@ -311,7 +315,52 @@ func rebuild_form():
   action(form,"编辑条件／触发器",open_opponent_rules).name="EditTutorialTriggers"
  text(form,"在真实场景中操作，录制后为各步骤设置指引和成败条件。")
  action(form,"编辑已有录制" if has_recording(step) else "录制此节点",open_recording).name="EditExistingRecording"
- if step.has("sequence") or step.get("task",{}).has("sequence") or step.get("task",{}).get("timing")=="action":action(form,"预览教程录制",test_course)
+ action(form,"试验当前任务" if step.has("task") else "预览当前节点",test_course).name="PreviewCurrentTutorialStep"
+ text(form,"直接从此节点的场景起点开始；返回后保留编辑内容。").add_theme_font_size_override("font_size",16)
+
+func build_guide_image(step: Dictionary):
+ text(form,"节点配图")
+ var row=HBoxContainer.new();form.add_child(row)
+ action(row,"编辑／更换配图" if step.guide.has("image") else "选择节点配图",open_guide_image).name="EditTutorialGuideImage"
+ var remove=action(row,"移除全部配图",remove_guide_image);remove.name="RemoveTutorialGuideImage";remove.disabled=not step.guide.has("image")
+ if not step.guide.has("image"):
+  text(form,"搜索并指定卡图，支持横卡、竖卡、多卡排列和自定义图。").add_theme_font_size_override("font_size",16)
+  return
+ var configured=GuideImage.normalize(step.guide.image)
+ for i in range(configured.items.size()):text(form,"%d. %s" % [i+1,GuideImage.caption(configured.items[i],host.Store.CARDS)]).add_theme_font_size_override("font_size",16)
+ var preview=GuideImageGallery.new();form.add_child(preview);preview.name="AuthoringGuideImage"
+ preview.configure(self,host);preview.set_data(step.guide.image)
+ text(form,"%s · 点击任意配图放大。" % {"row":"横向并排","column":"纵向排列","grid":"网格排列"}.get(configured.layout,configured.layout)).add_theme_font_size_override("font_size",16)
+
+func open_guide_image():
+ var target=selected_step
+ var column=modal("节点 "+target+" · 编辑配图")
+ var fields=preload("res://scripts/tutorial/guide_image_form.gd").new();fields.configure(self,model.data.steps[target].guide.get("image",{}));column.add_child(fields)
+ var buttons=HBoxContainer.new();column.add_child(buttons)
+ action(buttons,"应用配图",func():
+  var candidate=fields.value()
+  if not candidate.is_empty():
+   var reason=GuideImage.validate(candidate,host.Store.CARDS)
+   if not reason.is_empty():fields.show_error(reason);return
+  if model.data.steps[target].guide.get("image",{})!=candidate:
+   edit(func():
+    if candidate.is_empty():model.data.steps[target].guide.erase("image")
+    else:model.data.steps[target].guide.image=candidate)
+  close_dialog();refresh()).name="ApplyTutorialGuideImages"
+ action(buttons,"取消",close_dialog).name="CancelTutorialGuideImages"
+
+func set_guide_image(target: String,file: String) -> String:
+ if not model.data.steps.has(target):return "节点不存在。"
+ var result=GuideImage.import_file(file)
+ if not result.error.is_empty():return result.error
+ if model.data.steps[target].guide.get("image",{})==result.data:return ""
+ edit(func():model.data.steps[target].guide.image=result.data);refresh()
+ return ""
+
+func remove_guide_image():
+ var guide=model.data.steps[selected_step].guide
+ if not guide.has("image"):return
+ edit(func():guide.erase("image"));refresh()
 
 func open_initial_scene():
  var target=scene_id
@@ -376,7 +425,7 @@ func condition_dialog(caption: String,value: Dictionary,callback: Callable,retur
   if return_to.is_valid():return_to.call()
   else:refresh())
 
-func open_condition_workspace(caption: String,value: Dictionary,callback: Callable,return_to: Callable=Callable(),rule: Dictionary={}):
+func open_condition_workspace(caption: String,value: Dictionary,callback: Callable,return_to: Callable=Callable(),rule: Dictionary={},draft_scene: Dictionary={}):
  close_dialog()
  if recorder!=null and recorder.replaying:recorder.pause_replay()
  condition_visibility=[]
@@ -385,7 +434,7 @@ func open_condition_workspace(caption: String,value: Dictionary,callback: Callab
  dialog_layer=Control.new();dialog_layer.name="BattleConditionDialog";dialog_layer.z_index=350;dialog_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(dialog_layer)
  dialog_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  condition_workspace=preload("res://scripts/tutorial/condition_workspace.gd").new();dialog_layer.add_child(condition_workspace)
- var reason=condition_workspace.begin(self,caption,value,callback,return_to,rule)
+ var reason=condition_workspace.begin(self,caption,value,callback,return_to,rule,draft_scene)
  if not reason.is_empty():close_dialog();host.alert(reason,"条件战场无法打开")
 
 func apply_course_draft(draft: Dictionary) -> bool:
@@ -405,19 +454,24 @@ func config_dialog(caption: String,value: Variant,callback: Callable):
 func open_opponent_rules(pending: Dictionary={},alias_scene: Dictionary={}):
  var value=pending.duplicate(true) if not pending.is_empty() else model.data.scenarios[scene_id].get("opponent",{"strategy":"paused"}).duplicate(true)
  if not value.has("rules"):value.rules=[]
- var fields=config_dialog("对手条件／触发器 · 编辑事件、条件、动作与次数",value,func(result):
-  var draft=model.data.duplicate(true);draft.scenarios[scene_id].opponent=result
-  if not alias_scene.is_empty():draft.scenarios[scene_id]=alias_scene.duplicate(true);draft.scenarios[scene_id].opponent=result
-  return apply_course_draft(draft))
- var row=HBoxContainer.new();var column=fields.get_parent().get_parent();column.add_child(row);column.move_child(row,1)
- var ids=fields.value.rules.map(func(rule):return rule.id)
- var choice=OptionButton.new();row.add_child(choice);choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- for id in ids:choice.add_item(id)
- if ids.is_empty():choice.add_item("尚无触发器")
- action(row,"条件编辑器／录制触发",func():
-  if fields.value.rules.is_empty():open_rule_graph(-1,fields.value,alias_scene)
-  else:open_rule_graph(clampi(choice.selected,0,fields.value.rules.size()-1),fields.value,alias_scene)).name="OpenTriggerConditionGraph"
- action(row,"新增触发器",func():open_rule_graph(-1,fields.value,alias_scene))
+ if not value.has("auto_response"):value.auto_response=true
+ var target=scene_id
+ var column=modal("任务场景触发器 · "+target)
+ var users=model.data.steps.keys().filter(func(id):return model.scene_for(id)==target)
+ text(column,"此场景由 %d 个节点共用；修改响应会作用于这些节点。" % users.size())
+ var scroll=ScrollContainer.new();column.add_child(scroll);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ var fields=preload("res://scripts/tutorial/trigger_list_form.gd").new();fields.name="TutorialTriggerList";fields.editor=self;fields.value=value;fields.alias_scene=alias_scene.duplicate(true);scroll.add_child(fields)
+ var apply_settings=func():
+  var draft=model.data.duplicate(true)
+  if not fields.alias_scene.is_empty():draft.scenarios[target]=fields.alias_scene.duplicate(true)
+  draft.scenarios[target].opponent=fields.value.duplicate(true)
+  draft.scenarios[target].opponent.auto_response=fields.value.get("auto_response",true)
+  if not apply_course_draft(draft):return false
+  close_dialog();refresh();return true
+ var buttons=HBoxContainer.new();column.add_child(buttons)
+ action(buttons,"应用设置",apply_settings).name="ApplyTutorialSettings"
+ action(buttons,"应用并试验当前任务",func():if apply_settings.call():test_course()).name="TestTutorialTriggers"
+ action(buttons,"取消",close_dialog).name="CancelTutorialTriggers"
 
 func open_rule_graph(index: int,pending: Dictionary,alias_scene: Dictionary={}):
  var draft=pending.duplicate(true);var scene=alias_scene.duplicate(true);var state={"applied":false}
@@ -431,7 +485,7 @@ func open_rule_graph(index: int,pending: Dictionary,alias_scene: Dictionary={}):
   draft.rules[index]=value
   state.applied=true
   scene.clear();scene.merge(condition_workspace.recorder.scene.duplicate(true))
-  return true,func():open_opponent_rules(draft if state.applied else pending,scene if state.applied else alias_scene),rule)
+  return true,func():open_opponent_rules(draft if state.applied else pending,scene if state.applied else alias_scene),rule,alias_scene)
 
 func has_recording(step: Dictionary) -> bool:
  return step.has("sequence") or step.get("task",{}).has("sequence") or step.get("task",{}).get("timing")=="action"
@@ -887,11 +941,25 @@ func save_to(file: String):
 func test_course():
  var checked=model.validate()
  if not checked.ok:host.alert("\n".join(checked.errors),"试玩前请修正课程");return
+ # Preview old authored scenes with basic responses without changing the document.
+ for scene in checked.data.scenarios.values():
+  if scene.get("type","battlefield")!="battlefield":continue
+  if not scene.has("opponent"):scene.opponent={"strategy":"paused"}
+  if not scene.opponent.has("auto_response"):scene.opponent.auto_response=true
  close_dialog()
- var flow=Runtime.new();var reason=flow.start(checked.data,host.Store.CARDS)
+ var context=model.context_for(selected_step)
+ var flow=Runtime.new();var reason=flow.start(checked.data,host.Store.CARDS,selected_step,context.scene,context.steps)
  if not reason.is_empty():flow.free();host.alert(reason,"试玩初始化失败");return
  workspace.hide();inspector.hide();get_node("AuthoringToolbar").hide()
  playtest=preload("res://scripts/tutorial/scene_view.gd").new();add_child(playtest);playtest.begin(host,flow)
+ # Native recordings contain one task per action. Restore their preceding
+ # actions privately so a later remove/inspect task has the expected deck.
+ if flow.adapter.scene_type!="battlefield":
+  for id in model.recording_steps(selected_step):
+   if id==selected_step:break
+   reason=playtest.editor_host.replay_recorded_action(model.data.steps[id].task.action)
+   if not reason.is_empty():stop_test();host.alert(reason,"试玩准备失败");return
+  flow.adapter.last_ui_action={};flow.events.clear();flow.checkpoint=flow.capture()
  var back=action(playtest,"返回编辑器",stop_test);back.name="ReturnToAuthoring";back.position=Vector2(12,12);back.size=Vector2(156,40);back.z_index=250
  # All normal tutorial exit buttons return to the still-live unsaved document.
  redirect_test_exit(playtest)
@@ -914,6 +982,8 @@ func redirect_test_exit(node: Node,return_action: Callable=Callable()):
 
 
 func stop_test():
- retire(playtest);playtest=null;workspace.show();inspector.show();get_node("AuthoringToolbar").show();rebuild_nodes()
+ retire(playtest);playtest=null
+ host.screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ workspace.show();inspector.show();get_node("AuthoringToolbar").show();rebuild_nodes()
 
 

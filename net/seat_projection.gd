@@ -14,6 +14,14 @@ static func collect_refs(v: Variant,refs: Dictionary):
   for k in v:collect_refs(v[k],refs)
  elif v is Array:
   for item in v:collect_refs(item,refs)
+static func project_history(entries: Array,e,definitions: Dictionary,perspective: int,replay_hands: bool=false):
+ for entry in entries:
+  for key in ["art","revealed_cards"]:
+   for art in entry.get(key,[]):
+    if art.get("hidden",false) and art.get("owner",-1)!=perspective and not replay_hands:
+     art.card_id="back";art.erase("art_id")
+    elif e.cards.has(art.get("card_id","")):
+     definitions[art.card_id]=e.cards[art.card_id]
 static func build(e,seat: int,events: Array=[]) -> Dictionary:
  var scratch={}
  for key in ["catalogue_target_fast","catalogue_x_override","catalogue_retargeting","paid_cast_uid","forced_cast","revision"]:scratch[key]=e.get(key)
@@ -53,7 +61,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
    e.paid_cast_uid=previous
   for action in q.actions[c.uid]:
    if action.type=="extension" and action.enabled:q.extension_targets[str(c.uid)+":"+action.key]=e.Extra.activation_options(e,c,action.key).duplicate(true)
- state.pending=e.pending.duplicate(true) if e.pending.get("owner",-1)==seat else {"kind":"network_wait","owner":e.pending.owner} if not e.pending.is_empty() else {}
+ state.pending=e.pending.duplicate(true) if e.pending.get("owner",-1)==seat or e.pending.get("kind","")=="reveal_review" else {"kind":"network_wait","owner":e.pending.owner} if not e.pending.is_empty() else {}
  if e.pending.has("resolving_entry"):state.pending.resolving_entry=public_stack([e.pending.resolving_entry])[0]
  elif e.pending.get("trigger",{}).has("entry"):state.pending.resolving_entry=public_stack([e.pending.trigger.entry])[0]
  if state.pending.get("kind","")=="effect_choice" and state.pending.trigger.effect=="cat:grant":
@@ -88,10 +96,9 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
   if event.type=="move" and event.from in ["hand","deck"] and event.to in ["hand","deck"] and (event.card.owner!=seat or event.from=="deck" and event.to=="deck"):
    event.card=hidden_card(event.card.owner,event.from,0)
   state.presentation_events.append(event)
- for event in state.history:
-  for art in event.art:
-   if art.get("hidden",false) and art.owner!=seat:art.card_id="back";art.erase("art_id")
  var definitions={}
+ project_history(state.history,e,definitions,seat)
+ for shown in state.pending.get("cards",[]):definitions[shown.card_id]=e.cards[shown.card_id]
  for c in all+q.lookup.values():
   if not c.is_empty():definitions[c.card_id]=e.cards[c.card_id]
  for entry in e.unresolved_stack_entries():

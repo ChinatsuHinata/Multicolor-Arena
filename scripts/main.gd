@@ -5,6 +5,7 @@ const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
 const CardArt=preload("res://scripts/card_art.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
+const Series=preload("res://net/series_controller.gd")
 const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const CardNameSearchPanel=preload("res://scripts/card_name_search_panel.gd")
 const AndroidSwipeScroll=preload("res://scripts/android_swipe_scroll.gd")
@@ -15,6 +16,7 @@ const LocalExperiment=preload("res://scripts/ai/local_experiment.gd")
 const AccountSessionStore=preload("res://scripts/account_session_store.gd")
 const PatchService=preload("res://scripts/pck_patch_service.gd")
 const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
+const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
 const GOLD = Color("#e8c77e")
 const INK = Color("#101c28")
 const MUTED = Color("#b2c2ce")
@@ -89,6 +91,8 @@ var auto_camera_focus = true
 var android_manual_camera = false
 var android_zone_shortcuts = true
 var android_zone_shortcut_positions: Dictionary = {}
+var room_join_volume=RoomJoinSound.DEFAULT_VOLUME
+var room_join_sound
 var replay_training_mode = false
 var is_test_build=OS.has_feature("debug")
 var add_amount = 1
@@ -99,10 +103,13 @@ var sideboard_original={}
 var sideboard_previous={}
 var sideboard_waiting=false
 var sideboard_status: Label
+var sideboard_info: Label
+var sideboard_leader_card: Control
 var sideboard_done: Button
 var replay_controller
 var account_name=""
 var account_nickname=""
+var account_elo=1000
 var account_token=""
 var account_remember_token=""
 var account_session_path=AccountSessionStore.DEFAULT_PATH
@@ -125,12 +132,15 @@ var account_status_label: Label
 var account_username_input: LineEdit
 var account_password_input: LineEdit
 var account_confirm_input: LineEdit
+var account_old_password_input: LineEdit
+var account_password_change_button: Button
 var deck_account_return=""
 var deck_plaza_ui
 var deck_plaza_form={}
 var deck_plaza_browser={}
 var cloud_edit_post={}
 var cloud_edit_deck_id=""
+var cloud_edit_account=""
 var deck_plaza_server_url=preload("res://scripts/deck_plaza_client.gd").Account.SERVER_URL
 func _ready():
  if not is_android:
@@ -177,6 +187,7 @@ func _ready():
    auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
    android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
+   room_join_volume=RoomJoinSound.normalize_volume(saved_settings.get("room_join_volume",RoomJoinSound.DEFAULT_VOLUME))
    if saved_settings.get("android_zone_shortcut_positions") is Dictionary:
     android_zone_shortcut_positions = saved_settings.android_zone_shortcut_positions
    debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
@@ -524,6 +535,7 @@ func online():
  var cloud_form={}
  var focused_cloud_field=""
  var focused_caret=0
+ if is_instance_valid(lan_session):lobby_deck_id=str(lan_session.room.get("own_deck",{}).get("id",""))
  if page=="online" and is_instance_valid(screen):
   for child in screen.get_children():
    if child.get_script()==preload("res://net/lan_lobby.gd"):
@@ -540,6 +552,9 @@ func online():
  if not is_instance_valid(lan_session):
   lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize()
   lan_session.snapshot_ready.connect(network_snapshot_ready)
+  lan_session.room_joined.connect(on_room_joined)
+  lan_session.rating_updated.connect(func(elo):account_elo=elo)
+  lan_session.match_found.connect(preview_room_join_sound)
   lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
  lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
  clear_page("online")
@@ -561,14 +576,17 @@ func online():
 
 func account_page():
  var focused=get_viewport().gui_get_focus_owner()
- var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input] else ""
+ var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input,account_old_password_input] else ""
  var focused_caret=focused.get_caret_column() if focused is LineEdit and not focused_name.is_empty() else 0
  var saved_username=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountUsername" else ""
  var saved_nickname=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountNickname" else ""
  var saved_password=account_password_input.text if is_instance_valid(account_password_input) else ""
  var saved_confirm=account_confirm_input.text if is_instance_valid(account_confirm_input) else ""
+ var saved_old_password=account_old_password_input.text if is_instance_valid(account_old_password_input) else ""
  var saved_status=account_notice if account_action=="resume" and account_pending else account_status_label.text if is_instance_valid(account_status_label) else account_notice
  clear_page("account")
+ account_old_password_input=null;account_password_change_button=null
+ account_password_input=null;account_confirm_input=null
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding))
  var scroll=ScrollContainer.new();scroll.name="AccountScroll";margin.add_child(scroll)
@@ -585,8 +603,16 @@ func account_page():
  var note=Label.new();note.text="登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(note)
  if not account_name.is_empty():
   var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+account_nickname;body.add_child(current)
+  var rating=Label.new();rating.name="AccountElo";rating.text="我的 Elo：%d" % account_elo;body.add_child(rating)
   account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";body.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
   var change=button(body,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
+  var password_heading=Label.new();password_heading.text="修改密码";body.add_child(password_heading)
+  var password_note=Label.new();password_note.text="填写旧密码和新密码，再确认一次新密码后可提交。修改成功后，所有设备需使用新密码重新登录。";password_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(password_note)
+  account_old_password_input=account_password_field(body,"AccountOldPassword","旧密码",saved_old_password)
+  account_password_input=account_password_field(body,"AccountNewPassword","新密码：8–64 位英文字母、数字或英文符号",saved_password)
+  account_confirm_input=account_password_field(body,"AccountNewPasswordConfirm","再次输入新密码",saved_confirm)
+  account_password_change_button=button(body,"修改密码",Rect2(),account_change_password,true);account_password_change_button.name="AccountChangePassword";ui_metrics.button(account_password_change_button)
+  account_refresh_password_button()
   var logout=button(body,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
  else:
   var tabs=HBoxContainer.new();body.add_child(tabs)
@@ -610,10 +636,43 @@ func account_page():
  if is_instance_valid(account_username_input) and account_username_input.name==focused_name:focus_target=account_username_input
  elif is_instance_valid(account_password_input) and account_password_input.name==focused_name:focus_target=account_password_input
  elif is_instance_valid(account_confirm_input) and account_confirm_input.name==focused_name:focus_target=account_confirm_input
+ elif is_instance_valid(account_old_password_input) and account_old_password_input.name==focused_name:focus_target=account_old_password_input
  if focus_target!=null:
   focus_target.grab_focus.call_deferred()
   focus_target.set_caret_column.call_deferred(focused_caret)
   scroll.ensure_control_visible.call_deferred(focus_target)
+
+func account_password_field(body: Control,field_name: String,hint: String,value: String) -> LineEdit:
+ var field=preload("res://scripts/password_edit.gd").new();field.name=field_name;field.placeholder_text=hint;field.max_length=64;field.text=value;field.editable=not account_pending;field.custom_minimum_size.y=ui_metrics.hit;body.add_child(field)
+ field.text_changed.connect(func(text):account_password_text_changed(field,text);account_refresh_password_button())
+ field.text_submitted.connect(func(_value):account_change_password())
+ return field
+
+func account_password_change_error() -> String:
+ if not is_instance_valid(account_old_password_input) or not is_instance_valid(account_password_input) or not is_instance_valid(account_confirm_input):return "请填写旧密码、新密码并确认新密码"
+ for field in [account_old_password_input,account_password_input,account_confirm_input]:
+  var error=preload("res://scripts/account_client.gd").password_error(field.text)
+  if not error.is_empty():return error
+ if account_password_input.text!=account_confirm_input.text:return "两次输入的新密码不一致"
+ if account_old_password_input.text==account_password_input.text:return "新密码不能与旧密码相同"
+ return ""
+
+func account_refresh_password_button():
+ if is_instance_valid(account_password_change_button):account_password_change_button.disabled=account_pending or not account_password_change_error().is_empty()
+
+func account_change_password():
+ if account_pending or account_token.is_empty() or account_name.is_empty():return
+ var error=account_password_change_error()
+ if not error.is_empty():account_status_label.text=error;return
+ var old_password=account_old_password_input.text
+ var new_password=account_password_input.text
+ var confirmation=account_confirm_input.text
+ account_pending=true;account_action="password";account_status_label.text="正在验证并修改密码…"
+ for field in [account_old_password_input,account_password_input,account_confirm_input]:field.clear()
+ account_page()
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.change_password(account_name,old_password,new_password,confirmation)
 
 func account_password_text_changed(field: LineEdit,value: String):
  var filtered=preload("res://scripts/account_client.gd").filter_password_chars(value)
@@ -674,20 +733,25 @@ func account_request_finished(ok: bool,message: String,username: String):
  var returned_token=account_client.session_token if is_instance_valid(account_client) else ""
  var returned_remember_token=account_client.remember_token if is_instance_valid(account_client) else ""
  var returned_nickname=account_client.nickname if is_instance_valid(account_client) else ""
+ var returned_elo=account_client.elo if is_instance_valid(account_client) else 1000
  if is_instance_valid(account_client):account_client.queue_free();account_client=null
- if account_action=="logout":
-  account_name="";account_nickname="";account_token="";account_remember_token=""
+ if account_action=="logout" or (account_action=="password" and ok):
+  account_name="";account_nickname="";account_token="";account_remember_token="";account_elo=1000
+  account_mode="login"
+  AccountSessionStore.clear(account_session_path)
+  for field in [account_old_password_input,account_password_input,account_confirm_input]:
+   if is_instance_valid(field):field.clear()
   if is_instance_valid(lan_session):lan_session.leave(false);lan_session.cloud_token="";lan_session.cloud_nickname=""
   if not ok:message="本机已退出；云端会话将在到期或下次登录时失效。"
  if ok:
   match account_action:
    "login","resume":
-    account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token
+    account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token;account_elo=returned_elo
     if is_instance_valid(lan_session):lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
     if not AccountSessionStore.save_token(preload("res://scripts/account_client.gd").device_id(),returned_remember_token,account_session_path):
      message+="；本机未能保存自动登录凭据"
    "register":account_mode="login"
-   "nickname":account_nickname=returned_nickname
+   "nickname":account_nickname=returned_nickname;account_elo=returned_elo
  elif account_action=="resume" and message=="自动登录已失效，请重新登录":
   AccountSessionStore.clear(account_session_path)
  account_notice=message
@@ -699,7 +763,7 @@ func account_request_finished(ok: bool,message: String,username: String):
   call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
   return
  if page=="account":
-  if ok:account_page()
+  if ok or account_action=="password":account_page()
   if is_instance_valid(account_status_label):account_status_label.text=message
 func network_snapshot_ready():
  if lan_session.latest_snapshot.game_id!=network_game_open:
@@ -967,9 +1031,23 @@ func apply_pck_patch(path: String):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
+
+func set_room_join_volume(value: float):
+ room_join_volume=RoomJoinSound.normalize_volume(value)
+ if is_instance_valid(room_join_sound):room_join_sound.set_notification_volume(room_join_volume)
+ save_settings()
+
+func preview_room_join_sound():
+ if room_join_volume<=0.0:return
+ if not is_instance_valid(room_join_sound):
+  room_join_sound=RoomJoinSound.new();add_child(room_join_sound)
+ room_join_sound.play_notification(room_join_volume)
+
+func on_room_joined():
+ if is_instance_valid(lan_session) and lan_session.is_host:preview_room_join_sound()
 
 func set_top_down_view(value: bool):
  top_down_view=value
@@ -1034,7 +1112,7 @@ func require_deck_login(destination: String) -> bool:
  return false
 
 func deck_login_expired(destination: String,message: String):
- account_name="";account_nickname="";account_token=""
+ account_name="";account_nickname="";account_token="";account_elo=1000
  require_deck_login(destination)
  account_notice=message
  if is_instance_valid(account_status_label):account_status_label.text=message
@@ -1057,7 +1135,7 @@ func upload_current_deck():
  screen.add_child(deck_plaza_ui)
 
 func editing_uploaded_deck() -> bool:
- return not cloud_edit_post.is_empty() and draft.get("id","")==cloud_edit_deck_id and str(cloud_edit_post.get("username","")).to_lower()==account_name.to_lower()
+ return cloud_edit_post.get("owned",false) and draft.get("id","")==cloud_edit_deck_id and not account_name.is_empty() and cloud_edit_account.to_lower()==account_name.to_lower()
 
 func deck_upload_caption() -> String:
  return "更新套牌" if editing_uploaded_deck() else "上传套牌"
@@ -1069,7 +1147,7 @@ func edit_uploaded_deck(post: Dictionary):
  if imported.has("error"):alert(imported.error,"无法编辑套牌");return
  var cloud_deck=imported.deck;cloud_deck.name=str(post.title)
  guard(func():
-  cloud_edit_post=post.duplicate(true);cloud_edit_deck_id=cloud_deck.id
+  cloud_edit_post=post.duplicate(true);cloud_edit_deck_id=cloud_deck.id;cloud_edit_account=account_name
   draft=cloud_deck;dirty=true;deck_plaza_form={};editor())
 
 func editor(sideboarding: bool=false):
@@ -1271,7 +1349,7 @@ func library_matches_query(id: String,info: Dictionary,role_characters: Array,al
   if filters.kind in ["普通符卡","自机符卡"]:return color_match
   return color_match or role_spell or alias_ids.has(id)
  if alias_exclusive:return role_spell or alias_ids.has(id)
- var searchable=[info.name,id,info.get("title",""),info.get("character","")]
+ var searchable=[info.name,id,info.get("title",""),info.get("character",""),info.get("description",""),info.get("rules_text","")]
  searchable.append_array(info.get("keywords",[]))
  searchable.append_array(info.get("aliases",[]))
  if info.get("token",false):searchable.append("衍生物")
@@ -1390,6 +1468,7 @@ func update_deck_rows():
  if sideboard_session!=null:
   counts.text="主卡组 %d / %d   ·   副卡组 %d / 10   ·   自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
   if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
+  update_sideboard_info()
  editor_ui.update_deck()
  if page=="editor" and is_instance_valid(library):refresh_library_limits()
 
@@ -1898,31 +1977,62 @@ func sort_current_deck():
  update_deck_rows()
 
 func open_sideboard(session):
- if session.room.get("status","")!="between" or not session.can_act() or session.room.ready[session.seat]:return
+ if session.read_only or session.room.get("status","") not in ["sideboarding","between"] or not session.can_act() or session.room.ready[session.seat]:return
  sideboard_previous={"draft":draft.duplicate(true),"dirty":dirty,"selected":selected,"zone":zone}
- sideboard_session=session;sideboard_original=session.room.own_deck.duplicate(true)
- draft=sideboard_original.duplicate(true);dirty=false;selected=draft.leader;zone="main";sideboard_waiting=false
+ sideboard_session=session;sideboard_original=session.room.get("own_registered",session.room.own_deck).duplicate(true)
+ draft=session.room.own_deck.duplicate(true);dirty=false;selected=draft.leader;zone="main";sideboard_waiting=false
  if not session.changed.is_connected(sideboard_changed):session.changed.connect(sideboard_changed)
  if not session.error_raised.is_connected(sideboard_error):session.error_raised.connect(sideboard_error)
  editor(true)
 
 func sideboard_locked() -> bool:
- return sideboard_session==null or sideboard_waiting or not sideboard_session.can_act()
+ return sideboard_session==null or sideboard_waiting or sideboard_session.room.get("status","") not in ["sideboarding","between"] or sideboard_session.room.ready[sideboard_session.seat] or not sideboard_session.can_act()
+
+func sideboard_instructions_text() -> String:
+ var text="点击卡牌或拖到另一卡组：移动 1 张。\n拖到卡牌上可交换；%s可预览。\n完成时须恢复主卡组张数，保持自机及登记牌池不变。" % ("长按" if is_android else "右键")
+ if sideboard_session!=null and Series.sideboard_limit(sideboard_session.room)>=0:text+="\n最多从备牌换入 3 张，可不换。"
+ return text
+
+func update_sideboard_info():
+ if not is_instance_valid(sideboard_info) or sideboard_session==null:return
+ var room=sideboard_session.room
+ var leaders=room.get("leaders",[])
+ sideboard_info.text=""
+ if leaders.size()==2:sideboard_info.text="对方自机："+str(Store.CARDS.get(leaders[1-sideboard_session.seat],{}).get("name","未知自机"))
+ if Series.sideboard_limit(room)>=0:
+  sideboard_info.text+="\n已从备牌换入 %d / 3 张" % Series.sideboard_additions(draft,sideboard_original)
+ sideboard_info.visible=not sideboard_info.text.is_empty()
+
+func public_leader_card(parent: Node,room: Dictionary,seat: int,rect: Rect2=Rect2()) -> Control:
+ var leaders=room.get("leaders",[])
+ if leaders.size()!=2 or seat not in [0,1] or not Store.CARDS.has(leaders[seat]):return null
+ var tile=preload("res://scripts/public_leader_card.gd").new()
+ tile.app=self;tile.card_id=str(leaders[seat])
+ var arts=room.get("leader_arts",[])
+ if arts.size()==2:tile.art_id=str(arts[seat])
+ tile.position=rect.position;tile.size=rect.size
+ if rect==Rect2():
+  var height=clampf(screen.size.y*0.22,100,180)
+  tile.custom_minimum_size=Vector2(height/1.397,height)
+  var center=CenterContainer.new();parent.add_child(center);center.add_child(tile)
+ else:parent.add_child(tile)
+ return tile
 
 func complete_sideboard():
  if sideboard_locked():return
- var error=preload("res://net/series_controller.gd").sideboard_error(draft,sideboard_original,sideboard_session.room.strict,sideboard_session.room.get("rule_set",RuleSet.UNRESTRICTED))
+ var error=Series.sideboard_error(draft,sideboard_original,sideboard_session.room.strict,sideboard_session.room.get("rule_set",RuleSet.UNRESTRICTED),Series.sideboard_limit(sideboard_session.room))
  if not error.is_empty():sideboard_status.text=error;return
  sideboard_waiting=true;sideboard_done.disabled=true;sideboard_status.text="正在确认更换…"
  sideboard_session.room_action({"name":"deck","deck":draft.duplicate(true)})
 
 func sideboard_changed():
  if page!="sideboard" or sideboard_session==null:return
- if sideboard_session.room.get("status","")!="between":
+ if sideboard_session.room.get("status","") not in ["sideboarding","between"]:
   sideboard_waiting=false;sideboard_done.disabled=true;sideboard_status.text=sideboard_session.connection_status() if sideboard_session.ended() else "当前已不能换备牌";return
  if sideboard_waiting and not sideboard_session.busy and sideboard_session.room.own_deck==draft:
   online();return
  sideboard_done.disabled=sideboard_locked()
+ update_sideboard_info()
  if not sideboard_session.can_act():sideboard_status.text=sideboard_session.connection_status()
  elif not sideboard_waiting:sideboard_status.text=""
 
@@ -2102,6 +2212,10 @@ func desktop_settings():
  clear_page("settings")
  header("设置",menu)
  button(screen,"关于",Rect2(1260,32,140,46),about)
+ var sound_settings=preload("res://scripts/menu_ui_layout.gd").new()
+ sound_settings.app=self;sound_settings.metrics=ui_metrics
+ var sound_row=sound_settings.room_join_volume_control(screen)
+ sound_row.position=Vector2(420,202);sound_row.size=Vector2(700,60)
  var cb = CheckButton.new()
  cb.text = "全屏显示"
  cb.position = Vector2(420,290)
@@ -2195,10 +2309,14 @@ func desktop_editor(sideboarding: bool=false):
  if sideboarding:
   box(screen,Rect2(1238,72,344,810))
   label(screen,"调整方法",Rect2(1252,92,314,36),23,GOLD)
-  var instructions=label(screen,"左键单击卡牌，或拖到另一卡组：移动 1 张。\n右键：预览卡牌。\n可暂时超过副卡组上限；完成时须恢复主卡组张数，并符合副卡组上限与登记牌池。",Rect2(1252,138,314,145),17,MUTED)
+  var instructions=label(screen,sideboard_instructions_text(),Rect2(1252,138,314,190),17,MUTED)
   instructions.name="SideboardInstructions"
   instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  sideboard_status=label(screen,"",Rect2(1252,300,314,290),20,GOLD)
+  instructions.size=Vector2(314,190)
+  sideboard_leader_card=public_leader_card(screen,sideboard_session.room,1-sideboard_session.seat,Rect2(1333,334,150,210))
+  sideboard_info=label(screen,"",Rect2(1252,556,314,86),20,GOLD)
+  sideboard_info.name="SideboardInfo";sideboard_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  sideboard_status=label(screen,"",Rect2(1252,650,314,94),18,GOLD)
   sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   sideboard_done=button(screen,"更换完成",Rect2(1252,756,314,64),complete_sideboard,true)
   update_preview();update_deck_rows();sideboard_changed()
@@ -2347,6 +2465,7 @@ func desktop_update_deck_rows():
  if sideboard_session!=null:
   counts.text="主卡组 %d / %d     副卡组 %d / 10     自机 1 / 1" % [draft.main.size(),sideboard_original.main.size(),draft.side.size()]
   if not sideboard_waiting and is_instance_valid(sideboard_status):sideboard_status.text=""
+  update_sideboard_info()
  var old_scroll=main_scroll.scroll_vertical if is_instance_valid(main_scroll) else 0
  free_children(deck_canvas)
  main_scroll=ScrollContainer.new()

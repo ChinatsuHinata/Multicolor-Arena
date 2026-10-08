@@ -120,7 +120,7 @@ static func matches_query(info: Dictionary,id: String,query: Dictionary) -> bool
  var role_spell=info.kind=="符卡" and not required_character.is_empty() and query.role_characters.any(func(character):return character==required_character or str(character).begins_with(required_character+"·") or str(character).begins_with(required_character+"・"))
  if query.ids.has(id) or role_spell:return true
  if query.exclusive:return false
- var searchable=[info.name,id,info.get("title",""),info.get("character","")]
+ var searchable=[info.name,id,info.get("title",""),info.get("character",""),info.get("description",""),info.get("rules_text","")]
  searchable.append_array(info.get("keywords",[]))
  searchable.append_array(info.get("aliases",[]))
  if info.get("token",false):searchable.append("衍生物")

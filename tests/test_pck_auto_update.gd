@@ -227,12 +227,22 @@ func run():
  check(updater._plan(broken).has("error"),"external patch address is rejected")
  # Failure during an upgrade must preserve a previously committed chain too.
  manager.active_version=NEXT;manager.pending_version=""
+ # Restore the intermediate installation being upgraded in this fixture.
+ var intermediate_index=manager._read_index()
+ var intermediate_record=FileAccess.open(index_path,FileAccess.WRITE)
+ intermediate_record.store_string(JSON.stringify([intermediate_index[0]]));intermediate_record.close()
  var original_index=FileAccess.get_file_as_string(index_path)
- asset_status[second_path]=404
  outcomes.clear()
- app.check_cloud_pck_patch()
- await wait_for_updater(app)
+ # HTTP failures were exercised above. Inject the completed failed response
+ # here to isolate rollback of an existing installation from a new request.
+ var failed_download=manager.patch_dir.path_join("cloud-download-existing.tmp")
+ var partial=FileAccess.open(failed_download,FileAccess.WRITE)
+ partial.store_string("partial failed download");partial.close()
+ updater.manager=manager;updater.busy=true;updater.download_path=failed_download
+ updater.downloaded_paths=[failed_download]
+ updater._download_received(HTTPRequest.RESULT_SUCCESS,404,PackedByteArray())
  check(outcomes.size()==1 and outcomes[0].get("error")=="PCK 补丁下载失败。" and FileAccess.get_file_as_string(index_path)==original_index,"failed upgrade preserves an existing installed chain")
+ check(not FileAccess.file_exists(failed_download),"failed upgrade removes only its temporary download")
  var real_name=manager.name
  manager.name="TestPatchManager"
  var legacy=load("res://tests/support/legacy_patch_manager.gd").new()

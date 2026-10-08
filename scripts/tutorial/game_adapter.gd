@@ -42,9 +42,10 @@ func load_scenario(id: String,s: Dictionary,cards: Dictionary) -> String:
   candidate.players.append(p)
   candidate.player_names[who]=source.get("name","学员" if who==0 else "教程对手")
   p.leader=create(candidate,source.leader,who,"leader",next_aliases)
-  if source.get("leader_on_field",false):
-   p.leader.zone="field"
-   p.field.append(p.leader)
+  var leader_zone=Config.leader_zone(source)
+  if leader_zone!="leader":
+   p.leader.zone=leader_zone
+   p[leader_zone].append(p.leader)
   for zone in Config.ZONES:
    var key="deck_order" if zone=="deck" else zone
    var entries=source.get(key,[]).duplicate(true)
@@ -167,6 +168,7 @@ func evaluate(c: Dictionary,completed: Array) -> bool:
   "combat_attacker":
    var attacker=resolve_card(c)
    return engine!=null and not attacker.is_empty() and engine.combat.get("attacker",{})==engine.ref_target(attacker)
+  "combat_attacker_rank":return attacker_rank_matches(c)
   "combat_step":return engine!=null and engine.combat.get("step","none")==c.value
   "entity_zone":return resolve_card(c).get("zone","")==c.zone
   "entity_state":
@@ -209,6 +211,26 @@ func evaluate(c: Dictionary,completed: Array) -> bool:
     if last_ui_action.get("args",{}).get(key)!=c.action.args[key]:return false
    return true
  return false
+
+func attacker_rank_matches(c: Dictionary) -> bool:
+ if engine==null or engine.combat.is_empty():return false
+ var attacking=engine.attacking_unit_ref()
+ if attacking.is_empty():return false
+ var attacker=engine.find_card(int(attacking.get("uid",-1)))
+ if attacker.is_empty() or attacker.owner!=int(c.player) or attacker.zone!="field" or not engine.is_unit(attacker):return false
+ if attacking!=engine.ref_target(attacker):return false
+ var units=engine.players[int(c.player)].field.filter(func(card):return engine.is_unit(card))
+ var count=int(c.get("count",1))
+ if c.has("count_player"):count=engine.players[int(c.count_player)].field.filter(func(card):return engine.is_unit(card)).size()
+ if count<=0 or attacker not in units:return false
+ var value=rank_stat(attacker,c.key);var rank=1
+ for card in units:
+  var other=rank_stat(card,c.key)
+  if other>value or other==value and c.get("ties","field_order")=="field_order" and units.find(card)<units.find(attacker):rank+=1
+ return rank<=count
+
+func rank_stat(card: Dictionary,key: String) -> int:
+ return engine.stat(card,key)-(int(card.damage) if key=="health" else 0)
 
 static func compare(actual: int,expected: int,op: String) -> bool:
  return actual==expected if op=="eq" else actual<=expected if op=="le" else actual>=expected

@@ -41,7 +41,7 @@ func rebuild():
  build(self,condition)
 
 func build(parent: Node,c: Dictionary,depth: int=0):
- var kinds=["always","all","any","not","life","entity_zone","entity_state","entity_color_counter","entity_count","zone_count","combat_attacker","combat_step","phase","priority","pending","player_count","steps_completed"] if scene_type=="battlefield" else ["always","all","any","not","deck_count","ui_action","steps_completed"]
+ var kinds=["always","all","any","not","life","entity_zone","entity_state","entity_color_counter","entity_count","zone_count","combat_attacker","combat_attacker_rank","combat_step","phase","priority","pending","player_count","steps_completed"] if scene_type=="battlefield" else ["always","all","any","not","deck_count","ui_action","steps_completed"]
  if not allowed_types.is_empty():kinds=allowed_types.duplicate()
  if c.type not in kinds:kinds.append(c.type)
  var names=kinds.map(func(kind):return {"ui_action":"完成指定操作"}.get(kind,Graph.TYPES.get(kind,kind)))
@@ -68,12 +68,25 @@ func build(parent: Node,c: Dictionary,depth: int=0):
    "zone":
     values=["main","side","leader"] if c.type=="deck_count" else ["deck","hand","field","palette","grave","exile","leader","stack"]
     labels=values.map(func(zone):return {"main":"主卡组","side":"副卡组","leader":"自机","deck":"牌库","hand":"手牌","field":"战场","palette":"颜色盘","grave":"墓地","exile":"除外","stack":"堆叠"}.get(zone,zone))
-   "key":values=["tapped","attacked"] if c.type=="entity_state" else ["turns","possession_count"] if c.type=="player_count" else preload("res://scripts/tutorial/config.gd").CARD_COUNTS
+   "key":
+    values=["tapped","attacked"] if c.type=="entity_state" else ["turns","possession_count"] if c.type=="player_count" else Graph.RANK_STATS.keys() if c.type=="combat_attacker_rank" else preload("res://scripts/tutorial/config.gd").CARD_COUNTS
+    if c.type=="combat_attacker_rank":labels=Graph.RANK_STATS.values()
    "op":values=["eq","le","ge"];labels=["等于","小于等于","大于等于"]
    "color":values=["红","蓝","绿","黄","黑"]
    "kind":values=["possession","discard","block","damage_assignment","trigger_order","ward_order","trigger","leader_return","grave_replacement","effect_choice","timer"] if c.type=="pending" else ["单位","自机","道具","结界","符卡"]
   if c[key] not in values:values.append(c[key]);labels=[]
   choice(parent,values,c[key],func(value):c[key]=value,labels)
+ if c.type=="combat_attacker_rank":
+  label(parent,"排名范围")
+  choice(parent,["fixed",0,1],int(c.count_player) if c.has("count_player") else "fixed",func(value):
+   c.erase("count");c.erase("count_player")
+   if value is String:c.count=1
+   else:c.count_player=value
+   rebuild(),["固定前 N 名","前 x 名：x = 我方场上单位数","前 x 名：x = 对方场上单位数"]).name="AttackRankCountSource"
+  if c.has("count"):
+   var count=SpinBox.new();count.name="AttackRankCount";parent.add_child(count);count.min_value=1;count.max_value=100000;count.value=c.count
+   count.value_changed.connect(func(value):c.count=int(value))
+  choice(parent,["all","field_order"],c.get("ties","field_order"),func(value):c.ties=value,["同值全部符合","同值按战场顺序取前 N 个"]).name="AttackRankTies"
  if c.type in ["deck_count","zone_count"]:card_picker(parent,c)
  if c.has("value"):
   label(parent,"目标值")

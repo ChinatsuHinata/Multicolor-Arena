@@ -215,6 +215,50 @@ func setup_card_editing():
  var extra=Recorder.new();expect(extra.configure(secondary,Store.CARDS).is_empty(),"automatic extra leader setup loads")
  expect(extra.remove_setup_card(int(extra.adapter.engine.players[0].extra_leaders[0].uid)) and extra.begin_record().is_empty() and extra.adapter.engine.leaders(0).size()==1,"deleting an extra leader is saved without regenerating it")
 
+func setup_leader_zones():
+ for zone in Config.ZONES+["leader"]:
+  var input=Model.battle();var r=Recorder.new()
+  for who in range(2):
+   input.players[who].leader.state={"tapped":true,"leader_counters":2,"color_counters":["蓝"]}
+   if zone!="leader":input.players[who]["deck_order" if zone=="deck" else zone]=[{"card_id":"53" if zone=="field" else "70","alias":"ordinary"+str(who)}]
+  var before=input.duplicate(true)
+  expect(r.configure(input,Store.CARDS).is_empty(),"leader zone setup loads: "+zone)
+  var e=r.adapter.engine
+  for who in range(2):
+   var leader=e.players[who].leader;var extra=r.copy_setup_card(int(leader.uid))
+   expect(e.debug_move(int(leader.uid),zone).is_empty() and e.debug_move(extra,"leader" if zone=="field" else zone).is_empty(),"both deck and extra leaders can move: "+zone+str(who))
+   leader.tapped=true;leader.leader_counters=2;leader.color_counters=["蓝"]
+   if zone=="field":expect(r.toggle_setup_unit_ready(int(leader.uid)) and r.toggle_setup_unit_ready(int(leader.uid)),"placed leader supports individual readiness: "+str(who))
+  var board=r.tableau();var check=Config.new();check.definitions=Store.CARDS;check.scenario(board,"leader_zones",{})
+  expect(check.errors.is_empty(),"saved leader zones pass scene validation: "+zone)
+  var restored=Recorder.new()
+  expect(restored.configure(JSON.parse_string(JSON.stringify(board)),Store.CARDS).is_empty(),"leader zones reopen from JSON: "+zone)
+  for who in range(2):
+   var leader=restored.adapter.entity("student_leader" if who==0 else "enemy_leader");var p=restored.adapter.engine.players[who]
+   expect(is_same(leader,p.leader) and leader.zone==zone and leader.leader and p.extra_leaders[0].zone==("leader" if zone=="field" else zone),"same deck and extra leader instances retain their zone: "+zone+str(who))
+   expect(leader.tapped and leader.leader_counters==2 and leader.color_counters==["蓝"],"leader state survives zone save: "+zone+str(who))
+   if zone!="leader":expect(p[zone].size()==(2 if zone=="field" else 3) and p[zone].count(leader)==1 and not restored.adapter.entity("ordinary"+str(who)).leader,"placement adds the leader once and preserves ordinary cards: "+zone+str(who))
+   if zone=="field":expect(restored.adapter.engine.summoning_sick(leader),"reopened field leader keeps individual readiness: "+str(who))
+  expect(JSON.parse_string(JSON.stringify(restored.tableau()))==JSON.parse_string(JSON.stringify(board)),"repeated save preserves leader placement: "+zone)
+  expect(r.begin_record().is_empty(),"recording accepts placed leaders: "+zone)
+  for who in range(2):expect(r.adapter.engine.players[who].leader.zone==zone,"recording baseline preserves leader zone: "+zone+str(who))
+  expect(input==before,"leader placement leaves the source scene untouched: "+zone)
+ var legacy=Model.battle();legacy.players[0].leader_on_field=true
+ var r=Recorder.new();expect(r.configure(legacy,Store.CARDS).is_empty() and r.adapter.engine.players[0].leader.zone=="field","legacy field placement still loads")
+ legacy.players[0].leader_zone="grave"
+ expect(r.configure(legacy,Store.CARDS).is_empty() and r.adapter.engine.players[0].leader.zone=="grave","explicit leader zone takes precedence over the legacy field flag")
+ for invalid in ["stack","",3,false,null]:
+  var input=Model.battle();input.players[0].leader_zone=invalid
+  var check=Config.new();check.definitions=Store.CARDS;check.scenario(input,"invalid_leader_zone",{})
+  expect(not check.errors.is_empty(),"invalid leader zones are rejected: "+str(invalid))
+ var palette=Model.battle();palette.players[0].leader_zone="palette"
+ palette.players[0].extra_leaders=[{"card_id":"70","zone":"palette"}]
+ for i in range(6):palette.players[0].palette.append({"card_id":"53"})
+ var check=Config.new();check.definitions=Store.CARDS;check.scenario(palette,"full_palette",{})
+ expect(check.errors.is_empty(),"palette allows eight cards including the deck and extra leaders")
+ palette.players[0].palette.append({"card_id":"53"});check.errors=[];check.scenario(palette,"overflow_palette",{})
+ expect(not check.errors.is_empty(),"palette limit counts both deck and extra leaders")
+
 func setup_unit_readiness():
  var input=scene();input.turn=6
  input.players[0].state={"turns":4};input.players[1].state={"turns":2}
@@ -259,7 +303,32 @@ func setup_unit_readiness():
  r.reset_setup()
  expect(r.toggle_setup_unit_ready(int(r.adapter.entity("a").uid)),"resetting to setup enables P again")
 
+func saved_tenshi_readiness():
+ var model=Model.new();var reason=model.load_course("res://data/tutorial/beginner/t4.json")
+ expect(reason.is_empty(),"nonspell course loads for the saved Tenshi readiness regression")
+ if not reason.is_empty():return
+ var context=model.context_for("step_1");var value=model.data.scenarios[context.scene]
+ var r=Recorder.new();reason=r.configure(value,Store.CARDS)
+ expect(reason.is_empty(),"saved nonspell task loads into setup")
+ if not reason.is_empty():return
+ var alias=value.players[0].leader.alias;var e=r.adapter.engine;var tenshi=r.adapter.entity(alias)
+ expect(tenshi.card_id=="character-fdf-ex04" and e.can_attack(0,int(tenshi.uid)),"the authored nonspell task restores attack-ready Tenshi from the saved course")
+ expect(r.toggle_setup_unit_ready(int(tenshi.uid)) and e.summoning_sick(tenshi),"saved Tenshi can still be made fresh with P")
+ expect(r.toggle_setup_unit_ready(int(tenshi.uid)) and e.can_attack(0,int(tenshi.uid)),"P restores saved Tenshi's attack readiness")
+ model.data.scenarios[context.scene]=r.tableau()
+ var path="res://work/tutorial-recording-tenshi-ready.json"
+ expect(model.save_course(path).is_empty() and model.load_course(path).is_empty(),"P-configured Tenshi survives writing and reopening the course file")
+ var flow=Runtime.new();reason=flow.start(model.data,Store.CARDS,"step_1",context.scene,context.steps)
+ expect(reason.is_empty(),"reopened nonspell task starts in the runtime")
+ if reason.is_empty():
+  tenshi=flow.adapter.entity(alias);e=flow.adapter.engine
+  expect(e.can_attack(0,int(tenshi.uid)),"reopened nonspell task keeps Tenshi attack-ready")
+  e.attack(0,int(tenshi.uid))
+  expect(tenshi.attacked,"reopened Tenshi executes a real attack")
+  expect(flow.reset_task() and flow.adapter.engine.can_attack(0,int(flow.adapter.entity(alias).uid)),"task reset preserves the saved Tenshi readiness")
+ flow.free()
+
 func _initialize():
- var r=record_combat();practice(r);response();flexible_conditions(r);all_responses(r);random_recording();failure_during_practice(r);setup_hand_deletion();setup_card_editing();setup_unit_readiness()
+ var r=record_combat();practice(r);response();flexible_conditions(r);all_responses(r);random_recording();failure_during_practice(r);setup_hand_deletion();setup_card_editing();setup_leader_zones();setup_unit_readiness();saved_tenshi_readiness()
  print("TUTORIAL RECORDING: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

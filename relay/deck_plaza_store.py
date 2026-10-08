@@ -53,6 +53,11 @@ def deck_metadata(parts):
 
 
 def initialize(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS player_follows (
+        follower_id INTEGER NOT NULL REFERENCES players(id),
+        author_id INTEGER NOT NULL REFERENCES players(id),
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY(follower_id,author_id), CHECK(follower_id != author_id))""")
     conn.execute("""CREATE TABLE IF NOT EXISTS deck_posts (
         id INTEGER PRIMARY KEY,
         player_id INTEGER NOT NULL REFERENCES players(id),
@@ -136,13 +141,16 @@ def deck_parts(code):
     return parts
 
 
-def record(row, account, detail=False):
-    result = dict(zip(("id", "title", "tags", "deck_code", "username", "nickname", "created_at"), row[:7]))
+def record(conn, row, account, detail=False):
+    result = dict(zip(("id", "title", "tags", "deck_code", "nickname", "created_at"),
+                      (row[0], row[1], row[2], row[3], row[5], row[6])))
     result["tags"] = json.loads(result["tags"])
     if detail:
         result["description"] = row[7]
     result["colors"] = list(row[8])
     result["owned"] = row[9] == account["player_id"]
+    result["following"] = conn.execute("SELECT 1 FROM player_follows WHERE follower_id=? AND author_id=?",
+                                       (account["player_id"], row[9])).fetchone() is not None
     return result
 
 
@@ -172,6 +180,12 @@ def search_where(data, account):
         raise ValueError("我的上传筛选无效")
     if mine:
         filters.append("player_id=?")
+        values.append(account["player_id"])
+    following = data.get("following", False)
+    if not isinstance(following, bool):
+        raise ValueError("关注筛选无效")
+    if following:
+        filters.append("player_id IN (SELECT author_id FROM player_follows WHERE follower_id=?)")
         values.append(account["player_id"])
     for field in ("leader", "tag"):
         term = data.get(field, "")
@@ -203,11 +217,28 @@ def handle(conn, data, account):
         "upload": {"action", "token", "title", "description", "tags", "deck_code"},
         "edit": {"action", "token", "id", "title", "description", "tags", "deck_code"},
         "delete": {"action", "token", "id"},
-        "list": {"action", "token", "page", "leader", "tag", "color_text", "colors", "mine"},
+        "list": {"action", "token", "page", "leader", "tag", "color_text", "colors", "mine", "following"},
         "detail": {"action", "token", "id"},
+        "follow": {"action", "token", "id", "following"},
     }
     if not isinstance(action, str) or action not in fields or set(data) - fields[action]:
         return {"ok": False, "message": "套牌广场只接受文字和卡组代码，不接受资产或额外字段"}
+    if action == "follow":
+        post_id, following = data.get("id"), data.get("following")
+        if type(post_id) not in (int, float) or not 0 < post_id <= 2**53 or int(post_id) != post_id or not isinstance(following, bool):
+            return {"ok": False, "message": "关注请求无效"}
+        row = conn.execute(f"SELECT {SELECT} FROM deck_posts WHERE id=?", (int(post_id),)).fetchone()
+        if row is None:
+            return {"ok": False, "message": "套牌已不存在，请刷新广场"}
+        author_id = row[9]
+        if author_id == account["player_id"]:
+            return {"ok": False, "message": "不能关注自己"}
+        with conn:
+            if following:
+                conn.execute("INSERT OR IGNORE INTO player_follows VALUES(?,?,?)", (account["player_id"], author_id, int(time.time())))
+            else:
+                conn.execute("DELETE FROM player_follows WHERE follower_id=? AND author_id=?", (account["player_id"], author_id))
+        return {"ok": True, "message": "已关注作者" if following else "已取消关注", "deck": record(conn, row, account, detail=True)}
     if action in ("edit", "delete"):
         post_id = data.get("id")
         if type(post_id) not in (int, float) or not 0 < post_id <= 2**53 or int(post_id) != post_id:
@@ -246,7 +277,7 @@ def handle(conn, data, account):
                     WHERE id=? AND player_id=?""", (title.strip(), description.strip(), json.dumps([tag.strip() for tag in tags], ensure_ascii=False),
                     code, leader_search, colors, int(time.time()), int(post_id), account["player_id"]))
                 updated = conn.execute(f"SELECT {SELECT} FROM deck_posts WHERE id=?", (int(post_id),)).fetchone()
-                return {"ok": True, "message": "套牌修改已保存", "id": int(post_id), "deck": record(updated, account, detail=True)}
+                return {"ok": True, "message": "套牌修改已保存", "id": int(post_id), "deck": record(conn, updated, account, detail=True)}
             cursor = conn.execute("""INSERT INTO deck_posts
                 (player_id,username,nickname,title,description,tags,deck_code,created_at,leader_search,colors)
                 VALUES(?,?,?,?,?,?,?,?,?,?)""", (account["player_id"], account["username"], account["nickname"],
@@ -266,11 +297,11 @@ def handle(conn, data, account):
         page = min(int(page), pages - 1)
         rows = conn.execute(f"SELECT {SELECT} FROM deck_posts{where} ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?",
                             (*values, PAGE_SIZE, page * PAGE_SIZE)).fetchall()
-        return {"ok": True, "message": "", "decks": [record(row, account) for row in rows], "page": page, "pages": pages, "total": count}
+        return {"ok": True, "message": "", "decks": [record(conn, row, account) for row in rows], "page": page, "pages": pages, "total": count}
     post_id = data.get("id")
     if type(post_id) not in (int, float) or not 0 < post_id <= 2**53 or int(post_id) != post_id:
         return {"ok": False, "message": "套牌编号无效"}
     row = conn.execute(f"SELECT {SELECT} FROM deck_posts WHERE id=?", (int(post_id),)).fetchone()
     if row is None:
         return {"ok": False, "message": "套牌已不存在，请刷新广场"}
-    return {"ok": True, "message": "", "deck": record(row, account, detail=True)}
+    return {"ok": True, "message": "", "deck": record(conn, row, account, detail=True)}

@@ -161,7 +161,7 @@ func build_library_gallery(body: VBoxContainer):
  var gallery=HBoxContainer.new();gallery.name="LibraryGalleryPanes";body.add_child(gallery);expand(gallery,true)
  build_library_filters(column(gallery))
  var cards=column(gallery);cards.name="LibraryGalleryCards"
- var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 别名 / 颜色 / 类别";search.text=app.query
+ var search=LineEdit.new();search.name="LibrarySearch";search.placeholder_text="搜索卡名 / 描述 / 别名 / 颜色 / 类别";search.text=app.query
  search.custom_minimum_size.y=metrics.hit;cards.add_child(search)
  search.clear_button_enabled=true
  search.text_changed.connect(func(value):app.query=value;app.update_library())

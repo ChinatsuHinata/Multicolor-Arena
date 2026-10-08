@@ -1,4 +1,5 @@
 param(
+    [switch]$BackendOnly,
     [string]$Server = '8.137.122.187',
     [string]$User = 'codex',
     [string]$KeyPath = "$env:USERPROFILE\.ssh\id_ed25519_multicolor_ecs"
@@ -10,7 +11,9 @@ $archive = Join-Path $relayDir 'deck-plaza-deploy.tar.gz'
 $target = "${User}@${Server}"
 $sshOptions = @('-i',$KeyPath,'-o','IdentitiesOnly=yes','-o','StrictHostKeyChecking=yes','-o','ConnectTimeout=10','-o','ServerAliveInterval=10','-o','ServerAliveCountMax=2')
 try {
-    & tar -czf $archive -C $relayDir server.gd account_store.py deck_plaza_store.py deck_plaza_catalogue.json install-deck-plaza.sh
+    $programs = @('account_store.py','deck_plaza_store.py','deck_plaza_catalogue.json','install-deck-plaza.sh')
+    if (-not $BackendOnly) { $programs += @('server.gd','match_queue.gd') }
+    & tar -czf $archive -C $relayDir @programs
     if ($LASTEXITCODE -ne 0) { throw 'Could not package deck plaza programs.' }
     & scp @sshOptions $archive "${target}:~/deck-plaza-deploy-$stamp.tar.gz"
     if ($LASTEXITCODE -ne 0) { throw 'Deck plaza upload failed.' }

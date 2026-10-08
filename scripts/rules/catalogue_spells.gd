@@ -483,7 +483,8 @@ static func resolve_complex_choice(e,t):
    e.mill_cards(C.selected(e,a))
    var rest=d.top.filter(func(r):return C.valid(e,r));e.shuffle(rest)
    for r in rest:e.move_to(e.find_card(r.uid),"deck")
-   C.damage(e,d.target,p.grave.filter(func(u):return e.cards[u.card_id].kind=="符卡").size())
+   # The resolving spell entered the grave before this choice completed.
+   C.damage(e,d.target,p.grave.filter(func(u):return u.uid!=t.source.uid and e.cards[u.card_id].kind=="符卡").size())
   "cat:atonement_discard":
    for u in C.selected(e,a):e.move_to(u,"grave")
    var biggest=0

@@ -13,7 +13,7 @@ var redo_stack: Array=[]
 static func battle() -> Dictionary:
  return {"type":"battlefield","seed":42,"turn":1,"phase":"main","active":0,"priority":0,"players":[
   {"name":"学员","life":20,"leader":{"card_id":"70","alias":"student_leader"},"deck_order":[{"card_id":"53"}],"hand":[],"field":[],"palette":[]},
-  {"name":"教程对手","life":20,"leader":{"card_id":"70","alias":"enemy_leader"},"deck_order":[{"card_id":"53"}],"hand":[],"field":[],"palette":[]}],"opponent":{"strategy":"paused"}}
+  {"name":"教程对手","life":20,"leader":{"card_id":"70","alias":"enemy_leader"},"deck_order":[{"card_id":"53"}],"hand":[],"field":[],"palette":[]}],"opponent":{"strategy":"paused","auto_response":true}}
 
 static func deck() -> Dictionary:
  return {"name":"教学卡组","leader":"70","main":["53"],"side":[],"rule_set":"official"}
@@ -112,9 +112,12 @@ func reorder_steps(order: Array) -> String:
  return ""
 
 func scene_for(step_id: String) -> String:
+ return context_for(step_id).scene
+
+func context_for(step_id: String) -> Dictionary:
  # Walk both branches. The editor previews a configured starting tableau;
  # actual carried-over state remains the runtime's responsibility.
- var queue=[[data.start_step,data.initial_scenario]];var seen={}
+ var queue=[[data.start_step,data.initial_scenario,[]]];var seen={}
  while not queue.is_empty():
   var item=queue.pop_front();var id=item[0];var scene_id=item[1]
   if id=="$complete" or not data.steps.has(id):continue
@@ -122,10 +125,11 @@ func scene_for(step_id: String) -> String:
   var key=id+"@"+scene_id
   if seen.has(key):continue
   seen[key]=true
-  if id==step_id:return scene_id
+  if id==step_id:return {"scene":scene_id,"steps":item[2]}
+  var prior=item[2].duplicate();prior.append(id)
   for edge in ["next","failure"]:
-   if data.steps[id].has(edge):queue.append([data.steps[id][edge],scene_id])
- return data.steps.get(step_id,{}).get("scenario",data.initial_scenario)
+   if data.steps[id].has(edge):queue.append([data.steps[id][edge],scene_id,prior])
+ return {"scene":data.steps.get(step_id,{}).get("scenario",data.initial_scenario),"steps":[]}
 
 func add_step(after: String) -> String:
  checkpoint()
