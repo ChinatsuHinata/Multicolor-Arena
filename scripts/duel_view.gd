@@ -1243,7 +1243,6 @@ func render():
  previous_snapshot=table.card_snapshot()
  if network_locked():pass
  elif engine.pending.get("kind","")=="reveal_review" and not replay_view():RevealReview.render(self)
- elif engine.winner!=-2 and not table.combat_animating and not replay_view(): result_overlay()
  elif engine.pending.get("kind","")=="damage_assignment" and engine.pending.owner==acting_player() and not table.combat_animating: damage_dialog()
  elif engine.pending.get("kind","")=="ward_order" and engine.pending.owner==acting_player() and not table.combat_animating: ward_order_menu()
  elif engine.pending.get("kind","")=="trigger_order" and engine.pending.owner==acting_player() and not table.combat_animating: trigger_order_menu()
@@ -1731,6 +1730,8 @@ func counter_lines(c: Dictionary) -> Array:
 
 func render_prompt():
  if network_session!=null and network_session.replay_mode:return
+ if engine.winner!=-2 and engine.pending.get("kind","")!="reveal_review":
+  render_result_actions();return
  if network_session!=null and not network_session.room.get("undo_request",{}).is_empty() and network_session.connected and not network_session.paused:return
  if network_session!=null and not network_session.can_act(true):
   network_status_label=txt(network_session.connection_status(),Rect2(1290,630,294,110),18,host.GOLD)
@@ -1765,6 +1766,8 @@ func render_prompt():
    if tutorial_runtime!=null:tutorial_runtime.submit_mulligan_selection(selection.duplicate())
    else:engine.mulligan(acting_player(),selection)
    selection=[];render(),true)
+ elif engine.phase=="mulligan":
+  text="起手选择已提交，等待对手提交后双方一起调度"
  elif engine.pending.get("owner",-1)==acting_player():
   match engine.pending.kind:
    "effect_choice":
@@ -2854,27 +2857,22 @@ func set_card_view(top_down: bool):
  if is_android:focus_android_camera(false)
  elif android_auto_focus_owner>=0 or tutorial_camera_view in ["own_palette","enemy_palette"]:focus_palette_camera(false)
  settings_menu()
-func result_overlay():
+func render_result_actions():
  if tutorial_runtime!=null:return
- var panel=overlay("本局平局" if engine.winner==-1 else "本局胜利" if engine.winner==local_seat else "本局结束")
- if is_android:
-  var layout=responsive.dialog_content(panel,850,host.ui_metrics.body*5)
-  var summary=txt(engine.log.back(),Rect2(),host.ui_metrics.body,host.WHITE,layout.body)
-  summary.clip_text=false;summary.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  var next_label="返回对局准备"
-  if network_session!=null:
-   var room=network_session.room
-   next_label="下一局" if room.get("status","")=="between" else "返回联机房间"
-   txt("%s · %d : %d" % [preload("res://net/series_controller.gd").format_label(int(room.format)),room.scores[0],room.scores[1]],Rect2(),host.ui_metrics.body,host.GOLD,layout.body)
-  responsive.choice_footer_button(layout.footer,next_label,func():host.online() if network_session!=null else host.setup(),true)
-  return
- txt(engine.log.back(),Rect2(30,90,590,80),22,host.WHITE,panel)
- var next_label="返回对局准备"
+ var caption="本局平局" if engine.winner==-1 else "本局胜利" if engine.winner==local_seat else "本局结束"
+ var next_label="退出对局"
  if network_session!=null:
   var room=network_session.room
-  next_label="下一局" if room.get("status","")=="between" else "返回联机房间"
-  txt("%s · %d : %d" % [preload("res://net/series_controller.gd").format_label(int(room.format)),room.scores[0],room.scores[1]],Rect2(30,160,590,40),22,host.GOLD,panel)
- btn(next_label,Rect2(160,220,330,56),func(): host.online() if network_session!=null else host.setup(),true,panel)
+  next_label="下一局" if room.get("status","")=="between" else "回到联机房间"
+  caption+=" · %d : %d" % [room.scores[0],room.scores[1]]
+ var summary=txt(caption,PROMPT,23,host.GOLD)
+ summary.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ # Navigation remains available while the completed match settles or disconnects.
+ var leave_button=host.button(hud,next_label,Rect2(),func():host.online() if network_session!=null else host.setup(),true)
+ leave_button.name="BattleResultReturn"
+ leave_button.set_meta("choice_widget",true)
+ responsive.add_phase_action(leave_button)
+ if not is_android:responsive.action_column.position.y=minf(responsive.action_column.position.y,host.ui_metrics.safe.end.y-responsive.action_column.size.y)
 func damage_dialog():
  if engine.pending.get("kind","")!="damage_assignment":return
  var targets=engine.combat.blockers

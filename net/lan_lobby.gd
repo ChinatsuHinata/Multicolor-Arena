@@ -17,6 +17,8 @@ var cloud_password_input: LineEdit
 var cloud_host_slot: OptionButton
 var cloud_rooms_list: VBoxContainer
 var matchmaking_label: Label
+var queue_label: Label
+var match_deck_index=-1
 var cloud_room_columns=4
 const DEFAULT_RELAY_SERVER="ws://8.137.122.187:47862"
 var port_input: SpinBox
@@ -100,6 +102,7 @@ func show_error(message: String):
  app.alert(message,"无法进行联机操作")
 func _process(_delta):
  if is_instance_valid(matchmaking_label):matchmaking_label.text=session.notice
+ if is_instance_valid(queue_label):queue_label.text=queue_caption(session.match_queued if session.matchmaking else cloud_directory.queued,session.matchmaking)
  if is_instance_valid(latency_label):latency_label.text="网络延迟 · "+session.latency_text()
  if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
 func refresh(force: bool=false):
@@ -132,7 +135,7 @@ func set_cloud_mode(enabled: bool):
   app.alert("请先在主菜单的玩家账号中登录，再进入云端。","需要登录");refresh(true);return
  mode_selected=true;cloud_selected=enabled;last_error=""
  session.cloud_token=app.account_token;session.cloud_nickname=app.account_nickname
- if enabled:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token)
+ if enabled:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token,session.fingerprint)
  else:cloud_directory.stop()
  refresh(true)
 
@@ -235,12 +238,16 @@ func start_matchmaking():
  if app.cloud_match_blocked():app.explain_cloud_match_block();return
  last_error=""
  session.cloud_token=app.account_token;session.cloud_nickname=app.account_nickname
- var error=session.start_matchmaking(DEFAULT_RELAY_SERVER)
+ if match_deck_index<0 or match_deck_index>=app.decks.size():show_error("请先选择匹配卡组");return
+ var error=session.start_matchmaking(DEFAULT_RELAY_SERVER,app.decks[match_deck_index])
  if not error.is_empty():show_error(error)
 
 func build_matchmaking_wait():
  var root=mobile_scroll();var panel=mobile_panel(root)
- mobile_text(panel,"自动匹配 · BO1 换备牌",true)
+ mobile_text(panel,"排位匹配 · BO1 换备牌",true)
+ app.rank_display(panel)
+ queue_label=mobile_text(panel,queue_caption(session.match_queued,true));queue_label.name="MatchQueuePresence"
+ mobile_text(panel,"已锁定卡组："+str(session.match_deck.get("name","")))
  var rules=mobile_text(panel,"规则集固定为"+app.RuleSet.label_for(session.MATCH_RULE_SET)+" · 主卡组 50 张");rules.name="MatchmakingRules"
  matchmaking_label=mobile_text(panel,session.notice);matchmaking_label.name="MatchmakingStatus"
  mobile_text(panel,"优先匹配 Elo 相近的玩家；等待满 1 分钟后，每分钟扩大 100 分范围。")
@@ -292,11 +299,20 @@ func choose_cloud_room_seat(info: Dictionary,slot: int):
 
 func build_cloud_home():
  var root=mobile_scroll()
- mobile_text(root,"云端房间 · "+app.account_nickname,true)
  var matching=mobile_panel(root)
- mobile_text(matching,"自动匹配 · BO1 换备牌",true)
- var rules=mobile_text(matching,"主卡组 50 张 · "+app.RuleSet.label_for(session.MATCH_RULE_SET)+"规则集（固定） · 胜负影响 Elo · 等待满 1 分钟后放宽分差");rules.name="MatchmakingRules"
- var match_button=mobile_action(matching,"开始自动匹配",start_matchmaking,true);match_button.name="StartMatchmaking"
+ var match_header=HBoxContainer.new();matching.add_child(match_header)
+ mobile_text(match_header,"排位匹配",true).size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var rank_row=app.rank_display(match_header);rank_row.custom_minimum_size.x=minf(body.size.x*0.55,550)
+ queue_label=mobile_text(matching,queue_caption(cloud_directory.queued));queue_label.name="MatchQueuePresence"
+ var match_actions=HBoxContainer.new();matching.add_child(match_actions)
+ match_actions.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ var deck_button=mobile_action(match_actions,"选择匹配卡组" if match_deck_index<0 else app.deck_choice_caption(match_deck_index),choose_match_deck)
+ deck_button.name="MatchDeckSelect";deck_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deck_button.size_flags_stretch_ratio=1.6
+ deck_button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ var match_button=mobile_action(match_actions,"开始匹配",start_matchmaking,true);match_button.name="StartMatchmaking";match_button.disabled=match_deck_index<0;match_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var detail_row=HBoxContainer.new();matching.add_child(detail_row)
+ var rules=mobile_text(detail_row,"BO1 换备牌 · 官限（固定） · 主卡组 50 张");rules.name="MatchmakingRules";rules.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ mobile_action(detail_row,"段位规则",func():app.alert("毛玉级：2 个级别，每级 3 星，失败不掉星。\n妖精级：3 个级别，每级 3 星，失败掉星但不掉回毛玉。\n天狗级：3 个级别，每级 3 星，失败掉星但不掉回妖精。\n妖怪级：3 个级别，每级 3 星，失败可掉回天狗。\n妖怪贤者：无星数和级别，按 Elo 显示排名。\n\n每段从最大数字升到 1；三连胜起每胜获得 2 星。满 3 星立即晋级，多余星不带入下一级。","排位规则"))
  var create_width=maxf(480,app.ui_metrics.body*20+app.ui_metrics.padding*2)
  var directory_width=maxf(660,app.ui_metrics.body*16)
  var side_by_side=body.size.x>=create_width+directory_width+app.ui_metrics.gap
@@ -335,6 +351,8 @@ func build_cloud_home():
  refresh_cloud_rooms()
 
 func refresh_cloud_rooms():
+ if not cloud_directory.rank.is_empty():app.account_rank=cloud_directory.rank.duplicate(true)
+ refresh_rank_display()
  if not is_instance_valid(cloud_rooms_list) or not cloud_selected:return
  for child in cloud_rooms_list.get_children():cloud_rooms_list.remove_child(child);child.queue_free()
  if cloud_directory.rooms.is_empty():
@@ -441,12 +459,14 @@ func build_cloud_room_lobby():
   action_panel.size_flags_stretch_ratio=1.0
  if session.read_only:
   mobile_text(actions,"观战中 · 对局开始后自动进入战场")
-  deck_choice_button(actions)
-  register_deck_button(actions)
+  if not session.cloud_ranked:
+   deck_choice_button(actions)
+   register_deck_button(actions)
  else:
   mobile_text(actions,"对手："+("已准备" if room.ready[1-session.seat] else "未准备"),true)
-  deck_choice_button(actions)
-  register_deck_button(actions)
+  if not session.cloud_ranked:
+   deck_choice_button(actions)
+   register_deck_button(actions)
   if not room.own_deck.is_empty():mobile_text(actions,room.own_deck.name)
   mobile_text(actions,preparation_hint(room))
   var ready=mobile_action(actions,"取消准备" if room.ready[session.seat] else "准备",func():session.room_action({"name":"unready" if room.ready[session.seat] else "ready"}),true)
@@ -693,3 +713,25 @@ func build_responsive_room():
   if session.disconnected_at>0:session.stop_waiting()
   else:session.leave(false)
   refresh(true))
+
+func queue_caption(count: int,waiting: bool=false) -> String:
+ if count<0:return "正在查询匹配队列…" if cloud_directory.active or waiting else "尚未连接匹配队列"
+ if waiting:return "与你同版本的队列共 %d 人 · %s" % [count,"还有 %d 人正在匹配" % maxi(0,count-1) if count>1 else "暂无其他玩家，正在等待对手"]
+ return "当前有 %d 人正在匹配" % count if count>0 else "当前暂无其他玩家匹配 · 可选好卡组后加入队列"
+
+func choose_match_deck():
+ var current=str(app.decks[match_deck_index].id) if match_deck_index>=0 and match_deck_index<app.decks.size() else ""
+ app.open_deck_picker(select_match_deck,current,"选择排位卡组 · 官限 / 主卡组 50 张")
+
+func select_match_deck(index: int):
+ if session.matchmaking or not session.room_id.is_empty() or index<0 or index>=app.decks.size():return
+ var error=app.Store.validate(app.decks[index],true,session.MATCH_RULE_SET)
+ if not error.is_empty():show_error(error);return
+ match_deck_index=index;last_error="";refresh(true)
+
+func refresh_rank_display():
+ var display=body.find_child("PlayerRank",true,false) if is_instance_valid(body) else null
+ if display==null:return
+ for child in display.get_children():
+  if child is Label:child.text=preload("res://scripts/rank_badge.gd").caption(app.account_rank)
+  elif child.has_method("setup"):child.setup(app.account_rank,app.Store.CARDS)

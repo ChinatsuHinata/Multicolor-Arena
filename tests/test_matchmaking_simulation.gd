@@ -32,7 +32,7 @@ func run():
   session.cloud_token=str(config.players[index].token);session.cloud_nickname=str(config.players[index].nickname)
   session.match_found.connect(found.bind(index));sessions.append(session)
  var queue_started=Time.get_ticks_msec()
- for index in range(6):check(sessions[index].start_matchmaking(config.endpoint).is_empty(),"queue simulation player %d, Elo %d" % [index,int(config.players[index].elo)])
+ for index in range(6):check(sessions[index].start_matchmaking(config.endpoint,JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks[index%2]).is_empty(),"queue simulation player %d, Elo %d" % [index,int(config.players[index].elo)])
  var queued=await until(func():return sessions.all(func(session):return session.matchmaking and session.notice.contains("正在自动匹配")))
  check(queued,"six real authenticated clients enter the same initial batch")
  if not queued:cleanup();quit(1);return

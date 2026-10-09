@@ -20,10 +20,16 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(output.path_join("fixture"))
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1600,900);root.content_scale_size=Vector2i(1600,900)
  app=load("res://main.tscn").instantiate();app.settings_path=output.path_join("missing-settings.json");app.account_session_path=output.path_join("missing-account.json")
+ app.tutorial_local_directory=output.path_join("lessons");DirAccess.make_dir_recursive_absolute(app.tutorial_local_directory)
  root.add_child(app);await frames()
+ app.tutorial_progress.directory=output.path_join("progress-"+str(Time.get_ticks_usec()))
+ var lesson=fixture();var course_path=output.path_join("course.json")
+ var file=FileAccess.open(course_path,FileAccess.WRITE);file.store_string(JSON.stringify(lesson));file.close()
  app.clear_page("tutorial_scene");await frames()
  var flow=Runtime.new()
- var reason=flow.start(fixture(),Store.CARDS)
+ flow.course_path=course_path
+ flow.checkpoint_ready.connect(func(id,snapshot):expect(app.tutorial_progress.save(lesson,id,snapshot),"save directory entrance: "+id))
+ var reason=flow.start(lesson,Store.CARDS)
  expect(reason.is_empty(),"display fixture starts: "+reason)
  if not reason.is_empty():flow.free();app.queue_free();quit(1);return
  flow.set_process(false)
@@ -46,17 +52,37 @@ func run():
  view.inspect_card(frog.card_id,frog.uid);await frames()
  expect(view.inspection.get_child(0).get_child(0).texture==art,"dynamic frog inspection renders the same art")
  await shot("frogs")
+ var saved_directory=app.tutorial_progress.directory
+ scene.tutorial_guide.leave_tutorial();await frames()
+ expect(app.page=="tutorial_directory" and not app.tutorial_directory_ui.step_buttons.r3.disabled,"final puzzle unlocks in the directory")
+ app.tutorial_progress=preload("res://scripts/tutorial/progress.gd").new();app.tutorial_progress.directory=saved_directory
+ app.tutorial_directory_ui.step_buttons.r3.pressed.emit();await frames()
+ expect(app.page=="tutorial_scene","directory selection reopens the saved final puzzle")
+ scene=app.screen.get_child(0);flow=scene.runtime;flow.set_process(false)
+ view=scene.surface;view.set_process(false);e=view.engine
+ scene.tutorial_guide.set_popup(false);await frames()
+ for alias in ["frog_one","frog_two","frog_three"]:
+  var restored=flow.adapter.entity(alias)
+  var face=view.table.visuals["card_"+str(restored.uid)].get_node("Face").material_override
+  expect(face.albedo_texture==art,alias+" keeps its card art after directory selection")
+  expect(e.stat(restored,"power")==4 and e.stat(restored,"health")==4 and e.stat(restored,"spirit")==2,alias+" keeps its stats after directory selection")
+ await shot("directory-final-puzzle")
+ frog=flow.adapter.entity("frog_one")
+ view.inspect_card(frog.card_id,frog.uid);await frames()
+ expect(view.inspection.get_child(0).get_child(0).texture==art,"directory-restored frog inspection retains its art")
  for mobile in [false,true]:
   view.is_android=mobile
   view.open_tools_menu();await frames()
-  var surrender=find_button(app.menu_popup,"本局投降")
+  var surrender=view.android_battle_menu_root.find_child("BattleMenuMatchExit",true,false) if mobile else find_button(app.menu_popup,"本局投降")
   expect(surrender!=null and surrender.disabled,"tutorial surrender button is disabled on "+("Android" if mobile else "desktop"))
   if not mobile:await shot("disabled-surrender")
-  app.close_menu_popup()
+  if mobile:view.close_android_battle_menu()
+  else:app.close_menu_popup()
  var revision=e.revision
  view.confirm_surrender();await frames()
  expect(e.revision==revision and e.winner==-2 and not app.get_children().any(func(child):return child is ConfirmationDialog and child.visible),"tutorial cannot invoke surrender directly")
  view.tutorial_runtime=null
+ view.is_android=false
  expect(view.responsive.tools_actions().any(func(action):return action[0]=="本局投降" and not action[2]),"ordinary battles retain surrender")
  view.tutorial_runtime=flow
  scene.queue_free();await frames()

@@ -153,6 +153,12 @@ func public_rooms() -> Array:
   result.append({"id":key,"name":room.name,"owner":room.owner,"locked":not room.password.is_empty(),"format":room.format,"rule_set":room.rule_set,"status":room.status,"version":room.version,"seats":seats,"watch_only":ranked})
  return result
 
+func queued_count(version: String="") -> int:
+ var count=0
+ for entry in match_queue.entries.values():
+  if version.is_empty() or entry.version==version:count+=1
+ return count
+
 func register(id: int,msg: Dictionary):
  var kind=str(msg.get("kind",""))
  var code=str(msg.get("room",""))
@@ -170,7 +176,7 @@ func register(id: int,msg: Dictionary):
   var all_rooms=public_rooms()
   var pages=maxi(1,ceili(float(all_rooms.size())/16.0))
   var page=clampi(int(msg.get("page",0)),0,pages-1)
-  control(id,"rooms","",{"rooms":all_rooms.slice(page*16,mini((page+1)*16,all_rooms.size())),"page":page,"pages":pages})
+  control(id,"rooms","",{"rooms":all_rooms.slice(page*16,mini((page+1)*16,all_rooms.size())),"page":page,"pages":pages,"queued":queued_count(str(msg.get("version",""))),"rank":clients[id].get("rank",{})})
   return
  for other_id in clients.keys():
   if other_id!=id and clients[other_id].role in ["host","guest","watch","queue"] and clients[other_id].account.to_lower()==clients[id].account.to_lower():
@@ -182,11 +188,15 @@ func register(id: int,msg: Dictionary):
  if kind=="match":
   var version=str(msg.get("version",""))
   if version.length()!=64 or clients[id].player_id<=0:reject(id,"匹配版本或账号无效");return
+  var deck_hash=str(msg.get("deck_hash",""))
+  var hash_pattern=RegEx.new();hash_pattern.compile("^[a-f0-9]{64}$")
+  if hash_pattern.search(deck_hash)==null:reject(id,"请先选择并登记匹配卡组");return
+  clients[id].match_deck_hash=deck_hash
   clients[id].role="queue";clients[id].cloud_active=true
   clients[id].match_version=version
   match_queue.add(id,clients[id].player_id,clients[id].elo,version,Time.get_ticks_msec())
   print("match queued peer=",id," player=",clients[id].player_id," version=",version.left(12))
-  control(id,"match_queued");return
+  control(id,"match_queued","",{"queued":queued_count(version)});return
  if rooms.has(code) and rooms[code].get("ranked",false):
   if kind!="watch":resume_match(id,msg);return
   var ranked_room=rooms[code]
@@ -239,6 +249,7 @@ func pair_match(first: int,second: int):
   match_id=Crypto.new().generate_random_bytes(16).hex_encode();code=match_id.left(12).to_upper()
  var slots=[first,second,0,0,0,0,0,0]
  rooms[code]={"host":first,"slots":slots,"owner":"","name":"自动匹配","password":"","format":2,"rule_set":MATCH_RULE_SET,"version":str(clients[first].get("match_version","")),"status":"lobby","round":0,"ready":[false,false],"ranked":true,"match_id":match_id,"players":[clients[first].player_id,clients[second].player_id],"reports":{},"disconnected":{},"stored":false,"started":false,"stored_started":false,"settled":false,"store_busy":false,"store_retry":0,"outcome":-2,"cancel":false}
+ rooms[code].deck_hashes=[clients[first].get("match_deck_hash",""),clients[second].get("match_deck_hash","")]
  for actor in range(2):
   var id=slots[actor]
   clients[id].role="host" if actor==0 else "guest";clients[id].room=code;clients[id].seat=actor+1
@@ -251,7 +262,7 @@ func announce_match(code: String):
  for actor in range(2):
   var id=int(room.slots[actor])
   if id==0:continue
-  control(id,"matched","",{"room":code,"match_id":room.match_id,"role":"host" if actor==0 else "guest","seat":actor+1,"format":2,"rule_set":MATCH_RULE_SET})
+  control(id,"matched","",{"room":code,"match_id":room.match_id,"role":"host" if actor==0 else "guest","seat":actor+1,"format":2,"rule_set":MATCH_RULE_SET,"deck_hashes":room.get("deck_hashes",[])})
  if room.host!=0:
   control(room.host,"registered","",{"seat":1})
   if room.slots[1]!=0:control(room.host,"joined","",{"peer":room.slots[1],"seat":2,"role":"guest"})
@@ -333,6 +344,8 @@ func match_store_completed(code: String,action: String,answer: Dictionary):
     var extra={"match_id":room.match_id,"rated":action=="settle","winner":room.outcome if action=="settle" else -2}
     if action=="settle":
      clients[id].elo=int(answer.ratings[actor]);extra.elo=clients[id].elo;extra.delta=int(answer.deltas[actor])
+     if answer.get("ranks") is Array:
+      clients[id].rank=answer.ranks[actor];extra.rank=answer.ranks[actor]
     control(id,"match_settled","匹配已结算" if action=="settle" else "匹配取消，不计分",extra)
    for index in range(2,room.slots.size()):
     var watcher=int(room.slots[index])
@@ -348,7 +361,7 @@ func tick_matches(now: int):
    for id in pair:reject(id,"中转服务房间已满，请稍后重试")
   else:pair_match(pair[0],pair[1])
  for id in match_queue.entries:
-  control(id,"match_queued","",{"wait_seconds":maxi(0,(now-int(match_queue.entries[id].since))/1000),"gap":match_queue.allowed_gap(id,now)})
+  control(id,"match_queued","",{"wait_seconds":maxi(0,(now-int(match_queue.entries[id].since))/1000),"gap":match_queue.allowed_gap(id,now),"queued":queued_count(str(match_queue.entries[id].version))})
  for code in rooms.keys():
   var room=rooms[code]
   if not room.get("ranked",false) or room.settled:continue
@@ -389,9 +402,10 @@ func verify_client(id: int,token: String,next_message: Dictionary={}):
     reject(other_id,"账号已在另一设备登录")
   clients[id].account=account;clients[id].device=device;clients[id].platform=platform;clients[id].nickname=str(answer.get("nickname",account));clients[id].token=token
   clients[id].player_id=int(answer.get("player_id",0));clients[id].elo=int(answer.get("elo",1000))
+  clients[id].rank=answer.get("rank",{})
   if match_queue.entries.has(id):match_queue.entries[id].elo=clients[id].elo
   if not next_message.is_empty():register(id,next_message)
-  else:control(id,"authenticated","",{"nickname":clients[id].nickname,"elo":clients[id].elo}))
+  else:control(id,"authenticated","",{"nickname":clients[id].nickname,"elo":clients[id].elo,"rank":clients[id].get("rank",{})}))
  var err=request.request(store_url("session"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"verify","token":token}))
  if err!=OK:request.queue_free();reject(id,"账号服务暂不可用")
 

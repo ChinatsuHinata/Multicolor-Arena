@@ -14,6 +14,7 @@
 | 青花结算：桌面／安卓仅从堆叠点选符卡，无其他符卡（含仅剩能力或符卡已离开）时显示反制自身按钮及实际结算 | `test_blue_flower.gd`、`test_blue_flower_ui.gd` |
 | 双端主菜单两列排序、设置内关于及返回、教程三分类筛选与分页、完成状态持久化与横屏安全区域 | `test_main_menu_tutorial.gd`、`test_android_menu.gd` |
 | 教程逐步目录、已读与未读跳转门控、跨重启组卡／战场／随机状态与场景恢复、历史回看、双端目录点击及布局、发行版与安卓编辑器屏蔽 | `test_tutorial_directory.gd` |
+| 教程目录的动态卡牌定义持久化、末题青蛙已有记录恢复、法术衍生物与复制品、暂存场景恢复、损坏记录重读修复，以及目录跳题后的卡图与数值 | `test_tutorial_progress.gd`、`test_tutorial_tokens_and_surrender_ui.gd` |
 | t1 蕾米莉亚课程：完整卡组、四张宵暗之翼与两张不夜城标红、讲解和答题卡图、颜色值 5 的答题及双端完成保存 | `test_tutorial_t1.gd` |
 | 教学卡组自机／主卡组／副卡组 PC 右键、安卓原生长按详情与取消、关闭操作权限时的只读查看、普通对话无强制任务及显式任务门控 | `test_tutorial_interaction.gd` |
 | 战场教程单步三种视角、双方墓地／移除区列表、真实卡牌红框、叠放实例区分、上一步与任务重置；覆盖双端 2D/3D 及两种教程入口 | `test_tutorial_battle_presentation.gd` |
@@ -36,6 +37,7 @@
 | 玩家账号初始 Elo 1000、已有账号迁移及重启保留、登录／自动登录传递、仅本人账号页展示及无改分接口 | `test_account_store.py`、`test_account_ui.gd` |
 | 自助修改密码：双端旧／新／确认表单门控、旧密码验证、服务端确认、过期及重放、错误次数限制、并发重置保护、双平台凭据清理及 64 位转义密码修改后重新登录 | `test_account_store.py`、`test_account_ui.gd`、`run_password_change.py`（仅回环地址和临时数据库） |
 | 云端自动匹配固定官限、禁卡与限二卡登记／换备校验、近分优先、等待一分钟后逐步放宽、仅观战房间列表及座位释放、BO1 自机卡图与右键／原生长按详情、断线恢复、双方结算与私人 Elo 持久化、完成后房间清理、双端等待／取消界面 | `test_match_queue.gd`、`test_ranked_relay.gd`、`test_match_store.py`、`test_bo1_sideboard_ui.gd`、`test_matchmaking_ui.gd`、`run_cloud_matchmaking.py` |
+| 排位段位升降与保护、晋级星数截断、贤者排名及持久化；入队前卡组锁定、队列人数、六边形头像和安卓无滚动主页 | `test_rank_progression.py`、`test_matchmaking_ui.gd`、`test_android_menu.gd`、`run_cloud_matchmaking.py` |
 | 六名不同 Elo 客户端同时排队、实际等待一分钟后扩大分差、三个仅观战匹配房间及双方成功提醒去重 | `run_cloud_matchmaking.py --simulation-only`（运行 `test_matchmaking_simulation.gd`） |
 | 卡库加载 | `test_database_load.gd` |
 | 组卡器卡牌排序与主副卡交换 | `test_deck_drag_order.gd` |
@@ -48,6 +50,8 @@
 | 安卓战斗中双方战场单位长按详情、普通／常驻／继承能力、2D／3D、先到的触摸模拟鼠标事件、单位边缘触摸容差、手指抖动、原生拖动排序及切换应用中止长按；有界面运行时保存截图 | `test_android_battle_unit_details.gd` |
 | 卡牌别名、完整说明和能力文字检索、双端组卡器及各处搜索选牌 | `test_card_search_aliases.gd`、`test_card_search_aliases_ui.gd` |
 | 对局规则 | `test_duel_rules.gd` |
+| 双方提交后统一起手调度、私密选择、重复提交、存档恢复及提交顺序一致 | `test_mulligan.gd`、`run_cloud_matchmaking.py` |
+| 桌面／安卓战后右下角返回、保存或不保存回放、匹配结算断线后的返回 | `test_battle_result_ui.gd` |
 | 对局记录点击详情、能力整批展示与同名副本、历史异画与隐藏牌保护、续接／重连／观战／录像保留、双端滚动及返回 | `test_battle_history.gd`、`test_battle_history_ui.gd` |
 | 展示牌整批确认：能力／符卡与后续选择、双方操作锁定、确认权限与重复请求、隐藏牌快照、重连恢复、观战及桌面／安卓截图 | `test_reveal_review.gd`、`test_reveal_review_network.gd`、`test_reveal_review_ui.gd` |
 | 双人赛制自动指定唯一对手、模式与可选目标保留、慧音吞食费用前的荷取保护检查、背包追加支付及联机校验 | `test_opponent_targeting.gd`、`test_opponent_targeting_ui.gd` |

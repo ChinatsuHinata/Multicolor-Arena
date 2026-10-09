@@ -4,6 +4,9 @@ signal failed(message: String)
 
 var peer: WebSocketMultiplayerPeer
 var rooms: Array=[]
+var queued=-1
+var version=""
+var rank: Dictionary={}
 var url=""
 var token=""
 var last_request=0
@@ -15,10 +18,10 @@ var retry_at=0
 var is_android=OS.has_feature("android")
 var application_suspended=false
 
-func start(server_url: String,login_token: String):
+func start(server_url: String,login_token: String,game_version: String=""):
  stop()
  if login_token.is_empty():failed.emit("请先登录玩家账号");return
- url=server_url;token=login_token
+ url=server_url;token=login_token;version=game_version
  active=true
  connect_peer()
 
@@ -33,7 +36,7 @@ func connect_peer():
 
 func stop():
  if peer!=null:peer.close()
- peer=null;active=false;rooms=[];pending_rooms=[];expected_page=0;connected_once=false;set_process(false)
+ peer=null;active=false;rooms=[];queued=-1;pending_rooms=[];expected_page=0;connected_once=false;set_process(false)
 
 func _notification(what):
  if not is_android:return
@@ -55,7 +58,7 @@ func refresh():
 func request_page(page: int):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
- peer.put_packet(("MCR1"+JSON.stringify({"kind":"list","token":token,"page":page})).to_utf8_buffer())
+ peer.put_packet(("MCR1"+JSON.stringify({"kind":"list","token":token,"page":page,"version":version})).to_utf8_buffer())
 
 func _process(_delta):
  if not active or application_suspended:return
@@ -64,7 +67,7 @@ func _process(_delta):
   return
  peer.poll()
  if peer.get_connection_status()==MultiplayerPeer.CONNECTION_DISCONNECTED:
-  peer.close();peer=null;retry_at=Time.get_ticks_msec()+3000;return
+  peer.close();peer=null;queued=-1;changed.emit();retry_at=Time.get_ticks_msec()+3000;return
  if peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  if not connected_once or Time.get_ticks_msec()-last_request>3000:
   connected_once=true;refresh()
@@ -75,6 +78,7 @@ func _process(_delta):
   if not answer is Dictionary:continue
   match str(answer.get("kind","")):
    "rooms":
+    queued=int(answer.get("queued",-1));rank=answer.get("rank",{})
     if answer.get("rooms") is Array and int(answer.get("page",-1))==expected_page:
      pending_rooms.append_array(answer.rooms)
      expected_page+=1

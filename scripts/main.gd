@@ -110,6 +110,7 @@ var replay_controller
 var account_name=""
 var account_nickname=""
 var account_elo=1000
+var account_rank: Dictionary={}
 var account_token=""
 var account_remember_token=""
 var account_session_path=AccountSessionStore.DEFAULT_PATH
@@ -502,23 +503,20 @@ func menu():
   return
  clear_page("menu")
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding*2))
- var row=HBoxContainer.new();margin.add_child(row)
- var menu_scroll=ScrollContainer.new();menu_scroll.name="MenuScroll";row.add_child(menu_scroll)
- menu_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.size_flags_stretch_ratio=1.15
- menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
- var left=VBoxContainer.new();menu_scroll.add_child(left)
- left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left.size_flags_vertical=Control.SIZE_EXPAND_FILL
- var version=Label.new();version.text="VERSION "+str(ProjectSettings.get_setting("application/config/version"));left.add_child(version);version.add_theme_color_override("font_color",GOLD)
- var heading=Label.new();heading.text="multicolor:arena";left.add_child(heading);heading.add_theme_font_size_override("font_size",54 if is_android else 64)
- var subtitle=Label.new();subtitle.text="以色彩为契约，展开你的幻想之战。";left.add_child(subtitle);subtitle.add_theme_font_size_override("font_size",ui_metrics.body);subtitle.add_theme_color_override("font_color",MUTED)
- var spacer=Control.new();left.add_child(spacer);spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;spacer.custom_minimum_size.y=ui_metrics.gap
+ for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(ui_metrics.padding))
+ var row=HBoxContainer.new();margin.add_child(row);row.add_theme_constant_override("separation",int(ui_metrics.gap))
+ var left=VBoxContainer.new();left.name="MainMenuContent";row.add_child(left)
+ left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left.size_flags_vertical=Control.SIZE_EXPAND_FILL;left.size_flags_stretch_ratio=1.15
+ var version=Label.new();version.text="VERSION "+str(ProjectSettings.get_setting("application/config/version"));left.add_child(version);version.add_theme_color_override("font_color",GOLD);version.add_theme_font_size_override("font_size",24)
+ rank_display(left,true)
+ var spacer=Control.new();left.add_child(spacer);spacer.custom_minimum_size.y=ui_metrics.gap
  var actions=main_menu_entries()
- var main_actions=GridContainer.new();main_actions.name="MainMenuActions";main_actions.columns=2;left.add_child(main_actions)
+ var main_actions=GridContainer.new();main_actions.name="MainMenuActions";main_actions.columns=2;left.add_child(main_actions);main_actions.size_flags_vertical=Control.SIZE_EXPAND_FILL
  main_actions.add_theme_constant_override("h_separation",int(ui_metrics.gap));main_actions.add_theme_constant_override("v_separation",int(ui_metrics.gap))
  for i in range(actions.size()):
   var item=actions[i]
-  var b=button(main_actions,item[0],Rect2(),item[1],i==1);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.y=maxf(ui_metrics.hit,68 if i<4 else 56)
+  var b=button(main_actions,item[0],Rect2(),item[1],i==1);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.size_flags_vertical=Control.SIZE_EXPAND_FILL;b.custom_minimum_size=Vector2.ZERO
+  b.add_theme_font_size_override("font_size",mini(ui_metrics.body,32))
  var art=Control.new();row.add_child(art);art.size_flags_horizontal=Control.SIZE_EXPAND_FILL;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var a=card(art,"68",Rect2(0,0,255,356));var b=card(art,"70",Rect2(0,0,280,391))
  var arrange=func():
@@ -532,6 +530,7 @@ func online():
  var restore_mode_selected=false
  var restore_cloud=false
  var lobby_deck_id=""
+ var matching_deck_id=""
  var cloud_form={}
  var focused_cloud_field=""
  var focused_caret=0
@@ -541,6 +540,7 @@ func online():
    if child.get_script()==preload("res://net/lan_lobby.gd"):
     if child.deck_index>=0 and child.deck_index<decks.size():lobby_deck_id=str(decks[child.deck_index].id)
     restore_mode_selected=child.mode_selected;restore_cloud=child.cloud_selected
+    if child.match_deck_index>=0 and child.match_deck_index<decks.size():matching_deck_id=str(decks[child.match_deck_index].id)
     if restore_cloud and is_instance_valid(child.cloud_title_input):
      cloud_form={"title":child.cloud_title_input.text,"password":child.cloud_password_input.text,"format":child.format_input.selected,"rule":child.rule_input.selected,"slot":child.cloud_host_slot.selected,"strict":child.strict_input.button_pressed}
      var focused=get_viewport().gui_get_focus_owner()
@@ -554,12 +554,13 @@ func online():
   lan_session.snapshot_ready.connect(network_snapshot_ready)
   lan_session.room_joined.connect(on_room_joined)
   lan_session.rating_updated.connect(func(elo):account_elo=elo)
+  lan_session.rank_updated.connect(func(rank):account_rank=rank.duplicate(true))
   lan_session.match_found.connect(preview_room_join_sound)
   lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
  lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
  clear_page("online")
  var lobby=preload("res://net/lan_lobby.gd").new();lobby.deck_index=remaining_deck_index(lobby_deck_id,0)
- lobby.mode_selected=restore_mode_selected
+ lobby.match_deck_index=remaining_deck_index(matching_deck_id,-1) if not matching_deck_id.is_empty() else -1
  screen.add_child(lobby);lobby.build(self,lan_session)
  if restore_cloud:lobby.set_cloud_mode(true)
  if not cloud_form.is_empty() and is_instance_valid(lobby.cloud_title_input):
@@ -781,9 +782,10 @@ func account_request_finished(ok: bool,message: String,username: String):
  var returned_remember_token=account_client.remember_token if is_instance_valid(account_client) else ""
  var returned_nickname=account_client.nickname if is_instance_valid(account_client) else ""
  var returned_elo=account_client.elo if is_instance_valid(account_client) else 1000
+ var returned_rank=account_client.rank.duplicate(true) if is_instance_valid(account_client) else {}
  if is_instance_valid(account_client):account_client.queue_free();account_client=null
  if account_action=="logout" or (account_action=="password" and ok):
-  account_name="";account_nickname="";account_token="";account_remember_token="";account_elo=1000
+  account_name="";account_nickname="";account_token="";account_remember_token="";account_elo=1000;account_rank={}
   account_mode="login"
   AccountSessionStore.clear(account_session_path)
   for field in [account_old_password_input,account_password_input,account_confirm_input]:
@@ -793,12 +795,12 @@ func account_request_finished(ok: bool,message: String,username: String):
  if ok:
   match account_action:
    "login","resume":
-    account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token;account_elo=returned_elo
+    account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token;account_elo=returned_elo;account_rank=returned_rank
     if is_instance_valid(lan_session):lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
     if not AccountSessionStore.save_token(preload("res://scripts/account_client.gd").device_id(),returned_remember_token,account_session_path):
      message+="；本机未能保存自动登录凭据"
    "register":account_mode="login"
-   "nickname":account_nickname=returned_nickname;account_elo=returned_elo
+   "nickname":account_nickname=returned_nickname;account_elo=returned_elo;account_rank=returned_rank
  elif account_action=="resume" and message=="自动登录已失效，请重新登录":
   AccountSessionStore.clear(account_session_path)
  account_notice=message
@@ -809,6 +811,7 @@ func account_request_finished(ok: bool,message: String,username: String):
   var destination=deck_account_return;deck_account_return=""
   call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
   return
+ if page=="menu" and ok:menu()
  if page=="account":
   if ok or account_action=="password":account_page()
   if is_instance_valid(account_status_label):account_status_label.text=message
@@ -1159,7 +1162,7 @@ func require_deck_login(destination: String) -> bool:
  return false
 
 func deck_login_expired(destination: String,message: String):
- account_name="";account_nickname="";account_token="";account_elo=1000
+ account_name="";account_nickname="";account_token="";account_elo=1000;account_rank={}
  require_deck_login(destination)
  account_notice=message
  if is_instance_valid(account_status_label):account_status_label.text=message
@@ -2244,9 +2247,8 @@ func fit_card_selector(panel: Panel,selector: Control):
 func desktop_menu():
  clear_page("menu")
  label(screen,"VERSION "+str(ProjectSettings.get_setting("application/config/version")),Rect2(92,74,900,42),18,GOLD)
- label(screen,"multicolor:arena",Rect2(86,173,760,125),66)
- label(screen,"以色彩为契约，展开你的幻想之战。",Rect2(94,309,740,48),24,MUTED)
  var actions=main_menu_entries()
+ var badge=rank_display(screen,true);badge.position=Vector2(92,140);badge.size=Vector2(620,112)
  var rows=[422,512,594,676]
  for i in range(actions.size()):
   var item=actions[i]
@@ -2624,3 +2626,19 @@ func import_dialog():
  d.canceled.connect(d.queue_free)
  add_child(d)
  d.popup_centered()
+
+func rank_display(parent: Node,show_username: bool=false) -> HBoxContainer:
+ var row=HBoxContainer.new();row.name="PlayerRank";parent.add_child(row)
+ row.add_theme_constant_override("separation",16)
+ var badge=preload("res://scripts/rank_badge.gd").new();row.add_child(badge);badge.setup(account_rank,Store.CARDS)
+ var text=Label.new();text.name="RankCaption";row.add_child(text)
+ text.text=preload("res://scripts/rank_badge.gd").caption(account_rank) if not account_token.is_empty() else "毛玉级 2 · 登录后开始排位"
+ if show_username:text.text=(account_nickname if not account_nickname.is_empty() else account_name if not account_name.is_empty() else "未登录")+"\n"+text.text
+ text.add_theme_font_size_override("font_size",mini(ui_metrics.body,30) if show_username else ui_metrics.body);text.add_theme_color_override("font_color",GOLD)
+ text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ row.custom_minimum_size.y=104
+ return row
+
+func _process(_delta):
+ if page=="sideboard" and is_instance_valid(sideboard_session):
+  if sideboard_session.room.get("status","") not in ["sideboarding","between"]:online()

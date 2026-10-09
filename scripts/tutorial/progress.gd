@@ -1,5 +1,7 @@
 extends RefCounted
 ## Durable entry checkpoints let a directory revisit real task/scene state.
+const Store=preload("res://scripts/deck_store.gd")
+const Adapter=preload("res://scripts/tutorial/game_adapter.gd")
 const VERSION=1
 var directory="user://tutorial_progress"
 var records: Dictionary={}
@@ -57,7 +59,7 @@ func save(data: Dictionary,id: String,snapshot: Dictionary) -> bool:
  if not data.steps.has(id) or snapshot.get("step")!=id or snapshot.get("course_id")!=data.id:return false
  var value=record(data)
  # Keep valid entrances when backtracking; rereading repairs a damaged file.
- if id in value.read and not self.snapshot(data,id,{}).is_empty():return true
+ if id in value.read and not self.snapshot(data,id,Store.CARDS).is_empty():return true
  last_error=""
  var folder=course_directory(data)
  if DirAccess.make_dir_recursive_absolute(folder)!=OK:return fail("无法创建教程进度目录。")
@@ -93,8 +95,9 @@ func snapshot(data: Dictionary,id: String,cards: Dictionary) -> Dictionary:
  var state=value.snapshot
  if not valid_state(data,id,state):
   fail("教程步骤记录已失效，请从头阅读。");return {}
- supply_definitions(state.adapter,cards)
- for scenario in state.get("scenario_states",{}).values():supply_definitions(scenario.adapter,cards)
+ if not supply_definitions(data,state.adapter,cards):return {}
+ for scenario in state.get("scenario_states",{}).values():
+  if not supply_definitions(data,scenario.adapter,cards):return {}
  return state
 
 func valid_state(data: Dictionary,id: String,state: Dictionary) -> bool:
@@ -123,6 +126,7 @@ func valid_adapter(data: Dictionary,adapter: Dictionary) -> bool:
  if adapter.get("scene_type") not in ["deck","in_game","battlefield"]:return false
  var game=adapter.game
  if game.is_empty():return adapter.scene_type!="battlefield"
+ if game.has("definitions") and not game.definitions is Dictionary:return false
  return game.get("nodes") is Array and game.get("root") is Dictionary and game.get("plain") is Dictionary
 
 func portable(snapshot: Dictionary) -> Dictionary:
@@ -137,9 +141,35 @@ func portable(snapshot: Dictionary) -> Dictionary:
 
 func portable_adapter(adapter: Dictionary) -> Dictionary:
  var result=adapter.duplicate();result.game=result.game.duplicate()
- # Definitions come from the current card database when reopening a step.
- result.game.erase("definitions")
+ if result.game.is_empty():return result
+ # Database cards can be reloaded, but generated tokens, copies and altered
+ # definitions belong to this exact game and must travel with its graph.
+ var definitions={}
+ for id in adapter.game.definitions:
+  if not Store.CARDS.has(id) or adapter.game.definitions[id]!=Store.CARDS[id]:
+   definitions[id]=adapter.game.definitions[id].duplicate(true)
+ result.game.definitions=definitions
  return result
 
-func supply_definitions(adapter: Dictionary,cards: Dictionary):
- if not adapter.game.is_empty():adapter.game.definitions=cards
+func supply_definitions(data: Dictionary,adapter: Dictionary,cards: Dictionary) -> bool:
+ if adapter.game.is_empty():return true
+ var definitions=cards.duplicate()
+ if adapter.game.has("definitions"):
+  definitions.merge(adapter.game.definitions,true)
+ else:
+  # Earlier progress files omitted every definition. Rebuild the configured
+  # scene privately to recover its generated IDs without resetting saved state.
+  var initial=Adapter.new()
+  var reason=initial.load_scenario(adapter.scenario_id,data.scenarios[adapter.scenario_id],cards)
+  if not reason.is_empty() or initial.engine==null:return fail("教程步骤的卡牌定义无法恢复，请重新阅读该步骤。")
+  definitions=initial.engine.cards
+ # Free-play tokens/copies cannot be reconstructed from an incomplete record.
+ # Reject it before a broken engine reaches rules or rendering; rereading will
+ # replace it through save(), while keeping the course's read markers.
+ for node in adapter.game.nodes:
+  if not node.dict:continue
+  for entry in node.data:
+   if entry[0] in ["card_id","copy_original"] and entry[1] is String and not entry[1].is_empty() and not definitions.has(entry[1]):
+    return fail("教程步骤缺少卡牌定义 %s，请从此前已读步骤继续阅读以恢复记录。" % entry[1])
+ adapter.game.definitions=definitions
+ return true

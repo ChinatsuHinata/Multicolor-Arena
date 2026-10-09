@@ -5,6 +5,7 @@ signal error_raised(message: String)
 signal replay_finished(archive)
 signal room_joined
 signal rating_updated(elo: int)
+signal rank_updated(rank: Dictionary)
 signal match_found
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const Codec=preload("res://net/state_codec.gd")
@@ -18,7 +19,7 @@ const Transport=preload("res://net/lan_transport.gd")
 const Discovery=preload("res://net/lan_discovery.gd")
 const Metrics=preload("res://net/connection_metrics.gd")
 const Endpoint=preload("res://net/network_endpoint.gd")
-const VERSION="1.2.3-wait"
+const VERSION="ranked-simultaneous-mulligan-1"
 const RECONNECT_LIMIT_MS=30000
 var transport
 var discovery
@@ -42,6 +43,8 @@ var cloud_match_id=""
 var matchmaking=false
 var match_wait_seconds=0
 var match_gap=100
+var match_queued=-1
+var match_deck: Dictionary={}
 var match_settled=false
 var last_result_report=0
 var cloud_slot=0
@@ -124,9 +127,10 @@ func initialize(directory: String=""):
  transport.relay_seat_changed.connect(on_cloud_seat_changed)
  transport.relay_notice.connect(func(message):error_raised.emit(message))
  transport.relay_rating.connect(func(elo):rating_updated.emit(elo))
- transport.relay_match_queued.connect(func(seconds,gap):
+ transport.relay_rank.connect(func(rank):rank_updated.emit(rank))
+ transport.relay_match_queued.connect(func(seconds,gap,queued):
   if not matchmaking:return
-  match_wait_seconds=seconds;match_gap=gap
+  match_wait_seconds=seconds;match_gap=gap;match_queued=queued
   notice="正在自动匹配 · 已等待 %d:%02d · 当前分差范围 %d" % [seconds/60,seconds%60,gap]
   changed.emit())
  transport.relay_matched.connect(on_match_found)
@@ -136,7 +140,7 @@ func initialize(directory: String=""):
   if cloud_mode and is_host:
    cloud_published=""
    transport.relay_update(series.state.status,cloud_room_name,series.state.ready,series.state.round)
-   notice="匹配成功，选择卡组并准备" if cloud_ranked else "云端房间已就绪，等待玩家选座";changed.emit())
+   notice="匹配成功，正在登记已选卡组" if cloud_ranked else "云端房间已就绪，等待玩家选座";changed.emit())
  changed.connect(func():
   if cloud_mode and is_host and transport.online and transport.relay_seat>0 and not room_id.is_empty():
    var key=JSON.stringify([series.state.status,series.state.round,cloud_room_name,series.state.ready])
@@ -241,16 +245,19 @@ func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,inte
  discovery.start(true,metadata(),bind_address)
  if not persist():transport.close();return notice
  changed.emit();return ""
-func start_matchmaking(server_address: String) -> String:
+func start_matchmaking(server_address: String,deck: Dictionary={}) -> String:
  if cloud_token.is_empty():return "请先登录玩家账号，再进入自动匹配"
+ var deck_error=Series.Store.validate(deck,true,MATCH_RULE_SET)
+ if not deck_error.is_empty():return "请先选择符合官限的匹配卡组："+deck_error
  if not server_address.begins_with("ws://"):return "自动匹配需要云端 WebSocket 地址"
  var endpoint=Endpoint.parse(server_address.substr(5),47862)
  if endpoint.has("error"):return endpoint.error
  var resolved=Endpoint.resolve(endpoint.host)
  if resolved.is_empty():return "无法解析中转服务器地址"
  leave(false);cloud_mode=true;cloud_ranked=true;relay_websocket=true;address=endpoint.host;port=endpoint.port
+ match_deck=Series.Store.clean_deck(deck).duplicate(true)
  matchmaking=true;match_wait_seconds=0;match_gap=100;match_settled=false
- var error=transport.relay_match(resolved,port,cloud_token,fingerprint)
+ var error=transport.relay_match(resolved,port,cloud_token,fingerprint,JSON.stringify(match_deck).sha256_text())
  if error!=OK:leave(false);return "无法连接匹配服务器："+error_string(error)
  notice="正在加入自动匹配队列";changed.emit();return ""
 
@@ -258,12 +265,26 @@ func cancel_matchmaking():
  if not matchmaking:return
  leave(false);notice="已取消自动匹配";changed.emit()
 
+func register_match_deck(actor: int,deck: Dictionary) -> String:
+ var validation=Series.Store.validate(deck,true,MATCH_RULE_SET)
+ if not validation.is_empty():return validation
+ if not deck.get("id") is String:return "匹配卡组缺少标识"
+ var hashes=series.state.get("deck_hashes",[])
+ if hashes.size()!=2 or JSON.stringify(Series.Store.clean_deck(deck)).sha256_text()!=str(hashes[actor]):return "匹配卡组与入队登记不一致，请重新匹配"
+ var error=series.set_deck(actor,deck)
+ if not error.is_empty():return error
+ return series.ready(actor)
+
 func on_match_found(info: Dictionary):
  if not matchmaking:return
  matchmaking=false;cloud_ranked=true;cloud_match_id=str(info.match_id);relay_code=str(info.room)
  is_host=str(info.role)=="host";cloud_slot=int(info.seat);seat=cloud_slot-1;read_only=false
  cloud_room_name="自动匹配 · BO1 换备牌"
  series=Series.new();series.setup(Series.BO1_SIDEBOARD,true,MATCH_RULE_SET);series.state.match_id=cloud_match_id
+ series.state.ranked=true;series.state.deck_hashes=info.get("deck_hashes",[])
+ if is_host:
+  var error=register_match_deck(seat,match_deck)
+  if not error.is_empty():on_failure(error);return
  series.state.names[seat]=cloud_nickname
  cloud_player_acks=[is_host,false];cloud_player_records=[{},{}];cloud_peer_ids=[]
  room=series.public_state(seat);paused=true;connected=false;rejected=false
@@ -288,6 +309,7 @@ func on_match_settled(info: Dictionary):
    paused=true;connected=false;joining=false
    if not latest_snapshot.is_empty():latest_snapshot.room=room.duplicate(true)
   notice="匹配已结算 · 我的 Elo：%d（%+d）" % [int(info.elo),int(info.delta)]
+  if info.get("rank") is Dictionary:notice+=" · "+preload("res://scripts/rank_badge.gd").caption(info.rank)
  else:
   if is_host:series.abort();room=series.public_state(seat);persist()
   elif not room.is_empty():room.status="aborted";room.winner=-2
@@ -449,7 +471,7 @@ func leave(forget: bool=true):
  if discovery:discovery.start()
  connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;rejected=false;cloud_mode=false;relay_code="";relay_websocket=false;cloud_slot=0;cloud_room_name="";cloud_password_hash="";cloud_published=""
  cloud_seats=["","","","","","", "", ""];cloud_peer_ids=[];cloud_player_records=[{},{}];cloud_player_acks=[false,false];cloud_peer_seen={}
- cloud_ranked=false;cloud_match_id="";matchmaking=false;match_wait_seconds=0;match_gap=100;match_settled=false;last_result_report=0
+ cloud_ranked=false;cloud_match_id="";matchmaking=false;match_deck={};match_queued=-1;match_wait_seconds=0;match_gap=100;match_settled=false;last_result_report=0
  if forget:identity.resume={};save_identity()
 func on_connect(id: int):
  remote_last_seen=Time.get_ticks_msec()
@@ -457,7 +479,7 @@ func on_connect(id: int):
  remote_peer=1
  if read_only:
   transport.send_to(1,{"type":"watch","version":fingerprint});return
- transport.send_to(1,{"type":"hello","version":fingerprint,"installation":identity.installation,"name":cloud_nickname if cloud_mode else identity.nickname,"resume":identity.get("resume",{}) if resume_requested else {},"last_sequence":maxi(view_sequence,int(identity.get("resume",{}).get("sequence",0))) if resume_requested else 0})
+ transport.send_to(1,{"type":"hello","match_deck":match_deck if cloud_ranked else {},"version":fingerprint,"installation":identity.installation,"name":cloud_nickname if cloud_mode else identity.nickname,"resume":identity.get("resume",{}) if resume_requested else {},"last_sequence":maxi(view_sequence,int(identity.get("resume",{}).get("sequence",0))) if resume_requested else 0})
 func accept_applicant(accept: bool):
  if applicant.is_empty():return
  var id=int(applicant.peer)
@@ -521,6 +543,10 @@ func receive(id: int,m: Dictionary):
     reject_join(id,"房主恢复记录早于已确认的操作，无法安全继续本局");return
    welcome(id,actor)
   elif cloud_mode:
+   if cloud_ranked and series.state.status=="lobby":
+    var error=register_match_deck(actor,m.get("match_deck",{}))
+    if not error.is_empty():reject_join(id,error);return
+    series.prepare_choice()
    cloud_player_records[actor]={"installation":m.installation.left(64),"token":Identity.token(),"name":Identity.nickname(m.name)}
    series.state.names[actor]=cloud_player_records[actor].name
    if not persist():return
@@ -742,7 +768,7 @@ func handle_room_action(actor: int,action: Dictionary):
  match name:
   "deck":
    if not action.get("deck") is Dictionary:return
-   error=series.set_deck(actor,action.deck)
+   error="匹配卡组已在入队前锁定" if cloud_ranked and series.state.status=="lobby" else series.set_deck(actor,action.deck)
   "ready":error=series.ready(actor)
   "unready":
    if series.state.status in ["lobby","sideboarding","between"]:series.state.ready[actor]=false

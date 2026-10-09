@@ -112,6 +112,7 @@ func record_result(winner: int) -> bool:
  return true
 func public_state(seat: int) -> Dictionary:
  var result=state.duplicate(true);result.erase("registered");result.erase("decks")
+ result.erase("deck_hashes")
  result.own_deck=state.decks[seat].duplicate(true) if seat in [0,1] else {}
  if state.format==BO1_SIDEBOARD and not state.registered[0].is_empty() and not state.registered[1].is_empty():
   result.leaders=[state.registered[0].leader,state.registered[1].leader]

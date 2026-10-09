@@ -28,6 +28,7 @@ tests/*
 !tests/test_account_store.py
 !tests/test_deck_plaza_store.py
 !tests/test_match_store.py
+!tests/test_rank_progression.py
 !tests/run_cloud_matchmaking.py
 !tests/run_password_change.py
 !tests/README.md

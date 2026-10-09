@@ -217,8 +217,9 @@ func check_dialogs(prefix: String):
  expect(is_instance_valid(view.modal_root),prefix+" batch quantity opens")
  if is_instance_valid(view.modal_root):await check_popup(view.modal_root.get_child(0),prefix+" batch quantity")
  view.close_overlay();e.pending={}
- view.result_overlay();await frames()
- await check_popup(view.modal_root.get_child(0),prefix+" battle result")
+ e.surrender(1);view.render();await frames()
+ var result_return=view.find_child("BattleResultReturn",true,false)
+ expect(result_return!=null and not result_return.disabled and app.ui_metrics.safe.encloses(result_return.get_global_rect()),prefix+" battle result keeps a usable return button in the safe area")
  view.close_overlay()
  clean(true)
  var momiji=e.make_card("character-fdf-101",0,"hand")

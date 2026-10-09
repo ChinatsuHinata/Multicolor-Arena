@@ -7,11 +7,12 @@ signal relay_ready
 signal relay_seats_changed(seats: Array,peer_ids: Array)
 signal relay_seat_changed(seat: int,role: String)
 signal relay_notice(message: String)
-signal relay_match_queued(wait_seconds: int,gap: int)
+signal relay_match_queued(wait_seconds: int,gap: int,queued: int)
 signal relay_matched(info: Dictionary)
 signal relay_match_settled(info: Dictionary)
 signal relay_room_closed(info: Dictionary)
 signal relay_rating(elo: int)
+signal relay_rank(rank: Dictionary)
 const MAX_BYTES=16*1024*1024
 const CHUNK=12000
 var peer: MultiplayerPeer
@@ -37,8 +38,8 @@ func relay_host(address: String,port: int,code: String,websocket: bool=false,tok
 func relay_join(address: String,port: int,code: String,websocket: bool=false,token: String="",options: Dictionary={},watch: bool=false) -> Error:
  return connect_relay(address,port,code,"watch" if watch else "guest",websocket,token,options)
 
-func relay_match(address: String,port: int,token: String,version: String) -> Error:
- return connect_relay(address,port,"","match",true,token,{"version":version})
+func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="") -> Error:
+ return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash})
 
 func relay_result(match_id: String,winner: int):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
@@ -145,17 +146,19 @@ func _process(_delta):
    var control=JSON.parse_string(bytes.get_string_from_utf8().substr(4))
    if control is Dictionary:
     match control.get("kind",""):
-     "match_queued":relay_match_queued.emit(int(control.get("wait_seconds",0)),int(control.get("gap",100)))
+     "match_queued":relay_match_queued.emit(int(control.get("wait_seconds",0)),int(control.get("gap",100)),int(control.get("queued",-1)))
      "matched":
       relay_role=str(control.get("role","guest"));relay_code=str(control.get("room",""))
       relay_options.merge({"resume":true,"match_id":str(control.get("match_id","")),"seat":int(control.get("seat",0))},true)
       relay_matched.emit(control)
      "match_settled":
       if control.has("elo"):relay_rating.emit(int(control.elo))
+      if control.get("rank") is Dictionary:relay_rank.emit(control.rank)
       relay_match_settled.emit(control)
      "room_closed":relay_room_closed.emit(control)
      "authenticated":
       if control.has("elo"):relay_rating.emit(int(control.elo))
+      if control.get("rank") is Dictionary:relay_rank.emit(control.rank)
      "registered":relay_seat=int(control.get("seat",0));relay_ready.emit()
      "joined":
       var joined_id=int(control.get("peer",0))

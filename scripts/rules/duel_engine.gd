@@ -12,6 +12,7 @@ const COLORS=["红","蓝","绿","黄","黑"]
 var player_names=["你","人机"]
 var cards: Dictionary
 var players: Array=[]
+var mulligan_choices: Dictionary={}
 var stack: Array=[]
 var triggers: Array=[]
 var returns: Array=[]
@@ -189,7 +190,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  recorded_life=[20,20]
  next_damage_batch=1
  next_buff_order=0
- players.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); entry_choices.clear(); combat.clear(); log.clear(); history.clear()
+ players.clear(); mulligan_choices.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); entry_choices.clear(); combat.clear(); log.clear(); history.clear()
  deck_art_overrides=[a.get("art_overrides",{}).duplicate(true),b.get("art_overrides",{}).duplicate(true)]
  next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
  if seed_value==0: rng.randomize()
@@ -238,17 +239,28 @@ func draw(who: int,count: int=1):
   var c=players[who].deck.pop_front()
   shift(c,"hand"); players[who].hand.append(c);Cat.State.on_draw(self,who)
 func mulligan(who: int,uids: Array):
- if phase!="mulligan" or players[who].mulligan_done or winner!=-2: return
- var chosen=[]
- for c in players[who].hand:
-  if c.uid in uids: chosen.append(c)
- for c in chosen: players[who].hand.erase(c); shift(c,"deck")
- shuffle(chosen)
- players[who].deck.append_array(chosen)
- draw(who,chosen.size())
+ if who not in [0,1] or phase!="mulligan" or players[who].mulligan_done or winner!=-2: return
+ var hand_uids=players[who].hand.map(func(c):return c.uid)
+ var unique=[]
+ for uid in uids:
+  if uid not in hand_uids or uid in unique:return
+  unique.append(uid)
+ mulligan_choices[who]=uids.duplicate()
  players[who].mulligan_done=true
- note(player_names[who]+"完成调度")
- if players[0].mulligan_done and players[1].mulligan_done: start_turn(first)
+ note(player_names[who]+"已提交起手选择")
+ if not players.all(func(p):return p.mulligan_done):return
+ # Keep both original hands and the RNG untouched until both choices are locked.
+ # Resolve in seat order, so submission order cannot affect the replacement cards.
+ var counts=[]
+ for actor in range(2):
+  var chosen=players[actor].hand.filter(func(c):return c.uid in mulligan_choices.get(actor,[]))
+  counts.append(chosen.size())
+  for c in chosen:players[actor].hand.erase(c);shift(c,"deck")
+  shuffle(chosen);players[actor].deck.append_array(chosen)
+ for actor in range(2):
+  draw(actor,counts[actor]);note(player_names[actor]+"完成调度")
+ mulligan_choices.clear()
+ start_turn(first)
 func start_turn(who: int):
  if winner!=-2: return
  active=who; priority=who; passes=0; turn+=1; players[who].turns+=1

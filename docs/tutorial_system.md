@@ -503,6 +503,8 @@ Android 题干和教程描述中的大卡图支持原生触摸长按 1 秒查看
 
 每步首次进入时保存已读记录和真实入口局面，包括教学卡组、战场、随机状态、对手控制器和此前场景。文件位于设置文件同级的 `tutorial_progress/<课程 ID 哈希>/`，使用压缩二进制检查点及 JSON 已读索引，先写临时文件再替换。回看不覆盖原始入口、不缩减解锁范围；重启后仍可跳转及使用 **上一步**。读取不启用对象反序列化。课程内容改变时以内容指纹隔离不兼容的检查点；旧版本的整课完成标记仍保留，逐步记录从本次阅读开始积累。任务恢复到该步骤的开始局面，尚未完成的操作需要重新执行。
 
+战场检查点保留运行时生成或修改的卡牌定义，包括预置青蛙、法术衍生物和复制品；未改变的基础卡牌定义在读取时由当前卡库补齐。当前场景及暂存场景使用同一保存方式，恢复不修改共享卡库。对于已经遗漏卡牌定义的进度记录，读取时在独立局面中重新构造课程配置的初始定义，补回单位教程末题的青蛙，并保留原有实例、生命、伤害与随机状态。若缺失的是自由操作后生成、无法从初始配置还原的定义，则在恢复战场前报告具体卡牌，并允许从此前步骤继续阅读来修复记录，不清除已读标记。专项检查为 `tests/test_tutorial_progress.gd`，目录跳题后的卡图和数值检查为 `tests/test_tutorial_tokens_and_surrender_ui.gd`。
+
 现存课程专项测试入口为 `tests/test_tutorial_t1.gd`、`tests/test_tutorial_opening.gd`、`tests/test_tutorial_mulligan_selection.gd`、`tests/test_tutorial_lily_opponent.gd`、`tests/test_tutorial_lily_ui.gd`、`tests/test_tutorial_t3.gd`、`tests/test_tutorial_t4.gd` 和 `tests/test_main_menu_tutorial.gd`。目录及跨重启恢复专项测试为 `tests/test_tutorial_directory.gd`。
 
 ## 教程节点编辑器与功能录制

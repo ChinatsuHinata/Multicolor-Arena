@@ -16,6 +16,7 @@ var session_token=""
 var remember_token=""
 var nickname=""
 var elo=1000
+var rank: Dictionary={}
 var password_change_stage=""
 var password_next=""
 var password_confirmation=""
@@ -149,6 +150,7 @@ func _process(_delta):
     remember_token=str(answer.get("remember_token","")) if ok else ""
     nickname=str(answer.get("nickname",name)) if ok else ""
     elo=int(answer.get("elo",1000)) if ok else 1000
+    rank=answer.get("rank",{}) if ok else {}
     finished.emit(ok,message,name)
     return
   MultiplayerPeer.CONNECTION_DISCONNECTED:

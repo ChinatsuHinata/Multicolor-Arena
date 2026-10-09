@@ -32,32 +32,18 @@ func run():
   await frames()
   var prefix="%dx%d dpi %.0f" % [dimensions.x,dimensions.y,case.dpi]
   var safe=app.ui_metrics.safe.grow(2)
-  var scroll=app.screen.find_child("MenuScroll",true,false) as ScrollContainer
-  expect(scroll!=null,prefix+" has a scrollable menu")
-  var scrollable=scroll!=null and scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page>1
+  expect(app.screen.find_children("*","ScrollContainer",true,false).is_empty(),prefix+" has no scroll container")
   var captions=["游戏教程","人机对战","联网对战","卡组编辑","玩家账号","对局回放","设置","退出游戏"]
   for title in captions:
    var control=find_button(app.screen,title)
    expect(control!=null,prefix+" has "+title)
-   if control and not scrollable:expect(safe.encloses(control.get_global_rect()),prefix+" shows "+title)
+   if control:expect(safe.encloses(control.get_global_rect()),prefix+" shows "+title)
   expect(find_button(app.screen,"检查更新")==null,prefix+" hides manual update check")
   expect(find_button(app.screen,"关于")==null,prefix+" moves About into settings")
   var grid=app.screen.find_child("MainMenuActions",true,false)
   expect(grid!=null and grid.get_children().map(func(button):return button.text)==captions,prefix+" orders actions in four rows with exit last")
-  if scrollable:
-   var start=scroll.get_global_rect().get_center()
-   var touch=InputEventScreenTouch.new();touch.index=0;touch.position=start;touch.pressed=true
-   root.push_input(touch,true)
-   for i in range(5):
-    var drag=InputEventScreenDrag.new();drag.index=0;drag.position=start-Vector2(0,(i+1)*40)
-    root.push_input(drag,true);await process_frame
-   touch.position=start-Vector2(0,200);touch.pressed=false;root.push_input(touch,true)
-   await frames()
-   expect(scroll.scroll_vertical>0,prefix+" swipes down to more actions")
-   scroll.scroll_vertical=int(scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page)
-   await frames()
-   expect(safe.encloses(find_button(app.screen,"退出游戏").get_global_rect()),prefix+" can scroll to exit")
-  else:expect(scroll!=null,prefix+" fits without scrolling")
+  var rank=app.screen.find_child("PlayerRank",true,false)
+  expect(rank!=null and safe.encloses(rank.get_global_rect()),prefix+" rank and username fit the safe area")
   await shot("menu-%dx%d-dpi%.0f" % [dimensions.x,dimensions.y,case.dpi])
  print("ANDROID MENU: ",checks," checks; ",failures.size()," failures")
  quit(0 if failures.is_empty() else 1)

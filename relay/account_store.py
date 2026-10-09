@@ -50,6 +50,9 @@ def database(path):
         conn.execute("ALTER TABLE players ADD COLUMN nickname TEXT NOT NULL DEFAULT ''")
     if "elo" not in columns:
         conn.execute(f"ALTER TABLE players ADD COLUMN elo INTEGER NOT NULL DEFAULT {INITIAL_ELO}")
+    for column in ("rank_step", "rank_stars", "rank_streak"):
+        if column not in columns:
+            conn.execute(f"ALTER TABLE players ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
     conn.execute("""CREATE TABLE IF NOT EXISTS sessions (
         player_id INTEGER NOT NULL,
         platform TEXT NOT NULL,
@@ -90,14 +93,48 @@ def database(path):
         created_at INTEGER NOT NULL, started_at INTEGER, status TEXT NOT NULL DEFAULT 'pending',
         winner INTEGER, elo_a INTEGER, elo_b INTEGER, delta_a INTEGER, delta_b INTEGER,
         FOREIGN KEY(player_a) REFERENCES players(id), FOREIGN KEY(player_b) REFERENCES players(id))""")
+    match_columns = {row[1] for row in conn.execute("PRAGMA table_info(rating_matches)")}
+    for column in ("rank_a", "rank_b"):
+        if column not in match_columns:
+            conn.execute(f"ALTER TABLE rating_matches ADD COLUMN {column} TEXT")
     conn.commit()
     return conn
 
 
-def response(ok, message, username="", nickname="", token="", remember_token="", platform="", elo=None):
+def advance_rank(step, stars, streak, won):
+    """Three wins start the bonus; promotion consumes all stars at the boundary."""
+    streak = streak + 1 if won else 0
+    if step >= 11:
+        return 11, 0, streak
+    if won:
+        stars += 2 if streak >= 3 else 1
+        if stars >= 3:
+            step, stars = step + 1, 0
+    elif step >= 2:
+        if stars:
+            stars -= 1
+        elif step not in (2, 5):
+            step, stars = step - 1, 2
+    return step, stars, streak
+
+
+def player_rank(conn, player_id):
+    step, stars, streak, elo = conn.execute(
+        "SELECT rank_step,rank_stars,rank_streak,elo FROM players WHERE id=?", (player_id,)).fetchone()
+    tier = 4 if step >= 11 else 3 if step >= 8 else 2 if step >= 5 else 1 if step >= 2 else 0
+    position = 0
+    if tier == 4:
+        position = 1 + conn.execute("""SELECT COUNT(*) FROM players WHERE rank_step=11
+            AND (elo>? OR (elo=? AND id<?))""", (elo, elo, player_id)).fetchone()[0]
+    return {"tier": tier, "level": (2, 5, 8, 11, 11)[tier] - step,
+            "stars": stars, "streak": streak, "position": position}
+
+
+def response(ok, message, username="", nickname="", token="", remember_token="", platform="", elo=None, rank=None):
     return {"ok": ok, "message": message, "username": username,
             "nickname": nickname, "token": token, "remember_token": remember_token,
-            "platform": platform, **({"elo": elo} if elo is not None else {})}
+            "platform": platform, **({"elo": elo} if elo is not None else {}),
+            **({"rank": rank} if rank is not None else {})}
 
 
 def verify(conn, token):
@@ -109,7 +146,8 @@ def verify(conn, token):
     if row and hmac.compare_digest(digest, row[3]) and time.time() - row[5] < SESSION_LIFETIME:
         player_id, username, nickname, _, device, _, platform, elo = row
         return {"ok": True, "username": username, "nickname": nickname or username,
-                "device": device, "platform": platform, "player_id": player_id, "elo": elo}
+                "device": device, "platform": platform, "player_id": player_id, "elo": elo,
+                "rank": player_rank(conn, player_id)}
     return response(False, "登录已失效，请重新登录")
 
 
@@ -226,7 +264,7 @@ def handle(conn, data):
             conn.execute("""UPDATE sessions SET token_hash=?,issued_at=?,remember_hash=?,remember_issued_at=?
                 WHERE player_id=? AND platform=?""", (hashlib.sha256(token.encode("ascii")).digest(), now,
                     hashlib.sha256(remember_token.encode("ascii")).digest(), now, row[0], row[5]))
-        return response(True, "已自动登录", row[1], row[2] or row[1], token, remember_token, row[5], elo=row[6])
+        return response(True, "已自动登录", row[1], row[2] or row[1], token, remember_token, row[5], elo=row[6], rank=player_rank(conn, row[0]))
     if action in ("verify", "nickname", "logout"):
         account = verify(conn, data.get("token"))
         if action == "logout" and not account["ok"]:
@@ -252,7 +290,7 @@ def handle(conn, data):
             return response(False, "昵称不能为空")
         with conn:
             conn.execute("UPDATE players SET nickname=? WHERE id=?", (nickname, account["player_id"]))
-        return response(True, "昵称已更新", account["username"], nickname, elo=account["elo"])
+        return response(True, "昵称已更新", account["username"], nickname, elo=account["elo"], rank=account["rank"])
     username = data.get("username")
     password = data.get("password")
     device = data.get("device")
@@ -303,7 +341,7 @@ def handle(conn, data):
              hashlib.sha256(remember_token.encode("ascii")).digest(), now))
     failures.pop(key, None)
     nickname, elo = conn.execute("SELECT nickname,elo FROM players WHERE id=?", (row[0],)).fetchone()
-    return response(True, "登录成功", row[1], nickname or row[1], token, remember_token, platform, elo=elo)
+    return response(True, "登录成功", row[1], nickname or row[1], token, remember_token, platform, elo=elo, rank=player_rank(conn, row[0]))
 
 
 def handle_match(conn, data):
@@ -347,15 +385,21 @@ def handle_match(conn, data):
                 expected = 1.0 / (1.0 + 10.0 ** exponent)
                 delta = round(ELO_K * ((1 if winner == 0 else 0) - expected))
                 next_ratings = [ratings[0] + delta, ratings[1] - delta]
-                for player, rating in zip(row[:2], next_ratings):
-                    conn.execute("UPDATE players SET elo=? WHERE id=?", (rating, player))
+                for actor, (player, rating) in enumerate(zip(row[:2], next_ratings)):
+                    rank = conn.execute("SELECT rank_step,rank_stars,rank_streak FROM players WHERE id=?", (player,)).fetchone()
+                    step, stars, streak = advance_rank(*rank, actor == winner)
+                    conn.execute("UPDATE players SET elo=?,rank_step=?,rank_stars=?,rank_streak=? WHERE id=?",
+                                 (rating, step, stars, streak, player))
+                ranks = [json.dumps(player_rank(conn, player), ensure_ascii=False) for player in row[:2]]
+                conn.execute("UPDATE rating_matches SET rank_a=?,rank_b=? WHERE match_id=?", (*ranks, match_id))
                 conn.execute("""UPDATE rating_matches SET status='settled',winner=?,elo_a=?,elo_b=?,delta_a=?,delta_b=?
                     WHERE match_id=?""", (winner, *next_ratings, delta, -delta, match_id))
         elif action not in ("create", "start", "cancel"):
             return {"ok": False, "message": "未知匹配操作"}
-        row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b FROM rating_matches WHERE match_id=?",
+        row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b,rank_a,rank_b FROM rating_matches WHERE match_id=?",
                            (match_id,)).fetchone()
-        return {"ok": True, "status": row[0], "winner": row[1], "ratings": list(row[2:4]), "deltas": list(row[4:6])}
+        return {"ok": True, "status": row[0], "winner": row[1], "ratings": list(row[2:4]), "deltas": list(row[4:6]),
+                "ranks": [json.loads(value) if value else {} for value in row[6:8]]}
 
 
 class Handler(BaseHTTPRequestHandler):
