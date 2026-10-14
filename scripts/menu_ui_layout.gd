@@ -61,29 +61,60 @@ func room_join_volume_control(parent: Node) -> HBoxContainer:
  action(row,"试听",host.preview_room_join_sound).name="PreviewRoomJoinSound"
  return row
 
+func card_preview_duration_control(parent: Node) -> HBoxContainer:
+ var row=HBoxContainer.new();row.name="AndroidCardPreviewDurationControl";parent.add_child(row)
+ row.add_theme_constant_override("separation",metrics.gap)
+ text(row,"长按预览判定")
+ var slider=HSlider.new();slider.name="AndroidCardPreviewDuration";row.add_child(slider);expand(slider)
+ var setting=app.CardPreviewHold
+ slider.min_value=setting.MIN_SECONDS;slider.max_value=setting.MAX_SECONDS;slider.step=setting.STEP_SECONDS
+ slider.value=app.android_card_preview_seconds
+ slider.custom_minimum_size=Vector2(metrics.hit*3,metrics.hit)
+ slider.tooltip_text="拖动调整长按卡牌打开详情的时间。"
+ var value_label=text(row,"%.2f 秒" % slider.value);value_label.name="AndroidCardPreviewDurationValue"
+ value_label.custom_minimum_size.x=metrics.body*5.0;value_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+ var host=app
+ slider.value_changed.connect(func(value):
+  host.set_android_card_preview_seconds(value)
+  value_label.text="%.2f 秒" % host.android_card_preview_seconds)
+ return row
+
 func build_settings(host):
  var root=page(host,"设置")
  var scroll=ScrollContainer.new();root.add_child(scroll);expand(scroll,true)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var body=column(scroll)
  room_join_volume_control(body)
+ if app.is_android:card_preview_duration_control(body)
  if not app.is_android:
   check(body,"全屏显示",app.fullscreen,func(value):
    app.fullscreen=value
    DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if value else DisplayServer.WINDOW_MODE_WINDOWED)
    app.save_settings())
- check(body,"游戏内卡牌使用 2D 上方俯视",app.top_down_view,app.set_top_down_view)
- check(body,"显示左侧卡牌效果说明栏",app.show_card_inspection,app.set_show_card_inspection)
- check(body,"延迟回合结束（长按 1 秒）",app.delay_turn_end,app.set_delay_turn_end).name="DelayTurnEnd"
+ var switches: Node=body
  if app.is_android:
-  check(body,"自动跳转视角",app.auto_camera_focus,app.set_auto_camera_focus).name="AutoCameraFocus"
-  check(body,"允许手动拖动和缩放视角",app.android_manual_camera,app.set_android_manual_camera).name="AndroidManualCamera"
-  check(body,"显示墓地与除外区悬浮按钮",app.android_zone_shortcuts,app.set_android_zone_shortcuts).name="AndroidZoneShortcutsSetting"
+  var grid=GridContainer.new();grid.name="AndroidSettingsSwitches";grid.columns=2 if app.screen.size.x>=metrics.hit*13 else 1
+  body.add_child(grid);switches=grid
+ var toggles=[]
+ toggles.append(check(switches,"游戏内卡牌使用 2D 上方俯视",app.top_down_view,app.set_top_down_view))
+ toggles.append(check(switches,"显示左侧卡牌效果说明栏",app.show_card_inspection,app.set_show_card_inspection))
+ var delay=check(switches,"延迟回合结束（长按 1 秒）",app.delay_turn_end,app.set_delay_turn_end);delay.name="DelayTurnEnd";toggles.append(delay)
+ if app.is_android:
+  var auto_focus=check(switches,"自动跳转视角",app.auto_camera_focus,app.set_auto_camera_focus);auto_focus.name="AutoCameraFocus";toggles.append(auto_focus)
+  var manual=check(switches,"允许手动拖动和缩放视角",app.android_manual_camera,app.set_android_manual_camera);manual.name="AndroidManualCamera";toggles.append(manual)
+  var shortcuts=check(switches,"显示墓地与除外区悬浮按钮",app.android_zone_shortcuts,app.set_android_zone_shortcuts);shortcuts.name="AndroidZoneShortcutsSetting";toggles.append(shortcuts)
+  for toggle in toggles:
+   toggle.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+   toggle.custom_minimum_size.y=maxf(56.0,metrics.hit*0.76)
  if not app.is_android:check(body,"测试模式：允许拖动卡牌放入战场",app.debug_drag_to_field,app.set_debug_drag_to_field)
  if app.is_test_build and not app.is_android:check(body,"回放训练模式：标注关键步骤与推荐招法",app.replay_training_mode,app.set_replay_training_mode)
- text(body,"当前版本："+app.patch_manager().active_version)
- action(body,"加载 PCK 补丁…",app.choose_pck_patch)
- action(body,"关于",app.about)
+ var footer: Node=body
+ if app.is_android:
+  var row=HBoxContainer.new();row.name="AndroidSettingsFooter";body.add_child(row);footer=row
+ var version=text(footer,"当前版本："+app.patch_manager().active_version)
+ if app.is_android:expand(version)
+ action(footer,"加载 PCK 补丁…",app.choose_pck_patch)
+ action(footer,"关于",app.about)
 
 func build_about(host):
  var root=page(host,"关于",host.settings)

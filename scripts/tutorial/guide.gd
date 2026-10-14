@@ -59,7 +59,7 @@ func build(owner_view,flow):
  focus_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;focus_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  focus_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
  focus_card.mouse_filter=Control.MOUSE_FILTER_STOP if view.is_android else Control.MOUSE_FILTER_IGNORE;focus_card.hide()
- if view.is_android:focus_card.tooltip_text="长按 1 秒：查看详情"
+ if view.is_android:focus_card.tooltip_text="长按 %s：查看详情" % view.host.CardPreviewHold.caption()
  scroll=ScrollContainer.new();middle.add_child(scroll);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var content=VBoxContainer.new();scroll.add_child(content);content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -582,6 +582,7 @@ func focus_card_touch(event: InputEvent) -> bool:
   var id=focus_id;var generation=runtime.epoch
   focus_hold_ring=preload("res://scripts/card_hold_ring.gd").new()
   focus_hold_ring.position=event.position
+  focus_hold_ring.duration=view.host.CardPreviewHold.seconds
   focus_hold_ring.valid=func():return not is_queued_for_deletion() and popup_open and focus_card.is_visible_in_tree() and runtime.epoch==generation and focus_id==id and focus_finger>=0 and not is_instance_valid(inspection_overlay) and not view.host.menu_popup_open()
   get_viewport().add_child(focus_hold_ring)
   focus_hold_ring.completed.connect(func():

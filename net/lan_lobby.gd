@@ -12,6 +12,8 @@ var name_input: LineEdit
 var address_input: LineEdit
 var mode_selected=false
 var cloud_selected=false
+var cloud_home_view="match"
+var cloud_form_draft: Dictionary={}
 var cloud_directory
 var cloud_title_input: LineEdit
 var cloud_password_input: LineEdit
@@ -140,7 +142,7 @@ func build(parent,net):
   body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   body.offset_top=185
  # Returning from battle recreates the lobby without pressing the cloud mode button.
- if cloud_selected:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token,session.fingerprint)
+ if cloud_selected and session.room_id.is_empty():cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token,session.fingerprint)
  refresh(true)
 func show_error(message: String):
  last_error=message;status_label.text=message
@@ -153,11 +155,13 @@ func _process(_delta):
 func refresh(force: bool=false):
  back_button.visible=can_leave_room();back_button.disabled=not can_leave_room()
  status_label.text=PlayerNameDisplay.in_text(last_error if not last_error.is_empty() else session.notice if not session.notice.is_empty() else session.discovery.error,session.room.get("names",[]))
- var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.busy,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,mode_selected,cloud_selected,session.cloud_mode,session.matchmaking,session.cloud_ranked,session.match_settled])
+ var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.busy,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,mode_selected,cloud_selected,cloud_home_view,session.cloud_mode,session.matchmaking,session.cloud_ranked,session.match_settled])
  if force or next!=signature:
   signature=next
+  remember_cloud_form()
   rooms_list=null;cloud_rooms_list=null;latency_label=null;matchmaking_label=null
   for child in body.get_children():body.remove_child(child);child.queue_free()
+  cloud_title_input=null;cloud_password_input=null;cloud_host_slot=null;format_input=null;rule_input=null;strict_input=null;entertainment_input=null
   if not app.is_android:
    body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
    body.offset_top=185 if not mode_selected or cloud_selected or session.cloud_mode else 0
@@ -170,9 +174,29 @@ func refresh(force: bool=false):
   elif session.cloud_mode and session.room.get("status","")=="lobby":build_cloud_room_lobby()
   elif app.is_android or session.cloud_mode:build_responsive_room()
   else:build_room()
+  restore_cloud_form()
   refresh_header_mode_button()
  refresh_rooms()
  refresh_cloud_rooms()
+
+func remember_cloud_form():
+ if not is_instance_valid(cloud_title_input) or cloud_title_input.is_queued_for_deletion():return
+ cloud_form_draft={"title":cloud_title_input.text,"password":cloud_password_input.text,"format":format_input.selected,"rule":rule_input.selected,"slot":cloud_host_slot.selected,"strict":strict_input.button_pressed}
+
+func restore_cloud_form():
+ if cloud_form_draft.is_empty() or not is_instance_valid(cloud_title_input):return
+ cloud_title_input.text=str(cloud_form_draft.get("title",cloud_title_input.text))
+ cloud_password_input.text=str(cloud_form_draft.get("password",cloud_password_input.text))
+ format_input.select(clampi(int(cloud_form_draft.get("format",format_input.selected)),0,format_input.item_count-1))
+ rule_input.select(clampi(int(cloud_form_draft.get("rule",rule_input.selected)),0,rule_input.item_count-1))
+ cloud_host_slot.select(clampi(int(cloud_form_draft.get("slot",cloud_host_slot.selected)),0,cloud_host_slot.item_count-1))
+ strict_input.button_pressed=bool(cloud_form_draft.get("strict",strict_input.button_pressed))
+ refresh_room_options()
+
+func set_cloud_home_view(view: String):
+ if view not in ["match","rooms"] or cloud_home_view==view:return
+ cloud_home_view=view
+ refresh(true)
 
 func set_cloud_mode(enabled: bool):
  if enabled and app.cloud_match_blocked():
@@ -352,74 +376,31 @@ func choose_cloud_room_seat(info: Dictionary,slot: int):
  dialog.popup_centered()
  password_input.grab_focus()
 
-func build_cloud_home():
- var root=mobile_scroll()
- var matching=mobile_panel(root)
- var match_header=HBoxContainer.new();matching.add_child(match_header)
- var match_heading=mobile_text(match_header,session.match_mode_caption(app.match_mode),true);match_heading.name="MatchmakingHeading";match_heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- if app.match_mode=="ranked":
-  var rank_row=app.rank_display(match_header);rank_row.custom_minimum_size.x=minf(body.size.x*0.55,550)
- queue_label=mobile_text(matching,queue_caption(cloud_directory.queued));queue_label.name="MatchQueuePresence"
- var match_actions=HBoxContainer.new();matching.add_child(match_actions)
- match_actions.add_theme_constant_override("separation",int(app.ui_metrics.gap))
- var mode=OptionButton.new();match_actions.add_child(mode);mode.name="MatchmakingMode";app.ui_metrics.button(mode)
- mode.add_item("排位模式 · 官限");mode.add_item("休闲模式 · 无限制");mode.add_item("娱乐模式")
- mode.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
- mode.custom_minimum_size.x=mode.get_theme_font("font").get_string_size("探索幻想乡 · 固定卡组",HORIZONTAL_ALIGNMENT_LEFT,-1,mode.get_theme_font_size("font_size")).x+app.ui_metrics.padding*3+mode.get_theme_icon("arrow").get_width()
- mode.select(session.MATCH_CATEGORIES.find(app.match_mode))
- mode.item_selected.connect(func(index: int):select_match_mode(session.MATCH_CATEGORIES[index]))
- if app.match_mode=="entertainment":
-  var submode=OptionButton.new();matching.add_child(submode);submode.name="MatchmakingEntertainmentMode";app.ui_metrics.button(submode)
-  for caption in Series.Exploration.MODE_NAMES:submode.add_item(caption)
-  submode.select(Series.Exploration.MODES.find(app.entertainment_mode))
-  submode.item_selected.connect(func(index: int):select_entertainment_mode(Series.Exploration.MODES[index]))
- var deck_button=mobile_action(match_actions,"选择匹配卡组" if match_deck_index<0 else app.deck_choice_caption(match_deck_index),choose_match_deck)
- deck_button.name="MatchDeckSelect";deck_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deck_button.size_flags_stretch_ratio=1.6
- deck_button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- if app.match_mode=="entertainment":deck_button.text=Series.Exploration.MODE_NAMES[Series.Exploration.MODES.find(app.entertainment_mode)]+" · 双方固定卡组";deck_button.disabled=true
- var match_button=mobile_action(match_actions,"开始匹配",start_matchmaking,true);match_button.name="StartMatchmaking";match_button.disabled=app.match_mode!="entertainment" and match_deck_index<0;match_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var detail_row=HBoxContainer.new();matching.add_child(detail_row)
- var rules=mobile_text(detail_row,"BO1 · 双方固定卡组 · 主卡组 50 张" if app.match_mode=="entertainment" else "BO1 换备牌 · %s（固定） · 主卡组 50 张" % app.RuleSet.label_for(selected_match_rule_set()));rules.name="MatchmakingRules";rules.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- if app.match_mode=="ranked":mobile_action(detail_row,"排位规则",app.open_rank_rules).name="RankRulesButton"
- else:
-  var hint=mobile_text(detail_row,"不限对手段位 · 不影响段位和 Elo");hint.name="CasualMatchHint";hint.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var privacy_row=HBoxContainer.new();matching.add_child(privacy_row)
- privacy_row.add_theme_constant_override("separation",int(app.ui_metrics.gap))
- var privacy=CheckButton.new();privacy_row.add_child(privacy);privacy.name="MatchmakingPrivacy"
- privacy.text="公开匹配房间";privacy.button_pressed=app.match_room_public;app.ui_metrics.button(privacy)
- privacy.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
- privacy.tooltip_text="双方都开启时，房间显示在云端列表并允许观战；任一方关闭时，本场为私人房间。"
- privacy.toggled.connect(func(enabled: bool):app.match_room_public=enabled;app.save_settings())
- var privacy_hint=mobile_text(privacy_row,"隐私：任一方关闭公开，本场隐藏并禁止观战。")
- privacy_hint.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var create_width=maxf(480,app.ui_metrics.body*20+app.ui_metrics.padding*2)
- var directory_width=maxf(660,app.ui_metrics.body*16)
- var side_by_side=body.size.x>=create_width+directory_width+app.ui_metrics.gap
- var available_directory_width=body.size.x-create_width-app.ui_metrics.gap if side_by_side else body.size.x
- var seat_button_width=maxf(170,app.ui_metrics.body*7+app.ui_metrics.padding*2)
- cloud_room_columns=4 if available_directory_width>=seat_button_width*4+app.ui_metrics.gap*3 else 2
- var columns=HBoxContainer.new() if side_by_side else VBoxContainer.new()
- root.add_child(columns)
- var create=mobile_panel(columns)
- if side_by_side:
-  var create_panel=create.get_parent() as PanelContainer
-  create_panel.custom_minimum_size.x=create_width
-  create_panel.size_flags_stretch_ratio=0.8
- mobile_text(create,"创建云端房间",true)
- cloud_title_input=mobile_edit(create,app.account_nickname+"的房间");cloud_title_input.max_length=30
- cloud_title_input.placeholder_text="房间名称"
- cloud_password_input=mobile_edit(create,"",true);cloud_password_input.max_length=32;cloud_password_input.placeholder_text="房间密码（可留空）"
- var options=HBoxContainer.new();create.add_child(options)
- format_input=OptionButton.new();options.add_child(format_input);add_formats()
- rule_input=OptionButton.new();options.add_child(rule_input)
- for rule_name in app.RuleSet.LABELS:rule_input.add_item(rule_name)
- cloud_host_slot=OptionButton.new();options.add_child(cloud_host_slot);cloud_host_slot.add_item("坐 1 号对战位");cloud_host_slot.add_item("坐 2 号对战位")
- for option in [format_input,rule_input,cloud_host_slot]:option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;app.ui_metrics.button(option)
- strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.button_pressed=true;create.add_child(strict_input)
- add_room_entertainment_selector(create)
- mobile_action(create,"创建房间",create_relay,true)
- var directory=mobile_panel(columns)
- if side_by_side:
+func compact_cloud_control(control: Control):
+ if not app.is_android:return
+ control.custom_minimum_size.y=clampf(body.size.y*0.11,52,68)
+ control.add_theme_font_size_override("font_size",mini(app.ui_metrics.body,30))
+ for state in ["normal","hover","pressed","disabled","focus"]:
+  if not control.has_theme_stylebox(state):continue
+  var style=control.get_theme_stylebox(state).duplicate() as StyleBox
+  style.content_margin_top=6;style.content_margin_bottom=6
+  control.add_theme_stylebox_override(state,style)
+
+func build_cloud_tabs(root: VBoxContainer):
+ if not app.is_android:return
+ var tabs=HBoxContainer.new();tabs.name="CloudHomeTabs";root.add_child(tabs)
+ for view in ["match","rooms"]:
+  var caption="匹配与建房" if view=="match" else "房间列表"
+  var tab=mobile_action(tabs,caption,set_cloud_home_view.bind(view),cloud_home_view==view)
+  tab.name="CloudMatchTab" if view=="match" else "CloudRoomsTab"
+  tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  tab.custom_minimum_size.x=0
+  tab.disabled=cloud_home_view==view
+  compact_cloud_control(tab)
+
+func build_cloud_directory(parent: Node,directory_width: float=0):
+ var directory=mobile_panel(parent)
+ if directory_width>0:
   var directory_panel=directory.get_parent() as PanelContainer
   directory_panel.custom_minimum_size.x=directory_width
   directory_panel.size_flags_stretch_ratio=1.6
@@ -429,6 +410,104 @@ func build_cloud_home():
  mobile_text(directory,"选择空位加入；加密房间将在加入时询问密码。")
  cloud_rooms_list=VBoxContainer.new();directory.add_child(cloud_rooms_list)
  refresh_cloud_rooms()
+
+func build_cloud_home():
+ var root=mobile_scroll()
+ build_cloud_tabs(root)
+ var seat_button_width=maxf(170,app.ui_metrics.body*7+app.ui_metrics.padding*2)
+ if app.is_android and cloud_home_view=="rooms":
+  cloud_room_columns=4 if body.size.x>=seat_button_width*4+app.ui_metrics.gap*3 else 2
+  build_cloud_directory(root)
+  return
+ var compact_side_by_side=app.is_android and body.size.x>=1050
+ var work_parent: Node=root
+ if compact_side_by_side:
+  work_parent=HBoxContainer.new();root.add_child(work_parent)
+ var matching=mobile_panel(work_parent)
+ if compact_side_by_side:matching.get_parent().size_flags_stretch_ratio=1.1
+ var match_header=HBoxContainer.new();matching.add_child(match_header)
+ var match_heading=mobile_text(match_header,session.match_mode_caption(app.match_mode),true);match_heading.name="MatchmakingHeading";match_heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ if app.match_mode=="ranked":
+  var rank_row=app.rank_display(match_header);rank_row.custom_minimum_size.x=minf(body.size.x*(0.3 if compact_side_by_side else 0.55),550)
+  if compact_side_by_side:
+   rank_row.custom_minimum_size.y=68
+   rank_row.get_child(0).custom_minimum_size=Vector2(62,68)
+   rank_row.get_child(1).add_theme_font_size_override("font_size",mini(app.ui_metrics.body,27))
+ queue_label=mobile_text(matching,queue_caption(cloud_directory.queued));queue_label.name="MatchQueuePresence"
+ var match_actions=VBoxContainer.new() if compact_side_by_side else HBoxContainer.new();matching.add_child(match_actions)
+ match_actions.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ var mode=OptionButton.new();match_actions.add_child(mode);mode.name="MatchmakingMode";app.ui_metrics.button(mode)
+ mode.add_item("排位模式 · 官限");mode.add_item("休闲模式 · 无限制");mode.add_item("娱乐模式")
+ mode.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
+ mode.custom_minimum_size.x=mode.get_theme_font("font").get_string_size("探索幻想乡 · 固定卡组",HORIZONTAL_ALIGNMENT_LEFT,-1,mode.get_theme_font_size("font_size")).x+app.ui_metrics.padding*3+mode.get_theme_icon("arrow").get_width()
+ if compact_side_by_side:mode.custom_minimum_size.x=0;mode.size_flags_horizontal=Control.SIZE_EXPAND_FILL;compact_cloud_control(mode)
+ mode.select(session.MATCH_CATEGORIES.find(app.match_mode))
+ mode.item_selected.connect(func(index: int):select_match_mode(session.MATCH_CATEGORIES[index]))
+ if app.match_mode=="entertainment":
+  var submode=OptionButton.new();matching.add_child(submode);submode.name="MatchmakingEntertainmentMode";app.ui_metrics.button(submode)
+  for caption in Series.Exploration.MODE_NAMES:submode.add_item(caption)
+  submode.select(Series.Exploration.MODES.find(app.entertainment_mode))
+  submode.item_selected.connect(func(index: int):select_entertainment_mode(Series.Exploration.MODES[index]))
+  if compact_side_by_side:compact_cloud_control(submode)
+ var action_parent: Node=match_actions
+ if compact_side_by_side:
+  action_parent=HBoxContainer.new();match_actions.add_child(action_parent)
+ var deck_button=mobile_action(action_parent,"选择匹配卡组" if match_deck_index<0 else app.deck_choice_caption(match_deck_index),choose_match_deck)
+ deck_button.name="MatchDeckSelect";deck_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deck_button.size_flags_stretch_ratio=1.6
+ deck_button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ if app.match_mode=="entertainment":deck_button.text=Series.Exploration.MODE_NAMES[Series.Exploration.MODES.find(app.entertainment_mode)]+" · 双方固定卡组";deck_button.disabled=true
+ var match_button=mobile_action(action_parent,"开始匹配",start_matchmaking,true);match_button.name="StartMatchmaking";match_button.disabled=app.match_mode!="entertainment" and match_deck_index<0;match_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ if compact_side_by_side:
+  for control in [deck_button,match_button]:control.custom_minimum_size.x=0;compact_cloud_control(control)
+ var detail_row=HBoxContainer.new();matching.add_child(detail_row)
+ var rules_caption="BO1 · 双方固定卡组 · 主卡组 50 张" if app.match_mode=="entertainment" else "BO1 换备牌 · %s（固定） · 主卡组 50 张" % app.RuleSet.label_for(selected_match_rule_set())
+ if compact_side_by_side:rules_caption="BO1 · 固定卡组 · 50 张" if app.match_mode=="entertainment" else "BO1 换备牌 · 固定%s · 50 张" % app.RuleSet.label_for(selected_match_rule_set())
+ var rules=mobile_text(detail_row,rules_caption);rules.name="MatchmakingRules";rules.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ if compact_side_by_side:rules.add_theme_font_size_override("font_size",mini(app.ui_metrics.body,28))
+ if app.match_mode=="ranked":
+  var rank_rules=mobile_action(detail_row,"排位规则",app.open_rank_rules);rank_rules.name="RankRulesButton";compact_cloud_control(rank_rules)
+ else:
+  var hint=mobile_text(detail_row,"不限对手段位 · 不影响段位和 Elo");hint.name="CasualMatchHint";hint.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var privacy_row=HBoxContainer.new();matching.add_child(privacy_row)
+ privacy_row.add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ var privacy=CheckButton.new();privacy_row.add_child(privacy);privacy.name="MatchmakingPrivacy"
+ privacy.text="公开匹配房间";privacy.button_pressed=app.match_room_public;app.ui_metrics.button(privacy)
+ if compact_side_by_side:compact_cloud_control(privacy)
+ privacy.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
+ privacy.tooltip_text="双方都开启时，房间显示在云端列表并允许观战；任一方关闭时，本场为私人房间。"
+ privacy.toggled.connect(func(enabled: bool):app.match_room_public=enabled;app.save_settings())
+ var privacy_hint=mobile_text(privacy_row,"隐私：任一方关闭公开，本场隐藏并禁止观战。")
+ privacy_hint.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ if compact_side_by_side:privacy_hint.hide()
+ var create_width=maxf(480,app.ui_metrics.body*20+app.ui_metrics.padding*2)
+ var directory_width=maxf(660,app.ui_metrics.body*16)
+ var side_by_side=not app.is_android and body.size.x>=create_width+directory_width+app.ui_metrics.gap
+ var available_directory_width=body.size.x-create_width-app.ui_metrics.gap if side_by_side else body.size.x
+ cloud_room_columns=4 if available_directory_width>=seat_button_width*4+app.ui_metrics.gap*3 else 2
+ var columns: Node=work_parent if compact_side_by_side else HBoxContainer.new() if side_by_side else VBoxContainer.new()
+ if not compact_side_by_side:root.add_child(columns)
+ var create=mobile_panel(columns)
+ if compact_side_by_side:create.add_theme_constant_override("separation",8)
+ if side_by_side:
+  var create_panel=create.get_parent() as PanelContainer
+  create_panel.custom_minimum_size.x=create_width
+  create_panel.size_flags_stretch_ratio=0.8
+ elif compact_side_by_side:create.get_parent().size_flags_stretch_ratio=0.9
+ mobile_text(create,"创建云端房间",true)
+ cloud_title_input=mobile_edit(create,app.account_nickname+"的房间");cloud_title_input.max_length=30;compact_cloud_control(cloud_title_input)
+ cloud_title_input.placeholder_text="房间名称"
+ cloud_password_input=mobile_edit(create,"",true);cloud_password_input.max_length=32;cloud_password_input.placeholder_text="房间密码（可留空）";compact_cloud_control(cloud_password_input)
+ var options=HBoxContainer.new();create.add_child(options)
+ format_input=OptionButton.new();options.add_child(format_input);add_formats()
+ rule_input=OptionButton.new();options.add_child(rule_input)
+ for rule_name in app.RuleSet.LABELS:rule_input.add_item(rule_name)
+ var slot_parent: Node=create if compact_side_by_side else options
+ cloud_host_slot=OptionButton.new();slot_parent.add_child(cloud_host_slot);cloud_host_slot.add_item("坐 1 号对战位");cloud_host_slot.add_item("坐 2 号对战位")
+ for option in [format_input,rule_input,cloud_host_slot]:option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;app.ui_metrics.button(option);option.custom_minimum_size.x=0 if compact_side_by_side else option.custom_minimum_size.x;compact_cloud_control(option)
+ strict_input=CheckButton.new();strict_input.text="主卡组必须 50 张";strict_input.button_pressed=true;create.add_child(strict_input);compact_cloud_control(strict_input)
+ add_room_entertainment_selector(create)
+ var create_button=mobile_action(create,"创建房间",create_relay,true);create_button.name="CreateCloudRoom";compact_cloud_control(create_button)
+ if not app.is_android:build_cloud_directory(columns,directory_width if side_by_side else 0)
 
 func refresh_cloud_rooms():
  if not cloud_directory.rank.is_empty():app.account_rank=cloud_directory.rank.duplicate(true)

@@ -2,6 +2,7 @@ extends PanelContainer
 ## Public leader artwork with read-only mouse/touch inspection.
 const Inspection=preload("res://scripts/card_inspection.gd")
 const Art=preload("res://scripts/card_art.gd")
+const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 var app
 var card_id=""
 var art_id=""
@@ -17,7 +18,7 @@ var touch_surfaces=preload("res://scripts/android_card_touch.gd").new()
 func _ready():
  name="OpponentLeaderCard"
  mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
- tooltip_text="长按 1 秒：查看详情" if app.is_android else "右键：查看详情"
+ tooltip_text="长按 %s：查看详情" % CardPreviewHold.caption() if app.is_android else "右键：查看详情"
  add_theme_stylebox_override("panel",app.style(Color("#142737"),app.GOLD))
  picture=TextureRect.new();picture.name="OpponentLeaderArt";add_child(picture)
  picture.texture=load(Art.image_path(card_id,art_id,app.Store.CARDS))
@@ -38,7 +39,7 @@ func _input(event: InputEvent):
   if finger>=0:cancel_hold();return
   if is_instance_valid(overlay) or touch_surfaces.surface_at(app.screen,event.position)!=self:return
   finger=event.index;origin=event.position
-  hold_ring=preload("res://scripts/card_hold_ring.gd").new();hold_ring.position=origin
+  hold_ring=preload("res://scripts/card_hold_ring.gd").new();hold_ring.position=origin;hold_ring.duration=CardPreviewHold.seconds
   hold_ring.valid=func():return is_visible_in_tree() and not is_queued_for_deletion() and finger>=0 and not is_instance_valid(overlay)
   get_viewport().add_child(hold_ring)
   hold_ring.completed.connect(show_details)

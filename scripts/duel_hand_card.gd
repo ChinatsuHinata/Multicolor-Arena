@@ -3,6 +3,7 @@ const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
 const DevourMarker=preload("res://scripts/devour_marker.gd")
+const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 ## Clicking begins a private declaration; payment still requires confirmation.
 var view
 var uid=0
@@ -37,7 +38,7 @@ func build(owner_view,instance: Dictionary,hidden: bool=false):
   view.android_card_touch.bind_card(self,func():
    view.inspect_card("back" if hidden_card else card_id,0 if hidden_card else uid,"对手手牌 · 未公开" if hidden_card else "","" if hidden_card else art_id),func():
    if not hidden_card and not view.replay_view():view.hand_clicked(uid),instance.get("zone","hand")=="hand")
-  hold_timer=Timer.new();hold_timer.one_shot=true;hold_timer.wait_time=0.55;add_child(hold_timer)
+  hold_timer=Timer.new();hold_timer.one_shot=true;hold_timer.wait_time=CardPreviewHold.seconds;add_child(hold_timer)
   hold_timer.timeout.connect(func():
    if touch_down and get_global_mouse_position().distance_to(touch_origin)<12:
     inspected=true;view.inspect_card("back" if hidden_card else card_id,0 if hidden_card else uid,"对手手牌 · 未公开" if hidden_card else "","" if hidden_card else art_id))
@@ -67,7 +68,7 @@ func input_card(event: InputEvent):
  if view.is_android and event.button_index==MOUSE_BUTTON_LEFT:
   if event.pressed:
    touch_down=true;inspected=false;touch_origin=get_global_transform()*event.position
-   if is_instance_valid(hold_timer):hold_timer.start()
+   if is_instance_valid(hold_timer):hold_timer.wait_time=CardPreviewHold.seconds;hold_timer.start()
    return
   if is_instance_valid(hold_timer):hold_timer.stop()
   var activate=touch_down and not inspected and (get_global_transform()*event.position).distance_to(touch_origin)<12

@@ -7,8 +7,11 @@ func run():
  clean()
  var leader=e.players[0].leader
  leader.timer=1
+ leader.poverty=1
  var hand_card=put("53","hand")
  view.render();await settle()
+ var leader_badge=view.card_badges.get("card_"+str(leader.uid),{})
+ expect(leader_badge.has("sick") and leader_badge.sick.text=="计时 1" and leader_badge.has("counters") and "贫穷 1" in leader_badge.counters.text and not "计时" in leader_badge.counters.text,"自机计时只显示在卡牌下方，其他指示物仍可见")
  view.leader_zone_clicked(0)
  expect(view.message=="自机仍在计时","clicking a timed leader shows the cast warning")
  var notice: Label

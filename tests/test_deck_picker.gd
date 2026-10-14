@@ -42,6 +42,10 @@ func check_layout(picker):
  var safe=app.screen.get_global_rect().grow(1)
  for control in [picker.search,picker.notice,picker.previous_button,picker.next_button,picker.find_child("DeckPickerBack",true,false)]:
   expect(safe.encloses(control.get_global_rect()),"search, navigation and return controls fit the usable screen")
+ if picker.app.is_android:
+  expect(safe.encloses(picker.color_row.get_global_rect()),"visible Android color filters fit the usable screen")
+  for swatch in picker.color_row.get_children():
+   expect(picker.color_row.get_global_rect().grow(1).encloses(swatch.get_global_rect()),"Android color swatch fits the filter row")
  expect(picker.grid.get_child_count()<=picker.page_size,"gallery paginates the saved collection")
  for tile in picker.grid.get_children():
   expect(picker.gallery.get_global_rect().grow(1).encloses(tile.get_global_rect()),"deck tile fits inside gallery")
@@ -85,10 +89,10 @@ func run():
   check_layout(picker)
   await shot("android" if android else "desktop")
   if android:
-   await activate(picker.color_toggle)
-   expect(picker.color_row.visible,"Android color filters expand on demand")
+   expect(picker.color_row.visible and picker.find_child("DeckPickerColorToggle",true,false)==null,"Android gallery shows color filters immediately without an extra toggle")
+   for color in ["全部","红","蓝","绿","黄","黑"]:
+    expect(picker.find_child("DeckPickerColor_"+color,true,false) is Button,"Android gallery exposes the "+color+" filter")
    check_layout(picker);await shot("android-colors")
-   await activate(picker.color_toggle)
   else:
    for i in range(22):
     await key(KEY_TAB)
@@ -174,11 +178,12 @@ func run():
     session.read_only=true;session.room=session.series.public_state(-1);lobby.refresh(true);await frames()
     expect(app.screen.find_child("NetworkDeckSelect",true,false).disabled,"spectator deck button remains disabled")
    app.menu();app.lan_session=null;session.leave(false);session.queue_free();await frames()
+  var saved_decks=app.decks
   app.decks=[]
   # Empty collection is tested without touching the actual saved files.
   var empty=preload("res://scripts/deck_picker.gd").new();empty.app=app;app.screen.add_child(empty);await frames()
   expect(empty.entries.is_empty() and empty.matches.is_empty() and empty.grid.get_child_count()==1,"empty collection displays an actionable message")
-  empty.queue_free()
+  empty.queue_free();app.decks=saved_decks
  app.queue_free();await frames()
  print("DECK PICKER: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

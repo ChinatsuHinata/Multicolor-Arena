@@ -105,6 +105,9 @@ func run():
   var rules=lobby.body.find_child("MatchmakingRules",true,false) as Label
   check(rules!=null and rules.text.contains("官限") and rules.text.contains("固定"),"cloud home explains the fixed official rule set for "+str(mobile))
   await check_rank_rules(lobby,"home-"+str(mobile))
+  if mobile:
+   (lobby.body.find_child("CloudRoomsTab",true,false) as Button).pressed.emit()
+   await process_frame
   lobby.cloud_directory.rooms=[{"id":"ABCDEF012345","name":"自动匹配","format":2,"status":"lobby","watch_only":true,"version":lobby.session.fingerprint,"seats":["玩家一","玩家二","","","","","",""]}]
   lobby.refresh_cloud_rooms();await process_frame
   var entries=lobby.cloud_rooms_list.find_children("*","Button",true,false)
@@ -113,6 +116,9 @@ func run():
   lobby.refresh_cloud_rooms();await process_frame
   entries=lobby.cloud_rooms_list.find_children("*","Button",true,false)
   check(entries.size()==1 and entries[0].disabled,"full match spectator seats disable entry for "+str(mobile))
+  if mobile:
+   (lobby.body.find_child("CloudMatchTab",true,false) as Button).pressed.emit()
+   await process_frame
   var session=lobby.session;session.storage=fixture+"/network"
   var queue_deck=app.Store.clean_deck(JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks[0])
   var mode=lobby.body.find_child("MatchmakingMode",true,false) as OptionButton

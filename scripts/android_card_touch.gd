@@ -1,6 +1,6 @@
 extends RefCounted
 ## Native touch routing keeps card inspection independent of mouse emulation.
-const HOLD_SECONDS=1.0
+const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 const HoldRing=preload("res://scripts/card_hold_ring.gd")
 const DRAG_THRESHOLD=12.0
 var finger=-1
@@ -20,7 +20,7 @@ func cancel():
 
 func begin_ring(parent: Control,point: Vector2,inspect: Callable,valid: Callable):
  cancel_ring()
- ring=HoldRing.new();ring.duration=HOLD_SECONDS;ring.valid=valid
+ ring=HoldRing.new();ring.duration=CardPreviewHold.seconds;ring.valid=valid
  parent.add_child(ring)
  ring.position=parent.get_global_transform().affine_inverse()*point
  ring.completed.connect(inspect)

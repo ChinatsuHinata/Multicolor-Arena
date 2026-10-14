@@ -1,5 +1,5 @@
 extends Control
-## Shared one-second inspection feedback in viewport coordinates.
+## Shared inspection feedback in viewport coordinates; callers choose the delay.
 signal completed
 var duration=1.0
 var progress=0.0

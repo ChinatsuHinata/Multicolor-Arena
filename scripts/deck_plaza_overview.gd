@@ -55,7 +55,7 @@ func card_face(parent: Control,id: String,rect: Rect2,leader: bool=false,zone: S
  frame.mouse_filter=Control.MOUSE_FILTER_STOP if is_instance_valid(input_root) else Control.MOUSE_FILTER_PASS
  frame.add_theme_stylebox_override("panel",app.style(Color("#142737"),app.GOLD if leader else Color("#677585")))
  highlight_frame(frame)
- frame.tooltip_text=str(Store.CARDS.get(id,{}).get("name",id))+("\n长按 1 秒：查看详情" if app.is_android else "\n点击或右键：查看详情")
+ frame.tooltip_text=str(Store.CARDS.get(id,{}).get("name",id))+("\n长按 %s：查看详情" % app.CardPreviewHold.caption() if app.is_android else "\n点击或右键：查看详情")
  frame.clicked.connect(func(card_id,_zone,_index,_right):card_inspected.emit(card_id))
  parent.add_child(frame)
  if not faces.has(id):faces[id]=app.texture(id,Art.selected(deck,id,Store.CARDS))

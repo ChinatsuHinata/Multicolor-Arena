@@ -22,7 +22,6 @@ var page_label: Label
 var previous_button: Button
 var next_button: Button
 var color_row: HBoxContainer
-var color_toggle: Button
 var page_index=0
 var page_size=6
 var compact=false
@@ -65,9 +64,6 @@ func _ready():
  search.placeholder_text="检索套牌名称 / 自机 / 卡牌名称或别名"
  search.text_changed.connect(func(_value):apply_search())
  action(filters,"清除",reset_search).name="DeckPickerClear"
- if app.is_android:
-  color_toggle=action(filters,"颜色筛选",func():color_row.visible=not color_row.visible;queue_layout())
-  color_toggle.name="DeckPickerColorToggle";color_toggle.toggle_mode=true
  color_row=HBoxContainer.new();body.add_child(color_row)
  var inks=[Color("#344553"),Color("#a83035"),Color("#337aa7"),Color("#39794d"),Color("#ac963b"),Color("#383a42")]
  var swatch_colors=["全部","红","蓝","绿","黄","黑"]
@@ -77,8 +73,7 @@ func _ready():
   button.add_theme_stylebox_override("normal",app.style(inks[i]))
   button.add_theme_stylebox_override("pressed",app.style(inks[i].lightened(0.18),app.GOLD))
   button.toggle_mode=true;button.set_pressed_no_signal(color=="全部")
- if app.is_android:color_row.hide()
- else:notice=text(color_row,"",app.ui_metrics.small,app.MUTED)
+ if not app.is_android:notice=text(color_row,"",app.ui_metrics.small,app.MUTED)
  notice.name="DeckPickerNotice"
  gallery=Control.new();body.add_child(gallery);expand(gallery,true)
  grid=GridContainer.new();grid.name="DeckPickerGrid";gallery.add_child(grid)
@@ -120,7 +115,6 @@ func toggle_color(color: String):
  update_swatches();apply_search()
 
 func update_swatches():
- if color_toggle!=null:color_toggle.text="颜色筛选"+("（%d）" % colors.size() if not colors.is_empty() else "")
  for color in ["全部","红","蓝","绿","黄","黑"]:
   var button=find_child("DeckPickerColor_"+color,true,false) as Button
   button.set_pressed_no_signal(colors.is_empty() if color=="全部" else color in colors)

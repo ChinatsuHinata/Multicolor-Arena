@@ -1,4 +1,5 @@
 extends Panel
+const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 signal preview_requested(id: String)
 signal clicked(id: String, zone: String, index: int, right: bool)
 signal art_requested(id: String)
@@ -30,7 +31,7 @@ func _ready():
  if is_android and long_press_enabled:
   hold_timer=Timer.new()
   hold_timer.one_shot=true
-  hold_timer.wait_time=1.0
+  hold_timer.wait_time=CardPreviewHold.seconds
   add_child(hold_timer)
 func _gui_input(event):
  if is_android and event is InputEventMouseMotion and event.position.distance_to(hold_origin)>12:
@@ -67,8 +68,10 @@ func cancel_touch_hold():
 
 func begin_touch_hold(point: Vector2):
  cancel_touch_hold();held=false
+ hold_timer.wait_time=CardPreviewHold.seconds
  hold_timer.start()
  hold_ring=preload("res://scripts/card_hold_ring.gd").new()
+ hold_ring.duration=CardPreviewHold.seconds
  hold_ring.valid=func():return is_visible_in_tree() and not is_queued_for_deletion() and not dragged and not held
  get_viewport().add_child(hold_ring);hold_ring.position=point
  hold_ring.completed.connect(func():

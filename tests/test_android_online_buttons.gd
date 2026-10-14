@@ -94,5 +94,26 @@ func run():
  match_exit=popup.find_child("BattleMenuMatchExit",true,false) as Button
  expect(match_exit!=null and match_exit.text=="离开对战" and not match_exit.disabled and find_button(popup,"投降")==null,"spectator sees one leave-match action")
  view.close_android_battle_menu()
+ preview.read_only=false
+ preview.room={"undo_request":{},"undo_available":false,"status":"complete","format":1,"scores":[0,1]}
+ e.winner=1;e.log.append("对方投降")
+ view.render();await process_frame
+ var archive=view.replay_recording
+ expect(not archive.frames.is_empty(),"finished match has replay frames to save")
+ app.offer_replay(archive);await process_frame
+ var save_dialog=app.get_children().filter(func(child):return child is ConfirmationDialog and child.title=="保存回放")
+ expect(save_dialog.size()==1,"finished match offers replay saving")
+ if not save_dialog.is_empty():save_dialog[0].confirmed.emit()
+ await process_frame
+ expect(DirAccess.get_files_at(Store.Paths.root().path_join("replay")).size()==1,"replay save creates an mreply file")
+ for child in app.get_children():
+  if child is AcceptDialog:child.queue_free()
+ await process_frame
+ view.open_android_battle_menu();await process_frame
+ popup=view.android_battle_menu_root
+ match_exit=popup.find_child("BattleMenuMatchExit",true,false) as Button
+ expect(match_exit!=null and match_exit.text=="离开战场" and not match_exit.disabled,"finished match shows an enabled leave-battle action after replay save")
+ if match_exit!=null:await click(match_exit.get_global_rect().get_center())
+ expect(app.page=="online" and preview.last_action.get("name")!="surrender","leave-battle action returns to online room without surrendering again")
  print("ANDROID ONLINE BUTTONS: %d checks; %d failures" % [checks,failures.size()])
  app.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)

@@ -29,8 +29,8 @@ func measure(owner_view):
   view.INSPECTION=Rect2(16,100,218,660)
   view.SIDEBAR=Rect2(1366,100,218,660)
   view.OPPONENT_HAND_COUNT=Rect2(1366,76,218,62)
-  enemy_life=Rect2(18,18,218,61)
-  own_life=Rect2(18,793,218,70)
+  enemy_life=Rect2(18,18,218,view.battle_life_height(1-view.local_seat,61))
+  own_life=Rect2(18,863-view.battle_life_height(view.local_seat,70),218,view.battle_life_height(view.local_seat,70))
   log_rect=Rect2(320,53,990,26)
   action_rect=Rect2(1330,675,237,214)
   view.ANDROID_ACTION_X=1330
@@ -48,8 +48,9 @@ func measure(owner_view):
  var action_width=maxf(244,metrics.body*9.5)
  var g=metrics.gap
  var hit=metrics.hit
- enemy_life=Rect2(safe.position,Vector2(life_width,hit))
- own_life=Rect2(safe.position.x,safe.end.y-hit,life_width,hit)
+ enemy_life=Rect2(safe.position,Vector2(life_width,view.battle_life_height(1-view.local_seat,hit)))
+ var own_life_height=view.battle_life_height(view.local_seat,hit)
+ own_life=Rect2(safe.position.x,safe.end.y-own_life_height,life_width,own_life_height)
  toolbar_rect=Rect2(enemy_life.end.x+g,safe.position.y,safe.size.x-life_width-g,hit)
  log_rect=Rect2(enemy_life.end.x+g,enemy_life.end.y+g,safe.size.x-life_width-action_width-g*2,metrics.body*1.5)
  back_rect=Rect2(safe.end.x-action_width,safe.end.y-hit,action_width,hit)
@@ -77,7 +78,7 @@ func measure(owner_view):
  view.ANDROID_ACTION_FOOTER_HEIGHT=hit
  view.ANDROID_BACK_SWIPE_EDGE_X=safe.end.x-hit
  var choice_top=view.OPPONENT_HAND_COUNT.end.y+g
- if view.network_session!=null:choice_top+=metrics.small*1.4+g
+ if view.network_session!=null:choice_top+=view.network_latency_layout(view.SIDEBAR.size.x).height+g
  choice_rect=Rect2(view.SIDEBAR.position.x,choice_top,view.SIDEBAR.size.x,back_rect.position.y-g-choice_top)
  measure_hand_controls()
 
@@ -459,7 +460,7 @@ func position_persistent():
   else:
    view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,toolbar_rect.end.y+metrics.gap)
  var stack_top=view.OPPONENT_HAND_COUNT.size.y+metrics.gap
- if view.network_session!=null:stack_top+=metrics.small*1.4+metrics.gap
+ if view.network_session!=null:stack_top+=view.network_latency_layout(view.SIDEBAR.size.x).height+metrics.gap
  if is_instance_valid(view.android_choice_restore) and not view.observing:
   var restore=view.android_choice_restore
   restore.position=choice_rect.position
@@ -541,7 +542,7 @@ func position_persistent():
   view.inspection.position=view.INSPECTION.position;view.inspection.size=view.INSPECTION.size
 
 func network_latency_rect() -> Rect2:
- return Rect2(view.SIDEBAR.position+Vector2(0,view.OPPONENT_HAND_COUNT.size.y),Vector2(view.SIDEBAR.size.x,metrics.small*1.4))
+ return Rect2(view.SIDEBAR.position+Vector2(0,view.OPPONENT_HAND_COUNT.size.y),Vector2(view.SIDEBAR.size.x,view.network_latency_layout(view.SIDEBAR.size.x).height))
 
 func undo_request_rect() -> Rect2:
  var top=network_latency_rect().end.y+metrics.gap

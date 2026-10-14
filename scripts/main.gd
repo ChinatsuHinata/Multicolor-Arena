@@ -18,6 +18,7 @@ const AccountSessionStore=preload("res://scripts/account_session_store.gd")
 const PatchService=preload("res://scripts/pck_patch_service.gd")
 const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
 const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
+const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 const AnnouncementStore=preload("res://scripts/announcement_store.gd")
 const AnnouncementPopup=preload("res://scripts/announcement_popup.gd")
 var announcement_store=AnnouncementStore.new()
@@ -102,6 +103,7 @@ var delay_turn_end = true
 var auto_camera_focus = true
 var android_manual_camera = false
 var android_zone_shortcuts = true
+var android_card_preview_seconds = CardPreviewHold.DEFAULT_SECONDS
 var android_zone_shortcut_positions: Dictionary = {}
 var room_join_volume=RoomJoinSound.DEFAULT_VOLUME
 var match_room_public=true
@@ -163,8 +165,14 @@ func _ready():
  if is_android:get_tree().quit_on_go_back=false
  if not is_android:
   get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
- var f = SystemFont.new()
- f.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC"])
+ var f: Font
+ if is_android:
+  # The bundled variable font defaults to weight 100; use the regular 400 face.
+  f=preload("res://assets/fonts/NotoSansSC-Regular.tres")
+ else:
+  var system_font=SystemFont.new()
+  system_font.font_names=PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC"])
+  f=system_font
  var t = Theme.new()
  t.default_font = f
  t.default_font_size = 18
@@ -205,6 +213,7 @@ func _ready():
    auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
    android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
+   android_card_preview_seconds = CardPreviewHold.normalize(saved_settings.get("android_card_preview_seconds",CardPreviewHold.DEFAULT_SECONDS))
    room_join_volume=RoomJoinSound.normalize_volume(saved_settings.get("room_join_volume",RoomJoinSound.DEFAULT_VOLUME))
    match_room_public=saved_settings.get("match_room_public",true)==true
    match_mode=str(saved_settings.get("match_mode","ranked"))
@@ -219,6 +228,7 @@ func _ready():
    if saved_settings.get("completed_tutorials") is Dictionary:
     completed_tutorials = saved_settings.completed_tutorials.duplicate()
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+ CardPreviewHold.seconds=android_card_preview_seconds
  load_tutorial_catalog()
  tutorial_progress.directory=settings_path.get_base_dir().path_join("tutorial_progress")
  announcement_store.initialize(patch_manager().active_version,settings_path.get_base_dir().path_join("announcements.json"),announcement_catalogue_path)
@@ -656,8 +666,15 @@ func restore_pending_ranked_match() -> bool:
  return true
 
 func online():
+ if page=="menu" and account_token.is_empty() and (not is_instance_valid(lan_session) or lan_session.room_id.is_empty()):
+  set_meta("online_account_return",true)
+  account_mode="login";account_notice="登录后即可进入云端匹配"
+  account_page()
+  if is_instance_valid(account_status_label):account_status_label.text=account_notice
+  return
  var restore_mode_selected=false
  var restore_cloud=false
+ var cloud_home_view="match"
  var lobby_deck_id=""
  var matching_deck_id=""
  var cloud_form={}
@@ -669,6 +686,8 @@ func online():
    if child.get_script()==preload("res://net/lan_lobby.gd"):
     if child.deck_index>=0 and child.deck_index<decks.size():lobby_deck_id=str(decks[child.deck_index].id)
     restore_mode_selected=child.mode_selected;restore_cloud=child.cloud_selected
+    cloud_home_view=child.cloud_home_view
+    cloud_form=child.cloud_form_draft.duplicate(true)
     if child.match_deck_index>=0 and child.match_deck_index<decks.size():matching_deck_id=str(decks[child.match_deck_index].id)
     if restore_cloud and is_instance_valid(child.cloud_title_input):
      cloud_form={"title":child.cloud_title_input.text,"password":child.cloud_password_input.text,"format":child.format_input.selected,"rule":child.rule_input.selected,"slot":child.cloud_host_slot.selected,"strict":child.strict_input.button_pressed}
@@ -683,8 +702,11 @@ func online():
  clear_page("online")
  var lobby=preload("res://net/lan_lobby.gd").new();lobby.deck_index=remaining_deck_index(lobby_deck_id,0)
  lobby.match_deck_index=remaining_deck_index(matching_deck_id,-1) if not matching_deck_id.is_empty() else -1
+ lobby.cloud_home_view=cloud_home_view
+ lobby.cloud_form_draft=cloud_form.duplicate(true)
  screen.add_child(lobby);lobby.build(self,lan_session)
- if restore_cloud:lobby.set_cloud_mode(true)
+ if restore_cloud or not restore_mode_selected and not account_token.is_empty() and lan_session.room_id.is_empty():lobby.set_cloud_mode(true)
+ elif restore_mode_selected and not lobby.mode_selected:lobby.set_cloud_mode(false)
  if not cloud_form.is_empty() and is_instance_valid(lobby.cloud_title_input):
   lobby.cloud_title_input.text=cloud_form.title
   lobby.cloud_password_input.text=cloud_form.password
@@ -692,6 +714,7 @@ func online():
   lobby.rule_input.selected=cloud_form.rule
   lobby.cloud_host_slot.selected=cloud_form.slot
   lobby.strict_input.button_pressed=cloud_form.strict
+  lobby.refresh_room_options()
   var focus_target=lobby.cloud_title_input if focused_cloud_field=="title" else lobby.cloud_password_input if focused_cloud_field=="password" else null
   if focus_target!=null:
    focus_target.grab_focus.call_deferred()
@@ -935,7 +958,9 @@ func account_request_finished(ok: bool,message: String,username: String):
  account_notice=message
  if ok and account_action in ["login","resume"]:
   auto_patch_check_pending=not OS.has_feature("editor") or auto_patch_update_in_editor
-  if restore_pending_ranked_match():return
+  if restore_pending_ranked_match():
+   if has_meta("online_account_return"):remove_meta("online_account_return")
+   return
   call_deferred("check_cloud_pck_patch")
  if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
   var destination=deck_account_return;deck_account_return=""
@@ -943,6 +968,10 @@ func account_request_finished(ok: bool,message: String,username: String):
   return
  if ok and account_action in ["login","resume"] and tournament_account_return:
   tournament_account_return=false;call_deferred("open_tournaments");return
+ if ok and account_action in ["login","resume"] and bool(get_meta("online_account_return",false)):
+  remove_meta("online_account_return")
+  call_deferred("online")
+  return
  if page=="menu" and ok:menu()
  if page in ["account","account_password"]:
   if ok or account_action=="password":
@@ -1215,7 +1244,7 @@ func apply_pck_patch(path: String):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -1265,6 +1294,11 @@ func set_android_zone_shortcuts(value: bool):
   duel_view.android_zone_shortcuts.refresh_visibility()
  save_settings()
 
+func set_android_card_preview_seconds(value: float):
+ android_card_preview_seconds=CardPreviewHold.normalize(value)
+ CardPreviewHold.seconds=android_card_preview_seconds
+ save_settings()
+
 func set_android_zone_shortcut_position(key: String,ratio: Vector2):
  android_zone_shortcut_positions[key]=[ratio.x,ratio.y]
  save_settings()
@@ -1284,6 +1318,7 @@ func set_replay_training_mode(value: bool):
 
 func return_from_account():
  tournament_account_return=false
+ if has_meta("online_account_return"):remove_meta("online_account_return")
  var from_deck=not deck_account_return.is_empty()
  deck_account_return=""
  if from_deck:editor()

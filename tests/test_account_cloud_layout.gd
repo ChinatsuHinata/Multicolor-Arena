@@ -110,11 +110,18 @@ func run():
   lobby.cloud_directory.rooms=[{"id":"ABCDEF123456","name":"测试房间","owner":"玩家甲","locked":false,"format":3,"status":"lobby","version":lobby.session.fingerprint,"seats":["玩家甲","","","","","","",""]}]
   lobby.refresh(true)
   await frames()
+  if mobile:
+   check(lobby.cloud_rooms_list==null and lobby.body.find_child("StartMatchmaking",true,false)!=null,"Android cloud home starts with matching and room creation")
+   (lobby.body.find_child("CloudRoomsTab",true,false) as Button).pressed.emit()
+   await frames()
   check(lobby.cloud_rooms_list!=null and lobby.cloud_rooms_list.get_child_count()==1,"cloud directory appears on "+("Android" if mobile else "PC"))
   check(lobby.cloud_rooms_list.get_global_rect().end.x<=app.screen.get_global_rect().end.x+2,"cloud directory fits screen width on "+("Android" if mobile else "PC"))
-  var home_text=visible_text(lobby.body)
-  if mobile:check(home_text==home_text_pc,"PC and Android cloud home expose the same information and actions")
-  else:home_text_pc=home_text
+  if mobile:
+   check(lobby.body.find_child("StartMatchmaking",true,false)==null,"Android room list excludes matching controls")
+   (lobby.body.find_child("CloudMatchTab",true,false) as Button).pressed.emit()
+   await frames()
+   check(lobby.body.find_child("StartMatchmaking",true,false)!=null and lobby.cloud_title_input!=null,"Android can return to matching and room creation")
+  else:home_text_pc=visible_text(lobby.body)
   lobby.session.cloud_mode=true
   lobby.session.room_id="ABCDEF123456"
   lobby.session.cloud_room_name="测试房间"
@@ -157,6 +164,7 @@ func run():
  await frames()
  var wide_lobby=find_lobby()
  wide_lobby.mode_selected=true;wide_lobby.cloud_selected=true
+ wide_lobby.cloud_home_view="rooms"
  wide_lobby.cloud_directory.rooms=[{"id":"ABCDEF123456","name":"测试房间","locked":false,"format":3,"status":"lobby","version":wide_lobby.session.fingerprint,"seats":["玩家甲","","","","","","",""]}]
  wide_lobby.refresh(true)
  await frames()

@@ -3,6 +3,7 @@ const Duel=preload("res://scripts/rules/duel_engine.gd")
 const RevealReview=preload("res://scripts/duel_reveal_review.gd")
 const History=preload("res://scripts/duel_history.gd")
 const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
+const RankBadge=preload("res://scripts/rank_badge.gd")
 const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
@@ -927,7 +928,7 @@ func _process(delta):
    engine.apply_snapshot(packet.projection);render()
   if is_instance_valid(network_status_label):
    network_status_label.text=network_session.connection_status() if not network_session.can_act(true) else ""
-  if is_instance_valid(network_latency_label):network_latency_label.text=("延迟 · " if is_android else "")+network_session.latency_text()
+  if is_instance_valid(network_latency_label):update_network_latency_text()
  if not engine.presentation_events.is_empty() or revealing():
   render();return
  if network_session==null and not debug_mode and engine.pending.get("kind","")=="reveal_review" and engine.pending.owner==1:
@@ -1108,12 +1109,13 @@ func render_field_capacity():
  var limit=engine.Cat.field_limit(engine,local_seat)
  var font_size=host.ui_metrics.body if is_android else 20
  var caption="%d/%d" % [used,limit]
- var font=host.get_theme_default_font()
- var dimensions=Vector2(maxf(64,font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+20),maxf(32,font_size*1.5))
+ var font=host.get_theme_font("font")
+ var dimensions=Vector2(maxf(64,font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+20),maxf(32,font.get_height(font_size)+8))
  field_capacity_badge=host.box(hud,Rect2(Vector2.ZERO,dimensions),Color("#101e2b"),host.GOLD)
  field_capacity_badge.name="FieldCapacity"
  field_capacity_badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var value=txt(caption,Rect2(Vector2.ZERO,dimensions),font_size,host.GOLD,field_capacity_badge)
+ var value=board_badge_label(caption,font_size,host.GOLD,field_capacity_badge)
+ value.size=dimensions
  value.name="FieldCapacityValue"
  value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  field_capacity_badge.tooltip_text="我方单位战场格：已用 %d / 上限 %d，剩余 %d 格；不占战场格的单位不计入" % [used,limit,maxi(0,limit-used)]
@@ -1334,8 +1336,10 @@ func render():
  table.presented_moves.clear()
  rebuild_badges()
  if network_session!=null:
-  var latency_rect=responsive.network_latency_rect() if is_android else Rect2(1000,57,280,19)
-  network_latency_label=txt("延迟 · "+network_session.latency_text() if is_android else network_session.latency_text(),latency_rect,16,host.MUTED)
+  var latency_layout=network_latency_layout(responsive.network_latency_rect().size.x if is_android else 280)
+  var latency_rect=responsive.network_latency_rect() if is_android else Rect2(1000,57,280,latency_layout.height)
+  network_latency_label=board_badge_label(latency_layout.caption,latency_layout.font_size,host.MUTED,hud,latency_rect.size.x)
+  network_latency_label.name="NetworkLatency";network_latency_label.position=latency_rect.position;network_latency_label.size=latency_rect.size
   network_latency_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   network_latency_label.tooltip_text="双方各自测到对端的往返延迟（RTT），约每2秒更新。"
   if is_android and network_locked() and network_session.room.get("undo_request",{}).is_empty():network_latency_label.hide()
@@ -1524,6 +1528,53 @@ func projected_deck_rect(key: String) -> Rect2:
  for corner in [Vector3(half.x,0,-half.y),Vector3(-half.x,0,half.y),Vector3(half.x,0,half.y)]:rect=rect.expand(project(top.to_global(corner)))
  return rect
 
+func board_badge_label(text: String,font_size: int,color: Color,parent: Node,wrap_width: float=0) -> Label:
+ # World overlays use their own font size; touch hit-target metrics do not apply.
+ var label=Label.new();label.text=text;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ label.add_theme_font_size_override("font_size",font_size);label.add_theme_color_override("font_color",color)
+ label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART if wrap_width>0 else TextServer.AUTOWRAP_OFF
+ parent.add_child(label)
+ if wrap_width>0:
+  label.size.x=wrap_width
+  label.size.y=label.get_minimum_size().y+4
+ else:label.size=label.get_minimum_size()+Vector2(4,4)
+ return label
+
+func layout_stat_badge(parts: Dictionary,card_rect: Rect2):
+ var labels=[parts.values.power,parts.values.health,parts.values.spirit]
+ var separators=parts.stat_separators
+ var font_size=clampi(roundi(card_rect.size.x*0.18),16,22) if is_android else 15
+ var minimum=14 if is_android else 12
+ var maximum_width=maxf(76,card_rect.size.x*1.15)
+ var widths=[]
+ var separator_widths=[]
+ var height=0.0
+ while true:
+  widths=[];separator_widths=[];height=0
+  for label in labels:
+   label.add_theme_font_size_override("font_size",font_size)
+   var natural=label.get_minimum_size()
+   widths.append(maxf(18,natural.x+6));height=maxf(height,natural.y)
+  for separator in separators:
+   separator.add_theme_font_size_override("font_size",font_size)
+   var natural=separator.get_minimum_size()
+   separator_widths.append(natural.x+4);height=maxf(height,natural.y)
+  var total=8.0
+  for width in widths+separator_widths:total+=width
+  if total<=maximum_width or font_size<=minimum:
+   parts.stats.size=Vector2(total,height+6)
+   break
+  font_size-=1
+ var x=4.0
+ for index in range(3):
+  labels[index].position=Vector2(x,3);labels[index].size=Vector2(widths[index],height)
+  x+=widths[index]
+  if index<2:
+   separators[index].position=Vector2(x,3);separators[index].size=Vector2(separator_widths[index],height)
+   x+=separator_widths[index]
+ parts.stats.position=Vector2(-parts.stats.size.x*0.5,card_rect.size.y*0.5-parts.stats.size.y+1)
+
 func rebuild_badges():
  clear_children(badges); card_badges={}
  for key in table.descriptors:
@@ -1533,10 +1584,8 @@ func rebuild_badges():
     if entry.id!=d.stack_id or entry.kind!="ability" and not entry.has("ability_text"): continue
     var caption=AbilityCaption.text(entry)
     var root=Control.new(); root.mouse_filter=Control.MOUSE_FILTER_IGNORE; badges.add_child(root)
-    var detail_height=108 if caption.begins_with("来源：") else 68
-    var label=txt(caption,Rect2(-118,0,236,detail_height),15 if detail_height>68 else 16,host.WHITE,root)
-    label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    label.size=Vector2(236,detail_height)
+    var label=board_badge_label(caption,18 if is_android else 16,host.WHITE,root,236)
+    label.position=Vector2(-118,0)
     label.add_theme_color_override("font_shadow_color",Color("#081019")); label.add_theme_constant_override("shadow_offset_y",2)
     label.add_theme_color_override("font_outline_color",Color("#081019")); label.add_theme_constant_override("outline_size",5)
     card_badges[key]={"root":root,"zone":"stack","caption":label,"stack_index":engine.stack.find(entry)}
@@ -1569,19 +1618,17 @@ func rebuild_badges():
   if d.zone=="field" and engine.is_unit(c):
    var panel=host.box(root,Rect2(0,0,76,25),Color("#111d2b"),Color("#aaa080")); panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
    var stat_names=["power","health","spirit"]
-   var positions=[0,27,52]
    parts.values={}
    for index in range(3):
     var key_name=stat_names[index]
     var value=c.get("display_stats",{}).get(key_name,engine.stat(c,key_name)-(c.damage if key_name=="health" else 0))
     var base=int(engine.cards[c.card_id][key_name])
-    var label=txt(str(value),Rect2(positions[index],0,24,25),15,stat_color(value,base),panel)
-    label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    var label=board_badge_label(str(value),15,stat_color(value,base),panel)
+    label.name="Stat"+key_name.capitalize()
     parts.values[key_name]=label
-   txt("/",Rect2(23,0,7,25),15,host.WHITE,panel)
-   txt("·",Rect2(48,0,7,25),15,host.WHITE,panel)
+   parts.stat_separators=[board_badge_label("/",15,host.WHITE,panel),board_badge_label("·",15,host.WHITE,panel)]
    parts.stats=panel
-   if c.get("courage",0)>0:parts.courage=txt("◆ %d" % c.courage,Rect2(0,0,56,24),17,host.GOLD,root)
+   if c.get("courage",0)>0:parts.courage=board_badge_label("◆ %d" % c.courage,18 if is_android else 17,host.GOLD,root)
    var marker=combat_marker(c.uid)
    if not marker.is_empty():
     var icon=TextureRect.new(); icon.size=Vector2(42,42)
@@ -1589,21 +1636,21 @@ func rebuild_badges():
     icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
     icon.set_meta("combat_role",marker); root.add_child(icon); parts.marker=icon
   elif d.zone=="leader" and c.timer>0:
-   parts.sick=txt("计时 %d" % c.timer,Rect2(0,0,100,24),17,host.GOLD,root)
-  var marks=board_counter_text(c)
+   parts.sick=board_badge_label("计时 %d" % c.timer,18 if is_android else 17,host.GOLD,root)
+  var marks=board_counter_text(c,d.zone=="leader",parts.has("courage"))
   if not marks.is_empty():
-   var mark=txt(marks,Rect2(0,0,100,40),13,Color("#fff2bb"),root)
+   var mark=board_badge_label(marks,16 if is_android else 13,Color("#fff2bb"),root)
    mark.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    mark.add_theme_color_override("font_outline_color",Color("#081019"));mark.add_theme_constant_override("outline_size",5)
    parts.counters=mark
   if d.get("members",[]).size()>1 or d.zone=="field" and engine.cards[c.card_id].get("stackable",false):
-   var count=txt("×%d" % d.members.size(),Rect2(0,0,80,32),26,host.GOLD,root)
+   var count=board_badge_label("×%d" % d.members.size(),26,host.GOLD,root)
    count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;count.add_theme_color_override("font_outline_color",Color("#081019"));count.add_theme_constant_override("outline_size",6)
    count.visible=d.members.size()>1
    parts.token_count=count
   if d.get("copy_total",0)>1:
    var fanned=d.get("fanned",false)
-   var number=txt(str(d.copy_index) if fanned else "%d/%d" % [d.copy_index,d.copy_total],Rect2(0,0,28 if fanned else 48,22),12 if fanned else 14,host.GOLD,root)
+   var number=board_badge_label(str(d.copy_index) if fanned else "%d/%d" % [d.copy_index,d.copy_total],(14 if fanned else 16) if is_android else (12 if fanned else 14),host.GOLD,root)
    number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    number.add_theme_color_override("font_outline_color",Color("#081019"));number.add_theme_constant_override("outline_size",5)
    parts.copy_number=number;parts.fanned=fanned
@@ -1615,8 +1662,9 @@ func rebuild_badges():
   var zone_name="deck" if "deck" in key else "exile" if "exile" in key else "grave"
   var who=0 if key.begins_with("p") else 1
   var count=table.piles[key].get_meta("count",0) if table.combat_animating else engine.players[who][zone_name].size()
-  var label=txt({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),Rect2(-48,0,96,26),17,host.WHITE,root)
-  label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  var label=board_badge_label({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),clampi(host.ui_metrics.small,17,22) if is_android else 17,host.WHITE,root)
+  label.position.x=-label.size.x*0.5
+  card_badges[key].count_label=label
  update_badge_positions()
 func refresh_stackable_badges():
  for key in card_badges:
@@ -1629,6 +1677,7 @@ func refresh_stackable_badges():
   var isolated=d.uid in table.chosen or d.uid in table.stack_target_uids or table.reserved.any(func(r):return r.uid==d.uid)
   var count=1 if isolated else engine.stackable_members(c).filter(func(u):return u.uid not in table.chosen and u.uid not in table.stack_target_uids and not table.reserved.any(func(r):return r.uid==u.uid)).size()
   parts.token_count.text="×%d" % count
+  parts.token_count.size=parts.token_count.get_minimum_size()+Vector2(4,4)
   parts.token_count.visible=count>1
 func projected_card_rect(node: Node3D) -> Rect2:
  var rect=Rect2(project(node.to_global(Vector3(-0.975,0,-1.36))),Vector2.ZERO)
@@ -1660,13 +1709,19 @@ func update_badge_positions():
    var node=table.visuals[key]
    var rect=projected_card_rect(node)
    root.position=rect.get_center()
-   if parts.has("stats"): parts.stats.position=Vector2(-38,rect.size.y/2-24)
-   if parts.has("courage"):parts.courage.position=Vector2(-rect.size.x/2,-rect.size.y/2-20)
-   if parts.has("counters"):parts.counters.position=Vector2(-50,rect.size.y/2-58 if parts.has("stats") else -rect.size.y/2+12)
-   if parts.has("token_count"):parts.token_count.position=Vector2(-40,rect.size.y/2-33)
-   if parts.has("copy_number"):parts.copy_number.position=Vector2(-rect.size.x/2+2 if parts.fanned else rect.size.x/2-46,rect.size.y/2-25)
+   if parts.has("stats"):layout_stat_badge(parts,rect)
+   var info_top=parts.stats.position.y if parts.has("stats") else rect.size.y/2+1
+   if parts.has("token_count"):
+    parts.token_count.position=Vector2(-parts.token_count.size.x*0.5,info_top-parts.token_count.size.y-2)
+    if parts.token_count.visible:info_top=parts.token_count.position.y
+   if parts.has("counters"):parts.counters.position=Vector2(-parts.counters.size.x*0.5,info_top-parts.counters.size.y-4 if parts.has("stats") else -rect.size.y/2+12)
+   if parts.has("courage"):
+    var top=-rect.size.y/2-parts.courage.size.y-2
+    if parts.has("counters"):top=minf(top,parts.counters.position.y-parts.courage.size.y-4)
+    parts.courage.position=Vector2(-parts.courage.size.x*0.5,top)
+   if parts.has("copy_number"):parts.copy_number.position=Vector2(-rect.size.x/2+2 if parts.fanned else rect.size.x/2-parts.copy_number.size.x-2,rect.size.y/2-parts.copy_number.size.y)
    if parts.has("marker"): parts.marker.position=Vector2(rect.size.x/2-32,-rect.size.y/2-10)
-   if parts.has("sick"): parts.sick.position=Vector2(-49,rect.size.y/2+1)
+   if parts.has("sick"): parts.sick.position=Vector2(-parts.sick.size.x*0.5,rect.size.y/2+1)
    if parts.has("icons"):position_card_icons(parts.icons,rect)
    if parts.has("caption"):
     root.position=Vector2(clampf(rect.get_center().x,STAGE.position.x+118,STAGE.end.x-118),rect.end.y+6)
@@ -1862,7 +1917,7 @@ func update_inspection():
  inspection_text.set_meta("leader_enabled",enabled)
  layout_inspection(bg,image,title,info)
 
-func board_counter_text(c: Dictionary) -> String:
+func board_counter_text(c: Dictionary, omit_leader_timer: bool=false, omit_courage: bool=false) -> String:
  var marks=[]
  var stats=[]
  if c.get("plus_counters",0)>0:stats.append("+"+str(c.plus_counters))
@@ -1870,6 +1925,8 @@ func board_counter_text(c: Dictionary) -> String:
  if not stats.is_empty():marks.append("  ".join(stats))
  for line in counter_lines(c):
   if line.begins_with("属性指示物"):continue
+  if omit_leader_timer and line=="计时："+str(c.timer):continue
+  if omit_courage and line=="勇气等级："+str(c.courage):continue
   marks.append(line.replace("色指示物", "").replace("：", " ").replace("本回合防止下一次伤害","下次防伤"))
  return "\n".join(marks)
 
@@ -2892,15 +2949,18 @@ func open_android_battle_menu(tab: String="battle"):
   switch.name=str(item[2]);m.button(switch)
   switch.custom_minimum_size=Vector2(0,m.hit);switch.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var watching=spectator_view()
- var match_exit=host.button(left,"离开对战" if watching else "投降",Rect2(),func():
+ var finished=tutorial_runtime==null and not replay_view() and (engine.winner!=-2 or network_session!=null and (network_session.ended() or network_session.room.get("status","") in ["between","complete"]))
+ var leaving=watching or finished
+ var exit_text="离开对战" if watching else "离开战场" if finished else "投降"
+ var match_exit=host.button(left,exit_text,Rect2(),func():
   close_android_battle_menu()
-  if watching:
+  if leaving:
    if network_session!=null:host.online()
    else:host.setup()
   else:confirm_surrender())
  match_exit.name="BattleMenuMatchExit";m.button(match_exit)
  match_exit.custom_minimum_size=Vector2(0,m.hit);match_exit.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- match_exit.disabled=not watching and (tutorial_runtime!=null or network_locked() or engine.winner!=-2)
+ match_exit.disabled=not leaving and (tutorial_runtime!=null or network_locked() or engine.winner!=-2)
  match_exit.add_theme_stylebox_override("normal",host.style(Color("#70282b"),Color("#d87777")))
  match_exit.add_theme_stylebox_override("hover",host.style(Color("#933337"),Color("#ef9999")))
  match_exit.add_theme_stylebox_override("pressed",host.style(Color("#592024"),Color("#ef9999")))
@@ -3125,7 +3185,8 @@ func show_combat_impact(attacker_uid: int,blocker_uid: int):
  var blocker=table.visuals.get("card_"+str(blocker_uid))
  if is_instance_valid(blocker): at=(at+blocker.global_position)*0.5
  var point=project(at)
- var flash=txt("✦",Rect2(point-Vector2(45,50),Vector2(90,100)),72,Color("#fff0bc"),effects)
+ var flash=board_badge_label("✦",72,Color("#fff0bc"),effects)
+ flash.position=point-flash.size*0.5
  flash.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var tween=create_tween(); tween.tween_property(flash,"modulate:a",0.0,0.28); tween.tween_callback(flash.queue_free)
 func choice_active() -> bool:
@@ -3274,7 +3335,8 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
   var tabs=HBoxContainer.new();tabs.name="ExileOwnerTabs";browser_panel.add_child(tabs)
   tabs.position=Vector2(8,top);tabs.size=Vector2(browser_panel.size.x-16,m.hit)
   for owner in [local_seat,1-local_seat]:
-   var tab=btn(("我方" if owner==local_seat else "敌方")+" · %d" % zone_cards(owner,"exile").size(),Rect2(),func():browse_zone(owner,"exile"),owner==who,tabs)
+   # Browsing public exile cards is allowed while spectating or reconnecting.
+   var tab=host.button(tabs,("我方" if owner==local_seat else "敌方")+" · %d" % zone_cards(owner,"exile").size(),Rect2(),func():browse_zone(owner,"exile"),owner==who)
    tab.name="ExileOwner"+str(owner);tab.toggle_mode=true;tab.set_pressed_no_signal(owner==who)
    m.button(tab);tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   top+=m.hit+m.gap
@@ -3952,13 +4014,74 @@ func render_undo():
  else:
   btn("同意悔棋",Rect2(1366,694,218,42),func():network_session.room_action({"name":"undo_accept","ticket":request.id}),true)
   btn("拒绝悔棋",Rect2(1366,746,218,42),func():network_session.room_action({"name":"undo_decline","ticket":request.id}))
+func network_latency_layout(width: float) -> Dictionary:
+ var caption=("延迟 · " if is_android else "")+network_session.latency_text() if network_session!=null else ""
+ var font=host.get_theme_font("font")
+ var font_size=host.ui_metrics.small if is_android else 16
+ while font_size>16 and font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>width:font_size-=1
+ var height=font.get_multiline_string_size(caption,HORIZONTAL_ALIGNMENT_RIGHT,width,font_size).y+4
+ return {"caption":caption,"font_size":font_size,"height":height}
+
+func update_network_latency_text():
+ var width=SIDEBAR.size.x if is_android else 280.0
+ var layout=network_latency_layout(width)
+ if network_latency_label.text==layout.caption:return
+ var old_height=network_latency_label.size.y
+ network_latency_label.text=layout.caption
+ network_latency_label.add_theme_font_size_override("font_size",layout.font_size)
+ network_latency_label.size=Vector2(width,layout.height)
+ if is_android and not is_equal_approx(old_height,layout.height):render()
+
+func battle_rank(who: int) -> Dictionary:
+ if network_session==null or who not in [0,1]:return {}
+ var ranks=network_session.room.get("ranks",[])
+ if not ranks is Array or ranks.size()!=2 or not ranks[who] is Dictionary or ranks[who].is_empty():return {}
+ return ranks[who]
+
+func battle_rank_font_size() -> int:
+ return clampi(host.ui_metrics.small-2,16,22) if is_android else 13
+
+func battle_life_height(who: int,minimum: float) -> float:
+ if battle_rank(who).is_empty():return minimum
+ var font=host.get_theme_font("font")
+ return maxf(minimum,font.get_height(host.ui_metrics.body if is_android else 18)+font.get_height(battle_rank_font_size())+20)
+
+func render_life_rank(who: int,button: Button,bar: ProgressBar,warning_width: float):
+ var rank=battle_rank(who)
+ if rank.is_empty():return
+ button.text=""
+ bar.position.y=button.size.y-12
+ var font=button.get_theme_font("font")
+ var name_size=host.ui_metrics.body if is_android else 18
+ var rank_size=battle_rank_font_size()
+ var name_height=font.get_height(name_size)
+ var rank_height=font.get_height(rank_size)
+ var width=button.size.x-20-warning_width-(4 if warning_width>0 else 0)
+ var value=str(engine.players[who].life)
+ var value_width=maxf(name_size*1.5,font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,name_size).x+6)
+ var captions=[
+  ["BattlePlayerName",player_caption(who),Rect2(10,3,maxf(1,width-value_width-4),name_height),name_size,host.WHITE],
+  ["BattleLifeValue",value,Rect2(10+width-value_width,3,value_width,name_height),name_size,host.WHITE],
+  ["BattleRank",RankBadge.caption(rank),Rect2(10,3+name_height,button.size.x-20,rank_height),rank_size,RankBadge.COLORS[clampi(int(rank.get("tier",0)),0,4)]]]
+ for caption in captions:
+  var label=Label.new();label.name=caption[0];label.text=caption[1]
+  label.clip_text=true;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+  label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  label.add_theme_font_size_override("font_size",caption[3]);label.add_theme_color_override("font_color",caption[4])
+  if label.name=="BattleLifeValue":label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+  button.add_child(label)
+  label.position=caption[2].position;label.size=caption[2].size
+  life_widgets[who][str(label.name)]=label
+ button.tooltip_text=player_caption(who)+" · "+RankBadge.caption(rank)+"\n"+button.tooltip_text
+
 func render_life(who: int,rect: Rect2):
  var current_life=int(engine.players[who].life)
  if life_last.has(who) and int(life_last[who])!=current_life:
   var delta=current_life-int(life_last[who])
   if life_flash_tweens.has(who) and life_flash_tweens[who].is_valid():life_flash_tweens[who].kill()
   if life_flashes.has(who) and is_instance_valid(life_flashes[who]):life_flashes[who].queue_free()
-  var popup=txt(("+" if delta>0 else "")+str(delta),Rect2(rect.position+Vector2(100,8),Vector2(100,42)),29,Color("#45d889") if delta>0 else Color("#f36464"),effects)
+  var popup=board_badge_label(("+" if delta>0 else "")+str(delta),host.ui_metrics.title if is_android else 29,Color("#45d889") if delta>0 else Color("#f36464"),effects)
+  popup.position=rect.position+Vector2((rect.size.x-popup.size.x)*0.5,8)
   popup.mouse_filter=Control.MOUSE_FILTER_IGNORE
   popup.add_theme_color_override("font_outline_color",Color("#081019"));popup.add_theme_constant_override("outline_size",5)
   life_flashes[who]=popup
@@ -3995,11 +4118,13 @@ func render_life(who: int,rect: Rect2):
  bar.add_theme_stylebox_override("background",background); bar.add_theme_stylebox_override("fill",fill); button.add_child(bar)
  bar.add_theme_font_size_override("font_size",1); bar.size=Vector2(rect.size.x-20,7)
  life_widgets[who]={"button":button,"bar":bar,"legal":legal,"selected":selected}
+ render_life_rank(who,button,bar,warning_width)
  if warning_count>0:
   life_widgets[who].curse_warnings=[]
   for i in range(warning_count):
    var warning=CurseWarning.new();warning.name="CurseWarning"+str(i+1);warning.size=CurseWarning.ICON_SIZE
-   warning.position=Vector2(rect.size.x-4-warning_width+i*(CurseWarning.ICON_SIZE.x+CurseWarning.GAP),(rect.size.y-CurseWarning.ICON_SIZE.y)*0.5-4)
+   var warning_y=3+(life_widgets[who].BattlePlayerName.size.y-CurseWarning.ICON_SIZE.y)*0.5 if life_widgets[who].has("BattleRank") else (rect.size.y-CurseWarning.ICON_SIZE.y)*0.5-4
+   warning.position=Vector2(rect.size.x-4-warning_width+i*(CurseWarning.ICON_SIZE.x+CurseWarning.GAP),warning_y)
    warning.tooltip_text=curse
    button.add_child(warning);life_widgets[who].curse_warnings.append(warning)
   life_widgets[who].curse_warning=life_widgets[who].curse_warnings[0]

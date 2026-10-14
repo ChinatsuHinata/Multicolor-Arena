@@ -156,9 +156,12 @@ func hitbox(at: Vector3, dimensions: Vector3) -> Area3D:
 func surface_label(text: String, at: Vector3, color: Color, pixel: float=0.004):
  var l=Label3D.new()
  l.text=text
- var font=SystemFont.new()
- font.font_names=PackedStringArray(["Microsoft YaHei UI","Microsoft YaHei"])
- l.font=font
+ if OS.has_feature("android"):
+  l.font=preload("res://assets/fonts/NotoSansSC-Regular.tres")
+ else:
+  var font=SystemFont.new()
+  font.font_names=PackedStringArray(["Microsoft YaHei UI","Microsoft YaHei"])
+  l.font=font
  l.font_size=72
  l.pixel_size=pixel
  l.modulate=color

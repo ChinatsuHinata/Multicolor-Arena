@@ -17,10 +17,12 @@ func run():
  app.is_android=true
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
  app.refresh_ui_metrics()
+ app.account_name="lan_test";app.account_nickname="局域网测试";app.account_token="a".repeat(64)
  var session=Session.new();root.add_child(session);session.initialize("res://work/android-network-tests/session")
  app.lan_session=session
  app.online();await process_frame
  var lobby=app.screen.get_children().filter(func(child):return child.get_script()==load("res://net/lan_lobby.gd"))[0]
+ lobby.set_cloud_mode(false);await process_frame
  expect(lobby.address_input!=null and lobby.address_input.placeholder_text.contains("example.com"),"Android address entry accepts tunnel endpoint")
  expect(find_button(app.screen,"创建房间")!=null and find_button(app.screen,"加入")!=null,"Android room controls render")
  expect(lobby.address_input.get_global_rect().end.x<=app.screen.get_global_rect().end.x+1,"address entry fits safe screen width")
