@@ -128,7 +128,7 @@ func create_face(dimensions: Vector2,center: Vector2,texture: Texture2D):
  face.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;face.mouse_filter=Control.MOUSE_FILTER_IGNORE
  face.texture=texture;face.size=dimensions;face.position=center-dimensions/2;add_child(face)
 func show_result():
- result_label=Label.new();result_label.name="PublicResult";result_label.text=current.text
+ result_label=Label.new();result_label.name="PublicResult";result_label.text=view.PlayerNameDisplay.battle_text(current.text,view.engine.player_names)
  result_label.position=view.STAGE.position+Vector2(30,view.STAGE.size.y/2-70);result_label.size=Vector2(view.STAGE.size.x-60,140)
  result_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;result_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  result_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result_label.add_theme_font_size_override("font_size",32)

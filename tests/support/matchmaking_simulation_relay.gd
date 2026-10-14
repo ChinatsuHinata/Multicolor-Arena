@@ -1,5 +1,5 @@
 extends "res://relay/server.gd"
-## Only the initial pairing batch is held. Authentication and the 60-second clock are real.
+## Only the initial pairing batch is held. Authentication and the 20-second clock are real.
 var batch_released=false
 
 func start():

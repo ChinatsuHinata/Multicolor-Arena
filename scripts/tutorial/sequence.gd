@@ -100,7 +100,8 @@ static func prepare_intent(adapter,action: Dictionary,seat: int) -> Dictionary:
     if not selected.available:return selected
     command.args=[selected.target]
    if action.has("grant_payment"):command.grant_payment=action.grant_payment
-  "choose_trigger_order","choose_ward":command.args=[int(action.index)]
+  "choose_trigger_order":command.args=[action.order.duplicate() if action.has("order") else int(action.index)]
+  "choose_ward":command.args=[int(action.index)]
   "choose_return","choose_grave_replacement":command.args=[action.yes]
   "choose_timer":command.args=[int(action.value)]
   "combat_damage":

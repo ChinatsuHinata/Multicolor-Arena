@@ -3,6 +3,7 @@ const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
 const ConditionShader=preload("res://assets/conditional_frame.gdshader")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
 const UnknownShader=preload("res://assets/unknown_card_art.gdshader")
+const DevourMarker=preload("res://scripts/devour_marker.gd")
 var local_seat=0
 ## One persistent world per duel. Moving cards reuse their meshes and collision objects.
 signal object_selected(uid: int)
@@ -48,7 +49,8 @@ const WIDE_ZONES={
 # Normalized centers measured from the printed zones on playmat 3.
 const MAT_SLOTS={"exile":Vector2(124.0/1200.0,1027.0/1200.0),"deck":Vector2(1070.0/1200.0,809.0/1200.0),"grave":Vector2(1070.0/1200.0,1027.0/1200.0),"leader":Vector2(124.0/1200.0,809.0/1200.0)}
 const CARD_SIZE=Vector2(1.95,2.72)
-const ZONE_PAGE_SIZE=10
+const UNIT_PAGE_SIZE=6
+const PALETTE_PAGE_SIZE=10
 var camera: Camera3D
 var board: MeshInstance3D
 var wide_playmat=false
@@ -361,15 +363,19 @@ func layout() -> Dictionary:
   result[d.key]=d
  return result
 
+func zone_page_size(group: String) -> int:
+ return UNIT_PAGE_SIZE if group=="unit" else PALETTE_PAGE_SIZE
+
 func zone_page_count(who: int,group: String) -> int:
  var count=duel.players[who].palette.size() if group=="palette" else duel.players[who].field.filter(func(c):return duel.is_unit(c)).size()
- return maxi(1,ceili(float(count)/ZONE_PAGE_SIZE))
+ return maxi(1,ceili(float(count)/zone_page_size(group)))
 
 func paged_zone_cards(who: int,group: String,cards: Array) -> Array:
- var pages=maxi(1,ceili(float(cards.size())/ZONE_PAGE_SIZE))
+ var page_size=zone_page_size(group)
+ var pages=maxi(1,ceili(float(cards.size())/page_size))
  var page=clampi(zone_pages[who][group],0,pages-1)
  zone_pages[who][group]=page
- return cards.slice(page*ZONE_PAGE_SIZE,(page+1)*ZONE_PAGE_SIZE)
+ return cards.slice(page*page_size,(page+1)*page_size)
 
 func next_zone_page(who: int,group: String):
  zone_pages[who][group]=(zone_pages[who][group]+1)%zone_page_count(who,group)
@@ -447,7 +453,7 @@ func reorder_unit(uid: int,point: Vector2) -> bool:
  var moving=ordered.filter(func(u):return u.uid==uid or not signature.is_empty() and duel.stackable_signature(u)==signature)
  var remaining=ordered.filter(func(u):return u not in moving)
  var visible=remaining.filter(func(u):return descriptors.has("card_"+str(u.uid)))
- var target_index=remaining.find(visible.back())+1 if not visible.is_empty() else mini(zone_pages[c.owner].unit*ZONE_PAGE_SIZE,remaining.size())
+ var target_index=remaining.find(visible.back())+1 if not visible.is_empty() else mini(zone_pages[c.owner].unit*UNIT_PAGE_SIZE,remaining.size())
  for i in range(remaining.size()):
   var other=remaining[i]
   var key="card_"+str(other.uid)
@@ -715,6 +721,7 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
  root.get_node("Top").position.y=height+0.003
  root.get_node("Top").visible=count>0
  root.get_node("Top").material_override=material(cards.back().card_id,cards.back().get("art_id","")) if face_up and count>0 else material("back")
+ DevourMarker.apply_pile(root.get_node("Top"),cards.back() if "exile" in key and count>0 else {},local_seat)
  var hit=root.get_node("Hit"); hit.position.y=maxf(0.1,height)/2
  hit.get_child(0).shape.size.y=maxf(0.2,height)
  hit.set_meta("card_id",cards.back().card_id if face_up and count>0 else "back")

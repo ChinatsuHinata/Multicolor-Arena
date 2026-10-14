@@ -19,11 +19,25 @@ func shot(name: String):
  root.get_texture().get_image().save_png(output.path_join(name+".png"))
 func x_field() -> LineEdit:
  return view.android_choice_panel.get_node("XValueInput") as LineEdit
+func check_printed_cost(prefix: String):
+ clean()
+ var spell=put("124","hand")
+ view.render();await frames()
+ var expected=[{"colors":["绿"],"number":""},{"colors":["黄"],"number":"X"},{"colors":["黄"],"number":"X"}]
+ expect(view.hand_nodes[spell.uid].cost_icons.symbols==expected,prefix+" Ruins Dream hand shows one green and two yellow X symbols")
+ expect(view.hand_nodes[spell.uid].tooltip_text.contains("黄XX"),prefix+" Ruins Dream tooltip shows both X costs")
+ view.android_inspection_allowed=true;view.inspect_card(spell.card_id,spell.uid);view.android_inspection_allowed=false;await frames()
+ var costs=view.inspection.find_children("*","Control",true,false).filter(func(node):return node.get_script()==view.HexCost)
+ expect(costs.size()==1 and costs[0].symbols==expected,prefix+" Ruins Dream inspection shows both yellow X symbols")
+ await shot(prefix+"-double-x")
+ view.inspect_id="";view.update_inspection();await frames()
 func check_flow(prefix: String):
+ await check_printed_cost(prefix)
  clean()
  var spell=put("111","hand")
  for id in ["167","167","164","164","164","165"]:put(id,"palette")
  view.render();view.request_cast(spell.uid);await frames()
+ expect(view.hand_nodes[spell.uid].cost_icons.symbols.filter(func(symbol):return symbol.number=="X").size()==1,prefix+" single-X spell retains one X symbol")
  var panel=view.android_choice_panel
  expect(is_instance_valid(panel) and panel.has_node("XValueInput"),prefix+" opens the numeric X field")
  if not is_instance_valid(panel) or not panel.has_node("XValueInput"):return
@@ -55,6 +69,12 @@ func check_flow(prefix: String):
  edit(x_field(),"2");await submit();view.choose_target({"player":1});view.confirm_declaration();await frames()
  expect(e.stack.any(func(entry):return entry.get("card",{}).get("uid",0)==spell.uid and entry.target.x==2 and entry.target.player==1),prefix+" typed X commits the actual spell and chosen player")
  expect(e.players[0].palette.filter(func(c):return c.tapped).size()==4,prefix+" commit pays two fixed blue plus two yellow")
+ view.stack_panel.sync()
+ expect(view.stack_panel.tiles.values().any(func(tile):return tile.caption.text.contains("共 4 费") and tile.caption.text.contains("蓝2  黄2")),prefix+" stack displays the resolved X color cost")
+ view.android_inspection_allowed=true;view.inspect_card(spell.card_id,spell.uid);view.android_inspection_allowed=false;await frames()
+ var costs=view.inspection.find_children("*","Control",true,false).filter(func(node):return node.get_script()==view.HexCost)
+ expect(costs.size()==1 and costs[0].symbols.size()==4 and not costs[0].symbols.any(func(symbol):return symbol.number=="X"),prefix+" stack inspection replaces X with its actual numeric color cost")
+ view.inspect_id="";view.update_inspection();await frames()
 
  clean();var unit=put("character-fdf-ex03","hand")
  put("166","field").tapped=true;put("164","field").tapped=true

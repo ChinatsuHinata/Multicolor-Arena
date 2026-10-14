@@ -56,7 +56,14 @@ func run():
  root.content_scale_size=Vector2i(1600,900)
  root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
- app=load("res://main.tscn").instantiate();root.add_child(app)
+ app=load("res://main.tscn").instantiate()
+ var fixture="res://work/account-cloud-layout-checks/"+str(Time.get_ticks_usec())
+ DirAccess.make_dir_recursive_absolute(fixture)
+ app.account_session_path=fixture.path_join("account_session.json")
+ app.settings_path=fixture.path_join("settings.json")
+ app.lan_storage_directory=fixture.path_join("lan")
+ app.tutorial_local_directory=fixture.path_join("tutorials")
+ root.add_child(app)
  await frames()
  app.is_android=true
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
@@ -91,7 +98,7 @@ func run():
   app.layout_safe_override=Rect2(40,0,1200,680) if mobile else Rect2()
   app.account_page();await frames()
   check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：%d" % app.account_elo,"account Elo remains available on "+("Android" if mobile else "PC"))
-  check(app.account_old_password_input!=null and app.account_password_change_button!=null,"password change remains available on "+("Android" if mobile else "PC"))
+  check(app.screen.find_child("AccountOpenPasswordChange",true,false)!=null and app.account_old_password_input==null and app.account_password_change_button==null,"account page provides a separate password-change entry on "+("Android" if mobile else "PC"))
   if mobile:
    var settings_scroll=app.screen.find_child("AccountSettingsScroll",true,false) as ScrollContainer
    check(settings_scroll!=null and app.screen.get_global_rect().grow(2).encloses(settings_scroll.get_global_rect()),"Android signed-in settings use a local scroll inside the account panel")

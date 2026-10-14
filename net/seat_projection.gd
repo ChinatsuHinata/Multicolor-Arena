@@ -4,6 +4,12 @@ const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
 const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names"]
 static func hidden_card(who: int,zone: String,index: int) -> Dictionary:
  return {"card_id":"back","uid":-1000000-who*100000-(10000 if zone=="deck" else 0)-index,"epoch":0,"owner":who,"original_owner":who,"zone":zone,"leader":false,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false,"network_hidden":true}
+static func collect_card_definitions(e,c: Dictionary,definitions: Dictionary):
+ for id in [c.get("card_id",""),c.get("copy_original",""),c.get("habitat_base","")]:collect_definition(e,id,definitions)
+static func collect_definition(e,id: String,definitions: Dictionary):
+ if not e.cards.has(id) or definitions.has(id):return
+ definitions[id]=e.cards[id]
+ collect_definition(e,str(e.cards[id].get("copy_source_id","")),definitions)
 static func public_stack(entries: Array) -> Array:
  var result=entries.duplicate(true)
  for entry in result:entry.erase("target_spec")
@@ -100,7 +106,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  project_history(state.history,e,definitions,seat)
  for shown in state.pending.get("cards",[]):definitions[shown.card_id]=e.cards[shown.card_id]
  for c in all+q.lookup.values():
-  if not c.is_empty():definitions[c.card_id]=e.cards[c.card_id]
+  if not c.is_empty():collect_card_definitions(e,c,definitions)
  for entry in e.unresolved_stack_entries():
   var source=entry.get("card",entry.get("source",{}))
   if not source.is_empty():definitions[source.card_id]=e.cards[source.card_id]

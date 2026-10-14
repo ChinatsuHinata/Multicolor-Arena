@@ -28,23 +28,44 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
     services = []
     try:
         simulation = "--simulation-only" in sys.argv
-        log_prefix = "simulation-" if simulation else "rooms-" if "--rooms-only" in sys.argv else ""
+        recovery = "--recovery-only" in sys.argv
+        restart = "--restart-only" in sys.argv
+        casual = "--casual-only" in sys.argv
+        exploration = "--exploration-only" in sys.argv
+        if simulation and recovery:
+            raise SystemExit("Choose either --simulation-only or --recovery-only.")
+        log_prefix = "exploration-random-" if exploration and "--random" in sys.argv else "exploration-" if exploration else "casual-" if casual else "restart-" if restart else "simulation-" if simulation else "recovery-" if recovery else "rooms-" if "--rooms-only" in sys.argv else ""
         database_path = Path(temp) / "players.sqlite3"
         if simulation:
             sys.path.insert(0, str(root / "relay"))
             import account_store
             conn = account_store.database(database_path)
             players = []
-            for index, rating in enumerate((1000, 1080, 1010, 1170, 1400, 1600, 1000)):
+            for index, (step, rating) in enumerate(((0, 1000), (1, 1000), (0, 2500), (1, 1600), (5, 1400), (10, 1400), (0, 1000))):
                 payload = {"username": f"TEST_ONLY_sim_{index}", "password": "password123!", "device": "d" * 32}
                 assert account_store.handle(conn, {"action": "register", **payload})["ok"]
-                conn.execute("UPDATE players SET elo=? WHERE username=?", (rating, payload["username"]))
+                conn.execute("UPDATE players SET rank_step=?,elo=? WHERE username=?", (step, rating, payload["username"]))
                 conn.commit()
                 login = account_store.handle(conn, {"action": "login", **payload})
                 assert login["ok"]
-                players.append({"token": login["token"], "nickname": login["nickname"], "elo": login["elo"]})
+                players.append({"token": login["token"], "nickname": login["nickname"], "rank": login["rank"]})
             conn.close()
             import json
+            manifest = Path(temp) / "clients.json"
+            manifest.write_text(json.dumps({"endpoint": "ws://127.0.0.1:48045", "players": players}), encoding="utf-8")
+        elif recovery:
+            sys.path.insert(0, str(root / "relay"))
+            import account_store
+            import json
+            conn = account_store.database(database_path)
+            players = []
+            for index in range(2):
+                payload = {"username": f"TEST_ONLY_recovery_{index}", "password": "password123!", "device": "d" * 32}
+                assert account_store.handle(conn, {"action": "register", **payload})["ok"]
+                login = account_store.handle(conn, {"action": "login", **payload})
+                assert login["ok"]
+                players.append({"token": login["token"]})
+            conn.close()
             manifest = Path(temp) / "clients.json"
             manifest.write_text(json.dumps({"endpoint": "ws://127.0.0.1:48045", "players": players}), encoding="utf-8")
         with open(scratch / f"{log_prefix}services.log", "w", encoding="utf-8") as log:
@@ -64,6 +85,10 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
                 time.sleep(0.1)
             test_args = ["--script", "res://tests/test_cloud_rooms.gd", "--", "--server", "ws://127.0.0.1:48045"] if "--rooms-only" in sys.argv else ["--script", "res://tests/test_cloud_matchmaking.gd"]
             if simulation:test_args = ["--script", "res://tests/test_matchmaking_simulation.gd", "--", "--manifest", str(manifest)]
+            if recovery:test_args = ["--script", "res://tests/test_match_recovery_network.gd", "--", str(manifest)]
+            if restart:test_args = ["--script", "res://tests/test_ranked_restart.gd"]
+            if casual:test_args = ["--script", "res://tests/test_casual_matchmaking.gd"]
+            if exploration:test_args = ["--script", "res://tests/test_exploration_matchmaking.gd", *(["--", "--random"] if "--random" in sys.argv else [])]
             result = subprocess.run([str(godot), "--headless", "--path", ".", "--log-file",
                 str(scratch / f"{log_prefix}test.log"), *test_args],
                 cwd=root, creationflags=creationflags, timeout=180, capture_output=True, encoding="utf-8", errors="replace")

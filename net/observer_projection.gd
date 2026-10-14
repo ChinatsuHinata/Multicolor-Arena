@@ -22,7 +22,7 @@ static func build(e,events: Array=[],perspective: int=-1,replay_hands: bool=fals
   state.players.append(p)
   for c in p.field+p.palette+p.grave+p.exile+p.hand+e.leaders(p.leader.owner):
    if c.is_empty() or c.card_id=="back":continue
-   definitions[c.card_id]=e.cards[c.card_id];q.stats[c.uid]={}
+   SeatView.collect_card_definitions(e,c,definitions);q.stats[c.uid]={}
    for key in ["power","health","spirit"]:q.stats[c.uid][key]=e.stat(c,key)
    q.leader[c.uid]=e.has_leader_ability(c);q.sick[c.uid]=e.summoning_sick(c);q.haste[c.uid]=e.has_haste(c)
  for original in events:

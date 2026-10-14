@@ -14,6 +14,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 import deck_plaza_store
+import tournament_store
 
 USERNAME = re.compile(r"[A-Za-z0-9_]{3,24}\Z", re.ASCII)
 DEVICE = re.compile(r"[a-f0-9]{32}\Z", re.ASCII)
@@ -88,6 +89,7 @@ def database(path):
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS sessions_token_hash ON sessions(token_hash)")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS sessions_remember_hash ON sessions(remember_hash)")
     deck_plaza_store.initialize(conn)
+    tournament_store.initialize(conn)
     conn.execute("""CREATE TABLE IF NOT EXISTS rating_matches (
         match_id TEXT PRIMARY KEY, player_a INTEGER NOT NULL, player_b INTEGER NOT NULL,
         created_at INTEGER NOT NULL, started_at INTEGER, status TEXT NOT NULL DEFAULT 'pending',
@@ -97,6 +99,8 @@ def database(path):
     for column in ("rank_a", "rank_b"):
         if column not in match_columns:
             conn.execute(f"ALTER TABLE rating_matches ADD COLUMN {column} TEXT")
+    if "mode" not in match_columns:
+        conn.execute("ALTER TABLE rating_matches ADD COLUMN mode TEXT NOT NULL DEFAULT 'ranked'")
     conn.commit()
     return conn
 
@@ -113,7 +117,7 @@ def advance_rank(step, stars, streak, won):
     elif step >= 2:
         if stars:
             stars -= 1
-        elif step not in (2, 5):
+        elif step != 2:
             step, stars = step - 1, 2
     return step, stars, streak
 
@@ -355,15 +359,22 @@ def handle_match(conn, data):
     with conn:
         if action == "create":
             players = data.get("players")
+            mode = data.get("mode", "ranked")
+            if mode not in ("ranked", "casual", "exploration", "exploration_random"):
+                return {"ok": False, "message": "匹配模式无效"}
             if (not isinstance(players, list) or len(players) != 2
                     or any(type(p) is not int for p in players) or players[0] == players[1]
                     or conn.execute("SELECT COUNT(*) FROM players WHERE id IN (?,?)", players).fetchone()[0] != 2):
                 return {"ok": False, "message": "匹配玩家无效"}
-            conn.execute("""INSERT OR IGNORE INTO rating_matches(match_id,player_a,player_b,created_at)
-                VALUES(?,?,?,?)""", (match_id, *players, int(time.time())))
-        row = conn.execute("""SELECT player_a,player_b,status,winner,elo_a,elo_b,delta_a,delta_b
+            if conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
+                claim = tournament_store.handle_game(conn, {"action": "claim", "match_id": match_id, "players": players, "mode": mode})
+                if not claim["ok"]:
+                    return claim
+            conn.execute("""INSERT OR IGNORE INTO rating_matches(match_id,player_a,player_b,created_at,mode)
+                VALUES(?,?,?,?,?)""", (match_id, *players, int(time.time()), mode))
+        row = conn.execute("""SELECT player_a,player_b,status,winner,elo_a,elo_b,delta_a,delta_b,mode
             FROM rating_matches WHERE match_id=?""", (match_id,)).fetchone()
-        if row is None or action == "create" and list(row[:2]) != players:
+        if row is None or action == "create" and (list(row[:2]) != players or row[8] != mode):
             return {"ok": False, "message": "匹配不存在或玩家不一致"}
         if action == "start" and row[2] == "pending":
             conn.execute("UPDATE rating_matches SET status='playing',started_at=? WHERE match_id=?",
@@ -383,46 +394,59 @@ def handle_match(conn, data):
                 ratings = [conn.execute("SELECT elo FROM players WHERE id=?", (p,)).fetchone()[0] for p in row[:2]]
                 exponent = max(-20.0, min(20.0, (ratings[1] - ratings[0]) / 400.0))
                 expected = 1.0 / (1.0 + 10.0 ** exponent)
-                delta = round(ELO_K * ((1 if winner == 0 else 0) - expected))
+                delta = round(ELO_K * ((1 if winner == 0 else 0) - expected)) if row[8] == "ranked" else 0
                 next_ratings = [ratings[0] + delta, ratings[1] - delta]
                 for actor, (player, rating) in enumerate(zip(row[:2], next_ratings)):
+                    if row[8] != "ranked":
+                        continue
                     rank = conn.execute("SELECT rank_step,rank_stars,rank_streak FROM players WHERE id=?", (player,)).fetchone()
                     step, stars, streak = advance_rank(*rank, actor == winner)
                     conn.execute("UPDATE players SET elo=?,rank_step=?,rank_stars=?,rank_streak=? WHERE id=?",
                                  (rating, step, stars, streak, player))
-                ranks = [json.dumps(player_rank(conn, player), ensure_ascii=False) for player in row[:2]]
+                ranks = [json.dumps(player_rank(conn, player), ensure_ascii=False) for player in row[:2]] if row[8] == "ranked" else [None, None]
                 conn.execute("UPDATE rating_matches SET rank_a=?,rank_b=? WHERE match_id=?", (*ranks, match_id))
                 conn.execute("""UPDATE rating_matches SET status='settled',winner=?,elo_a=?,elo_b=?,delta_a=?,delta_b=?
                     WHERE match_id=?""", (winner, *next_ratings, delta, -delta, match_id))
+                if conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
+                    settled = tournament_store.handle_game(conn, {"action": "settle", "match_id": match_id, "winner": winner})
+                    if not settled["ok"]:
+                        raise ValueError(settled["message"])
         elif action not in ("create", "start", "cancel"):
             return {"ok": False, "message": "未知匹配操作"}
-        row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b,rank_a,rank_b FROM rating_matches WHERE match_id=?",
+        row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b,rank_a,rank_b,mode FROM rating_matches WHERE match_id=?",
                            (match_id,)).fetchone()
-        return {"ok": True, "status": row[0], "winner": row[1], "ratings": list(row[2:4]), "deltas": list(row[4:6]),
+        mode = row[8]
+        if action == "cancel" and conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
+            tournament_store.handle_game(conn, {"action": "cancel", "match_id": match_id})
+        return {"ok": True, "mode": mode, "rated": mode == "ranked", "status": row[0], "winner": row[1], "ratings": list(row[2:4]), "deltas": list(row[4:6]),
                 "ranks": [json.loads(value) if value else {} for value in row[6:8]]}
 
 
 class Handler(BaseHTTPRequestHandler):
     conn = None
+    timeout = 10  # An incomplete loopback request must not block every account.
 
     def do_POST(self):
-        if self.path not in ("/account", "/session", "/deck-plaza", "/match") or self.client_address[0] != "127.0.0.1":
+        if self.path not in ("/account", "/session", "/deck-plaza", "/tournaments", "/tournament-game", "/match") or self.client_address[0] != "127.0.0.1":
             self.send_error(404)
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = 0
-        if not 0 < length <= (16384 if self.path == "/deck-plaza" else 2048):
+        if not 0 < length <= (16384 if self.path in ("/deck-plaza", "/tournaments") else 2048):
             self.send_error(413)
             return
         try:
             data = json.loads(self.rfile.read(length))
             if self.path == "/match":
                 result = handle_match(self.conn, data)
-            elif self.path == "/deck-plaza":
+            elif self.path == "/tournament-game":
+                result = tournament_store.handle_game(self.conn, data)
+            elif self.path in ("/deck-plaza", "/tournaments"):
                 account = verify(self.conn, data.get("token")) if isinstance(data, dict) else response(False, "请求格式无效")
-                result = deck_plaza_store.handle(self.conn, data, account) if account["ok"] else {"ok": False, "message": account["message"], "auth_required": True}
+                service = deck_plaza_store if self.path == "/deck-plaza" else tournament_store
+                result = service.handle(self.conn, data, account) if account["ok"] else {"ok": False, "message": account["message"], "auth_required": True}
             else:
                 result = handle(self.conn, data)
         except (ValueError, UnicodeError):
@@ -438,6 +462,13 @@ class Handler(BaseHTTPRequestHandler):
         pass  # Do not log account requests or credentials.
 
 
+class AccountHTTPServer(HTTPServer):
+    request_queue_size = 128
+
+    def service_actions(self):
+        tournament_store.tick(self.RequestHandlerClass.conn)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--database", type=Path, default=Path.home() / ".local/share/multicolor-relay/data/players.sqlite3")
@@ -445,7 +476,7 @@ def main():
     args = parser.parse_args()
     Handler.conn = database(args.database)
     print(f"Account store listening on 127.0.0.1:{args.port}", flush=True)
-    HTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
+    AccountHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()
 
 
 if __name__ == "__main__":

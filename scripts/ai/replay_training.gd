@@ -2,6 +2,7 @@ extends RefCounted
 ## Sidecar annotations never change the archive. Only seat observations are exported.
 const SCHEMA="multicolor.ai.human_annotations.v1"
 const Paths=preload("res://scripts/portable_paths.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const Observation=preload("res://scripts/ai/observation.gd")
 const State=preload("res://scripts/ai/simulation_state.gd")
@@ -122,7 +123,8 @@ func recorded_action(index: int,seat: int,e) -> Dictionary:
   var action={}
   if not raw.combat.is_empty() and raw.combat.get("owner",-1)==seat and raw.combat.get("step","")=="attack_window":
    action={"kind":"attack","uid":raw.combat.attacker.uid}
-   if raw.combat.get("direct",false) and raw.combat.blockers.size()==1:action.target=raw.combat.blockers[0].duplicate(true)
+   if raw.combat.has("target"):action.target=raw.combat.target.duplicate(true)
+   elif raw.combat.get("direct",false) and raw.combat.blockers.size()==1:action.target=raw.combat.blockers[0].duplicate(true)
   elif raw.stack.size()==1:
    var entry=raw.stack[0]
    if entry.get("kind","")=="card" and entry.get("owner",-1)==seat:
@@ -183,7 +185,7 @@ static func action_label(e,a: Dictionary) -> String:
  if t.has("uid"):
   var target=e.find_card(int(t.uid))
   if not target.is_empty():label+=" → "+e.cards[target.card_id].name+" [#"+str(target.uid)+"]"
- elif t.has("player"):label+=" → "+e.player_names[int(t.player)]
+ elif t.has("player"):label+=" → "+PlayerNameDisplay.caption(e.player_names[int(t.player)])
  if t.has("mode"):label+=" / "+str(t.mode)
  if t.has("sacrifice"):
   var cost=e.find_card(int(t.sacrifice.get("uid",-1)))

@@ -106,6 +106,45 @@ func check_state(prefix: String,actions: bool):
    await click(response.get_global_rect().get_center());await frames()
    expect(e.revision==revision+1 and e.priority==1,label+" lower response action receives the click once")
 
+func check_payment_cancellation(prefix: String):
+ for affordable in [false,true]:
+  clean()
+  var source=put("spell-fdf-047","grave")
+  put("53","deck")
+  if affordable:
+   put("71","palette");put("71","palette")
+  e.Cat.Units.resolve(e,{"effect":"cat:sacrifice_recover","owner":0,"source":source.duplicate(true),"target":{},"optional":true,"name":e.cards[source.card_id].name})
+  view.render();await frames()
+  if affordable:
+   var payment=view.picker.available().filter(func(atom):return atom.kind=="mode" and atom.value=="支付费用")[0]
+   view.inline_pick(payment);view.confirm_trigger()
+  else:
+   # Payment can become unavailable after the player entered confirmation.
+   view.local={"uid":source.uid,"action":"choice_payment","choice_cost":{"黄":1,"黑":1},"target":{"pay":true},"mode":"payment","plan":[]}
+   view.start_payment()
+  await frames()
+  var label=prefix+(" payable" if affordable else " unavailable")+" trigger payment"
+  var cancel=find_button(view.hud,"取消使用")
+  expect(cancel!=null and cancel.is_visible_in_tree(),label+" exposes cancellation")
+  if cancel==null:return
+  var confirm=find_button(view.hud,"发动")
+  expect((confirm!=null)==affordable,label+" offers confirmation only when affordable")
+  if confirm!=null:
+   expect(not cancel.get_global_rect().intersects(confirm.get_global_rect()),label+" cancellation and confirmation do not overlap")
+   expect(is_equal_approx(cancel.size.x,confirm.size.x),label+" action widths match")
+  expect(view.get_viewport_rect().grow(1).encloses(cancel.get_global_rect()),label+" cancellation stays on screen")
+  if affordable:await shot(prefix+"-trigger-payment")
+  var before=snapshot()
+  await click(cancel.get_global_rect().get_center());await frames()
+  expect(view.local.is_empty() and snapshot()==before,label+" clicking cancellation preserves the unresolved effect and resources")
+  if affordable:
+   var payment=view.picker.available().filter(func(atom):return atom.kind=="mode" and atom.value=="支付费用")[0]
+   view.inline_pick(payment);view.confirm_trigger();await frames()
+   confirm=find_button(view.hud,"发动")
+   if confirm!=null:
+    await click(confirm.get_global_rect().get_center());await frames()
+   expect(view.local.is_empty() and e.pending.is_empty() and source.zone=="palette" and source.tapped,label+" confirmation remains clickable and resolves the paid effect")
+
 func run():
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output))
  Store.Paths.root_override=ProjectSettings.globalize_path(output.path_join("fixtures/"+str(Time.get_ticks_usec())))
@@ -113,12 +152,15 @@ func run():
  root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
  app=load("res://main.tscn").instantiate();root.add_child(app);await frames();app.load_legacy_test_decks()
  var cases=[{"size":Vector2i(1600,900),"dpi":0.0},{"size":Vector2i(1280,720),"dpi":240.0},{"size":Vector2i(1920,1080),"dpi":360.0},{"size":Vector2i(2340,1080),"dpi":420.0},{"size":Vector2i(2160,1080),"dpi":480.0},{"size":Vector2i(1280,720),"dpi":320.0}]
+ if "--payment-only" in OS.get_cmdline_user_args():cases=[{"size":Vector2i(1600,900),"dpi":0.0},{"size":Vector2i(1280,720),"dpi":0.0},{"size":Vector2i(2560,1440),"dpi":0.0}]
  for fixture in cases:
   if is_instance_valid(view):view.queue_free();app.duel_view=null;await frames()
   root.size=fixture.size;app.is_android=fixture.dpi>0;app.layout_dpi_override=fixture.dpi
   app.layout_safe_override=Rect2(60,0,fixture.size.x-84,fixture.size.y-24) if app.is_android else Rect2()
   await frames();app.refresh_responsive_layout();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine;await frames()
   var prefix="%dx%d-dpi%d" % [fixture.size.x,fixture.size.y,int(fixture.dpi)]
-  await check_state(prefix,false);await check_state(prefix,true)
+  if "--payment-only" in OS.get_cmdline_user_args():await check_payment_cancellation(prefix)
+  else:
+   await check_state(prefix,false);await check_state(prefix,true)
  print("BATTLE CHOICE OVERLAP: %d checks; %d failures" % [checks,failures.size()])
  app.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)

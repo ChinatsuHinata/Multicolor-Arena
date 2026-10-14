@@ -11,8 +11,12 @@ const Duel=preload("res://scripts/rules/duel_engine.gd")
 const Codec=preload("res://net/state_codec.gd")
 const Journal=preload("res://net/journal_store.gd")
 const Identity=preload("res://net/local_identity.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const Series=preload("res://net/series_controller.gd")
 const MATCH_RULE_SET=Series.RuleSet.OFFICIAL
+const MATCH_CATEGORIES=["ranked","casual","entertainment"]
+# Entertainment submodes use distinct queue IDs to prevent mixed matches.
+const MATCH_MODES=["ranked","casual","exploration","exploration_random"]
 const Gateway=preload("res://net/command_gateway.gd")
 const SeatView=preload("res://net/seat_projection.gd")
 const Transport=preload("res://net/lan_transport.gd")
@@ -21,6 +25,8 @@ const Metrics=preload("res://net/connection_metrics.gd")
 const Endpoint=preload("res://net/network_endpoint.gd")
 const VERSION="ranked-simultaneous-mulligan-1"
 const RECONNECT_LIMIT_MS=30000
+const MATCH_RECONNECT_LIMIT_MS=60000
+const RANKED_UNDO_LIMIT=5
 var transport
 var discovery
 var identity={}
@@ -38,13 +44,20 @@ var relay_code=""
 var relay_websocket=false
 var cloud_token=""
 var cloud_nickname=""
+var cloud_account=""
 var cloud_ranked=false
+# cloud_ranked identifies all server-managed matchmaking modes.
+var match_mode="ranked"
 var cloud_match_id=""
+var competition_match_id=""
+var competition_format=Series.BO1_SIDEBOARD
 var matchmaking=false
+var match_connect_started=0
 var match_wait_seconds=0
-var match_gap=100
+var match_rank_gap=0
 var match_queued=-1
 var match_deck: Dictionary={}
+var match_room_public=true
 var match_settled=false
 var last_result_report=0
 var cloud_slot=0
@@ -81,6 +94,7 @@ var disconnect_deadline_unix=0.0
 var wait_choice_pending=false
 var wait_choice_confirmed=false
 var last_heartbeat=0
+var last_relay_heartbeat=0
 var retry_at=0
 var joining=false
 var resume_requested=false
@@ -101,10 +115,37 @@ var rewind_events: Array=[]
 func latency_text() -> String:
  return metrics.caption(Time.get_ticks_msec()) if connected else "已断开" if not room_id.is_empty() else "未连接"
 func ended() -> bool:return room.get("status","")=="aborted" or room.has("forfeit")
+func ranked_match_pending() -> bool:
+ return cloud_ranked and not read_only and not match_settled and not cloud_match_id.is_empty()
+func match_rule_set() -> String:
+ return MATCH_RULE_SET if match_mode=="ranked" else Series.RuleSet.UNRESTRICTED
+static func match_mode_caption(mode: String) -> String:
+ if mode in Series.Exploration.MODES:return "娱乐模式 · "+Series.Exploration.MODE_NAMES[Series.Exploration.MODES.find(mode)]
+ return {"ranked":"排位匹配","casual":"休闲模式","entertainment":"娱乐模式"}.get(mode,"排位匹配")
+func match_caption() -> String:
+ if not competition_match_id.is_empty():return "比赛对局"
+ return match_mode_caption(match_mode)
+func match_format() -> int:
+ if not competition_match_id.is_empty():return competition_format
+ if match_mode in Series.Exploration.MODES:return Series.EXPLORATION_RANDOM if match_mode=="exploration_random" else Series.EXPLORATION
+ return Series.BO1_SIDEBOARD
+func match_format_caption() -> String:
+ if not competition_match_id.is_empty():return Series.format_label(competition_format)
+ return "BO1 · 固定卡组" if match_mode in Series.Exploration.MODES else "BO1 换备牌"
+static func match_deck_error(deck: Dictionary,mode: String) -> String:
+ if mode in Series.Exploration.MODES:return "" if Series.Exploration.fixed_deck(deck,mode=="exploration_random") else match_mode_caption(mode)+"使用双方固定卡组"
+ return Series.Store.validate(deck,true,MATCH_RULE_SET if mode=="ranked" else Series.RuleSet.UNRESTRICTED)
+func can_stop_waiting() -> bool:
+ return disconnected_at>0 and not ranked_match_pending()
+func reconnect_limit_ms() -> int:
+ return MATCH_RECONNECT_LIMIT_MS if ranked_match_pending() else RECONNECT_LIMIT_MS
 func connection_status() -> String:
- if ended():return room.get("end_reason","对局结束")
+ if ended():return PlayerNameDisplay.in_text(room.get("end_reason","对局结束"),room.get("names",[]))
  if read_only:return "观战 · "+("等待对局开始" if latest_snapshot.is_empty() else "连接已断开" if not connected else "对局已暂停" if paused else "公开视角")
  if disconnected_at>0:
+  if ranked_match_pending():
+   var seconds=maxi(0,ceili(minf(float(MATCH_RECONNECT_LIMIT_MS-(Time.get_ticks_msec()-disconnected_at))/1000.0,disconnect_deadline_unix-Time.get_unix_time_from_system())))
+   return "匹配连接中断\n正在自动恢复原对局：%d 秒\n超过 60 秒自动释放" % seconds
   if wait_choice_pending:return "连接中断\n30 秒已过，是否继续等待？"
   if wait_choice_confirmed:return "连接中断\n持续等待对方重新连接\n可查看战场"
   var remaining=float(RECONNECT_LIMIT_MS-(Time.get_ticks_msec()-disconnected_at))/1000.0
@@ -128,10 +169,13 @@ func initialize(directory: String=""):
  transport.relay_notice.connect(func(message):error_raised.emit(message))
  transport.relay_rating.connect(func(elo):rating_updated.emit(elo))
  transport.relay_rank.connect(func(rank):rank_updated.emit(rank))
- transport.relay_match_queued.connect(func(seconds,gap,queued):
+ transport.relay_match_queued.connect(func(seconds,rank_gap,queued):
   if not matchmaking:return
-  match_wait_seconds=seconds;match_gap=gap;match_queued=queued
-  notice="正在自动匹配 · 已等待 %d:%02d · 当前分差范围 %d" % [seconds/60,seconds%60,gap]
+  match_connect_started=0
+  match_wait_seconds=seconds;match_rank_gap=rank_gap;match_queued=queued
+  var range_text="同一大段位内所有级别" if rank_gap==0 else "上下 %d 个大段位" % rank_gap
+  if match_mode!="ranked":range_text=match_caption()+" · 不限段位 · 不影响段位"
+  notice="正在自动匹配 · 已等待 %d:%02d · %s" % [seconds/60,seconds%60,range_text]
   changed.emit())
  transport.relay_matched.connect(on_match_found)
  transport.relay_match_settled.connect(on_match_settled)
@@ -139,12 +183,12 @@ func initialize(directory: String=""):
  transport.relay_ready.connect(func():
   if cloud_mode and is_host:
    cloud_published=""
-   transport.relay_update(series.state.status,cloud_room_name,series.state.ready,series.state.round)
+   transport.relay_update(series.state.status,cloud_room_name,series.state.ready,series.state.round,series.state.format)
    notice="匹配成功，正在登记已选卡组" if cloud_ranked else "云端房间已就绪，等待玩家选座";changed.emit())
  changed.connect(func():
   if cloud_mode and is_host and transport.online and transport.relay_seat>0 and not room_id.is_empty():
-   var key=JSON.stringify([series.state.status,series.state.round,cloud_room_name,series.state.ready])
-   if key!=cloud_published:cloud_published=key;transport.relay_update(series.state.status,cloud_room_name,series.state.ready,series.state.round)
+   var key=JSON.stringify([series.state.status,series.state.round,cloud_room_name,series.state.ready,series.state.format])
+   if key!=cloud_published:cloud_published=key;transport.relay_update(series.state.status,cloud_room_name,series.state.ready,series.state.round,series.state.format)
   report_match_result())
  discovery.rooms_changed.connect(func():changed.emit())
  discovery.start()
@@ -152,6 +196,59 @@ func save_identity() -> bool:
  var err=Journal.save_to(storage+"/identity.bin",identity)
  if err!=OK:error_raised.emit("无法保存联机身份："+error_string(err));return false
  return true
+func save_ranked_recovery():
+ if not ranked_match_pending():return
+ var saved={"account":cloud_account,"fingerprint":fingerprint,"is_host":is_host,"room_id":room_id,"cloud_match_id":cloud_match_id,"address":address,"port":port,"relay_code":relay_code,"relay_websocket":relay_websocket,"cloud_slot":cloud_slot,"match_room_public":match_room_public,"match_mode":match_mode,"match_deck":match_deck,"status":room.get("status","lobby"),"deadline":disconnect_deadline_unix}
+ saved.competition_match_id=competition_match_id
+ saved.competition_format=competition_format
+ if identity.get("ranked_resume",{})==saved:return
+ identity.ranked_resume=saved;save_identity()
+func clear_ranked_recovery():
+ if not cloud_ranked or read_only:return
+ identity.ranked_resume={}
+ if str(identity.get("resume",{}).get("cloud_match_id",""))==cloud_match_id:identity.resume={}
+ save_identity()
+func saved_ranked_recovery() -> Dictionary:
+ var saved=identity.get("ranked_resume",{}).duplicate(true)
+ if not identity.has("ranked_resume"):
+  # Older clients stored host and guest recovery separately.
+  var hosted=Journal.load_from(storage+"/host.bin")
+  var joined=identity.get("resume",{})
+  var host_active=not str(hosted.get("cloud_match_id","")).is_empty() and not hosted.get("match_settled",false) and hosted.get("series",{}).get("status","") not in ["complete","aborted"]
+  var guest_active=not str(joined.get("cloud_match_id","")).is_empty() and int(joined.get("cloud_slot",2))<=2 and joined.get("room_id","") not in identity.get("ended_rooms",[])
+  if host_active and (not guest_active or FileAccess.get_modified_time(storage+"/host.bin")>=FileAccess.get_modified_time(storage+"/identity.bin")):
+   saved=hosted.duplicate(true);saved.is_host=true;saved.account=str(hosted.get("cloud_account",""))
+  elif guest_active:
+   saved=joined.duplicate(true);saved.is_host=false
+ if saved.is_empty() or int(saved.get("cloud_slot",0)) not in [1,2]:return {}
+ if not str(saved.get("account","")).is_empty() and str(saved.account).to_lower()!=cloud_account.to_lower():return {}
+ if saved.get("room_id","") in identity.get("ended_rooms",[]):return {}
+ return saved
+func restore_ranked_match(saved: Dictionary) -> String:
+ if saved.is_empty():return "没有待恢复的匹配对局"
+ if cloud_token.is_empty():return "请先登录玩家账号，再恢复匹配"
+ if str(saved.get("fingerprint",fingerprint)) not in [fingerprint,legacy_fingerprint]:return "保存匹配的规则版本与当前版本不一致"
+ if saved.get("is_host",false):
+  var error=restore_host();competition_match_id=str(saved.get("competition_match_id",""));competition_format=int(saved.get("competition_format",series.state.format));return error
+ leave(false)
+ cloud_ranked=true;cloud_mode=true;cloud_match_id=str(saved.cloud_match_id);relay_code=str(saved.relay_code)
+ if str(identity.get("resume",{}).get("cloud_match_id",""))!=cloud_match_id:identity.resume={}
+ address=str(saved.address);port=int(saved.port);relay_websocket=bool(saved.get("relay_websocket",true));cloud_slot=int(saved.cloud_slot);seat=cloud_slot-1
+ room_id=str(saved.get("room_id",""));match_room_public=saved.get("match_room_public",true)==true;match_deck=saved.get("match_deck",{}).duplicate(true)
+ match_mode=str(saved.get("match_mode","ranked"))
+ competition_match_id=str(saved.get("competition_match_id",""))
+ competition_format=int(saved.get("competition_format",Series.BO1_SIDEBOARD))
+ series=Series.new();series.setup(match_format(),true,match_rule_set());series.state.match_mode=match_mode
+ room=series.public_state(seat);room.status=str(saved.get("status","lobby"))
+ disconnect_deadline_unix=float(saved.get("deadline",identity.get("resume",{}).get("deadline",0.0)))
+ if disconnect_deadline_unix<=0:disconnect_deadline_unix=Time.get_unix_time_from_system()+reconnect_limit_ms()/1000.0
+ disconnected_at=maxi(1,Time.get_ticks_msec());retry_at=0
+ return reconnect_ranked_guest()
+func reconnect_ranked_guest() -> String:
+ var error=join_relay_room(("ws://" if relay_websocket else "")+address+":"+str(port),relay_code,true,cloud_slot)
+ resume_requested=str(identity.get("resume",{}).get("cloud_match_id",""))==cloud_match_id and not str(identity.get("resume",{}).get("token","")).is_empty()
+ if not error.is_empty():notice="正在恢复原匹配："+error;changed.emit()
+ return error
 func set_display_name(value: String):identity.nickname=Identity.nickname(value);save_identity()
 func local_actor() -> int:
  if not is_host:return seat
@@ -188,7 +285,7 @@ func on_cloud_seats(seats: Array,peer_ids: Array):
    for actor in range(2):
     if previous[actor]!=cloud_peer_ids[actor]:
      cloud_player_records[actor]={};cloud_player_acks[actor]=false
-     series.state.decks[actor]={};series.state.ready[actor]=false
+     series.state.decks[actor]=Series.entertainment_deck(series.state.format) if Series.is_entertainment(series.state.format) else {};series.state.ready[actor]=false
      var new_peer=int(cloud_peer_ids[actor])
      if new_peer>1:transport.send_to(new_peer,{"type":"seat_sync"})
    connected=false;paused=true
@@ -233,6 +330,7 @@ func move_cloud_seat(from_slot: int,to_slot: int):
  if transport.relay_seat==0:return
  transport.relay_move(from_slot,to_slot)
 func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,interface_address: String="*",rule_set: String="unrestricted") -> String:
+ if Series.is_entertainment(format_value):strict=true;rule_set=Series.RuleSet.UNRESTRICTED
  if rule_set not in ["unrestricted","official","official_spx","test"]:return "规则集无效"
  if game_port<1024 or game_port>=65535:return "对战端口须在 1024 至 65534 之间（下一端口用于观战）"
  leave(false);is_host=true;seat=0;port=game_port;bind_address=interface_address
@@ -245,10 +343,17 @@ func create_room(format_value: int=3,strict: bool=true,game_port: int=47861,inte
  discovery.start(true,metadata(),bind_address)
  if not persist():transport.close();return notice
  changed.emit();return ""
-func start_matchmaking(server_address: String,deck: Dictionary={}) -> String:
+func start_matchmaking(server_address: String,deck: Dictionary={},public_room: bool=true,mode: String="ranked",competition: String="",game_format: int=Series.BO1_SIDEBOARD) -> String:
  if cloud_token.is_empty():return "请先登录玩家账号，再进入自动匹配"
- var deck_error=Series.Store.validate(deck,true,MATCH_RULE_SET)
- if not deck_error.is_empty():return "请先选择符合官限的匹配卡组："+deck_error
+ if mode not in MATCH_MODES:return "匹配模式无效"
+ if not competition.is_empty():
+  if game_format not in [Series.BO1,Series.BO1_SIDEBOARD,Series.BO3,Series.EXPLORATION,Series.EXPLORATION_RANDOM]:return "比赛对局赛制无效"
+  var expected_mode="exploration_random" if game_format==Series.EXPLORATION_RANDOM else "exploration" if game_format==Series.EXPLORATION else "casual"
+  if mode!=expected_mode:return "比赛对局模式与指定赛制不一致"
+ if mode in Series.Exploration.MODES:deck=Series.Exploration.deck(mode=="exploration_random")
+ var rule_set=MATCH_RULE_SET if mode=="ranked" else Series.RuleSet.UNRESTRICTED
+ var deck_error=match_deck_error(deck,mode)
+ if not deck_error.is_empty():return "请先选择符合%s的匹配卡组：" % Series.RuleSet.label_for(rule_set)+deck_error
  if not server_address.begins_with("ws://"):return "自动匹配需要云端 WebSocket 地址"
  var endpoint=Endpoint.parse(server_address.substr(5),47862)
  if endpoint.has("error"):return endpoint.error
@@ -256,8 +361,12 @@ func start_matchmaking(server_address: String,deck: Dictionary={}) -> String:
  if resolved.is_empty():return "无法解析中转服务器地址"
  leave(false);cloud_mode=true;cloud_ranked=true;relay_websocket=true;address=endpoint.host;port=endpoint.port
  match_deck=Series.Store.clean_deck(deck).duplicate(true)
- matchmaking=true;match_wait_seconds=0;match_gap=100;match_settled=false
- var error=transport.relay_match(resolved,port,cloud_token,fingerprint,JSON.stringify(match_deck).sha256_text())
+ match_mode=mode
+ competition_match_id=competition
+ competition_format=game_format
+ match_room_public=public_room
+ matchmaking=true;match_connect_started=maxi(1,Time.get_ticks_msec());match_wait_seconds=0;match_rank_gap=0;match_settled=false
+ var error=transport.relay_match(resolved,port,cloud_token,fingerprint,JSON.stringify(match_deck).sha256_text(),match_room_public,match_mode,competition_match_id)
  if error!=OK:leave(false);return "无法连接匹配服务器："+error_string(error)
  notice="正在加入自动匹配队列";changed.emit();return ""
 
@@ -266,40 +375,51 @@ func cancel_matchmaking():
  leave(false);notice="已取消自动匹配";changed.emit()
 
 func register_match_deck(actor: int,deck: Dictionary) -> String:
- var validation=Series.Store.validate(deck,true,MATCH_RULE_SET)
+ var validation=match_deck_error(deck,match_mode)
  if not validation.is_empty():return validation
  if not deck.get("id") is String:return "匹配卡组缺少标识"
  var hashes=series.state.get("deck_hashes",[])
  if hashes.size()!=2 or JSON.stringify(Series.Store.clean_deck(deck)).sha256_text()!=str(hashes[actor]):return "匹配卡组与入队登记不一致，请重新匹配"
+ if match_mode in Series.Exploration.MODES:return series.ready(actor)
  var error=series.set_deck(actor,deck)
  if not error.is_empty():return error
  return series.ready(actor)
 
 func on_match_found(info: Dictionary):
  if not matchmaking:return
- matchmaking=false;cloud_ranked=true;cloud_match_id=str(info.match_id);relay_code=str(info.room)
+ if not competition_match_id.is_empty() and (str(info.get("match_id",""))!=competition_match_id or not info.get("tournament",false) or int(info.get("format",0))!=competition_format):
+  on_failure("中转服务器未确认比赛对阵，请刷新比赛页面后重试");return
+ if str(info.get("mode","ranked"))!=match_mode or match_mode!="ranked" and str(info.get("rule_set",""))!=match_rule_set() or match_mode in Series.Exploration.MODES and int(info.get("format",0))!=match_format():
+  on_failure("中转服务器未确认%s匹配规则，请更新服务端后重试" % match_caption());return
+ if not match_room_public and info.get("public",true)!=false:
+  on_failure("中转服务器未确认私人房间，请更新服务端后重试");return
+ match_room_public=info.get("public",true)==true
+ matchmaking=false;match_connect_started=0;cloud_ranked=true;cloud_match_id=str(info.match_id);relay_code=str(info.room)
  is_host=str(info.role)=="host";cloud_slot=int(info.seat);seat=cloud_slot-1;read_only=false
- cloud_room_name="自动匹配 · BO1 换备牌"
- series=Series.new();series.setup(Series.BO1_SIDEBOARD,true,MATCH_RULE_SET);series.state.match_id=cloud_match_id
- series.state.ranked=true;series.state.deck_hashes=info.get("deck_hashes",[])
+ cloud_room_name=match_caption()+" · "+match_format_caption()
+ series=Series.new();series.setup(match_format(),true,match_rule_set());series.state.match_id=cloud_match_id
+ series.state.ranked=match_mode=="ranked";series.state.match_mode=match_mode;series.state.deck_hashes=info.get("deck_hashes",[])
+ if match_mode=="ranked" and info.get("ranks") is Array:series.state.ranks=info.ranks.duplicate(true)
  if is_host:
   var error=register_match_deck(seat,match_deck)
   if not error.is_empty():on_failure(error);return
  series.state.names[seat]=cloud_nickname
  cloud_player_acks=[is_host,false];cloud_player_records=[{},{}];cloud_peer_ids=[]
  room=series.public_state(seat);paused=true;connected=false;rejected=false
+ identity.resume={}
  if is_host:
   start_cloud_spectators()
   room_id=Identity.token();persist()
  else:joining=true;join_stage="connecting";remote_last_seen=Time.get_ticks_msec()
+ start_disconnect_wait()
+ save_ranked_recovery()
  notice="匹配成功，正在同步对手";match_found.emit();changed.emit()
 
 func on_match_settled(info: Dictionary):
  if not cloud_ranked or str(info.get("match_id",""))!=cloud_match_id:return
  match_settled=true
- if bool(info.get("rated",false)):
-  var winner=int(info.get("winner",-2))
-  if winner not in [0,1]:return
+ var winner=int(info.get("winner",-2))
+ if winner in [0,1]:
   if room.get("status","")!="complete":
    if is_host:
     series.forfeit(1-winner);room=series.public_state(seat);persist()
@@ -308,24 +428,28 @@ func on_match_settled(info: Dictionary):
     room.end_reason="对方掉线超时，匹配已结算" if winner==seat else "掉线超时，匹配判负"
    paused=true;connected=false;joining=false
    if not latest_snapshot.is_empty():latest_snapshot.room=room.duplicate(true)
-  notice="匹配已结算 · 我的 Elo：%d（%+d）" % [int(info.elo),int(info.delta)]
-  if info.get("rank") is Dictionary:notice+=" · "+preload("res://scripts/rank_badge.gd").caption(info.rank)
+  if match_mode!="ranked":notice=match_caption()+"对局结束 · 不影响段位和 Elo"
+  else:
+   notice="匹配已结算 · 我的 Elo：%d（%+d）" % [int(info.get("elo",0)),int(info.get("delta",0))]
+   if info.get("rank") is Dictionary:notice+=" · "+preload("res://scripts/rank_badge.gd").caption(info.rank)
  else:
   if is_host:series.abort();room=series.public_state(seat);persist()
   elif not room.is_empty():room.status="aborted";room.winner=-2
   paused=true;connected=false;joining=false;notice="匹配取消，不计胜负和 Elo"
  connected=false;paused=true;joining=false;busy=false;metrics.reset()
+ clear_ranked_recovery()
  changed.emit()
 
 func on_observed_room_closed(info: Dictionary):
  if not read_only:return
- room.status="complete" if info.get("rated",false) else "aborted"
+ room.status="complete" if int(info.get("winner",-2)) in [0,1] else "aborted"
  room.winner=int(info.get("winner",-2));room.end_reason=str(info.get("message","匹配对战已结束，房间已关闭"))
  if not latest_snapshot.is_empty():latest_snapshot.room=room.duplicate(true)
  connected=false;paused=true;joining=false;rejected=true;notice=room.end_reason
  changed.emit()
 
 func create_relay_room(server_address: String,format_value: int=3,strict: bool=true,rule_set: String="unrestricted",title: String="",password: String="",chosen_slot: int=1) -> String:
+ if Series.is_entertainment(format_value):strict=true;rule_set=Series.RuleSet.UNRESTRICTED
  if rule_set not in ["unrestricted","official","official_spx","test"]:return "规则集无效"
  if cloud_token.is_empty():return "请先登录玩家账号，再进入云端"
  if chosen_slot not in [1,2]:return "请选择 1 或 2 号对战位"
@@ -393,6 +517,8 @@ func join_relay_room(server_address: String,code: String,resume: bool=false,chos
  if not resume:leave(false)
  if resume:
   cloud_match_id=str(identity.get("resume",{}).get("cloud_match_id",cloud_match_id));cloud_ranked=not cloud_match_id.is_empty()
+  match_room_public=identity.get("resume",{}).get("match_room_public",match_room_public)==true
+  match_mode=str(identity.get("resume",{}).get("match_mode",match_mode))
  is_host=false;seat=chosen_slot-1 if chosen_slot<=2 else 1;cloud_mode=true;relay_websocket=websocket;relay_code=normalized;address=endpoint.host;port=endpoint.port;rejected=false;resume_requested=resume;read_only=chosen_slot>=3;cloud_slot=chosen_slot
  cloud_password_hash=password.sha256_text() if not password.is_empty() else str(identity.get("resume",{}).get("password_hash","")) if resume else ""
  var options={"seat":chosen_slot,"password_hash":cloud_password_hash,"version":fingerprint,"resume":resume,"match_id":cloud_match_id}
@@ -407,7 +533,7 @@ func resume_guest(new_address: String="") -> String:
  room_id=saved.room_id
  if disconnected_at==0 and float(saved.get("deadline",0.0))>0:
   disconnect_deadline_unix=float(saved.deadline)
-  disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
+  disconnected_at=maxi(1,Time.get_ticks_msec()-reconnect_limit_ms()+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
   wait_choice_pending=Time.get_unix_time_from_system()>=disconnect_deadline_unix
  if saved.get("cloud_mode",false):return join_relay_room(("ws://" if saved.get("relay_websocket",false) else "")+saved.address+":"+str(saved.port) if new_address.is_empty() else new_address,str(saved.get("relay_code","")),true,int(saved.get("cloud_slot",2)))
  return join_room(saved.address if new_address.is_empty() else new_address,int(saved.port),true)
@@ -421,6 +547,10 @@ func restore_host() -> String:
  room_id=data.room_id;port=data.port;bind_address=data.get("bind_address","*");guest=data.guest
  cloud_mode=bool(data.get("cloud_mode",false));relay_code=str(data.get("relay_code",""));relay_websocket=bool(data.get("relay_websocket",false));address=str(data.get("address",""))
  cloud_match_id=str(data.get("cloud_match_id",""));cloud_ranked=not cloud_match_id.is_empty();match_settled=bool(data.get("match_settled",false))
+ match_deck=data.get("match_deck",{}).duplicate(true)
+ match_mode=str(data.get("match_mode","ranked"))
+ competition_match_id=str(data.get("competition_match_id",""));competition_format=int(data.get("competition_format",data.series.get("format",Series.BO1_SIDEBOARD)))
+ match_room_public=data.get("match_room_public",true)==true
  series=Series.new();series.state=data.series;sequence=data.sequence;command_results=data.command_results;receipts=data.get("receipts",["",""])
  undo_history.entries=data.get("undo_entries",[]);rewind_events=data.get("rewind_events",[]);undo_request={}
  if not data.engine.is_empty():authority=Duel.new();Codec.restore(authority,data.engine)
@@ -435,13 +565,14 @@ func restore_host() -> String:
   if cloud_slot<=2:cloud_player_acks[cloud_slot-1]=true
  var options={"seat":cloud_slot,"name":cloud_room_name,"password_hash":cloud_password_hash,"format":series.state.format,"rule_set":series.state.get("rule_set","unrestricted"),"version":fingerprint,"resume":cloud_mode,"match_id":cloud_match_id}
  var err=transport.relay_host(Endpoint.resolve(address),port,relay_code,relay_websocket,cloud_token,options) if cloud_mode else transport.host_room(port,bind_address)
- if err!=OK:return "无法恢复监听："+error_string(err)
  paused=true;connected=false;notice="已恢复对局，等待原玩家重连";room=series.public_state(local_actor())
  recording.begin_capture(storage+"/capture.bin",series.state.match_id)
  disconnect_deadline_unix=float(data.get("disconnect_deadline_unix",0.0))
- if disconnect_deadline_unix<=0:disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
- disconnected_at=maxi(1,Time.get_ticks_msec()-RECONNECT_LIMIT_MS+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
+ if disconnect_deadline_unix<=0:disconnect_deadline_unix=Time.get_unix_time_from_system()+reconnect_limit_ms()/1000.0
+ disconnected_at=maxi(1,Time.get_ticks_msec()-reconnect_limit_ms()+int((disconnect_deadline_unix-Time.get_unix_time_from_system())*1000.0))
  wait_choice_pending=series.state.status!="complete" and Time.get_unix_time_from_system()>=disconnect_deadline_unix
+ if ranked_match_pending():wait_choice_pending=false
+ if err!=OK:return "无法恢复监听："+error_string(err)
  if not cloud_mode:
   start_spectators()
   discovery.start(true,metadata(),bind_address)
@@ -452,14 +583,16 @@ func persist() -> bool:
  if not is_host:return true
  var data={"fingerprint":fingerprint,"room_id":room_id,"port":port,"bind_address":bind_address,"cloud_mode":cloud_mode,"relay_code":relay_code,"relay_websocket":relay_websocket,"address":address,"cloud_slot":cloud_slot,"cloud_room_name":cloud_room_name,"cloud_password_hash":cloud_password_hash,"cloud_seats":cloud_seats,"cloud_player_records":cloud_player_records,"guest":guest,"series":series.state,"sequence":sequence,"command_results":command_results,"receipts":receipts,"disconnect_deadline_unix":disconnect_deadline_unix,"engine":Codec.capture(authority) if authority!=null else {}}
  data.undo_entries=undo_history.entries;data.rewind_events=rewind_events
- data.cloud_match_id=cloud_match_id;data.match_settled=match_settled
+ data.cloud_match_id=cloud_match_id;data.match_settled=match_settled;data.match_room_public=match_room_public
+ data.cloud_account=cloud_account;data.match_deck=match_deck;data.match_mode=match_mode
+ data.competition_match_id=competition_match_id;data.competition_format=competition_format
  var err=Journal.save_to(storage+"/host.bin",data)
  if err!=OK:paused=true;notice="无法保存对局，已暂停："+error_string(err);error_raised.emit(notice);return false
- return true
+ save_ranked_recovery();return true
 func leave(forget: bool=true):
  report_match_result(true)
  undo_history.entries.clear();undo_request={};rewind_events.clear()
- rejected_peers.clear();join_stage=""
+ rejected_peers.clear();join_stage="";resume_requested=false
  if is_instance_valid(spectator_hub):spectator_hub.close();spectator_hub.queue_free();spectator_hub=null
  read_only=false;recording=preload("res://scripts/replay_archive.gd").new()
  metrics.reset()
@@ -471,7 +604,10 @@ func leave(forget: bool=true):
  if discovery:discovery.start()
  connected=false;paused=true;joining=false;remote_peer=0;room_id="";room={};applicant={};authority=null;busy=false;snapshots.clear();latest_snapshot={};local_game_id="";notice="";inflight={};disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;rejected=false;cloud_mode=false;relay_code="";relay_websocket=false;cloud_slot=0;cloud_room_name="";cloud_password_hash="";cloud_published=""
  cloud_seats=["","","","","","", "", ""];cloud_peer_ids=[];cloud_player_records=[{},{}];cloud_player_acks=[false,false];cloud_peer_seen={}
- cloud_ranked=false;cloud_match_id="";matchmaking=false;match_deck={};match_queued=-1;match_wait_seconds=0;match_gap=100;match_settled=false;last_result_report=0
+ cloud_ranked=false;cloud_match_id="";matchmaking=false;match_mode="ranked";match_deck={};match_room_public=true;match_queued=-1;match_wait_seconds=0;match_rank_gap=0;match_settled=false;last_result_report=0
+ competition_match_id=""
+ competition_format=Series.BO1_SIDEBOARD
+ match_connect_started=0
  if forget:identity.resume={};save_identity()
 func on_connect(id: int):
  remote_last_seen=Time.get_ticks_msec()
@@ -496,6 +632,8 @@ func welcome(id: int,actor: int=1):
   cloud_player_acks[actor]=false
   connected=cloud_players_ready()
  paused=true;joining=false;remote_last_seen=Time.get_ticks_msec();notice="同步中";retry_at=0
+ # Match deck registration in hello may already have advanced the preparation stage.
+ room=series.public_state(local_actor())
  var player_record=record_for_actor(actor)
  transport.send_to(id,{"type":"welcome","room_id":room_id,"token":player_record.token,"match_id":series.state.match_id,"room":series.public_state(actor),"sequence":sequence,"ack_id":receipts[actor]})
  if authority!=null and series.state.status!="choosing":transport.send_to(id,make_snapshot(actor,[],true))
@@ -512,6 +650,7 @@ func check_join_timeout(now: int):
  if is_host or read_only or not joining or not room_id.is_empty():return
  var limit=35000 if join_stage=="approval" else 12000
  if now-remote_last_seen<=limit:return
+ if ranked_match_pending():on_failure("恢复匹配连接超时");return
  joining=false;rejected=true;paused=true;transport.close()
  notice="等待房主确认超时，请房主接受加入申请后重试。" if join_stage=="approval" else "无法进入云端房间，请刷新房间列表后重试。" if cloud_mode else "无法连接房主 %s:%d。请检查地址和 UDP 端口。" % [address,port]
  error_raised.emit(notice);changed.emit()
@@ -582,7 +721,8 @@ func receive(id: int,m: Dictionary):
    reset_match_view(m.room)
    connected=true;joining=false;paused=true;busy=false;inflight={};room_id=m.room_id;room=m.room;sequence=m.sequence;notice="同步中"
    if recording.frames.is_empty():recording.begin_capture(storage+"/capture.bin",m.match_id if resume_requested else "")
-   identity.resume={"room_id":room_id,"token":m.token,"match_id":m.match_id,"address":address,"port":port,"cloud_mode":cloud_mode,"relay_code":relay_code,"relay_websocket":relay_websocket,"cloud_slot":cloud_slot,"cloud_match_id":cloud_match_id,"password_hash":cloud_password_hash,"sequence":sequence,"deadline":disconnect_deadline_unix};save_identity();changed.emit()
+   identity.resume={"room_id":room_id,"token":m.token,"match_id":m.match_id,"address":address,"port":port,"cloud_mode":cloud_mode,"relay_code":relay_code,"relay_websocket":relay_websocket,"cloud_slot":cloud_slot,"cloud_match_id":cloud_match_id,"match_room_public":match_room_public,"match_mode":match_mode,"password_hash":cloud_password_hash,"sequence":sequence,"deadline":disconnect_deadline_unix};save_identity();changed.emit()
+   save_ranked_recovery()
   "room":
    if is_host:return
    reset_match_view(m.room)
@@ -614,7 +754,7 @@ func receive(id: int,m: Dictionary):
      if is_instance_valid(spectator_hub):spectator_hub.changed()
      changed.emit()
   "ready_state":
-   if not is_host:paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;identity.resume.erase("deadline");save_identity();changed.emit()
+   if not is_host:paused=false;notice="";disconnected_at=0;disconnect_deadline_unix=0.0;wait_choice_pending=false;wait_choice_confirmed=false;identity.resume.erase("deadline");save_identity();save_ranked_recovery();changed.emit()
   "command":
    if is_host:handle_command(sender_actor,m)
   "room_action":
@@ -633,7 +773,7 @@ func on_disconnect(id: int):
   if actor<0:return
   cloud_player_acks[actor]=false;cloud_peer_seen.erase(id)
   connected=false;paused=true;busy=false;joining=false
-  if series.state.status!="lobby":start_disconnect_wait()
+  if series.state.status!="lobby" or ranked_match_pending():start_disconnect_wait()
   if is_instance_valid(spectator_hub):spectator_hub.changed()
   notice="对战位玩家已离开" if series.state.status=="lobby" else "连接中断，已暂停，等待原玩家重连"
   changed.emit();return
@@ -655,10 +795,11 @@ func on_failure(message: String):
  if cloud_ranked and match_settled:return
  if matchmaking:
   cancel_matchmaking();notice="自动匹配失败："+message;error_raised.emit(notice);changed.emit();return
- if cloud_ranked and message.contains("匹配房间已"):
+ if cloud_ranked and (message.contains("匹配房间已") or message.contains("匹配对局已结束") or message.contains("房间已关闭")):
   match_settled=true;connected=false;paused=true;joining=false;transport.close()
   if is_host:series.abort();room=series.public_state(seat)
   elif not room.is_empty():room.status="aborted";room.winner=-2
+  clear_ranked_recovery()
   notice=message;error_raised.emit(notice);changed.emit();return
  if read_only and not is_host:
   if joining and room_id.is_empty():
@@ -667,6 +808,11 @@ func on_failure(message: String):
    joining=false;transport.close();retry_at=Time.get_ticks_msec();notice=message+"，正在恢复观战连接" if cloud_mode else message
   connected=false;paused=true;changed.emit();return
  if rejected or ended():return
+ if ranked_match_pending():
+  connected=false;paused=true;busy=false;joining=false;transport.close();retry_at=Time.get_ticks_msec()
+  start_disconnect_wait()
+  if disconnected_at==0:disconnected_at=maxi(1,Time.get_ticks_msec())
+  notice=message+"，正在恢复原匹配";changed.emit();return
  if joining and room_id.is_empty():
   joining=false;connected=false;paused=true;rejected=true;transport.close()
   notice="加入房间失败："+message+"。请确认中转服务器或房主地址、端口及防火墙放行。"
@@ -677,24 +823,43 @@ func on_failure(message: String):
  if cloud_mode and is_host:retry_at=Time.get_ticks_msec()
  notice=message+("，正在重连中转服务器" if cloud_mode and is_host and series.state.status=="lobby" else "，对局已暂停");changed.emit()
 func start_disconnect_wait():
- if disconnected_at>0 or room_id.is_empty() or room.get("status","")=="complete":return
- disconnected_at=maxi(1,Time.get_ticks_msec());disconnect_deadline_unix=Time.get_unix_time_from_system()+RECONNECT_LIMIT_MS/1000.0
+ if disconnected_at>0 or room_id.is_empty() and not ranked_match_pending() or room.get("status","")=="complete":return
+ disconnected_at=maxi(1,Time.get_ticks_msec());disconnect_deadline_unix=Time.get_unix_time_from_system()+reconnect_limit_ms()/1000.0
  wait_choice_pending=false;wait_choice_confirmed=false
+ if ranked_match_pending() and is_host:transport.relay_control("match_wait")
  if is_host:persist()
  elif not identity.get("resume",{}).is_empty():identity.resume.deadline=disconnect_deadline_unix;save_identity()
+ save_ranked_recovery()
 func check_reconnect_timeout(now: int) -> bool:
+ if matchmaking and match_connect_started>0 and now-match_connect_started>=MATCH_RECONNECT_LIMIT_MS:
+  cancel_matchmaking();notice="连接匹配服务器超时（60 秒），已自动释放，请重试"
+  error_raised.emit(notice);changed.emit();return true
  if ended():return true
+ if ranked_match_pending():
+  wait_choice_pending=false;wait_choice_confirmed=false
+  if disconnected_at>0 and (now-disconnected_at>=MATCH_RECONNECT_LIMIT_MS or disconnect_deadline_unix>0 and Time.get_unix_time_from_system()>=disconnect_deadline_unix):
+   expire_match_connection();return true
+  return false
  if disconnected_at>0 and room.get("status","")!="complete" and not wait_choice_pending and not wait_choice_confirmed and (now-disconnected_at>=RECONNECT_LIMIT_MS or disconnect_deadline_unix>0 and Time.get_unix_time_from_system()>=disconnect_deadline_unix):
   wait_choice_pending=true;changed.emit()
  return false
+func expire_match_connection():
+ # Release local recovery without inventing a rated result; the relay settles it.
+ match_settled=true;connected=false;paused=true;joining=false;busy=false;inflight={}
+ if is_host:series.abort();room=series.public_state(seat);persist()
+ elif not room.is_empty():room.status="aborted";room.winner=-2
+ notice="匹配连接超时（60 秒），已自动释放，请重新匹配"
+ if not room.is_empty():room.end_reason=notice
+ clear_ranked_recovery();transport.close();metrics.reset();changed.emit()
 func continue_waiting():
  if not wait_choice_pending or ended():return
  wait_choice_pending=false;wait_choice_confirmed=true;changed.emit()
 func stop_waiting():
- if disconnected_at==0 or ended():return
+ if not can_stop_waiting():return
+ # An ended match needs local cleanup even though it needs no further settlement.
  end_disconnected_match();leave()
 func end_disconnected_match():
- if ended() or room.get("status","")=="complete" or disconnected_at==0:return
+ if ranked_match_pending() or ended() or room.get("status","")=="complete" or disconnected_at==0:return
  if room.is_empty():room=Series.new().public_state(seat)
  connected=false;paused=true;busy=false;joining=false;inflight={};rejected=true;metrics.reset()
  if is_host:
@@ -766,6 +931,11 @@ func handle_room_action(actor: int,action: Dictionary):
  var previous_series=series.state.duplicate(true);var old_engine=authority;var old_sequence=sequence;var previous_undo=undo_history.entries.duplicate();var previous_rewinds=rewind_events.duplicate(true);var previous_request=undo_request.duplicate(true)
  var error="";var name=action.get("name","")
  match name:
+  "entertainment_mode":
+   if cloud_ranked:error="匹配模式已在入队前锁定"
+   elif actor!=local_actor():error="只有房主可以切换娱乐模式"
+   elif not action.get("format") is int and not action.get("format") is float:error="娱乐模式无效"
+   else:error=series.select_entertainment(int(action.format))
   "deck":
    if not action.get("deck") is Dictionary:return
    error="匹配卡组已在入队前锁定" if cloud_ranked and series.state.status=="lobby" else series.set_deck(actor,action.deck)
@@ -812,7 +982,15 @@ func reset_match_view(next_room: Dictionary):
  snapshots.clear();latest_snapshot={};local_game_id=""
 func refresh_undo_status():
  series.state.undo_request=undo_request.duplicate(true)
- series.state.undo_available=series.state.status=="playing" and undo_request.is_empty() and undo_history.available(authority,series.state.game_id)
+ series.state.undo_limit=RANKED_UNDO_LIMIT if cloud_ranked and match_mode=="ranked" else 0
+ series.state.undo_used=undo_used()
+ series.state.undo_available=series.state.status=="playing" and undo_request.is_empty() and undo_budget_available() and undo_history.available(authority,series.state.game_id)
+func undo_used() -> int:
+ # Older host saves only tracked accepted rewinds; preserve those spent uses.
+ return int(series.state.get("undo_used",rewind_events.filter(func(event):return event.get("game","")==series.state.game_id).size()))
+func undo_budget_available() -> bool:
+ if not cloud_ranked or match_mode!="ranked":return true
+ return undo_used()<RANKED_UNDO_LIMIT
 func publish_undo_status():
  refresh_undo_status();room=series.public_state(local_actor())
  busy=false;inflight={}
@@ -825,8 +1003,14 @@ func handle_undo_action(actor: int,action: Dictionary):
  if name=="undo_request":
   if not undo_request.is_empty():return reject(actor,"已有悔棋请求")
   if int(action.get("_expected",-1))!=sequence or action.get("_game","")!=series.state.game_id:return reject(actor,"战况已更新，请重新发起悔棋")
+  if not undo_budget_available():return reject(actor,"段位匹配赛每局双方合计最多请求悔棋 %d 次，次数已用完" % RANKED_UNDO_LIMIT)
   if not undo_history.available(authority,series.state.game_id):return reject(actor,"对抗为空且有上一可操作战况时才能悔棋")
+  var previous_used=undo_used()
+  series.state.undo_used=previous_used+1
   undo_request={"id":Identity.token(),"from":actor,"game":series.state.game_id,"target":undo_history.previous(authority,series.state.game_id).sequence}
+  refresh_undo_status()
+  if not persist():
+   undo_request={};series.state.undo_used=previous_used;refresh_undo_status();return reject(actor,notice)
  elif name in ["undo_accept","undo_decline","undo_cancel"]:
   if undo_request.is_empty() or action.get("ticket","")!=undo_request.id:return reject(actor,"悔棋请求已失效")
   if name=="undo_cancel" and actor!=undo_request.from or name!="undo_cancel" and actor==undo_request.from:return reject(actor,"只能由另一位玩家决定是否同意")
@@ -866,6 +1050,7 @@ func publish(events: Array=[],remote_only: bool=false,recovery: bool=false):
  discovery.metadata=metadata();changed.emit()
 func remember_sequence():
  if not identity.get("resume",{}).is_empty():identity.resume.sequence=sequence;save_identity()
+ save_ranked_recovery()
 func finish_receipt(packet: Dictionary):
  if inflight.get("id","")==packet.get("ack_id","") or packet.get("recovery",false):busy=false;inflight={}
 func enqueue_snapshot(packet: Dictionary,events: Array=[]):
@@ -937,6 +1122,8 @@ func retry_connection(now: int,immediate: bool=false):
   else:
    var error=transport.relay_join(resolved,port,relay_code,relay_websocket,cloud_token,options,true)
    if error==OK:joining=true;remote_last_seen=now;notice="正在恢复观战连接";changed.emit()
+ elif ranked_match_pending() and not is_host and not connected and disconnected_at>0:
+  retry_at=now;reconnect_ranked_guest()
  elif not is_host and not read_only and not connected and not identity.get("resume",{}).is_empty() and disconnected_at>0:
   retry_at=now;resume_guest()
 func report_match_result(force: bool=false):
@@ -948,6 +1135,9 @@ func report_match_result(force: bool=false):
 func _process(_delta):
  if transport==null or application_suspended:return
  var now=Time.get_ticks_msec()
+ # Keep the waiting survivor alive at the relay while peer gameplay is paused.
+ if ranked_match_pending() and now-last_relay_heartbeat>2000:
+  last_relay_heartbeat=now;transport.relay_control("match_keepalive")
  report_match_result()
  if cloud_ranked and match_settled:return
  for id in rejected_peers.keys():

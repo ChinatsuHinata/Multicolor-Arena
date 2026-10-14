@@ -1,5 +1,6 @@
 extends RefCounted
 const Paths=preload("res://scripts/portable_paths.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const MAGIC="MREPLY1\n"
 const MAX_FILE=128*1024*1024
 const MAX_FRAME=16*1024*1024
@@ -164,7 +165,7 @@ func save(path: String="") -> Dictionary:
  var error=Paths.initialize()
  if not error.is_empty():return {"error":error}
  if path.is_empty():
-  var names=" vs ".join(metadata.room.get("names",["对局"]))
+  var names=" vs ".join(metadata.room.get("names",["对局"]).map(func(name):return PlayerNameDisplay.caption(name)))
   var title=(metadata.created.replace(":","-")+" "+names).validate_filename().left(120)
   path=Paths.root().path_join("replay").path_join(title+"_"+str(Time.get_ticks_usec())+".mreply")
  var shared_metadata=metadata.duplicate(true);shared_metadata.erase("_rewind_seen")

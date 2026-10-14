@@ -28,6 +28,6 @@ static func rules(app,parent: Node,id: String,width: float) -> ScrollContainer:
  var info=Store.CARDS[id]
  text(app,column,str(info.name),app.ui_metrics.title,app.GOLD)
  var costs=app.HexCost.new();column.add_child(costs)
- costs.configure(info.cost,false,width,app.ui_metrics.body*1.5,info.get("variable_cost",""))
+ costs.configure(app.CostDisplay.for_card(info),false,width,app.ui_metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
  text(app,column,app.card_description(id),app.ui_metrics.body,Color("#e8edf0")).name="CardInspectionRules"
  return scroll

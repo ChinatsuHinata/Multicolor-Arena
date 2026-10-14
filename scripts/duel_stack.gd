@@ -52,6 +52,8 @@ func mode_caption(card_id: String,mode: String) -> String:
 func entry_caption(entry: Dictionary) -> String:
  var caption=view.AbilityCaption.text(entry) if entry.kind=="ability" or entry.has("ability_text") else ""
  var mode=chosen_mode(entry)
+ var cost=view.variable_cost_caption(entry.card) if entry.kind=="card" else ""
+ if not cost.is_empty():mode+=("\n" if not mode.is_empty() else "")+cost
  if caption.is_empty():return mode
  return caption+"\n"+mode if not mode.is_empty() else caption
 func build(owner_view):

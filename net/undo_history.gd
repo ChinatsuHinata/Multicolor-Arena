@@ -36,6 +36,7 @@ func remember(engine,game: String,sequence: int):
  var decision=can_decide(engine)
  var raw=var_to_bytes(Codec.capture(engine))
  var checkpoint={"game":game,"sequence":sequence,"size":raw.size(),"bytes":raw.compress(FileAccess.COMPRESSION_ZSTD),"can_decide":decision}
+ mark_phase(checkpoint,engine.phase,engine.turn,engine.active,engine.pending,engine.players)
  # Keep the current state as a cursor, while passive transitions share one slot.
  if not decision and not entries.is_empty() and entries.back().get("can_decide",true)==false:entries[-1]=checkpoint
  else:entries.append(checkpoint)
@@ -49,10 +50,39 @@ func checkpoint_graph(checkpoint: Dictionary) -> Dictionary:
  var graph=bytes_to_var(raw)
  return graph if graph is Dictionary else {}
 
+func mark_phase(checkpoint: Dictionary,phase: String,turn: int,active: int,pending: Dictionary,players: Array):
+ checkpoint.phase=phase;checkpoint.turn=turn;checkpoint.active=active
+ checkpoint.possession_ready=phase=="possession" and pending.get("kind","")=="possession" and active in [0,1] and players.size()==2 and int(players[active].get("possession_count",0))==0
+
+func phase_marker(checkpoint: Dictionary) -> Dictionary:
+ if not checkpoint.has("possession_ready"):
+  var graph=checkpoint_graph(checkpoint)
+  if graph.is_empty():return {}
+  var state=Codec.decode(graph)
+  mark_phase(checkpoint,str(state.get("phase","")),int(state.get("turn",0)),int(state.get("active",-1)),state.get("pending",{}),state.get("players",[]))
+ return checkpoint
+
+func main_possession_index(engine,game: String) -> int:
+ if engine==null or engine.phase!="main":return -1
+ var current=phase_marker(entries.back())
+ if current.get("phase","")!="main" or current.get("turn",-1)!=engine.turn or current.get("active",-1)!=engine.active:return -1
+ # Only the first settled main checkpoint can rewind the whole possession step.
+ # Later main operations still undo individually, and earlier turns stay separate.
+ var ready=-1
+ for index in range(entries.size()-2,-1,-1):
+  var entry=entries[index]
+  if entry.game!=game:break
+  var marker=phase_marker(entry)
+  if marker.get("turn",-1)!=engine.turn or marker.get("active",-1)!=engine.active or marker.get("phase","")!="possession":break
+  if marker.get("possession_ready",false):ready=index
+ return ready
+
 func previous_index(engine=null,game: String="") -> int:
  if entries.size()<2:return -1
  if game.is_empty():game=str(entries.back().game)
  if entries.back().game!=game:return -1
+ var possession_start=main_possession_index(engine,game)
+ if possession_start>=0:return possession_start
  var scratch=null
  for index in range(entries.size()-2,-1,-1):
   var entry=entries[index]

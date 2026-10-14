@@ -56,7 +56,10 @@ static func encode(adapter,seat: int,command: Dictionary) -> Dictionary:
   "choose_trigger","choose_effect":
    action.target=target(adapter,args[0])
    if name=="choose_effect" and adapter.engine.pending.get("trigger",{}).get("effect")=="cat:grant":action.grant_payment=adapter.engine.paid_cast_uid>=0
-  "choose_trigger_order","choose_ward":action.index=int(args[0])
+  "choose_trigger_order":
+   if args[0] is Array:action.order=args[0].duplicate()
+   else:action.index=int(args[0])
+  "choose_ward":action.index=int(args[0])
   "choose_return","choose_grave_replacement":action.yes=args[0]
   "choose_timer":action.value=int(args[0])
   "combat_damage":

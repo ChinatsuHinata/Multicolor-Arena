@@ -14,6 +14,45 @@ func refresh():
 func arrows_for(id: int) -> Array:
  return view.stack_target_arrows().filter(func(arrow):return arrow.entry==id)
 
+func region_choice_open() -> bool:
+ return is_instance_valid(view.android_choice_panel) and view.android_choice_panel.get_meta("region_picker",false) and view.android_choice_panel.is_visible_in_tree()
+
+func grave_operators(label: String):
+ for sequence in [["spell","spell","spell"],["ability","ability","ability"],["spell","ability","spell"]]:
+  clean(true);e.debug_free_payment=true
+  var first=put("53","grave")
+  var other=put("54","grave")
+  var enemy=put("53","grave",1)
+  for index in range(sequence.size()):
+   var kind=sequence[index]
+   var title=label+" "+"/".join(sequence)+" choice %d" % (index+1)
+   var source=put("103","hand") if kind=="spell" else put("35","field")
+   source.entered_turns=0
+   await refresh()
+   if kind=="spell":view.request_cast(source.uid)
+   else:view.execute_action({"type":"extension","uid":source.uid,"key":"exile_grave","enabled":true})
+   await frames()
+   expect(region_choice_open(),title+" automatically opens the grave selection")
+   if not region_choice_open():break
+   var target=first if index<2 else enemy if kind=="ability" else other
+   expect(view.region_tiles.has(target.uid),title+" offers the intended grave target")
+   if not view.region_tiles.has(target.uid):break
+   expect(view.region_tiles[target.uid].get_meta("stack_target_count",0)==(index if index<2 else 0),title+" preserves earlier target markers")
+   expect(not view.region_tiles[target.uid].get_meta("region_selected",true),title+" starts without selecting the previous target")
+   if index==1:
+    find_button(view.android_choice_panel,"隐藏").pressed.emit();await frames()
+    await refresh()
+    expect(not region_choice_open() and is_instance_valid(view.android_choice_restore),title+" stays hidden across a refresh")
+    if is_instance_valid(view.android_choice_restore):view.android_choice_restore.pressed.emit();await frames()
+    expect(region_choice_open(),title+" can expand the grave selection again")
+   view.select_region_atom(view.region_tiles[target.uid].get_meta("choice_atom"))
+   view.confirm_region_atom();await refresh()
+   expect(view.local.is_empty() and e.stack.size()==index+1,title+" confirms another operator in the same stack")
+   expect(first.zone=="grave" and other.zone=="grave" and enemy.zone=="grave",title+" leaves all targets in grave before resolution")
+   expect(view.stack_target_arrows().size()==index+1,title+" retains every declared target arrow")
+   if e.stack.size()!=index+1:break
+   e.pass_priority(1)
+
 func screenshot(label: String):
  if DisplayServer.get_name()=="headless":return
  await create_timer(0.6).timeout
@@ -75,10 +114,13 @@ func komachi(label: String,same_target: bool=false):
  expect(e.pending.get("kind","")=="trigger_order" and e.pending.options.size()==2,label+" Price of Life doubles Komachi's death ability")
  if e.pending.get("kind","")!="trigger_order":return
  e.choose_trigger_order(0)
+ await refresh()
+ expect(region_choice_open(),label+" first death target choice automatically opens the grave")
  var first_id=e.pending.stack_id
  e.choose_effect(e.Pack.ref(e,first));await refresh()
  expect(e.stack.size()==2 and arrows_for(first_id).size()==1,label+" grave arrow remains during the second death target choice")
- view.region_picker();await frames()
+ expect(region_choice_open(),label+" second death target choice automatically opens the grave")
+ if not region_choice_open():return
  expect(view.region_tiles.has(first.uid) and view.region_tiles.has(copy.uid),label+" second search includes both copies")
  if not view.region_tiles.has(first.uid):return
  expect(view.region_tiles[first.uid].get_meta("stack_target_count",0)==1 and view.region_tiles[copy.uid].get_meta("stack_target_count",0)==0,label+" only the exact previously targeted grave card is marked")
@@ -162,7 +204,7 @@ func run():
   await frames();app.refresh_responsive_layout();app.begin_battle(true);await frames()
   view=app.duel_view;view.set_process(false);e=view.engine
   var label="android" if app.is_android else "desktop"
-  await frogs(label);await komachi(label);await komachi(label+"-same",true);await counter(label);await continuation(label)
+  await frogs(label);await komachi(label);await komachi(label+"-same",true);await grave_operators(label);await counter(label);await continuation(label)
  app.queue_free();await frames()
  print("STACK TARGET PERSISTENCE: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

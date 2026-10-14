@@ -1,4 +1,5 @@
 extends RefCounted
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 ## History uses detached public artwork snapshots, never live card lookup.
 
 static func hidden(view,art: Dictionary) -> bool:
@@ -66,7 +67,7 @@ static func build(view):
   label(view,content,stamp(view,entry),m.small if view.is_android else 14,view.host.MUTED)
   var body=HBoxContainer.new();body.mouse_filter=Control.MOUSE_FILTER_PASS;body.add_theme_constant_override("separation",20 if view.is_android else 12);content.add_child(body)
   if not entry.get("art",[]).is_empty():tile(view,body,entry.art[0],100 if view.is_android else 62,open)
-  label(view,body,entry.text,m.body if view.is_android else 17,view.host.WHITE,"HistoryText")
+  label(view,body,PlayerNameDisplay.battle_text(entry.text,view.engine.player_names),m.body if view.is_android else 17,view.host.WHITE,"HistoryText")
   if not entry.get("revealed_cards",[]).is_empty():
    label(view,content,"展示 %d 张牌 · 查看全部" % entry.revealed_cards.size(),m.small if view.is_android else 14,view.host.GOLD,"HistoryRevealCount")
 
@@ -101,7 +102,7 @@ static func detail(view,entry: Dictionary):
  var body=VBoxContainer.new();body.name="HistoryDetailBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  body.add_theme_constant_override("separation",16);scroll.add_child(body)
  label(view,body,stamp(view,entry),view.host.ui_metrics.small if view.is_android else 17,view.host.MUTED)
- label(view,body,entry.text,font,view.host.WHITE,"HistoryDetailText")
+ label(view,body,PlayerNameDisplay.battle_text(entry.text,view.engine.player_names),font,view.host.WHITE,"HistoryDetailText")
  if not entry.get("art",[]).is_empty():
   if entry.get("revealed_cards",[]).is_empty():
    label(view,body,"相关卡牌",font,view.host.GOLD)

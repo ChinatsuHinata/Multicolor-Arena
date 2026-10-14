@@ -3,6 +3,7 @@ param(
     [switch]$Publish,
     [switch]$CheckConnection,
     [switch]$ReplaceExisting,
+    [switch]$NoLegacyCumulative,
     [string]$FromVersion,
     [string]$PreviousManifest,
     [string]$BaseWindowsPck,
@@ -145,11 +146,13 @@ if ($autoSource -and $FromVersion -cne '1.2.7.1' -and -not $BaseWindowsPck -and 
         } else { Join-Path $root "builds/pck-base/$FromVersion-$platform.pck" }
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { $missingSource = $true }
     }
+    if ($missingSource -and $NoLegacyCumulative) { throw "Source $FromVersion has no complete prepared pair; adjacent-only publication cannot fall back to the legacy base." }
     if ($missingSource) {
         Write-Host "Source $FromVersion has no complete prepared pair; publishing a cumulative bootstrap from 1.2.7.1."
         $FromVersion = '1.2.7.1'
     }
 }
+if ($NoLegacyCumulative -and $FromVersion -ceq '1.2.7.1') { throw 'Adjacent-only publication requires a source newer than the legacy fixed base.' }
 if ($Publish) {
     $guard = if ($ReplaceExisting) { ':' } else { "if [ -e '$remoteRoot/$version' ]; then echo 'Version already published; use -ReplaceExisting.' >&2; exit 1; fi" }
     $prepare = "$guard; mkdir -p '$incoming'"
@@ -163,7 +166,7 @@ if (-not $SkipBuild) {
     if ($BaseAndroidPck) { $buildArgs.BaseAndroidPck = $BaseAndroidPck }
     & (Join-Path $PSScriptRoot 'build-pck-patch.ps1') @buildArgs
     if (-not $?) { throw 'PCK patch build failed.' }
-    if ($FromVersion -cne '1.2.7.1') {
+    if ($FromVersion -cne '1.2.7.1' -and -not $NoLegacyCumulative) {
         $cumulativeArgs = @{ FromVersion = '1.2.7.1' }
         if ($installed -and $installed.BaseVersion -ceq '1.2.7.1') { $cumulativeArgs.BaseWindowsPck = $installed.RawPath }
         & (Join-Path $PSScriptRoot 'build-pck-patch.ps1') @cumulativeArgs
@@ -175,8 +178,8 @@ $origin = "http://${Server}:47862"
 $newEdges = @()
 $uploadFiles = [Collections.Generic.List[string]]::new()
 $legacy = [ordered]@{ format = 'multicolor:arena/pck-latest-1'; game = 'multicolor:arena'; base = '1.2.7.1'; version = $version }
-$sources = @('1.2.7.1')
-if ($FromVersion -cne '1.2.7.1') { $sources += $FromVersion }
+$sources = @($FromVersion)
+if (-not $NoLegacyCumulative -and $FromVersion -cne '1.2.7.1') { $sources = @('1.2.7.1', $FromVersion) }
 foreach ($sourceVersion in $sources) {
     $edge = [ordered]@{ from = $sourceVersion; to = $version }
     $releaseDir = Join-Path $root "builds/pck-patches/$sourceVersion-to-$version"
@@ -199,8 +202,9 @@ foreach ($sourceVersion in $sources) {
     }
     $newEdges += [pscustomobject]$edge
 }
-$chain = Merge-PckChain -Previous $previous -NewEdges $newEdges -Version $version -Origin $origin -ReplaceExisting:$ReplaceExisting
-foreach ($manifestName in @('latest', 'chain')) {
+$chain = Merge-PckChain -Previous $previous -NewEdges $newEdges -Version $version -Origin $origin -ReplaceExisting:$ReplaceExisting -NoLegacyCumulative:$NoLegacyCumulative
+$manifestNames = if ($NoLegacyCumulative) { @('chain') } else { @('latest', 'chain') }
+foreach ($manifestName in $manifestNames) {
     $manifest = if ($manifestName -eq 'latest') { $legacy } else { $chain }
     $payloadPath = Join-Path $prepareDir "$manifestName-payload.json"
     $signedPath = Join-Path $prepareDir "$manifestName.json"
@@ -219,4 +223,5 @@ $uploadFiles.Add($checksumPath)
 Invoke-CloudCommand -Command $scp -CommandArguments ($scpOptions + $uploadFiles.ToArray() + @("${target}:${incoming}/")) -Stage 'Cloud PCK upload'
 $verify = New-PckActivationCommand -RemoteRoot $remoteRoot -Incoming $incoming -Version $version -SnapshotName $snapshotName -ExpectedHash $snapshotHash -ReplaceExisting:$ReplaceExisting
 Invoke-CloudCommand -Command $ssh -CommandArguments ($sshOptions + @($target, $verify)) -Stage 'Cloud verification or activation'
-Write-Host "Published: $origin/updates/pck/chain.json (legacy latest.json also updated)"
+Write-Host "Published: $origin/updates/pck/chain.json"
+if ($NoLegacyCumulative) { Write-Host 'Adjacent patches only; legacy latest.json was preserved.' }

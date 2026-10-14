@@ -1,0 +1,71 @@
+extends "res://tests/support/ui_base.gd"
+const Session=preload("res://net/lan_session.gd")
+const Series=preload("res://net/series_controller.gd")
+const G=preload("res://scripts/rules/gensokyo_exploration.gd")
+
+func frames():
+ for i in range(4):await process_frame
+
+func run():
+ var fixture="res://work/entertainment-modes-ui/"+str(Time.get_ticks_usec())
+ Store.Paths.root_override=ProjectSettings.globalize_path(fixture)
+ DirAccess.make_dir_recursive_absolute(Store.Paths.root_override.path_join("tutorials"))
+ var settings=FileAccess.open(fixture+"/settings.json",FileAccess.WRITE)
+ settings.store_string(JSON.stringify({"match_mode":"exploration_random"}));settings.close()
+ app=load("res://main.tscn").instantiate()
+ app.settings_path=fixture+"/settings.json";app.account_session_path=fixture+"/account.json";app.tutorial_local_directory=fixture+"/tutorials"
+ root.add_child(app);await frames()
+ app.lan_storage_directory=fixture+"/unused-session"
+ expect(app.match_mode=="entertainment" and app.entertainment_mode=="exploration_random","saved exploration selection migrates to the entertainment category and submode")
+ var session=Session.new();root.add_child(session);session.initialize(fixture+"/session");session.set_process(false);app.lan_session=session
+ for mobile in [false,true]:
+  app.is_android=mobile;app.layout_dpi_override=240 if mobile else 0
+  root.size=Vector2i(1280,720) if mobile else Vector2i(1600,900)
+  app.battle_mode="exploration_random";app.setup();await frames()
+  var battle=app.screen.find_child("BattleModeSelect",true,false)
+  var subtype=app.screen.find_child("BattleEntertainmentMode",true,false)
+  expect(battle.get_item_text(1)=="娱乐模式" and subtype!=null and subtype.selected==1,"AI setup separates entertainment from its submode: "+str(mobile))
+  expect(app.match_setup_deck(0)==G.deck(true) and app.match_setup_deck(1)==G.deck(true),"AI setup previews both random presets: "+str(mobile))
+  app.clear_page("test_entertainment_modes")
+  var lobby=preload("res://net/lan_lobby.gd").new();app.screen.add_child(lobby);lobby.build(app,session)
+  lobby.mode_selected=true;lobby.cloud_selected=true;lobby.cloud_directory.stop();lobby.select_match_mode("entertainment");await frames()
+  var category=lobby.body.find_child("MatchmakingMode",true,false)
+  expect(category.item_count==3 and category.get_item_text(2)=="娱乐模式","matching offers three major categories: "+str(mobile))
+  subtype=lobby.body.find_child("MatchmakingEntertainmentMode",true,false)
+  expect(subtype!=null and subtype.item_count==2 and subtype.get_item_text(1)==G.RANDOM_MODE_NAME,"matching lists both entertainment submodes: "+str(mobile))
+  subtype.select(0);subtype.item_selected.emit(0);await frames()
+  expect(app.match_mode=="entertainment" and app.selected_match_mode()=="exploration" and lobby.cloud_directory.match_mode=="exploration","ordinary exploration has its own queue selection: "+str(mobile))
+  subtype=lobby.body.find_child("MatchmakingEntertainmentMode",true,false);subtype.select(1);subtype.item_selected.emit(1);await frames()
+  expect(app.selected_match_mode()=="exploration_random" and lobby.cloud_directory.match_mode=="exploration_random","submode selection changes the queue lookup: "+str(mobile))
+  var start=lobby.body.find_child("StartMatchmaking",true,false)
+  category=lobby.body.find_child("MatchmakingMode",true,false)
+  var deck=lobby.body.find_child("MatchDeckSelect",true,false)
+  expect(not start.disabled and deck.disabled and deck.text.contains(G.RANDOM_MODE_NAME),"random matching supplies a fixed deck without requiring a constructed deck: "+str(mobile))
+  expect(not category.get_global_rect().intersects(start.get_global_rect()) and app.screen.get_global_rect().grow(1).encloses(start.get_global_rect()),"matching controls fit without overlap: "+str(mobile))
+  var saved=JSON.parse_string(FileAccess.get_file_as_string(app.settings_path))
+  expect(saved.match_mode=="entertainment" and saved.entertainment_mode=="exploration_random","settings save category and entertainment submode separately: "+str(mobile))
+  var formats=lobby.body.find_child("MatchFormat",true,false)
+  formats.select(3);formats.item_selected.emit(3);await frames()
+  expect(lobby.entertainment_input.visible and not lobby.rule_input.visible and lobby.strict_input.disabled,"room creation shows entertainment selection and fixed rules: "+str(mobile))
+  expect(lobby.selected_room_format()==Series.EXPLORATION_RANDOM,"creation keeps the selected entertainment submode: "+str(mobile))
+  lobby.cloud_selected=false;lobby.refresh(true);await frames()
+  formats=lobby.body.find_child("MatchFormat",true,false);formats.select(3);formats.item_selected.emit(3);await frames()
+  expect(lobby.entertainment_input.visible and lobby.selected_room_format()==Series.EXPLORATION_RANDOM,"LAN creation supports the same entertainment selection: "+str(mobile))
+  session.is_host=true;session.cloud_mode=false;session.connected=true;session.paused=false;session.seat=0;session.room_id="TEST_ONLY_ENTERTAINMENT"
+  session.series=Series.new();session.series.setup(Series.EXPLORATION_RANDOM,true);session.room=session.series.public_state(0)
+  lobby.refresh(true);await frames()
+  subtype=lobby.body.find_child("RoomEntertainmentMode",true,false)
+  expect(subtype!=null and not subtype.disabled and subtype.selected==1,"room host can choose entertainment submode before preparation: "+str(mobile))
+  session.series.ready(0);session.room=session.series.public_state(0)
+  subtype.select(0);subtype.item_selected.emit(0);await frames()
+  expect(session.room.format==Series.EXPLORATION and session.room.ready==[false,false] and session.room.own_deck==G.deck(),"room selection resets presets and preparation through the real room action: "+str(mobile))
+  session.is_host=false;session.seat=1;session.room=session.series.public_state(1);lobby.refresh(true);await frames()
+  subtype=lobby.body.find_child("RoomEntertainmentMode",true,false)
+  expect(subtype.disabled,"guest can inspect the room submode but cannot change it: "+str(mobile))
+  session.is_host=true;session.cloud_ranked=true;session.seat=0;session.room=session.series.public_state(0);lobby.refresh(true);await frames()
+  subtype=lobby.body.find_child("RoomEntertainmentMode",true,false)
+  expect(subtype.disabled,"matched entertainment submode stays locked: "+str(mobile))
+  session.cloud_ranked=false;session.leave(false)
+ app.queue_free();session.queue_free();await process_frame
+ print("ENTERTAINMENT MODES UI: %d checks; %d failures" % [checks,failures.size()])
+ quit(0 if failures.is_empty() else 1)

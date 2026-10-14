@@ -10,27 +10,30 @@ func page(host,title: String,back: Callable=Callable()) -> VBoxContainer:
 
 func build_setup(host):
  var root=page(host,"人机对战")
+ app.battle_mode_selector(root)
+ if app.entertainment_battle():text(root,"人机全程让过，不出牌、不攻击、不发动能力。")
  var middle=HBoxContainer.new();root.add_child(middle);expand(middle,true)
  for i in range(2):
   var surface=panel(middle);expand(surface,true)
   var body=column(surface)
   text(body,"你的卡组" if i==0 else "人机的卡组",metrics.title)
-  var pick=action(body,app.deck_choice_caption(app.player_choice if i==0 else app.ai_choice),func():app.open_match_deck_picker(i))
+  var pick=action(body,app.match_setup_deck(i).name+" · 固定卡组" if app.entertainment_battle() else app.deck_choice_caption(app.player_choice if i==0 else app.ai_choice),func():app.open_match_deck_picker(i))
+  pick.disabled=app.entertainment_battle()
   pick.name="PlayerDeckSelect" if i==0 else "AIDeckSelect"
   pick.custom_minimum_size.x=0;expand(pick)
-  if not app.decks.is_empty():
-   var chosen=app.decks[app.player_choice if i==0 else app.ai_choice]
+  var chosen=app.match_setup_deck(i)
+  if not chosen.is_empty():
    var art=TextureRect.new();art.texture=app.texture(chosen.leader);art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
    body.add_child(art);expand(art,true)
-   text(body,"主卡组 %d   ·   副卡组 %d" % [chosen.main.size(),chosen.side.size()])
+   text(body,"拜访 ×15 · 探索 ×15\n旅行包 ×8 · 活动 ×12" if app.entertainment_battle() else "主卡组 %d   ·   副卡组 %d" % [chosen.main.size(),chosen.side.size()])
  if not app.is_android:
   var options=HBoxContainer.new();root.add_child(options)
   check(options,"测试模式（手动控制双方）",app.debug_mode,func(value):app.debug_mode=value;app.setup())
   var free=check(options,"无需付费",app.debug_free_payment,func(value):app.debug_free_payment=value);free.disabled=not app.debug_mode
   if app.LocalExperiment.available():
-   var experiment=check(root,"使用试验 AI（仅本机测试端）",app.experimental_ai and not app.debug_mode,func(value):app.experimental_ai=value;app.setup())
-   experiment.name="ExperimentalAI";experiment.disabled=app.debug_mode
-   var model=action(root,"选择模型…",app.choose_experiment_model);model.disabled=app.debug_mode or not app.experimental_ai
+   var experiment=check(root,"使用试验 AI（仅本机测试端）",app.experimental_ai and not app.debug_mode and not app.entertainment_battle(),func(value):app.experimental_ai=value;app.setup())
+   experiment.name="ExperimentalAI";experiment.disabled=app.debug_mode or app.entertainment_battle()
+   var model=action(root,"选择模型…",app.choose_experiment_model);model.disabled=app.debug_mode or app.entertainment_battle() or not app.experimental_ai
  var actions=HBoxContainer.new();root.add_child(actions)
  expand(action(actions,"开始对战",app.start_match,true))
  action(actions,"编辑牌组",app.editor)

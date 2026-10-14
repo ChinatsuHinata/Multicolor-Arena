@@ -113,7 +113,7 @@ func choose_effect(target: Dictionary):
  super.choose_effect(target)
  end_command(token)
 
-func choose_trigger_order(index: int):
+func choose_trigger_order(index: Variant):
  var token=begin_command(int(pending.get("owner",priority)),{"name":"choose_trigger_order","args":[index]})
  if token.is_empty():return
  super.choose_trigger_order(index)

@@ -2,6 +2,7 @@ extends "res://scripts/live_tooltip_panel.gd"
 const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
+const DevourMarker=preload("res://scripts/devour_marker.gd")
 ## Clicking begins a private declaration; payment still requires confirmation.
 var view
 var uid=0
@@ -25,7 +26,8 @@ func build(owner_view,instance: Dictionary,hidden: bool=false):
  add_child(art)
  if not hidden:
   cost_icons=HexCost.new();cost_icons.position=Vector2(3,5);add_child(cost_icons)
-  update_cost(view.engine.cards[card_id].cost,view.engine.cards[card_id].get("variable_cost",""))
+  update_cost(CostDisplay.for_card(view.engine.cards[card_id]),view.engine.cards[card_id].get("variable_cost",""),view.engine.cards[card_id].get("variable_multiplier",1))
+  DevourMarker.apply(self,instance,view.local_seat)
  if hidden: tooltip_text="对手手牌 · 未公开"
  else: tooltip_text=view.hand_card_tooltip(instance)
  gui_input.connect(input_card)
@@ -39,8 +41,8 @@ func build(owner_view,instance: Dictionary,hidden: bool=false):
   hold_timer.timeout.connect(func():
    if touch_down and get_global_mouse_position().distance_to(touch_origin)<12:
     inspected=true;view.inspect_card("back" if hidden_card else card_id,0 if hidden_card else uid,"对手手牌 · 未公开" if hidden_card else "","" if hidden_card else art_id))
-func update_cost(cost: Dictionary,variable_color: String=""):
- if is_instance_valid(cost_icons):cost_icons.configure(cost,true,size.x,minf(38.0,size.x*0.24),variable_color)
+func update_cost(cost: Dictionary,variable_color: String="",variable_multiplier: int=1):
+ if is_instance_valid(cost_icons):cost_icons.configure(cost,true,size.x,minf(38.0,size.x*0.24),variable_color,variable_multiplier)
 func update_style(ready: bool,selected: bool,conditional: bool=false):
  # Only gameplay highlights surround hand cards; idle cards have no frame.
  var style=StyleBoxFlat.new()

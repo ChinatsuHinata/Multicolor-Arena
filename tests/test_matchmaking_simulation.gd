@@ -32,32 +32,32 @@ func run():
   session.cloud_token=str(config.players[index].token);session.cloud_nickname=str(config.players[index].nickname)
   session.match_found.connect(found.bind(index));sessions.append(session)
  var queue_started=Time.get_ticks_msec()
- for index in range(6):check(sessions[index].start_matchmaking(config.endpoint,JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks[index%2]).is_empty(),"queue simulation player %d, Elo %d" % [index,int(config.players[index].elo)])
+ for index in range(6):check(sessions[index].start_matchmaking(config.endpoint,JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks[index%2]).is_empty(),"queue simulation player %d, %s" % [index,preload("res://scripts/rank_badge.gd").caption(config.players[index].rank)])
  var queued=await until(func():return sessions.all(func(session):return session.matchmaking and session.notice.contains("正在自动匹配")))
  check(queued,"six real authenticated clients enter the same initial batch")
  if not queued:cleanup();quit(1);return
  sessions[0].transport.relay_control("test_release_batch")
  check(await until(func():return sessions.slice(0,4).all(func(session):return session.can_act())),"first four players synchronize into two matches")
- check(not sessions[0].relay_code.is_empty() and sessions[0].relay_code==sessions[2].relay_code,"1000 pairs with 1010 ahead of the earlier 1080 request")
- check(not sessions[1].relay_code.is_empty() and sessions[1].relay_code==sessions[3].relay_code and sessions[0].relay_code!=sessions[1].relay_code,"remaining 1080 pairs with 1170 in a separate room")
- check(sessions[4].matchmaking and sessions[5].matchmaking and sessions[4].match_gap==100 and sessions[5].match_gap==100,"1400 and 1600 remain queued at the initial 100-point range")
+ check(not sessions[0].relay_code.is_empty() and sessions[0].relay_code==sessions[2].relay_code,"same 毛玉级 2 players pair ahead of an earlier adjacent-rank request despite a large Elo difference")
+ check(not sessions[1].relay_code.is_empty() and sessions[1].relay_code==sessions[3].relay_code and sessions[0].relay_code!=sessions[1].relay_code,"same 毛玉级 1 players pair in a separate room")
+ check(sessions[4].matchmaking and sessions[5].matchmaking and sessions[4].match_rank_gap==0 and sessions[5].match_rank_gap==0,"天狗 and 妖怪 players remain queued despite identical Elo")
  var directory=Directory.new();root.add_child(directory);var listings=[]
  directory.changed.connect(func():listings.append(true));directory.start(config.endpoint,str(config.players[6].token))
  check(await until(func():return not listings.is_empty()),"seventh account reads the cloud directory")
  check(directory.rooms.size()==2 and directory.rooms.all(func(info):return info.watch_only),"both active simulation matches offer spectating only")
- print("SIMULATION: first pairs 1000 / 1010 and 1080 / 1170; waiting in real time for the 1400 / 1600 pair.")
- var before_minute=true;var last_progress=0
- while sessions[4].matchmaking and sessions[5].matchmaking and Time.get_ticks_msec()-queue_started<75000:
+ print("SIMULATION: two same-rank pairs matched; waiting in real time for the adjacent major tiers.")
+ var before_expansion=true;var last_progress=0
+ while sessions[4].matchmaking and sessions[5].matchmaking and Time.get_ticks_msec()-queue_started<35000:
   var elapsed=Time.get_ticks_msec()-queue_started
-  if elapsed<59000 and (sessions[4].match_gap!=100 or sessions[5].match_gap!=100):before_minute=false
-  if elapsed/1000>=last_progress+15:
-   last_progress=elapsed/1000;print("SIMULATION WAIT: ",last_progress," seconds, ranges ",sessions[4].match_gap," / ",sessions[5].match_gap)
+  if elapsed<19000 and (sessions[4].match_rank_gap!=0 or sessions[5].match_rank_gap!=0):before_expansion=false
+  if elapsed/1000>=last_progress+5:
+   last_progress=elapsed/1000;print("SIMULATION WAIT: ",last_progress," seconds, rank ranges ",sessions[4].match_rank_gap," / ",sessions[5].match_rank_gap)
   await process_frame
  var elapsed=Time.get_ticks_msec()-queue_started
- check(before_minute,"the real server keeps the initial range before the minute threshold")
- check(not sessions[4].matchmaking and not sessions[5].matchmaking and elapsed>=60000,"the 200-point pair waits at least one real minute before matching")
+ check(before_expansion,"the real server keeps the initial range before the twenty-second threshold")
+ check(not sessions[4].matchmaking and not sessions[5].matchmaking and elapsed>=20000,"adjacent major tiers wait at least twenty real seconds before matching")
  check(await until(func():return sessions[4].can_act() and sessions[5].can_act()),"expanded-range match synchronizes both players")
- check(not sessions[4].relay_code.is_empty() and sessions[4].relay_code==sessions[5].relay_code,"1400 pairs with 1600 after expansion")
+ check(not sessions[4].relay_code.is_empty() and sessions[4].relay_code==sessions[5].relay_code,"天狗级 3 pairs with 妖怪级 1 after major tier expansion")
  check(match_events==[1,1,1,1,1,1],"each client receives one match-success notification event")
  check(sessions.all(func(session):return session.room.get("format",0)==Session.Series.BO1_SIDEBOARD and session.room.get("strict",false)),"all three matches use strict BO1 sideboarding")
  check(sessions.all(func(session):return not session.room.has("elo") and not session.room.has("ratings")),"shared room states contain no player ratings")

@@ -1,4 +1,5 @@
 extends Node
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 signal changed
 signal error_raised(message: String)
 var app
@@ -113,7 +114,7 @@ func can_act(_in_match: bool=false) -> bool:return false
 func ended() -> bool:return false
 func submit(_command: Dictionary) -> String:return "回放只供查看"
 func latency_text() -> String:return ""
-func connection_status() -> String:return "回放 · "+("双方手牌可见" if archive.metadata.get("hands","")=="both" else "公开视角" if int(archive.metadata.get("seat",0))<0 else room.get("names",["玩家","玩家"])[seat]+"视角")
+func connection_status() -> String:return "回放 · "+("双方手牌可见" if archive.metadata.get("hands","")=="both" else "公开视角" if int(archive.metadata.get("seat",0))<0 else PlayerNameDisplay.caption(room.get("names",["玩家","玩家"])[seat])+"视角")
 func pop_snapshot() -> Dictionary:
  var packet=snapshots.pop_front();local_game_id=packet.game_id;return packet
 func seek(value: int):
@@ -135,8 +136,8 @@ func update_controls():
  if not is_instance_valid(progress):return
  progress.text=("回放 · 第 %d 局 · 第 %d 回合 · %d / %d" if app.is_android else "回放 · 第 %d 局\n第 %d 回合 · %d / %d") % [archive.frames[index].round,archive.frames[index].turn,index+1,archive.frames.size()]
  if room.get("status","")=="complete":
-  progress.text="整场结束 · %d : %d\n%s获胜" % [room.scores[0],room.scores[1],room.names[room.winner]] if room.get("winner",-1)>=0 else "对局结束"
-  progress.tooltip_text=room.get("end_reason",progress.text)
+  progress.text="整场结束 · %d : %d\n%s获胜" % [room.scores[0],room.scores[1],PlayerNameDisplay.caption(room.names[room.winner])] if room.get("winner",-1)>=0 else "对局结束"
+  progress.tooltip_text=PlayerNameDisplay.in_text(room.get("end_reason",progress.text),room.get("names",[]))
  else:progress.tooltip_text=""
  play_button.text="暂停" if playing else "播放"
  updating=true;slider.value=index;updating=false

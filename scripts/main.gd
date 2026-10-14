@@ -6,6 +6,7 @@ const Store = preload("res://scripts/deck_store.gd")
 const CardArt=preload("res://scripts/card_art.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
 const Series=preload("res://net/series_controller.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const SearchAliases=preload("res://scripts/card_search_aliases.gd")
 const CardNameSearchPanel=preload("res://scripts/card_name_search_panel.gd")
 const AndroidSwipeScroll=preload("res://scripts/android_swipe_scroll.gd")
@@ -17,6 +18,16 @@ const AccountSessionStore=preload("res://scripts/account_session_store.gd")
 const PatchService=preload("res://scripts/pck_patch_service.gd")
 const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
 const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
+const AnnouncementStore=preload("res://scripts/announcement_store.gd")
+const AnnouncementPopup=preload("res://scripts/announcement_popup.gd")
+var announcement_store=AnnouncementStore.new()
+var announcement_catalogue_path=AnnouncementStore.CATALOGUE_PATH
+var announcement_push_in_editor=false
+var mailbox_button
+var tournament_button
+var tournament_ui
+var tournament_account_return=false
+var tournament_server_url=preload("res://scripts/account_client.gd").SERVER_URL
 const GOLD = Color("#e8c77e")
 const INK = Color("#101c28")
 const MUTED = Color("#b2c2ce")
@@ -68,6 +79,7 @@ var deck_picker_ui
 var deck_picker_layout_changed=false
 var player_choice = 0
 var ai_choice = 0
+var battle_mode="standard"
 var experimental_ai=false
 var experiment_model_path=LocalExperiment.default_model_path()
 var textures = {}
@@ -92,6 +104,9 @@ var android_manual_camera = false
 var android_zone_shortcuts = true
 var android_zone_shortcut_positions: Dictionary = {}
 var room_join_volume=RoomJoinSound.DEFAULT_VOLUME
+var match_room_public=true
+var match_mode="ranked"
+var entertainment_mode="exploration"
 var room_join_sound
 var replay_training_mode = false
 var is_test_build=OS.has_feature("debug")
@@ -114,6 +129,7 @@ var account_rank: Dictionary={}
 var account_token=""
 var account_remember_token=""
 var account_session_path=AccountSessionStore.DEFAULT_PATH
+var lan_storage_directory=""
 var account_notice=""
 var account_action=""
 var account_mode="login"
@@ -144,6 +160,7 @@ var cloud_edit_deck_id=""
 var cloud_edit_account=""
 var deck_plaza_server_url=preload("res://scripts/deck_plaza_client.gd").Account.SERVER_URL
 func _ready():
+ if is_android:get_tree().quit_on_go_back=false
  if not is_android:
   get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
  var f = SystemFont.new()
@@ -189,6 +206,12 @@ func _ready():
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
    android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
    room_join_volume=RoomJoinSound.normalize_volume(saved_settings.get("room_join_volume",RoomJoinSound.DEFAULT_VOLUME))
+   match_room_public=saved_settings.get("match_room_public",true)==true
+   match_mode=str(saved_settings.get("match_mode","ranked"))
+   entertainment_mode=str(saved_settings.get("entertainment_mode","exploration"))
+   if match_mode in ["exploration","exploration_random"]:entertainment_mode=match_mode;match_mode="entertainment"
+   if match_mode not in ["ranked","casual","entertainment"]:match_mode="ranked"
+   if entertainment_mode not in ["exploration","exploration_random"]:entertainment_mode="exploration"
    if saved_settings.get("android_zone_shortcut_positions") is Dictionary:
     android_zone_shortcut_positions = saved_settings.android_zone_shortcut_positions
    debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
@@ -198,12 +221,26 @@ func _ready():
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  load_tutorial_catalog()
  tutorial_progress.directory=settings_path.get_base_dir().path_join("tutorial_progress")
+ announcement_store.initialize(patch_manager().active_version,settings_path.get_base_dir().path_join("announcements.json"),announcement_catalogue_path)
+ if not announcement_store.last_error.is_empty():push_warning(announcement_store.last_error)
  menu()
  call_deferred("restore_account")
  if not load_error.is_empty(): alert(load_error)
  elif not loaded.get("warnings",[]).is_empty():
   call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
  if not patch_manager().startup_error.is_empty():call_deferred("alert",patch_manager().startup_error,"补丁加载失败")
+
+func _notification(what):
+ if is_android and what==NOTIFICATION_WM_GO_BACK_REQUEST:
+  call_deferred("android_system_back")
+
+func android_system_back():
+ if not is_inside_tree():return
+ # Use the normal cancel input path so the focused dialog or top overlay owns it.
+ var event=InputEventKey.new();event.keycode=KEY_ESCAPE;event.pressed=true
+ get_viewport().push_input(event,true)
+ event=event.duplicate();event.pressed=false
+ get_viewport().push_input(event,true)
 
 func _input(event: InputEvent):
  if page=="tutorial_scene":return # The embedded native surface owns its input.
@@ -336,6 +373,73 @@ func open_menu_popup(title: String,entries: Array,columns: int=1):
  screen.add_child(menu_popup)
  menu_popup.closed.connect(func():menu_popup=null)
  menu_popup.build(self,title,entries,columns)
+
+func open_rank_rules():
+ close_menu_popup()
+ android_swipe_scroll.reset()
+ menu_popup=preload("res://scripts/rank_rules_popup.gd").new()
+ screen.add_child(menu_popup)
+ menu_popup.closed.connect(func():menu_popup=null)
+ menu_popup.build_rules(self)
+
+func add_mailbox_button():
+ mailbox_button=preload("res://scripts/mailbox_button.gd").new()
+ mailbox_button.name="AnnouncementMailbox";screen.add_child(mailbox_button)
+ mailbox_button.add_theme_stylebox_override("normal",style(Color("#192a38"),GOLD))
+ mailbox_button.add_theme_stylebox_override("hover",style(Color("#294354"),GOLD))
+ mailbox_button.add_theme_stylebox_override("pressed",style(Color("#615135"),GOLD))
+ mailbox_button.add_theme_stylebox_override("focus",style(Color(0,0,0,0),GOLD))
+ mailbox_button.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+ var extent=ui_metrics.hit if is_android else 64.0
+ mailbox_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ mailbox_button.offset_left=-extent*2-ui_metrics.gap-ui_metrics.padding;mailbox_button.offset_right=-extent-ui_metrics.gap-ui_metrics.padding
+ mailbox_button.offset_top=ui_metrics.padding;mailbox_button.offset_bottom=ui_metrics.padding+extent
+ mailbox_button.pressed.connect(open_announcement_mailbox)
+ refresh_mailbox_badge()
+ call_deferred("push_update_announcement")
+ add_tournament_button(extent)
+
+func add_tournament_button(extent: float):
+ tournament_button=preload("res://scripts/tournament_button.gd").new()
+ tournament_button.name="TournamentEntry";tournament_button.tooltip_text="比赛";screen.add_child(tournament_button)
+ for state in ["normal","hover","pressed","focus"]:tournament_button.add_theme_stylebox_override(state,mailbox_button.get_theme_stylebox(state))
+ tournament_button.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+ tournament_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ tournament_button.offset_left=-extent-ui_metrics.padding;tournament_button.offset_right=-ui_metrics.padding
+ tournament_button.offset_top=ui_metrics.padding;tournament_button.offset_bottom=ui_metrics.padding+extent
+ tournament_button.pressed.connect(open_tournaments)
+
+func open_tournaments():
+ if account_token.is_empty() or account_name.is_empty():
+  tournament_account_return=true;account_mode="login";account_notice="登录后即可加入比赛群组和完成赛前签到"
+  account_page();return
+ tournament_account_return=false
+ clear_page("tournaments")
+ tournament_ui=preload("res://scripts/tournament_page.gd").new();tournament_ui.app=self
+ screen.add_child(tournament_ui)
+
+func tournament_login_expired(message: String):
+ account_name="";account_nickname="";account_token="";account_elo=1000;account_rank={}
+ open_tournaments();account_notice=message
+ if is_instance_valid(account_status_label):account_status_label.text=message
+
+func refresh_mailbox_badge():
+ if is_instance_valid(mailbox_button):mailbox_button.unread=announcement_store.unread_count()
+
+func open_announcement_mailbox(entry: Dictionary={},automatic: bool=false):
+ close_menu_popup();android_swipe_scroll.reset()
+ menu_popup=AnnouncementPopup.new()
+ screen.add_child(menu_popup)
+ menu_popup.closed.connect(func():menu_popup=null;call_deferred("push_update_announcement"))
+ menu_popup.build_announcements(self,entry,automatic)
+
+func push_update_announcement():
+ if OS.has_feature("editor") and not announcement_push_in_editor:return
+ if page!="menu" or announcement_store.pending().is_empty():return
+ if menu_popup_open() or account_pending or get_children().any(func(child):return child is Window and child.visible):
+  get_tree().create_timer(0.5).timeout.connect(push_update_announcement)
+  return
+ open_announcement_mailbox(announcement_store.pending(),true)
 
 func box(parent: Node, rect: Rect2, color: Color = INK, border: Color = Color("#30424f")) -> Panel:
  var p = Panel.new()
@@ -525,6 +629,31 @@ func menu():
   a.rotation_degrees=-10;b.rotation_degrees=10
   for tile in [a,b]:tile.get_child(0).size=tile.size-Vector2(10,10)
  art.resized.connect(arrange)
+ add_mailbox_button()
+
+func ensure_lan_session():
+ if is_instance_valid(lan_session):return
+ lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize(lan_storage_directory)
+ lan_session.snapshot_ready.connect(network_snapshot_ready)
+ lan_session.room_joined.connect(on_room_joined)
+ lan_session.rating_updated.connect(func(elo):account_elo=elo)
+ lan_session.rank_updated.connect(func(rank):account_rank=rank.duplicate(true))
+ lan_session.match_found.connect(preview_room_join_sound)
+ lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
+ lan_session.changed.connect(func():
+  if lan_session.match_settled and auto_patch_check_pending:call_deferred("check_cloud_pck_patch"))
+
+func restore_pending_ranked_match() -> bool:
+ ensure_lan_session()
+ lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname;lan_session.cloud_account=account_name
+ var saved=lan_session.saved_ranked_recovery()
+ if saved.is_empty():return false
+ var error=lan_session.restore_ranked_match(saved)
+ online()
+ if not error.is_empty():
+  lan_session.notice="正在恢复原匹配："+error;lan_session.changed.emit()
+  if not lan_session.ranked_match_pending():alert(error,"无法恢复原匹配");return false
+ return true
 
 func online():
  var restore_mode_selected=false
@@ -549,15 +678,8 @@ func online():
      if not focused_cloud_field.is_empty():focused_caret=focused.get_caret_column()
     break
  reload_decks()
- if not is_instance_valid(lan_session):
-  lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize()
-  lan_session.snapshot_ready.connect(network_snapshot_ready)
-  lan_session.room_joined.connect(on_room_joined)
-  lan_session.rating_updated.connect(func(elo):account_elo=elo)
-  lan_session.rank_updated.connect(func(rank):account_rank=rank.duplicate(true))
-  lan_session.match_found.connect(preview_room_join_sound)
-  lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
- lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
+ ensure_lan_session()
+ lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname;lan_session.cloud_account=account_name
  clear_page("online")
  var lobby=preload("res://net/lan_lobby.gd").new();lobby.deck_index=remaining_deck_index(lobby_deck_id,0)
  lobby.match_deck_index=remaining_deck_index(matching_deck_id,-1) if not matching_deck_id.is_empty() else -1
@@ -575,17 +697,25 @@ func online():
    focus_target.grab_focus.call_deferred()
    focus_target.set_caret_column.call_deferred(focused_caret)
 
-func account_page():
+func account_password_page():
+ if account_name.is_empty():account_page();return
+ account_page(true)
+
+func account_page(password_change: bool=false):
+ password_change=password_change and not account_name.is_empty()
+ var next_page="account_password" if password_change else "account"
+ var same_page=page==next_page
  var focused=get_viewport().gui_get_focus_owner()
  var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input,account_old_password_input] else ""
  var focused_caret=focused.get_caret_column() if focused is LineEdit and not focused_name.is_empty() else 0
- var saved_username=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountUsername" else ""
- var saved_nickname=account_username_input.text if is_instance_valid(account_username_input) and account_username_input.name=="AccountNickname" else ""
- var saved_password=account_password_input.text if is_instance_valid(account_password_input) else ""
- var saved_confirm=account_confirm_input.text if is_instance_valid(account_confirm_input) else ""
- var saved_old_password=account_old_password_input.text if is_instance_valid(account_old_password_input) else ""
+ var saved_username=account_username_input.text if same_page and is_instance_valid(account_username_input) and account_username_input.name=="AccountUsername" else ""
+ var saved_nickname=account_username_input.text if same_page and is_instance_valid(account_username_input) and account_username_input.name=="AccountNickname" else ""
+ var saved_password=account_password_input.text if same_page and is_instance_valid(account_password_input) else ""
+ var saved_confirm=account_confirm_input.text if same_page and is_instance_valid(account_confirm_input) else ""
+ var saved_old_password=account_old_password_input.text if same_page and is_instance_valid(account_old_password_input) else ""
  var saved_status=account_notice if account_action=="resume" and account_pending else account_status_label.text if is_instance_valid(account_status_label) else account_notice
- clear_page("account")
+ clear_page(next_page)
+ account_username_input=null
  account_old_password_input=null;account_password_change_button=null
  account_password_input=null;account_confirm_input=null
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -628,29 +758,27 @@ func account_page():
   form=VBoxContainer.new();form_parent.add_child(form)
   form.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   form.add_theme_constant_override("separation",maxi(8,int(ui_metrics.gap*0.65)))
- var heading=Label.new();heading.text="玩家账号";heading.add_theme_font_size_override("font_size",ui_metrics.title);heading.add_theme_color_override("font_color",GOLD);info.add_child(heading)
- var note=Label.new();note.text="登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(note)
+ var heading=Label.new();heading.text="修改密码" if password_change else "玩家账号";heading.add_theme_font_size_override("font_size",ui_metrics.title);heading.add_theme_color_override("font_color",GOLD);info.add_child(heading)
+ var note=Label.new();note.text="填写旧密码和新密码，再确认一次新密码后可提交。修改成功后，所有设备需使用新密码重新登录。" if password_change else "登录后本机会记住账号，重新打开时自动登录；30 天内未打开需重新登录。同一账号的新登录会使旧设备的云端凭据失效。";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(note)
  if is_android:note.add_theme_font_size_override("font_size",mini(ui_metrics.small,32))
  if not account_name.is_empty():
-  var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+account_nickname;info.add_child(current)
+  var current=Label.new();current.text="当前登录："+account_name+" · 昵称："+PlayerNameDisplay.caption(account_nickname);info.add_child(current)
   if is_android:
    current.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
    current.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
-  var rating=Label.new();rating.name="AccountElo";rating.text="我的 Elo：%d" % account_elo;info.add_child(rating)
-  if is_android:rating.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
-  account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";form.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
-  var change=button(form,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
-  var password_heading=Label.new();password_heading.text="修改密码";form.add_child(password_heading)
-  var password_note=Label.new();password_note.text="填写旧密码和新密码，再确认一次新密码后可提交。修改成功后，所有设备需使用新密码重新登录。";password_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;form.add_child(password_note)
-  if is_android:
-   password_heading.add_theme_font_size_override("font_size",compact_font)
-   password_note.add_theme_font_size_override("font_size",mini(ui_metrics.small,26))
-  account_old_password_input=account_password_field(form,"AccountOldPassword","旧密码",saved_old_password)
-  account_password_input=account_password_field(form,"AccountNewPassword","新密码：8–64 位英文字母、数字或英文符号",saved_password)
-  account_confirm_input=account_password_field(form,"AccountNewPasswordConfirm","再次输入新密码",saved_confirm)
-  account_password_change_button=button(form,"修改密码",Rect2(),account_change_password,true);account_password_change_button.name="AccountChangePassword";ui_metrics.button(account_password_change_button)
-  account_refresh_password_button()
-  var logout=button(form,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
+  if password_change:
+   account_old_password_input=account_password_field(form,"AccountOldPassword","旧密码",saved_old_password)
+   account_password_input=account_password_field(form,"AccountNewPassword","新密码：8–64 位英文字母、数字或英文符号",saved_password)
+   account_confirm_input=account_password_field(form,"AccountNewPasswordConfirm","再次输入新密码",saved_confirm)
+   account_password_change_button=button(form,"确认修改",Rect2(),account_change_password,true);account_password_change_button.name="AccountChangePassword";ui_metrics.button(account_password_change_button)
+   account_refresh_password_button()
+  else:
+   var rating=Label.new();rating.name="AccountElo";rating.text="我的 Elo：%d" % account_elo;info.add_child(rating)
+   if is_android:rating.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
+   account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";form.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
+   var change=button(form,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
+   var password_entry=button(form,"修改密码",Rect2(),account_password_page);password_entry.name="AccountOpenPasswordChange";ui_metrics.button(password_entry);password_entry.disabled=account_pending
+   var logout=button(form,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
  else:
   var tabs=HBoxContainer.new();form.add_child(tabs)
   var login_button=button(tabs,"登录",Rect2(),func():account_mode="login";account_page(),account_mode=="login");ui_metrics.button(login_button)
@@ -669,7 +797,8 @@ func account_page():
   if account_confirm_input!=null:account_confirm_input.text_submitted.connect(func(_value):account_submit())
  account_status_label=Label.new();account_status_label.name="AccountStatus";account_status_label.text=saved_status;account_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_child(account_status_label)
  if is_android:account_status_label.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
- var back=button(form,"返回主菜单" if deck_account_return.is_empty() else "返回套牌编辑器",Rect2(),return_from_account);ui_metrics.button(back)
+ var back=button(form,"返回账号" if password_change else "返回主菜单" if deck_account_return.is_empty() else "返回套牌编辑器",Rect2(),account_page if password_change else return_from_account);ui_metrics.button(back)
+ if password_change:back.name="AccountPasswordBack"
  if is_android:
   for child in form.get_children():
    if child is Button or child is LineEdit:
@@ -717,7 +846,7 @@ func account_change_password():
  var confirmation=account_confirm_input.text
  account_pending=true;account_action="password";account_status_label.text="正在验证并修改密码…"
  for field in [account_old_password_input,account_password_input,account_confirm_input]:field.clear()
- account_page()
+ account_password_page()
  account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
  account_client.finished.connect(account_request_finished)
  account_client.change_password(account_name,old_password,new_password,confirmation)
@@ -806,14 +935,19 @@ func account_request_finished(ok: bool,message: String,username: String):
  account_notice=message
  if ok and account_action in ["login","resume"]:
   auto_patch_check_pending=not OS.has_feature("editor") or auto_patch_update_in_editor
+  if restore_pending_ranked_match():return
   call_deferred("check_cloud_pck_patch")
  if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
   var destination=deck_account_return;deck_account_return=""
   call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
   return
+ if ok and account_action in ["login","resume"] and tournament_account_return:
+  tournament_account_return=false;call_deferred("open_tournaments");return
  if page=="menu" and ok:menu()
- if page=="account":
-  if ok or account_action=="password":account_page()
+ if page in ["account","account_password"]:
+  if ok or account_action=="password":
+   if page=="account_password" and not account_name.is_empty():account_password_page()
+   else:account_page()
   if is_instance_valid(account_status_label):account_status_label.text=message
 func network_snapshot_ready():
  if lan_session.latest_snapshot.game_id!=network_game_open:
@@ -1081,7 +1215,7 @@ func apply_pck_patch(path: String):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -1149,6 +1283,7 @@ func set_replay_training_mode(value: bool):
  
 
 func return_from_account():
+ tournament_account_return=false
  var from_deck=not deck_account_return.is_empty()
  deck_account_return=""
  if from_deck:editor()
@@ -1578,7 +1713,7 @@ func show_deck_tutorial():
   guide.text=guide.text.replace("；“打开截图文件夹”可查看 deck/image 截图目录", "")
   guide.text=guide.text.replace("左侧显示鼠标悬停卡牌的预览。点击中央的自机位打开选择窗，也可将卡库的自机牌拖入自机位。点击右侧卡库中的卡名，向当前主卡组或副卡组加入一张牌；默认加入主卡组。将卡从卡库拖到主卡组或副卡组，也会切换当前加入区域。", "轻点图鉴和卡组列表中的牌即可打开详情。通过详情中的“加入主卡组”或“加入副卡组”添加一张，“移出卡组”移除一张；自机单位也可以加入主副卡组，或选择“设为自机”。详情大图右下角显示同名牌余量，下方按钮切换主、副卡组列表。")
   guide.text=guide.text.replace("主、副卡组中的卡牌左键再加一张，右键移除；在同一组的卡牌之间拖动可调整顺序，拖到另一组的卡牌上可直接交换两张，拖到另一组的空白处可移动一张，拖回右侧卡库可移除。顶部“排序卡组”整理主、副卡组的排列。", "切换到卡组页后，可拖动主、副卡组中的卡牌调整顺序，拖到另一组的卡牌上可交换两张，拖到另一组空白处可移动一张；轻触详情中的“移出卡组”可移除一张。菜单中的“排序”整理主、副卡组。")
-  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "点击顶部搜索栏右侧的“筛选”打开类型、颜色和排序窗口。颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选；搜索与其他筛选会叠加。每页显示两行四列共八张完整卡面，卡面下方显示余量，使用卡面区两侧箭头翻页。")
+  guide.text=guide.text.replace("颜色按钮则严格匹配卡牌的整组颜色，例如同时选红、蓝只显示红蓝双色牌。搜索框、颜色按钮和类别下拉框会叠加筛选；点击“全部”清除颜色筛选。卡库也可按类别、颜色值或名字排序。", "点击顶部搜索栏右侧的“筛选”打开类型、颜色和排序窗口。颜色按钮严格匹配整组颜色，点击“全部”清除颜色筛选；搜索与其他筛选会叠加。每页显示两行四列共八张完整卡面，卡面右上角显示余量，使用卡面区两侧箭头翻页。")
   guide.text=guide.text.replace("右下角可保存、使用、清空或删除卡组；", "卡组页右侧可保存卡组，菜单中可清空或删除卡组；图鉴页及卡组页均有“返回主菜单”按钮。")
   guide.text=guide.text.replace("鼠标中键点击仓库、主副卡组或自机位的牌可更换异画", "卡牌详情中的“更换异画”可更换图片")
  dialog.add_child(guide)
@@ -1723,11 +1858,11 @@ func setup():
 
 func start_match():
  if is_android:debug_mode=false
- if decks.is_empty(): alert("请选择卡组。"); return
- if experimental_ai and LocalExperiment.available() and not debug_mode:
+ if not entertainment_battle() and decks.is_empty(): alert("请选择卡组。"); return
+ if not entertainment_battle() and experimental_ai and LocalExperiment.available() and not debug_mode:
   var model=LocalExperiment.read_model(experiment_model_path)
   if model.has("error"):alert(model.error,"试验 AI");return
- for i in [player_choice,ai_choice]:
+ for i in ([] if entertainment_battle() else [player_choice,ai_choice]):
   var error=Store.validate(decks[i],true,str(decks[i].get("rule_set",RuleSet.OFFICIAL)))
   if not error.is_empty():
    alert("「%s」：%s" % [decks[i].name,error],"卡组不合规")
@@ -1758,14 +1893,44 @@ func choose_first_player(title: String,message: String):
  d.popup_centered()
 
 func begin_battle(first: bool):
- if experimental_ai and LocalExperiment.available() and not debug_mode:
+ if not entertainment_battle() and experimental_ai and LocalExperiment.available() and not debug_mode:
   var model=LocalExperiment.read_model(experiment_model_path)
   if model.has("error"):alert(model.error,"试验 AI");return
  clear_page("battle")
  duel_view=preload("res://scripts/duel_view.gd").new()
  duel_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  screen.add_child(duel_view)
- duel_view.begin(self,decks[player_choice],decks[ai_choice],0 if first else 1)
+ var exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
+ var a=exploration.deck(battle_mode=="exploration_random") if entertainment_battle() else decks[player_choice]
+ var b=exploration.deck(battle_mode=="exploration_random") if entertainment_battle() else decks[ai_choice]
+ if entertainment_battle():b.ai_passive=true
+ duel_view.begin(self,a,b,0 if first else 1)
+
+func battle_mode_selector(parent: Node,rect: Rect2=Rect2()) -> OptionButton:
+ var row=HBoxContainer.new();parent.add_child(row);row.position=rect.position;row.size=rect.size
+ var choice=OptionButton.new();choice.name="BattleModeSelect";row.add_child(choice);choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ choice.add_item("标准对战");choice.add_item("娱乐模式")
+ choice.select(1 if entertainment_battle() else 0)
+ choice.item_selected.connect(func(index):battle_mode="exploration" if index==1 else "standard";setup())
+ if is_android:ui_metrics.button(choice)
+ if entertainment_battle():
+  var submode=OptionButton.new();submode.name="BattleEntertainmentMode";row.add_child(submode);submode.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  var modes=preload("res://scripts/rules/gensokyo_exploration.gd")
+  for caption in modes.MODE_NAMES:submode.add_item(caption)
+  submode.select(modes.MODES.find(battle_mode))
+  submode.item_selected.connect(func(index):battle_mode=modes.MODES[index];setup())
+  if is_android:ui_metrics.button(submode)
+ return choice
+
+func entertainment_battle() -> bool:
+ return battle_mode in ["exploration","exploration_random"]
+
+func selected_match_mode() -> String:
+ return entertainment_mode if match_mode=="entertainment" else match_mode
+
+func match_setup_deck(seat: int) -> Dictionary:
+ if entertainment_battle():return preload("res://scripts/rules/gensokyo_exploration.gd").deck(battle_mode=="exploration_random")
+ return {} if decks.is_empty() else decks[player_choice if seat==0 else ai_choice]
 
 func choose_experiment_model():
  if not LocalExperiment.available() or debug_mode:return
@@ -1816,7 +1981,9 @@ func load_legacy_test_decks():
  setup()
 
 func card_description(id: String) -> String:
- return Store.CARDS[id].rules_text
+ var info=Store.CARDS[id]
+ var attributes=Store.Database.spell_attributes(info)
+ return (attributes+"\n" if not attributes.is_empty() else "")+info.rules_text
 
 func make_drop_zone(target: String, rect: Rect2, parent: Node = null):
  var panel=box(parent if parent else deck_canvas,rect,Color("#13232f"),GOLD if zone==target else Color("#3b5060"))
@@ -2048,6 +2215,10 @@ func update_sideboard_info():
  var leaders=room.get("leaders",[])
  sideboard_info.text=""
  if leaders.size()==2:sideboard_info.text="对方自机："+str(Store.CARDS.get(leaders[1-sideboard_session.seat],{}).get("name","未知自机"))
+ var ranks=room.get("ranks",[])
+ if sideboard_session.cloud_ranked and ranks is Array and ranks.size()==2:
+  var opponent_rank=ranks[1-sideboard_session.seat]
+  if opponent_rank is Dictionary and not opponent_rank.is_empty():sideboard_info.text+="\n对方段位："+preload("res://scripts/rank_badge.gd").caption(opponent_rank)
  if Series.sideboard_limit(room)>=0:
   sideboard_info.text+="\n已从备牌换入 %d / 3 张" % Series.sideboard_additions(draft,sideboard_original)
  sideboard_info.visible=not sideboard_info.text.is_empty()
@@ -2144,12 +2315,12 @@ func replays():
  var files=DirAccess.get_files_at(folder);files.reverse()
  for filename in files:
   if filename.get_extension().to_lower()!="mreply":continue
-  var row=Button.new();row.text=filename;row.custom_minimum_size=Vector2(0,ui_metrics.hit if is_android else 64);list.add_child(row)
+  var row=Button.new();row.text=PlayerNameDisplay.replay_filename(filename);row.custom_minimum_size=Vector2(0,ui_metrics.hit if is_android else 64);list.add_child(row)
   row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   if is_android:
    ui_metrics.button(row)
    row.custom_minimum_size.x=0
-   row.tooltip_text=filename
+   row.tooltip_text=row.text
   else:row.custom_minimum_size.x=1380
   row.pressed.connect(func():
    var result=preload("res://scripts/replay_archive.gd").read(folder.path_join(filename))
@@ -2163,7 +2334,7 @@ func replays():
   if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)
 
 func uses_responsive_layout() -> bool:
- return is_android and page in ["","menu","editor","sideboard","setup","settings","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","deck_plaza","replays"]
+ return is_android and page in ["","menu","editor","sideboard","setup","settings","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
 
 func refresh_ui_metrics():
  ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override)
@@ -2183,10 +2354,13 @@ func refresh_responsive_layout():
  if not is_instance_valid(screen):return
  if not is_android:
   if page=="battle" and is_instance_valid(duel_view):duel_view.resize_world()
+  elif page=="tournaments" and is_instance_valid(tournament_ui):tournament_ui.relayout()
   return
  screen.position=ui_metrics.safe.position;screen.size=ui_metrics.safe.size
  queue_redraw()
  if deck_picker_open():deck_picker_layout_changed=true;deck_picker_ui.refresh_metrics();return
+ if page=="menu" and menu_popup_open() and menu_popup is AnnouncementPopup:
+  menu_popup.backdrop.theme=theme;menu_popup.relayout();return
  if page in ["editor","sideboard"]:editor(page=="sideboard")
  elif page=="menu":menu()
  elif page=="setup":setup()
@@ -2196,8 +2370,10 @@ func refresh_responsive_layout():
  elif page=="tutorial_directory" and is_instance_valid(tutorial_directory_ui):tutorial_directory_ui.refresh_metrics()
  elif page=="online":online()
  elif page=="account":account_page()
+ elif page=="account_password":account_password_page()
  elif page=="replays":replays()
  elif page=="deck_plaza" and is_instance_valid(deck_plaza_ui):deck_plaza_ui.relayout()
+ elif page=="tournaments" and is_instance_valid(tournament_ui):tournament_ui.relayout()
  elif page=="battle" and is_instance_valid(duel_view):
   screen.position=Vector2.ZERO;screen.size=get_viewport_rect().size
   duel_view.resize_world()
@@ -2255,6 +2431,7 @@ func desktop_menu():
   button(screen,item[0],Rect2(96+(i%2)*374,rows[int(i/2)],350,70 if i<2 else 64),item[1],i==1)
  card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
  card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
+ add_mailbox_button()
 
 func desktop_settings():
  clear_page("settings")
@@ -2357,14 +2534,14 @@ func desktop_editor(sideboarding: bool=false):
  if sideboarding:
   box(screen,Rect2(1238,72,344,810))
   label(screen,"调整方法",Rect2(1252,92,314,36),23,GOLD)
-  var instructions=label(screen,sideboard_instructions_text(),Rect2(1252,138,314,190),17,MUTED)
+  var instructions=label(screen,sideboard_instructions_text(),Rect2(1252,138,314,158),17,MUTED)
   instructions.name="SideboardInstructions"
   instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  instructions.size=Vector2(314,190)
-  sideboard_leader_card=public_leader_card(screen,sideboard_session.room,1-sideboard_session.seat,Rect2(1333,334,150,210))
-  sideboard_info=label(screen,"",Rect2(1252,556,314,86),20,GOLD)
+  instructions.size=Vector2(314,158)
+  sideboard_leader_card=public_leader_card(screen,sideboard_session.room,1-sideboard_session.seat,Rect2(1333,304,150,210))
+  sideboard_info=label(screen,"",Rect2(1252,526,314,128),20,GOLD)
   sideboard_info.name="SideboardInfo";sideboard_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  sideboard_status=label(screen,"",Rect2(1252,650,314,94),18,GOLD)
+  sideboard_status=label(screen,"",Rect2(1252,662,314,82),18,GOLD)
   sideboard_status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   sideboard_done=button(screen,"更换完成",Rect2(1252,756,314,64),complete_sideboard,true)
   update_preview();update_deck_rows();sideboard_changed()
@@ -2452,7 +2629,7 @@ func desktop_update_preview():
  var preview_lines=[info.name,card_description(selected)]
  for index in range(preview_lines.size()):
   if index==1:
-   var cost_icons=HexCost.new();column.add_child(cost_icons);cost_icons.configure(info.cost,false,252,34,info.get("variable_cost",""))
+   var cost_icons=HexCost.new();column.add_child(cost_icons);cost_icons.configure(CostDisplay.for_card(info),false,252,34,info.get("variable_cost",""),info.get("variable_multiplier",1))
   var value=preview_lines[index]
   var text=Label.new()
   text.text=value
@@ -2490,7 +2667,9 @@ func desktop_update_library():
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
   var remaining_label: Label=null
-  if available and remaining>=0:remaining_label=label(row,"余 %d" % remaining,Rect2(232,16,54,32),16,GOLD if remaining>0 else MUTED)
+  if available and remaining>=0:
+   remaining_label=label(row,"余 %d" % remaining,Rect2(232,4,54,32),16,GOLD if remaining>0 else MUTED)
+   remaining_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   library_rows[id]={"row":row,"remaining_label":remaining_label}
   var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
   row.tooltip_text=info.name if available else info.name+"\n"+reason
@@ -2553,20 +2732,23 @@ func desktop_setup():
  reload_decks()
  clear_page("setup")
  header("人机对战",menu)
+ battle_mode_selector(screen,Rect2(360,140,880,42))
  player_choice=clampi(player_choice,0,maxi(0,decks.size()-1))
  ai_choice=clampi(ai_choice,0,maxi(0,decks.size()-1))
  for i in range(2):
   var x=220+i*620
   box(screen,Rect2(x,186,540,340))
   label(screen,"你的卡组" if i==0 else "人机的卡组",Rect2(x+24,205,440,40),24,GOLD)
-  var pick=button(screen,deck_choice_caption(player_choice if i==0 else ai_choice),Rect2(x+24,266,492,50),func():open_match_deck_picker(i))
+  var pick=button(screen,match_setup_deck(i).name+" · 固定卡组" if entertainment_battle() else deck_choice_caption(player_choice if i==0 else ai_choice),Rect2(x+24,266,492,50),func():open_match_deck_picker(i))
+  pick.disabled=entertainment_battle()
   pick.name="PlayerDeckSelect" if i==0 else "AIDeckSelect"
   pick.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-  if not decks.is_empty():
-   var chosen=decks[player_choice if i==0 else ai_choice]
+  var chosen=match_setup_deck(i)
+  if not chosen.is_empty():
    card(screen,chosen.leader,Rect2(x+24,340,106,151))
-   label(screen,"主卡组 %d\n副卡组 %d" % [chosen.main.size(),chosen.side.size()],Rect2(x+160,352,340,110),22)
+   label(screen,"拜访 ×15 · 探索 ×15\n旅行包 ×8 · 活动 ×12" if entertainment_battle() else "主卡组 %d\n副卡组 %d" % [chosen.main.size(),chosen.side.size()],Rect2(x+160,352,340,110),22)
  var test_mode=CheckButton.new()
+ if entertainment_battle():label(screen,"人机全程让过，不出牌、不攻击、不发动能力。",Rect2(220,534,1160,38),20,MUTED)
  test_mode.text="测试模式（手动控制双方）"
  test_mode.position=Vector2(420,585)
  test_mode.size=Vector2(390,40)
@@ -2591,12 +2773,12 @@ func desktop_setup():
   ai_toggle.text="使用试验 AI（仅本机测试端）"
   ai_toggle.position=Vector2(420,794)
   ai_toggle.size=Vector2(430,48)
-  ai_toggle.button_pressed=experimental_ai and not debug_mode
-  ai_toggle.disabled=debug_mode
+  ai_toggle.button_pressed=experimental_ai and not debug_mode and not entertainment_battle()
+  ai_toggle.disabled=debug_mode or entertainment_battle()
   ai_toggle.toggled.connect(func(value):experimental_ai=value;setup())
   screen.add_child(ai_toggle)
   var model_button=button(screen,"选择模型…",Rect2(860,794,220,48),choose_experiment_model)
-  model_button.disabled=debug_mode or not experimental_ai
+  model_button.disabled=debug_mode or entertainment_battle() or not experimental_ai
 
 func open_deck_folder():
  var folder=Store.folder()
@@ -2633,7 +2815,7 @@ func rank_display(parent: Node,show_username: bool=false) -> HBoxContainer:
  var badge=preload("res://scripts/rank_badge.gd").new();row.add_child(badge);badge.setup(account_rank,Store.CARDS)
  var text=Label.new();text.name="RankCaption";row.add_child(text)
  text.text=preload("res://scripts/rank_badge.gd").caption(account_rank) if not account_token.is_empty() else "毛玉级 2 · 登录后开始排位"
- if show_username:text.text=(account_nickname if not account_nickname.is_empty() else account_name if not account_name.is_empty() else "未登录")+"\n"+text.text
+ if show_username:text.text=PlayerNameDisplay.caption(account_nickname if not account_nickname.is_empty() else account_name if not account_name.is_empty() else "未登录")+"\n"+text.text
  text.add_theme_font_size_override("font_size",mini(ui_metrics.body,30) if show_username else ui_metrics.body);text.add_theme_color_override("font_color",GOLD)
  text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  row.custom_minimum_size.y=104

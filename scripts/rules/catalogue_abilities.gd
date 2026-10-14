@@ -6,7 +6,7 @@ const CAPTIONS={
 const BOOST_COUNTERS=["plus_counters","drunk_counters","madness"]
 const COUNTER_KEYS=["drunk_counters","plus_counters","minus_counters","leader_counters","courage","scare","poverty","timer","dream","madness"]
 const TOKEN_RACE_CARDS={"月兔":"token-fdf-132","幻象":"token-fdn-085","蝙蝠":"token-kmo-027","鬼":"token-fdf-130","吸血鬼":"token-fdf-133","小人":"token-smm-025","青蛙":"token-ucs-098","半灵":"token-ucs-099"}
-const TOKEN_RACES={"飞头":["飞头"],"虫群":["虫群"],"人偶":["人偶"],"埴轮":["埴轮"],"小鬼":["小鬼"],"御柱":["御柱"],"亡灵":["亡灵"]}
+const TOKEN_RACES={"飞头":["飞头"],"虫群":["全部"],"人偶":["人偶"],"埴轮":["埴轮"],"小鬼":["小鬼"],"御柱":["御柱"],"亡灵":["亡灵"]}
 const Spells=preload("res://scripts/rules/catalogue_spells.gd")
 const State=preload("res://scripts/rules/catalogue_state.gd")
 const Units=preload("res://scripts/rules/catalogue_units.gd")
@@ -27,13 +27,14 @@ static func group(e,list,low,high,title,cost=false):
  var g=e.Pack.group(pool,0 if cost and e.catalogue_retargeting else low,high,title);g.cost=cost;return g
 static func pick(e,list,low,high,title,tag=""):return e.Pack.selection([group(e,list,low,high,title)],tag)
 static func character(e,c,name):
+ if e.Exploration.wildcard(e,c,name):return true
  var actual=e.cards[c.card_id].get("character","")
  return normalized(name) in normalized(actual)
 static func additional_unit_names(e,c) -> Array:
  if c.is_empty() or c.get("zone","")!="field" or not e.is_unit(c):return []
  return ["铃仙·优昙华院·因幡"] if not with_key(e,c.owner,"spell-fdn-032").is_empty() else []
 static func has_named_unit(e,who,name) -> bool:
- return e.units(who).any(func(u):return name in e.cards[u.card_id].name or additional_unit_names(e,u).any(func(alias):return name in alias))
+ return e.units(who).any(func(u):return e.Exploration.wildcard(e,u,name) or name in e.cards[u.card_id].name or additional_unit_names(e,u).any(func(alias):return name in alias))
 static func normalized(s):return s.replace("·","").replace("・","").replace("洛","罗").replace("鵺","ぬえ").replace("隐崎","隐岐").replace("磷","燐").replace("伊","依").replace("洩","泄").replace("雷特","蕾特").replace("侘","诧")
 static func canonical_name(e,id: String) -> String:
  var info=e.cards.get(id,{})
@@ -138,7 +139,8 @@ static func continuation(e,t):
   "cat:clown_palette":
    if valid(e,aim):
     var u=e.find_card(aim.uid);var owner=u.owner;var draw=role(e,u);e.move_to(u,"grave")
-    if not e.players[owner].deck.is_empty():e.move_to(e.players[owner].deck[0],"palette");e.players[owner].palette.back().tapped=true
+    if not e.players[owner].deck.is_empty():
+     var color=e.players[owner].deck[0];e.move_to(color,"palette");color.tapped=true
     if draw:e.draw(who)
   "cat:alice_sacrifice":
    var n=0
@@ -299,7 +301,13 @@ static func rename(e,c,name):
 static func unknown(e,c):
  var old=e.cards[c.card_id];var id="catalogue_unknown_"+str(c.uid)+"_"+str(e.revision);var info=e.cards["token-fdf-131"].duplicate(true)
  info.colors=old.colors.duplicate();info.cost=old.cost.duplicate();info.token=c.get("token",false);info.copy_source_id="token-fdf-131"
- c.copy_original=c.get("copy_original",c.card_id);e.cards[id]=info;c.card_id=id
+ c.copy_original=c.get("copy_original",c.get("habitat_base",c.card_id));e.cards[id]=info;c.card_id=id
+ # Losing abilities removes granted keywords and wards, while numeric changes,
+ # counters and resolved damage-prevention effects remain on the same object.
+ for modifier in c.get("modifiers",[]):
+  for k in modifier.keys():
+   if modifier[k] is bool:modifier.erase(k)
+ for k in ["wards","extra_keywords","imp_growth","reisen_illusion","haste_on_enter","habitat_base","inherited_self"]:c.erase(k)
 static func pay_options(e,who,cost):return [{"none":true,"mode":"支付费用","pay":true},{"none":true,"mode":"不支付","pay":false}] if e.payment(who,cost).ways>0 else [{"none":true,"mode":"不支付","pay":false}]
 static func pay(e,who,plan):
  for r in plan:
@@ -348,6 +356,13 @@ static func enqueue(e,t):
   if observers.any(func(u):return has(e,u,"character-ucs-066")):return
   if who==e.catalogue_death_owner:count+=with_key(e,who,"spell-fdn-019").size()
  if "时符" in e.cards[c.card_id].get("spell_type",""):count+=with_key(e,who,"character-fdf-041").size()
+ # Natural events fire every matching ability. Forced events already enumerate bindings individually.
+ if t.get("extended",false) and not t.get("data",{}).get("single_instance",false):
+  var info=e.cards[c.card_id];var effect=t.get("effect","")
+  var family="roster" if t.get("roster",false) else "precon" if t.get("precon",false) else "extension"
+  var instances=info.get("abilities",[]).filter(func(a):return a.get("实现","")==family and a.get("参数",{}).get("效果","")==effect).size()
+  if family=="extension" and effect=="crystal":instances=info.get("keywords",[]).count("结晶")
+  count*=maxi(1,instances)
  for i in range(count):e.triggers.append(t.duplicate(true))
 static func field_limit(e,who):return 6+3*with_key(e,who,"character-ucs-053").size()
 static func extra_cast_options(e,id,who):

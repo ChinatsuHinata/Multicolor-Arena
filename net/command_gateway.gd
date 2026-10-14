@@ -15,6 +15,9 @@ static func apply(e,seat: int,command: Dictionary) -> String:
  var types={"mulligan":[TYPE_ARRAY],"possession":[TYPE_INT,TYPE_INT],"discard":[TYPE_ARRAY],"attack":[TYPE_INT,TYPE_DICTIONARY,TYPE_ARRAY],"block":[TYPE_ARRAY],"combat_damage":[TYPE_DICTIONARY],"choose_trigger_order":[TYPE_INT],"choose_ward":[TYPE_INT],"choose_trigger":[TYPE_DICTIONARY],"choose_return":[TYPE_BOOL],"choose_grave_replacement":[TYPE_BOOL],"choose_effect":[TYPE_DICTIONARY],"choose_timer":[TYPE_INT],"commit_cast":[TYPE_INT,TYPE_DICTIONARY,TYPE_ARRAY],"commit_ability":[TYPE_INT,TYPE_INT,TYPE_DICTIONARY,TYPE_ARRAY],"commit_extension":[TYPE_INT,TYPE_DICTIONARY,TYPE_ARRAY,TYPE_STRING],"toggle_ran_discount":[TYPE_INT],"toggle_murder_dolls_skip":[TYPE_INT]}
  types.confirm_revealed=[TYPE_INT]
  for i in range(a.size()):
+  if name=="choose_trigger_order" and a[i] is Array:
+   if a[i].any(func(value):return not value is int):return "触发排序格式错误"
+   continue
   if typeof(a[i])!=types[name][i]:return "操作参数错误"
  if name in ["mulligan","discard","block"]:
   if a[0].size()>100 or a[0].any(func(v):return not v is int):return "卡牌选择格式错误"

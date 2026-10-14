@@ -15,9 +15,10 @@ assert store.advance_rank(1, 2, 3, True) == (2, 0, 4)
 assert store.advance_rank(2, 0, 2, True) == (2, 2, 3)
 for step in (0, 1):
     assert store.advance_rank(step, 2, 8, False) == (step, 2, 0)
-for floor in (2, 5):
-    assert store.advance_rank(floor, 0, 8, False) == (floor, 0, 0)
-    assert store.advance_rank(floor, 1, 0, False) == (floor, 0, 0)
+assert store.advance_rank(2, 0, 8, False) == (2, 0, 0)
+assert store.advance_rank(2, 1, 0, False) == (2, 0, 0)
+assert store.advance_rank(5, 1, 8, False) == (5, 0, 0)
+assert store.advance_rank(5, 0, 8, False) == (4, 2, 0)
 assert store.advance_rank(8, 0, 0, False) == (7, 2, 0)
 assert store.advance_rank(10, 2, 5, True) == (11, 0, 6)
 assert store.advance_rank(11, 0, 0, False) == (11, 0, 0)
@@ -49,5 +50,18 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as directory:
     conn.close();conn = store.database(path)
     assert store.player_rank(conn, ids[0])["tier"] == 4
     assert request("settle", winner=0) == settled
+    conn.execute("UPDATE players SET rank_step=5,rank_stars=0,rank_streak=4 WHERE id=?", (ids[1],))
+    conn.commit()
+    match_id = "f" * 32
+    request("create", players=ids[:2]);request("start")
+    demoted = request("settle", winner=0)
+    fairy_rank = {"tier": 1, "level": 1, "stars": 2, "streak": 0, "position": 0}
+    assert demoted["ranks"][1] == fairy_rank
+    assert store.player_rank(conn, ids[1]) == fairy_rank
+    assert request("settle", winner=0) == demoted
+    assert store.player_rank(conn, ids[1]) == fairy_rank
+    conn.close();conn = store.database(path)
+    assert store.player_rank(conn, ids[1]) == fairy_rank
+    assert request("settle", winner=0) == demoted
     conn.close()
-print("PASS: rank bonuses, floors, progression, persistence and Sage leaderboard")
+print("PASS: rank bonuses, Fairy protection, Tengu demotion, progression, persistence and Sage leaderboard")

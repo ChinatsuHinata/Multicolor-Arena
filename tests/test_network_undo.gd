@@ -1,5 +1,11 @@
 extends "res://tests/support/network_base.gd"
 const Undo=preload("res://net/undo_history.gd")
+
+class FailingSaveSession extends "res://net/lan_session.gd":
+ var rejection=""
+ func persist() -> bool:return false
+ func reject(_actor: int,message: String):rejection=message
+
 var watcher
 var e
 
@@ -96,27 +102,28 @@ func phase_undo_cases():
  await undo_to(before,target,0)
  check(e.phase=="possession" and e.pending.get("kind","")=="possession" and not host.room.undo_available,"main undo skips the no-action response window and returns to exchange selection")
 
- # A legal opponent response preserves the same phase even without local actions.
+ # Entering main rewinds the exchange even when the opponent could respond.
  exchange=exchange_fixture()
  var response=put("177","hand",1);e.cards["177"].cost={}
  var recipient=put("53","field",1);recipient.tapped=true
  await checkpoint();var exchange_before=host.Codec.capture(e);var exchange_sequence=host.sequence
  await send(0,{"name":"possession","args":[exchange.palette,exchange.hand]})
  check(not response_for(0) and response_for(1),"opponent alone can legally play a fast card after the exchange")
- before=host.Codec.capture(e);target=host.sequence
- await passes();await undo_to(before,target)
- check(e.phase=="possession" and e.pending.is_empty() and e.find_card(response.uid).zone=="hand","undo preserves the opponent's legal fast response window")
- await undo_to(exchange_before,exchange_sequence,0)
- check(e.pending.get("kind","")=="possession" and not host.room.undo_available,"a second agreed undo reaches the exchange boundary without crossing its start")
+ await passes();await undo_to(exchange_before,exchange_sequence,0)
+ check(e.pending.get("kind","")=="possession" and not host.room.undo_available,"one main-phase undo restores the pre-exchange cards despite a legal fast response")
 
- # A genuine field activation must also prevent skipping a response window.
+ # A main-phase operation still rewinds individually before the possession step.
  exchange=exchange_fixture();var source=put("token-fdf-127")
- await checkpoint()
+ var attacker=put("53")
+ await checkpoint();exchange_before=host.Codec.capture(e);exchange_sequence=host.sequence
  await send(0,{"name":"possession","args":[exchange.palette,exchange.hand]})
  check(e.available_actions(0,source.uid).any(func(action):return action.type=="extension" and action.enabled),"grilled lamprey has a legal sacrifice activation outside main")
- before=host.Codec.capture(e);target=host.sequence
- await passes();await undo_to(before,target,0)
- check(e.phase=="possession" and e.pending.is_empty() and e.find_card(source.uid).zone=="field","undo preserves a phase with a legal activated ability")
+ await passes();before=host.Codec.capture(e);target=host.sequence
+ await send(0,{"name":"attack","args":[attacker.uid,{},[]]});await finish_combat()
+ await undo_to(before,target,0)
+ check(e.phase=="main" and not e.find_card(attacker.uid).tapped,"undo after a main operation first restores the start of main")
+ await undo_to(exchange_before,exchange_sequence)
+ check(e.pending.get("kind","")=="possession" and e.find_card(source.uid).zone=="field","undo at the start of main restores exchange selection despite a legal activation")
 
  # End, preparation and draw can all have no player decision between boundaries.
  fresh()
@@ -141,6 +148,60 @@ func phase_undo_cases():
  boundary.remember(e,"round-b",3)
  check(boundary.entries.size()==1 and not boundary.available(e,"round-b"),"starting a different game removes all previous-round undo targets")
 
+func ranked_undo_limit_cases():
+ fresh();host.cloud_ranked=true;host.match_mode="ranked";host.series.state.undo_used=0
+ await checkpoint();var before=host.Codec.capture(e);var target=host.sequence
+ await passes()
+ var end_before=host.Codec.capture(e)
+ check(host.room.undo_limit==5 and host.room.undo_used==0 and guest.room.undo_limit==5,"ranked players share a five-request budget")
+ for attempt in range(4):
+  var requester=host if attempt%2==0 else guest
+  var responder=guest if attempt%2==0 else host
+  requester.room_action({"name":"undo_request"})
+  check(await until(func():return not host.undo_request.is_empty() and guest.room.get("undo_used",0)==attempt+1 and watcher.room.get("undo_used",0)==attempt+1),"ranked request immediately spends one shared use for both players and spectator")
+  if host.undo_request.is_empty():return
+  var cancel=attempt==1
+  var replying_session=requester if cancel else responder
+  replying_session.room_action({"name":"undo_cancel" if cancel else "undo_decline","ticket":host.undo_request.id})
+  check(await until(func():return host.undo_request.is_empty() and guest.room.get("undo_request",{}).is_empty() and host.can_act(true) and guest.can_act(true)),"rejected or cancelled ranked request unlocks play")
+  check(host.room.undo_used==attempt+1 and guest.room.undo_used==attempt+1 and host.Codec.capture(e)==end_before,"declines and cancellations retain the spent request without rewinding")
+  var saved=host.Journal.load_from(host.storage+"/host.bin")
+  check(saved.series.undo_used==attempt+1,"request count is persisted before the opponent answers")
+ await undo_to(before,target,0)
+ check(host.room.undo_used==5 and guest.room.undo_used==5,"the fifth request can still be accepted after spending the final use")
+ await passes()
+ check(host.undo_history.available(e,host.series.state.game_id) and not host.room.undo_available and not guest.room.undo_available and not watcher.room.undo_available,"five requests disable further ranked undo despite an available checkpoint")
+ var errors=[]
+ guest.error_raised.connect(func(message):errors.append(message))
+ guest.room_action({"name":"undo_request"})
+ check(await until(func():return not guest.busy and not errors.is_empty()),"a sixth ranked request is rejected by the authority")
+ check(host.undo_request.is_empty() and host.room.undo_used==5 and errors.back().contains("次数已用完"),"rejected sixth request cannot open a ticket or spend another use")
+ var saved=host.Journal.load_from(host.storage+"/host.bin");var restored=Session.new()
+ restored.series.state=saved.series;restored.rewind_events=saved.rewind_events;restored.cloud_ranked=true;restored.match_mode="ranked"
+ restored.authority=Session.Duel.new();restored.Codec.restore(restored.authority,saved.engine);restored.undo_history.entries=saved.undo_entries
+ restored.refresh_undo_status()
+ check(restored.series.state.undo_used==5 and not restored.series.state.undo_available,"saved host recovery preserves declined, cancelled and accepted requests")
+ restored.series.state.erase("undo_used")
+ restored.rewind_events=[{"game":saved.series.game_id},{"game":saved.series.game_id},{"game":"another-game"}]
+ restored.refresh_undo_status()
+ check(restored.series.state.undo_used==2,"older saves retain accepted uses from the current game only")
+ restored.free()
+ var next_round=Session.Series.new();next_round.state=host.series.state.duplicate(true)
+ next_round.state.status="choosing";next_round.state.first_chosen=true
+ check(next_round.start_game() and next_round.state.undo_used==0,"starting the next game resets the shared request count")
+ for mode in ["casual","exploration","exploration_random"]:
+  host.match_mode=mode;host.refresh_undo_status()
+  check(host.series.state.undo_limit==0 and host.series.state.undo_available,mode+" matchmaking has no ranked undo limit")
+ var failed=FailingSaveSession.new();failed.is_host=true;failed.cloud_ranked=true;failed.match_mode="ranked";failed.sequence=host.sequence
+ failed.series.state=host.series.state.duplicate(true);failed.series.state.undo_used=3;failed.undo_history.entries=host.undo_history.entries.duplicate(true)
+ failed.authority=Session.Duel.new();failed.Codec.restore(failed.authority,host.Codec.capture(e));failed.notice="测试保存失败"
+ failed.handle_undo_action(0,{"name":"undo_request","_expected":failed.sequence,"_game":failed.series.state.game_id})
+ check(failed.undo_request.is_empty() and failed.series.state.undo_used==3 and failed.rejection==failed.notice,"failed persistence cannot spend a use or expose an unsaved request")
+ failed.free()
+ host.cloud_ranked=false;host.match_mode="ranked";host.refresh_undo_status();host.sequence+=1;host.publish([],false,true)
+ check(await until(func():return guest.room.get("undo_limit",-1)==0 and watcher.room.get("undo_limit",-1)==0),"ordinary rooms retain unlimited undo")
+ sync_views()
+
 func run():
  host=Session.new();guest=Session.new();root.add_child(host);root.add_child(guest)
  var storage="res://work/network-undo/"+str(Time.get_ticks_usec())
@@ -161,6 +222,7 @@ func run():
  check(await until(func():return not watcher.latest_snapshot.is_empty()),"spectator connected")
 
  await phase_undo_cases()
+ await ranked_undo_limit_cases()
 
  # An unblocked attack includes its resource payment and damage window.
  fresh();var attacker=put("53");put("spell-ucs-031","field",1);var resource=put("164","palette")

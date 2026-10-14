@@ -1,5 +1,10 @@
 extends RefCounted
 const ORDER=["红","蓝","绿","黄","黑"]
+static func for_card(info: Dictionary) -> Dictionary:
+ var cost: Dictionary=info.get("cost",{})
+ if info.get("token",false) and not info.get("colors",[]).is_empty() and info.get("variable_cost","").is_empty() and cost.values().all(func(n):return int(n)==0):
+  return {"/".join(info.colors):0}
+ return cost
 static func sorted_keys(cost: Dictionary) -> Array:
  var keys=cost.keys()
  keys.sort_custom(func(a,b):

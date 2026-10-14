@@ -130,7 +130,7 @@ func run():
  var description=app.preview.find_child("CardDescriptionPane",true,false)
  expect(picture!=null and description!=null and picture.get_global_rect().position.x>=description.get_global_rect().end.x,"details put rules on the left and art on the right")
  var inventory=picture.get_node("CardDetailsRemaining")
- expect(inventory.text=="余 ∞" and picture.get_global_rect().encloses(inventory.get_global_rect()) and inventory.horizontal_alignment==HORIZONTAL_ALIGNMENT_RIGHT and inventory.vertical_alignment==VERTICAL_ALIGNMENT_BOTTOM,"detail art shows unlimited inventory in its bottom right corner")
+ expect(inventory.text=="余 ∞" and picture.get_global_rect().encloses(inventory.get_global_rect()) and inventory.horizontal_alignment==HORIZONTAL_ALIGNMENT_RIGHT and inventory.vertical_alignment==VERTICAL_ALIGNMENT_TOP,"detail art shows unlimited inventory in its top right corner")
  expect(app.ui_metrics.safe.grow(2).encloses(ui.detail_popup.get_global_rect()),"details fit inside the safe area")
  await shot("details")
  find_button(app.preview,"移出卡组").pressed.emit();await frames()

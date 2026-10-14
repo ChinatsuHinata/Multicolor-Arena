@@ -1,6 +1,12 @@
 extends "res://scripts/deck_editor_layout.gd"
 ## Android collection / deck overview share one draft and the existing deck rules.
 const DeckCard=preload("res://scripts/deck_card.gd")
+class CardDetailsOverlay extends Control:
+ signal close_requested
+ func _input(event):
+  if event.is_action_pressed("ui_cancel"):
+   get_viewport().set_input_as_handled();close_requested.emit()
+
 class LibraryPageArrow extends Button:
  var direction=1
  func _draw():
@@ -48,6 +54,8 @@ var list_height=72.0
 var detail_zone="library"
 var detail_index=-1
 var detail_popup: PanelContainer
+var detail_metrics=preload("res://scripts/ui_layout.gd").new()
+var detail_popup_size=Vector2.ZERO
 var scroll_positions={false:0,true:0}
 var list_sections={}
 var list_zone="main"
@@ -331,9 +339,39 @@ func relayout():
  layout_library_filters()
  resize_library();resize_grid()
  if is_instance_valid(detail_popup):
-  detail_popup.size=Vector2(minf(1200,app.screen.size.x-metrics.padding*2),app.screen.size.y-metrics.padding*2)
-  detail_popup.position=(app.screen.size-detail_popup.size)*0.5
+  measure_details()
   app.update_preview()
+  detail_popup.size=detail_popup_size
+  detail_popup.position=(app.screen.size-detail_popup_size)*0.5
+
+func measure_details():
+ var inset=minf(24,metrics.padding)
+ detail_popup_size=Vector2(minf(1200,app.screen.size.x-inset*2),app.screen.size.y-inset*2)
+ # A device's DPI can demand more than a whole screen for the header and
+ # three action rows. Bound only inspection's metrics and reserve art/text
+ # space before the containers calculate their minimum size.
+ var height_scale=(detail_popup_size.y-160)/(metrics.hit*4+metrics.padding*2+metrics.gap*4)
+ var width_scale=(detail_popup_size.x*0.52-metrics.gap)/(2*(metrics.button_font*5+metrics.padding*2))
+ var factor=minf(1,minf(height_scale,width_scale))
+ detail_metrics.hit=maxf(64,floorf(metrics.hit*factor))
+ detail_metrics.body=maxi(24,floori(metrics.body*factor))
+ detail_metrics.small=maxi(22,floori(metrics.small*factor))
+ detail_metrics.title=detail_metrics.body+8
+ detail_metrics.button_font=detail_metrics.body
+ detail_metrics.gap=maxf(8,floorf(metrics.gap*factor))
+ detail_metrics.padding=maxf(12,floorf(metrics.padding*factor))
+ if not is_instance_valid(detail_popup):return
+ detail_popup.add_theme_stylebox_override("panel",detail_metrics.panel_style())
+ var popup_theme=Theme.new();detail_metrics.apply_theme(popup_theme);detail_popup.theme=popup_theme
+ var heading=detail_popup.find_child("CardDetailsHeading",true,false) as Label
+ if heading!=null:heading.add_theme_font_size_override("font_size",detail_metrics.title)
+ var close=detail_popup.find_child("CloseCardDetails",true,false) as Button
+ if close!=null:detail_metrics.button(close)
+
+func detail_action(parent: Node,caption: String,callback: Callable,accent: bool=false) -> Button:
+ var result=action(parent,caption,callback,accent)
+ detail_metrics.button(result)
+ return result
 
 func resize_library():
  if not is_instance_valid(library_scroll) or library_scroll.size.x<100 or library_scroll.size.y<100:return
@@ -395,6 +433,11 @@ func render_library_page():
   inventory.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   inventory.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
   inventory.name="LibraryRemaining"
+  var inventory_style=StyleBoxFlat.new();inventory_style.bg_color=Color("#101e2b",0.94)
+  inventory_style.set_corner_radius_all(6)
+  inventory_style.content_margin_left=6;inventory_style.content_margin_right=6
+  inventory_style.content_margin_top=2;inventory_style.content_margin_bottom=2
+  inventory.add_theme_stylebox_override("normal",inventory_style)
   inventory.add_theme_color_override("font_color",app.GOLD if remaining!=0 else app.MUTED)
   var remaining_label: Label=inventory if available and remaining>=0 else null
   app.library_rows[id]={"row":tile,"remaining_label":remaining_label}
@@ -411,14 +454,13 @@ func render_library_page():
 func layout_gallery_tile(tile: Control):
  var picture=tile.find_child("LibraryCardArt",true,false) as TextureRect
  if picture==null:return
- var caption_height=maxf(32,metrics.small*1.4)
- var art_height=maxf(1,tile.size.y-caption_height-4)
+ var art_height=maxf(1,tile.size.y)
  var art_width=minf(tile.size.x,art_height/1.397)
  picture.size=Vector2(art_width,art_width*1.397)
  picture.position=Vector2((tile.size.x-picture.size.x)*0.5,0)
  var inventory=tile.find_child("LibraryRemaining",true,false) as Label
- inventory.position=Vector2(picture.position.x,picture.size.y+4)
- inventory.size=Vector2(picture.size.x,caption_height)
+ inventory.size=inventory.get_combined_minimum_size()
+ inventory.position=Vector2(picture.get_rect().end.x-inventory.size.x-4,picture.position.y+4)
 
 func queue_gallery_art():
  if gallery_art_pending:return
@@ -650,16 +692,17 @@ func insert_index(target: String,at: Vector2) -> int:
 func show_details(id: String,source: String="library",index: int=-1):
  app.selected=id;detail_zone=source;detail_index=index
  if not is_instance_valid(details_overlay):
-  details_overlay=Control.new();details_overlay.name="CardDetailsOverlay";app.screen.add_child(details_overlay)
+  details_overlay=CardDetailsOverlay.new();details_overlay.name="CardDetailsOverlay";app.screen.add_child(details_overlay)
   details_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  details_overlay.close_requested.connect(close_details)
   var shade=ColorRect.new();shade.color=Color(0,0,0,0.78);details_overlay.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   shade.gui_input.connect(func(event):
-   if event is InputEventMouseButton and not event.pressed and event.button_index==MOUSE_BUTTON_LEFT:close_details())
+   if event is InputEventMouseButton and not event.pressed and event.button_index==MOUSE_BUTTON_LEFT or event is InputEventScreenTouch and not event.pressed and not event.canceled:close_details())
   detail_popup=panel(details_overlay);detail_popup.name="CardDetailsPopup"
   var body=column(detail_popup)
   var header=HBoxContainer.new();body.add_child(header)
-  var title=text(header,"卡牌详情",metrics.title);expand(title);title.add_theme_color_override("font_color",app.GOLD)
-  action(header,"关闭",close_details)
+  var title=text(header,"卡牌详情",metrics.title);title.name="CardDetailsHeading";title.clip_text=true;expand(title);title.add_theme_color_override("font_color",app.GOLD)
+  action(header,"关闭",close_details).name="CloseCardDetails"
   app.preview.reparent(body)
  relayout()
 
@@ -670,6 +713,7 @@ func toggle_details():
 func close_details():
  if not is_instance_valid(details_overlay):return
  app.preview.reparent(preview_home)
+ details_overlay.get_parent().remove_child(details_overlay)
  details_overlay.queue_free();details_overlay=null;detail_popup=null
 
 func update_preview():
@@ -679,38 +723,41 @@ func update_preview():
  var panes=HBoxContainer.new();panes.name="CardDetailsPanes";app.preview.add_child(panes);expand(panes,true)
  var left=column(panes);left.name="CardDescriptionPane"
  var scroll=ScrollContainer.new();scroll.name="CardTextScroll";left.add_child(scroll);expand(scroll,true)
- scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ # SHOW_NEVER allows wrapped rules/cost symbols to shrink with the pane;
+ # DISABLED propagates their minimum width back into the popup.
+ scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
+ scroll.set_meta("android_swipe_prefer_vertical",true)
  var body=column(scroll)
- var title=text(body,info.name,metrics.title);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.add_theme_color_override("font_color",app.GOLD)
- var width=maxf(100,(detail_popup.size.x-metrics.padding*2-metrics.gap)*0.52)
- var costs=app.HexCost.new();body.add_child(costs);costs.configure(info.cost,false,width-20,metrics.body*1.5,info.get("variable_cost",""))
- var description=text(body,app.card_description(app.selected));description.name="CardDescription";description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var title=text(body,info.name,detail_metrics.title);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.add_theme_color_override("font_color",app.GOLD)
+ var width=maxf(100,(detail_popup_size.x-detail_metrics.padding*2-detail_metrics.gap)*0.52)
+ var costs=app.HexCost.new();body.add_child(costs);costs.configure(app.CostDisplay.for_card(info),false,width-20,detail_metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
+ var description=text(body,app.card_description(app.selected),detail_metrics.body);description.name="CardDescription";description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var actions=GridContainer.new();actions.name="CardDetailsActions";actions.columns=2;left.add_child(actions)
  var allowed=app.RuleSet.allowed(app.selected,info,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))
  if not allowed:
-  var notice=text(actions,"此规则集仅供查看",metrics.small);notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  var notice=text(actions,"此规则集仅供查看",detail_metrics.small);notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  else:
-  var add_main=action(actions,"加入主卡组",func():app.add_to("main");app.update_preview(),true);expand(add_main)
-  var add_side=action(actions,"加入副卡组",func():app.add_to("side");app.update_preview());expand(add_side)
+  var add_main=detail_action(actions,"加入主卡组",func():app.add_to("main");app.update_preview(),true);expand(add_main)
+  var add_side=detail_action(actions,"加入副卡组",func():app.add_to("side");app.update_preview());expand(add_side)
   add_main.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
   add_side.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
-  if info.kind=="自机":expand(action(actions,"设为自机",func():app.add_to("leader");close_details(),true))
+  if info.kind=="自机":expand(detail_action(actions,"设为自机",func():app.add_to("leader");close_details(),true))
  if detail_zone in ["main","side","leader"]:
-  expand(action(actions,"移出卡组",remove_inspected_card))
+  expand(detail_action(actions,"移出卡组",remove_inspected_card))
  if app.CardArt.options(app.selected,app.Store.CARDS).size()>1:
-  expand(action(actions,"更换异画",func():app.open_art_picker(app.selected)))
- if detail_zone=="leader":expand(action(actions,"更换自机",func():close_details();app.open_leader_picker()))
+  expand(detail_action(actions,"更换异画",func():app.open_art_picker(app.selected)))
+ if detail_zone=="leader":expand(detail_action(actions,"更换自机",func():close_details();app.open_leader_picker()))
  var picture=TextureRect.new();picture.name="CardDetailsArt";picture.texture=app.preview_texture(app.selected)
  picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  panes.add_child(picture);expand(picture,true);picture.size_flags_stretch_ratio=0.92;picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var remaining=app.RuleSet.remaining(app.draft,app.selected,app.Store.CARDS,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))
  var inventory=Label.new();inventory.name="CardDetailsRemaining"
  inventory.text="余 %d" % remaining if remaining>=0 else "余 ∞"
- inventory.add_theme_font_size_override("font_size",metrics.body)
+ inventory.add_theme_font_size_override("font_size",detail_metrics.body)
  inventory.add_theme_color_override("font_color",app.GOLD if remaining!=0 else app.MUTED)
  inventory.add_theme_color_override("font_outline_color",Color.BLACK);inventory.add_theme_constant_override("outline_size",4)
  inventory.add_theme_stylebox_override("normal",app.style(Color(0.04,0.08,0.12,0.88),app.GOLD))
- inventory.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;inventory.vertical_alignment=VERTICAL_ALIGNMENT_BOTTOM
+ inventory.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;inventory.vertical_alignment=VERTICAL_ALIGNMENT_TOP
  inventory.mouse_filter=Control.MOUSE_FILTER_IGNORE;picture.add_child(inventory)
  picture.resized.connect(func():fit_detail_inventory(picture,inventory))
  fit_detail_inventory.call_deferred(picture,inventory)
@@ -722,7 +769,7 @@ func fit_detail_inventory(picture: TextureRect,inventory: Label):
   var dimensions=picture.texture.get_size()
   displayed=dimensions*minf(picture.size.x/dimensions.x,picture.size.y/dimensions.y)
  inventory.size=inventory.get_combined_minimum_size()
- inventory.position=(picture.size+displayed)*0.5-inventory.size-Vector2(metrics.padding,metrics.padding)
+ inventory.position=Vector2((picture.size.x+displayed.x)*0.5-inventory.size.x-detail_metrics.padding,(picture.size.y-displayed.y)*0.5+detail_metrics.padding)
 
 func remove_deck_copy(id: String,source: String,index: int) -> bool:
  if source=="leader":

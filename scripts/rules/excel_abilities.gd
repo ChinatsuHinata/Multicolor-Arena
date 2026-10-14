@@ -10,6 +10,8 @@ const LEADER=["sanae_miracle","courage_die","kokoro_self","tokiko_discount","koi
 const UCS_SPELLS=["coin_anthem","free_anthem","all_counters","kill_small","palette_wipe","reset_four","color_damage"]
 static func has(info: Dictionary,k: String) -> bool:
  return info.get("abilities",[]).any(func(a): return a.get("实现")=="roster" and a.get("参数",{}).get("效果")==k)
+static func count(info: Dictionary,k: String) -> int:
+ return info.get("abilities",[]).filter(func(a):return a.get("实现")=="roster" and a.get("参数",{}).get("效果")==k).size()
 static func key(info: Dictionary,keys: Array) -> String:
  for k in keys:
   if has(info,k): return k
@@ -86,7 +88,7 @@ static func stat_adjust(e,c: Dictionary,k: String) -> int:
  for u in e.units(c.owner):
   if u.uid==c.uid: continue
   if enabled(e,u,"remilia_aura") and "黑" in e.Pack.colors(e,c): n+=1
-  if has(e.cards[u.card_id],"cirno_aura") and race(e,c,"妖精") and k in ["power","spirit"]: n+=1
+  if race(e,c,"妖精") and k in ["power","spirit"]: n+=count(e.cards[u.card_id],"cirno_aura")
  if k in ["power","health"]:
   n-=e.units(1-c.owner).filter(func(u): return has(e.cards[u.card_id],"murasa_aura")).size()
  return n
@@ -733,7 +735,7 @@ static func activation_options(e,c: Dictionary,k: String) -> Array:
   "satori_discard":return [{"player":0},{"player":1}]
   "suika_counter":return e.Pack.all_units(e,who).filter(func(r):return r.uid!=c.uid)
   "kanako_blast":
-   var g=e.Pack.group(refs(e,e.units(who).filter(func(u):return e.cards[u.card_id].character=="御柱" and e.can_sacrifice(u))),1,1,"牺牲一个御柱");g.cost=true
+   var g=e.Pack.group(refs(e,e.units(who).filter(func(u):return race(e,u,"御柱") and e.can_sacrifice(u))),1,1,"牺牲一个御柱");g.cost=true
    return e.Pack.selection([g,e.Pack.group(e.Pack.all_units(e),1,1,"目标单位")],k)
   "alice_recycle":
    var g=e.Pack.group(e.Pack.all_units(e,who).filter(func(r):return r.uid!=c.uid and e.can_sacrifice(e.find_card(r.uid))),1,1,"牺牲另一个单位");g.cost=true

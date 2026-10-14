@@ -51,7 +51,7 @@ func attack(_who: int,uid: int,target: Dictionary={},plan: Array=[]):request("at
 func block(uids: Array):request("block",[uids])
 func combat_damage(allocation: Dictionary):request("combat_damage",[allocation])
 func surrender(_who: int):request("surrender")
-func choose_trigger_order(index: int):request("choose_trigger_order",[index])
+func choose_trigger_order(index: Variant):request("choose_trigger_order",[index])
 func choose_ward(index: int):request("choose_ward",[index])
 func choose_trigger(target: Dictionary):request("choose_trigger",[target])
 func choose_return(yes: bool):request("choose_return",[yes])

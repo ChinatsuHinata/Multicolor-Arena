@@ -5,12 +5,16 @@ const MAX_FRAME=13024
 const MAX_ROOMS=512
 const ACCOUNT_PREFIX="MCA1"
 const PLAZA_PREFIX="MCP1"
+const TOURNAMENT_PREFIX="MCT1"
 const MAX_PLAZA_FRAME=16384
 const MatchQueue=preload("match_queue.gd")
 const MATCH_RULE_SET="official"
-const MATCH_RECONNECT_MS=30000
+const MATCH_RECONNECT_MS=60000
+const SESSION_CHECK_MS=30000
 var match_queue=MatchQueue.new()
+var pending_matches={}
 var last_match_tick=0
+var character_log=preload("match_character_log.gd").new()
 var account_port=47864
 var peer: MultiplayerPeer
 var websocket=false
@@ -20,11 +24,15 @@ var rejected={}
 var account_key: CryptoKey
 var account_requests={}
 var plaza_requests={}
+var tournament_waiting={}
+var tournament_queue_checks={}
 var account_attempts={}
 var account_nonces={}
 var last_nonce_cleanup=0
 var last_session_check=0
 var session_check_cursor=0
+var session_requests={}
+var session_checked_at={}
 
 func _initialize():call_deferred("start")
 
@@ -37,6 +45,7 @@ func start():
   if args[i]=="--bind":bind_address=args[i+1]
   if args[i]=="--transport" and args[i+1]=="websocket":websocket=true
   if args[i]=="--account-port" and args[i+1].is_valid_int():account_port=int(args[i+1])
+ character_log.log_path=character_log.get_script().resource_path.get_base_dir().path_join("data/match_leaders-"+("websocket" if websocket else "enet")+".jsonl")
  if account_port<1024 or account_port>65535:push_error("Invalid account port");quit(2);return
  if port<1024 or port>65535:push_error("Invalid relay port");quit(2);return
  if FileAccess.file_exists("res://account_private.pem"):
@@ -55,11 +64,11 @@ func start():
  if err!=OK:push_error("Relay listen failed: "+error_string(err));quit(2);return
  peer.peer_connected.connect(func(id):
   if clients.size()>=1024:peer.disconnect_peer(id);return
-  clients[id]={"role":"","room":"","seat":0,"account":"","nickname":"","device":"","platform":"","token":"","cloud_active":false,"player_id":0,"elo":1000}
+  clients[id]={"role":"","room":"","seat":0,"account":"","nickname":"","device":"","platform":"","token":"","cloud_active":false,"player_id":0,"elo":1000,"last_packet_at":Time.get_ticks_msec()}
   print("relay connection ",id))
  peer.peer_disconnected.connect(remove_client)
  print("Multicolor relay listening on ","TCP/WebSocket " if websocket else "UDP ",port)
- print("Matchmaking enabled: 100-point initial range, 100-point expansion per minute; account port ",account_port)
+ print("Matchmaking enabled: same major tier first, one major tier expansion per 20 seconds; account port ",account_port)
 
 func valid_code(code: Variant) -> bool:
  if not code is String or code.length()!=12:return false
@@ -86,12 +95,18 @@ func send_raw(id: int,data: PackedByteArray,channel: int=0):
 
 func reject(id: int,message: String):
  match_queue.remove(id)
+ pending_matches.erase(id)
+ print("relay rejection ",id," ",message)
  control(id,"error",message)
  rejected[id]=Time.get_ticks_msec()+500
 
 func remove_client(id: int):
  if not clients.has(id):return
  match_queue.remove(id)
+ pending_matches.erase(id)
+ if session_requests.has(id):
+  session_requests[id].request.queue_free();session_requests.erase(id)
+ session_checked_at.erase(id)
  if account_requests.has(id):
   account_requests[id].queue_free();account_requests.erase(id)
  if plaza_requests.has(id):
@@ -108,7 +123,7 @@ func remove_client(id: int):
   if actor in [0,1] and room.slots[actor]==id:
    room.slots[actor]=0
    if room.host==id:room.host=0
-   room.disconnected[actor]=Time.get_ticks_msec()
+   if not room.disconnected.has(actor):room.disconnected[actor]=int(room.get("sync_pending",{}).get(actor,Time.get_ticks_msec()))
    for occupant in room.slots:
     if occupant!=0:control(occupant,"guest_left","",{"peer":id if actor==1 else 1,"seat":client.seat})
    broadcast_seats(code)
@@ -146,6 +161,7 @@ func public_rooms() -> Array:
  for key in rooms:
   var room=rooms[key]
   var ranked=bool(room.get("ranked",false))
+  if ranked and not room.get("public",true):continue
   if ranked and (not room.stored or room.settled or room.cancel or room.status=="complete" or room.host==0):continue
   var seats=[]
   for occupant in room.slots:
@@ -153,19 +169,63 @@ func public_rooms() -> Array:
   result.append({"id":key,"name":room.name,"owner":room.owner,"locked":not room.password.is_empty(),"format":room.format,"rule_set":room.rule_set,"status":room.status,"version":room.version,"seats":seats,"watch_only":ranked})
  return result
 
-func queued_count(version: String="") -> int:
+func queued_count(version: String="",mode: String="") -> int:
  var count=0
  for entry in match_queue.entries.values():
-  if version.is_empty() or entry.version==version:count+=1
+  if (version.is_empty() or entry.version==version) and (mode.is_empty() or entry.mode==mode):count+=1
  return count
+
+func active_matches(player_id: int) -> Array:
+ var result=[]
+ for code in rooms:
+  var room=rooms[code]
+  if room.get("ranked",false) and not room.settled and player_id in room.players:result.append(code)
+ return result
+
+func replace_previous_matches(id: int,msg: Dictionary) -> bool:
+ var previous=active_matches(int(clients[id].player_id))
+ if previous.is_empty():return false
+ # Wait for the old result to persist before entering the queue with the new rank.
+ clients[id].role="pending_match";clients[id].cloud_active=true
+ pending_matches[id]=msg.duplicate(true)
+ for code in previous:
+  var room=rooms[code]
+  var actor=room.players.find(clients[id].player_id)
+  var old_peer=int(room.slots[actor])
+  if old_peer!=0 and old_peer!=id:
+   remove_client(old_peer)
+   if peer!=null:peer.disconnect_peer(old_peer)
+  if room.outcome==-2 and not room.cancel:
+   var survivor=1-actor
+   if room.started and room.slots[survivor]!=0:
+    room.outcome=int(room.reports[survivor]) if room.reports.has(survivor) else survivor
+   else:room.cancel=true
+  print("match replaced room=",code," player=",clients[id].player_id)
+ tick_matches(Time.get_ticks_msec())
+ return true
+
+func release_pending_matches():
+ for id in pending_matches.keys():
+  if not pending_matches.has(id):continue
+  if not clients.has(id):pending_matches.erase(id);continue
+  if not active_matches(int(clients[id].player_id)).is_empty():continue
+  var msg=pending_matches[id]
+  pending_matches.erase(id);clients[id].role=""
+  register(id,msg)
 
 func register(id: int,msg: Dictionary):
  var kind=str(msg.get("kind",""))
  var code=str(msg.get("room",""))
  var seat=int(msg.get("seat",0))
  if clients[id].account.is_empty():reject(id,"请先登录玩家账号");return
- if kind=="match" and clients[id].role=="queue":return
+ if kind=="match" and clients[id].role in ["queue","pending_match"]:return
  if clients[id].role!="":reject(id,"连接已登记");return
+ if kind=="match":
+  var hash_pattern=RegEx.new();hash_pattern.compile("^[a-f0-9]{64}$")
+  if str(msg.get("version","")).length()!=64 or clients[id].player_id<=0:reject(id,"匹配版本或账号无效");return
+  if hash_pattern.search(str(msg.get("deck_hash","")))==null:reject(id,"请先选择并登记匹配卡组");return
+  if not msg.get("public",true) is bool:reject(id,"房间公开设置无效");return
+  if msg.get("mode","ranked") not in ["ranked","casual","exploration","exploration_random"]:reject(id,"匹配模式无效");return
  for other_id in clients.keys():
   if other_id==id or not clients[other_id].cloud_active:continue
   if clients[other_id].account.to_lower()!=clients[id].account.to_lower():continue
@@ -176,30 +236,36 @@ func register(id: int,msg: Dictionary):
   var all_rooms=public_rooms()
   var pages=maxi(1,ceili(float(all_rooms.size())/16.0))
   var page=clampi(int(msg.get("page",0)),0,pages-1)
-  control(id,"rooms","",{"rooms":all_rooms.slice(page*16,mini((page+1)*16,all_rooms.size())),"page":page,"pages":pages,"queued":queued_count(str(msg.get("version",""))),"rank":clients[id].get("rank",{})})
+  control(id,"rooms","",{"rooms":all_rooms.slice(page*16,mini((page+1)*16,all_rooms.size())),"page":page,"pages":pages,"mode":str(msg.get("mode","ranked")),"queued":queued_count(str(msg.get("version","")),str(msg.get("mode","ranked"))),"rank":clients[id].get("rank",{})})
   return
  for other_id in clients.keys():
-  if other_id!=id and clients[other_id].role in ["host","guest","watch","queue"] and clients[other_id].account.to_lower()==clients[id].account.to_lower():
+  if other_id!=id and clients[other_id].role in ["host","guest","watch","queue","pending_match","tournament_queue"] and clients[other_id].account.to_lower()==clients[id].account.to_lower():
+   var previous_room=rooms.get(clients[other_id].room,{})
+   if kind=="match" and str(msg.get("tournament_match","")).is_empty() and previous_room.get("ranked",false) and clients[id].player_id in previous_room.players:continue
    reject(id,"此账号已在云端房间或匹配队列中");return
+ if kind=="match" and str(msg.get("tournament_match","")).is_empty() and replace_previous_matches(id,msg):return
  for active_code in rooms:
   var active_room=rooms[active_code]
   if active_room.get("ranked",false) and not active_room.settled and clients[id].player_id in active_room.players and (kind=="match" or active_code!=code):
    reject(id,"上一场匹配尚未结束，请等待结算或重连");return
  if kind=="match":
   var version=str(msg.get("version",""))
-  if version.length()!=64 or clients[id].player_id<=0:reject(id,"匹配版本或账号无效");return
   var deck_hash=str(msg.get("deck_hash",""))
-  var hash_pattern=RegEx.new();hash_pattern.compile("^[a-f0-9]{64}$")
-  if hash_pattern.search(deck_hash)==null:reject(id,"请先选择并登记匹配卡组");return
   clients[id].match_deck_hash=deck_hash
+  clients[id].match_public=msg.get("public",true)
+  clients[id].match_mode=str(msg.get("mode","ranked"))
+  if not str(msg.get("tournament_match","")).is_empty():
+   clients[id].match_version=version
+   join_tournament_match(id,msg);return
   clients[id].role="queue";clients[id].cloud_active=true
   clients[id].match_version=version
-  match_queue.add(id,clients[id].player_id,clients[id].elo,version,Time.get_ticks_msec())
+  match_queue.add(id,clients[id].player_id,clients[id].get("rank",{}),version,Time.get_ticks_msec(),clients[id].match_mode)
   print("match queued peer=",id," player=",clients[id].player_id," version=",version.left(12))
-  control(id,"match_queued","",{"queued":queued_count(version)});return
+  control(id,"match_queued","",{"wait_seconds":0,"rank_gap":0,"queued":queued_count(version,clients[id].match_mode)});return
  if rooms.has(code) and rooms[code].get("ranked",false):
   if kind!="watch":resume_match(id,msg);return
   var ranked_room=rooms[code]
+  if not ranked_room.get("public",true):reject(id,"私人匹配房间禁止观战");return
   if not ranked_room.stored or ranked_room.settled or ranked_room.cancel or ranked_room.status=="complete" or ranked_room.host==0:
    reject(id,"匹配对局已结束或暂不可观战");return
  if not str(msg.get("match_id","")).is_empty():reject(id,"匹配房间已失效，请返回云端重新匹配");return
@@ -241,18 +307,99 @@ func register(id: int,msg: Dictionary):
 func store_url(path: String) -> String:
  return "http://127.0.0.1:%d/%s" % [account_port,path]
 
-func pair_match(first: int,second: int):
+func join_tournament_match(id: int,msg: Dictionary):
+ var ticket=str(msg.get("tournament_match",""))
+ if ticket.length()!=32 or not ticket.is_valid_hex_number():reject(id,"比赛对局标识无效");return
+ clients[id].role="tournament_queue";clients[id].cloud_active=true
+ var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
+ request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
+  request.queue_free()
+  if not clients.has(id) or rejected.has(id):return
+  var answer=JSON.parse_string(body.get_string_from_utf8())
+  if result!=HTTPRequest.RESULT_SUCCESS or status!=200 or not answer is Dictionary:reject(id,"比赛服务暂不可用");return
+  if not answer.get("ok",false):reject(id,str(answer.get("message","无法进入比赛")));return
+  var game_format=int(answer.get("game_format",2))
+  var expected_mode="exploration_random" if game_format==5 else "exploration" if game_format==4 else "casual"
+  if game_format not in [1,2,3,4,5] or str(msg.get("mode",""))!=expected_mode:reject(id,"比赛对局模式与指定赛制不一致，请刷新比赛页面");return
+  var players=answer.get("players",[])
+  if not players is Array or players.size()!=2:reject(id,"比赛对阵无效");return
+  players=[int(players[0]),int(players[1])]
+  if clients[id].player_id not in players:reject(id,"比赛对阵无效");return
+  if not tournament_waiting.has(ticket):tournament_waiting[ticket]={}
+  var waiting=tournament_waiting[ticket]
+  for player in waiting.keys():
+   if not clients.has(waiting[player]) or rejected.has(waiting[player]):waiting.erase(player)
+  if waiting.has(clients[id].player_id) and waiting[clients[id].player_id]!=id:reject(id,"你已在等待本桌对手");return
+  waiting[clients[id].player_id]=id
+  control(id,"match_queued","等待本桌对手进入游戏",{"wait_seconds":0,"rank_gap":0,"queued":waiting.size()})
+  if not waiting.has(int(players[0])) or not waiting.has(int(players[1])):return
+  var first=int(waiting[int(players[0])]);var second=int(waiting[int(players[1])])
+  tournament_waiting.erase(ticket)
+  tournament_queue_checks.erase(ticket)
+  if clients[first].match_version!=clients[second].match_version:
+   reject(first,"双方游戏版本不同，请更新后重新进入比赛");reject(second,"双方游戏版本不同，请更新后重新进入比赛");return
+  if rooms.size()>=MAX_ROOMS:reject(first,"云端房间已满");reject(second,"云端房间已满");return
+  pair_match(first,second,ticket,str(answer.get("name","比赛"))+" · 第%d轮" % int(answer.get("round_number",0)),game_format))
+ if request.request(store_url("tournament-game"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"lookup","match_id":ticket,"player_id":clients[id].player_id}))!=OK:
+  request.queue_free();reject(id,"无法连接比赛服务")
+
+func check_tournament_queue(ticket: String):
+ tournament_queue_checks[ticket]={"busy":true,"at":Time.get_ticks_msec()}
+ var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
+ request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
+  request.queue_free()
+  if not tournament_waiting.has(ticket) or not tournament_queue_checks.has(ticket):return
+  tournament_queue_checks[ticket].busy=false
+  var answer=JSON.parse_string(body.get_string_from_utf8())
+  if result!=HTTPRequest.RESULT_SUCCESS or status!=200 or not answer is Dictionary:return
+  if answer.get("ok",false) and not answer.get("closed",false):return
+  var waiting=tournament_waiting[ticket]
+  tournament_waiting.erase(ticket);tournament_queue_checks.erase(ticket)
+  for id in waiting.values():
+   if clients.has(id):reject(id,"本桌已结束或比赛已删除，请刷新比赛页面"))
+ if request.request(store_url("tournament-game"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"status","match_id":ticket}))!=OK:
+  request.queue_free();tournament_queue_checks[ticket].busy=false
+
+func check_tournament_room(code: String):
+ if not rooms.has(code):return
+ var room=rooms[code]
+ room.tournament_check_busy=true;room.tournament_checked_at=Time.get_ticks_msec()
+ var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
+ request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
+  request.queue_free()
+  if not rooms.has(code):return
+  room.tournament_check_busy=false
+  var answer=JSON.parse_string(body.get_string_from_utf8())
+  if result==HTTPRequest.RESULT_SUCCESS and status==200 and answer is Dictionary and (not answer.get("ok",false) or answer.get("closed",false)):
+   if room.outcome==-2:room.cancel=true)
+ if request.request(store_url("tournament-game"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"status","match_id":room.match_id}))!=OK:
+  request.queue_free();room.tournament_check_busy=false
+
+func pair_match(first: int,second: int,competition: String="",title: String="",competition_format: int=2):
  if not clients.has(first) or not clients.has(second):return
- var match_id=Crypto.new().generate_random_bytes(16).hex_encode()
+ var match_id=Crypto.new().generate_random_bytes(16).hex_encode() if competition.is_empty() else competition
  var code=match_id.left(12).to_upper()
  while rooms.has(code):
-  match_id=Crypto.new().generate_random_bytes(16).hex_encode();code=match_id.left(12).to_upper()
+  if competition.is_empty():match_id=Crypto.new().generate_random_bytes(16).hex_encode()
+  code=Crypto.new().generate_random_bytes(6).hex_encode().to_upper()
  var slots=[first,second,0,0,0,0,0,0]
  rooms[code]={"host":first,"slots":slots,"owner":"","name":"自动匹配","password":"","format":2,"rule_set":MATCH_RULE_SET,"version":str(clients[first].get("match_version","")),"status":"lobby","round":0,"ready":[false,false],"ranked":true,"match_id":match_id,"players":[clients[first].player_id,clients[second].player_id],"reports":{},"disconnected":{},"stored":false,"started":false,"stored_started":false,"settled":false,"store_busy":false,"store_retry":0,"outcome":-2,"cancel":false}
  rooms[code].deck_hashes=[clients[first].get("match_deck_hash",""),clients[second].get("match_deck_hash","")]
+ rooms[code].sync_pending={0:Time.get_ticks_msec(),1:Time.get_ticks_msec()}
+ rooms[code].mode=str(clients[first].get("match_mode","ranked"))
+ if rooms[code].mode=="casual":rooms[code].rule_set="unrestricted";rooms[code].name="休闲模式 · BO1 换备牌"
+ if rooms[code].mode in ["exploration","exploration_random"]:
+  rooms[code].rule_set="unrestricted";rooms[code].format=5 if rooms[code].mode=="exploration_random" else 4
+  rooms[code].name=("探索幻想乡全随机版" if rooms[code].mode=="exploration_random" else "探索幻想乡")+" · BO1 固定卡组"
+ rooms[code].ranks=[clients[first].get("rank",{}).duplicate(true),clients[second].get("rank",{}).duplicate(true)] if rooms[code].mode=="ranked" else []
+ rooms[code].public=clients[first].get("match_public",true) and clients[second].get("match_public",true)
+ if not competition.is_empty():
+  rooms[code].tournament=true;rooms[code].name=title;rooms[code].tournament_checked_at=0;rooms[code].tournament_check_busy=false
+  rooms[code].format=competition_format;rooms[code].rule_set="unrestricted"
  for actor in range(2):
   var id=slots[actor]
   clients[id].role="host" if actor==0 else "guest";clients[id].room=code;clients[id].seat=actor+1
+  clients[id].last_packet_at=Time.get_ticks_msec()
  match_store_request(code,"create")
 
 func announce_match(code: String):
@@ -262,7 +409,7 @@ func announce_match(code: String):
  for actor in range(2):
   var id=int(room.slots[actor])
   if id==0:continue
-  control(id,"matched","",{"room":code,"match_id":room.match_id,"role":"host" if actor==0 else "guest","seat":actor+1,"format":2,"rule_set":MATCH_RULE_SET,"deck_hashes":room.get("deck_hashes",[])})
+  control(id,"matched","",{"room":code,"match_id":room.match_id,"role":"host" if actor==0 else "guest","seat":actor+1,"format":room.format,"rule_set":room.rule_set,"mode":room.get("mode","ranked"),"deck_hashes":room.get("deck_hashes",[]),"ranks":room.get("ranks",[]),"public":room.get("public",true),"tournament":room.get("tournament",false)})
  if room.host!=0:
   control(room.host,"registered","",{"seat":1})
   if room.slots[1]!=0:control(room.host,"joined","",{"peer":room.slots[1],"seat":2,"role":"guest"})
@@ -276,7 +423,13 @@ func resume_match(id: int,msg: Dictionary):
   reject(id,"匹配房间仅限原玩家重连");return
  if room.settled or room.cancel:reject(id,"匹配对局已结束");return
  if room.slots[actor]!=0:reject(id,"匹配座位已占用");return
- room.slots[actor]=id;room.disconnected.erase(actor)
+ var deadline_start=int(room.disconnected.get(actor,room.get("sync_pending",{}).get(actor,Time.get_ticks_msec())))
+ if Time.get_ticks_msec()-deadline_start>=MATCH_RECONNECT_MS:
+  reject(id,"匹配连接超时，原座位已释放");return
+ room.slots[actor]=id
+ if not room.get("sync_pending",{}).has(actor):
+  if not room.has("sync_pending"):room.sync_pending={}
+  room.sync_pending[actor]=int(room.disconnected.get(actor,Time.get_ticks_msec()))
  clients[id].role="host" if actor==0 else "guest";clients[id].room=code;clients[id].seat=actor+1;clients[id].cloud_active=true
  if actor==0:
   room.host=id;control(id,"registered","",{"seat":1})
@@ -307,7 +460,7 @@ func match_store_request(code: String,action: String):
  var room=rooms[code]
  room.store_busy=true
  var payload={"action":action,"match_id":room.match_id}
- if action=="create":payload.players=room.players
+ if action=="create":payload.players=room.players;payload.mode=room.get("mode","ranked")
  if action=="settle":payload.winner=room.outcome
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
@@ -323,6 +476,7 @@ func match_store_request(code: String,action: String):
     for occupant in room.slots:
      if occupant!=0 and clients.has(occupant):reject(occupant,"无法开始匹配："+str(answer.get("message","账号服务错误")))
     rooms.erase(code)
+    release_pending_matches()
    elif action!="cancel":room.cancel=true
    return
   match_store_completed(code,action,answer))
@@ -333,38 +487,72 @@ func match_store_request(code: String,action: String):
 
 func match_store_completed(code: String,action: String,answer: Dictionary):
  var room=rooms[code]
+ if action=="create" and room.get("mode","ranked")!="ranked" and answer.get("mode","")!=room.mode:
+  room.stored=true;room.cancel=true
+  for occupant in room.slots:
+   if occupant!=0 and clients.has(occupant):reject(occupant,"账号服务未支持%s，请更新服务端后重试" % ("娱乐模式" if room.mode in ["exploration","exploration_random"] else "休闲模式"))
+  return
+ var rated=action=="settle" and room.get("mode","ranked")=="ranked"
  match action:
-  "create":room.stored=true;announce_match(code)
+  "create":
+   room.stored=true
+   if not room.cancel:announce_match(code)
   "start":room.stored_started=true
   "settle","cancel":
    room.settled=true
+   if rated:
+    for waiting_id in pending_matches:
+     if not clients.has(waiting_id):continue
+     var actor=room.players.find(clients[waiting_id].player_id)
+     if actor<0:continue
+     clients[waiting_id].elo=int(answer.ratings[actor])
+     if answer.get("ranks") is Array:clients[waiting_id].rank=answer.ranks[actor]
    for actor in range(2):
     var id=int(room.slots[actor])
     if id==0 or not clients.has(id):continue
-    var extra={"match_id":room.match_id,"rated":action=="settle","winner":room.outcome if action=="settle" else -2}
-    if action=="settle":
+    var extra={"match_id":room.match_id,"rated":rated,"mode":room.get("mode","ranked"),"winner":room.outcome if action=="settle" else -2}
+    if rated:
      clients[id].elo=int(answer.ratings[actor]);extra.elo=clients[id].elo;extra.delta=int(answer.deltas[actor])
      if answer.get("ranks") is Array:
       clients[id].rank=answer.ranks[actor];extra.rank=answer.ranks[actor]
-    control(id,"match_settled","匹配已结算" if action=="settle" else "匹配取消，不计分",extra)
+    control(id,"match_settled",("匹配已结算" if rated else ("娱乐模式" if room.mode in ["exploration","exploration_random"] else "休闲")+"对局结束，不影响段位") if action=="settle" else "匹配取消，不计分",extra)
    for index in range(2,room.slots.size()):
     var watcher=int(room.slots[index])
-    if watcher!=0:control(watcher,"room_closed","匹配对战已结束，房间已关闭",{"rated":action=="settle","winner":room.outcome if action=="settle" else -2})
+    if watcher!=0:control(watcher,"room_closed","匹配对战已结束，房间已关闭",{"rated":rated,"winner":room.outcome if action=="settle" else -2})
    for occupant in room.slots:
     if occupant!=0 and clients.has(occupant):
      clients[occupant].role="";clients[occupant].room="";clients[occupant].seat=0
    rooms.erase(code)
+   release_pending_matches()
 
 func tick_matches(now: int):
+ for ticket in tournament_waiting.keys():
+  var waiting=tournament_waiting[ticket]
+  for player in waiting.keys():
+   if not clients.has(waiting[player]) or rejected.has(waiting[player]):waiting.erase(player)
+  if waiting.is_empty():
+   tournament_waiting.erase(ticket);tournament_queue_checks.erase(ticket);continue
+  var check_state=tournament_queue_checks.get(ticket,{"busy":false,"at":0})
+  if not check_state.busy and now-int(check_state.at)>=3000:check_tournament_queue(ticket)
  for pair in match_queue.take_pairs(now):
   if rooms.size()>=MAX_ROOMS:
    for id in pair:reject(id,"中转服务房间已满，请稍后重试")
   else:pair_match(pair[0],pair[1])
  for id in match_queue.entries:
-  control(id,"match_queued","",{"wait_seconds":maxi(0,(now-int(match_queue.entries[id].since))/1000),"gap":match_queue.allowed_gap(id,now),"queued":queued_count(str(match_queue.entries[id].version))})
+  control(id,"match_queued","",{"wait_seconds":maxi(0,(now-int(match_queue.entries[id].since))/1000),"rank_gap":match_queue.allowed_rank_gap(id,now),"queued":queued_count(str(match_queue.entries[id].version),str(match_queue.entries[id].mode))})
  for code in rooms.keys():
   var room=rooms[code]
   if not room.get("ranked",false) or room.settled:continue
+  if room.get("tournament",false) and room.stored and not room.cancel and not room.get("tournament_check_busy",false) and now-int(room.get("tournament_checked_at",0))>=3000:
+   check_tournament_room(code)
+  # A TCP connection or repeated hello is not a completed game-state handshake.
+  for actor in range(2):
+   var id=int(room.slots[actor])
+   var pending=room.get("sync_pending",{})
+   if pending.has(actor) and now-int(pending[actor])>=MATCH_RECONNECT_MS:
+    room.disconnected[actor]=mini(int(room.disconnected.get(actor,pending[actor])),int(pending[actor]))
+   elif id!=0 and clients.has(id) and now-int(clients[id].get("last_packet_at",now))>=MATCH_RECONNECT_MS:
+    room.disconnected[actor]=int(clients[id].last_packet_at)
   if room.outcome==-2 and not room.cancel:
    for actor in room.disconnected:
     if now-int(room.disconnected[actor])>=MATCH_RECONNECT_MS:
@@ -387,9 +575,20 @@ func account_reply(id: int,answer: Dictionary):
 func verify_client(id: int,token: String,next_message: Dictionary={}):
  if not clients.has(id):return
  if token.length()!=64:reject(id,"请登录后再进入云端");return
+ if session_requests.has(id):
+  var pending=session_requests[id]
+  if pending.token==token:
+   if not next_message.is_empty():pending.next_message=next_message.duplicate(true)
+   return
+  pending.request.queue_free();session_requests.erase(id)
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
+ var pending={"request":request,"token":token,"next_message":next_message.duplicate(true)}
+ session_requests[id]=pending
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
   request.queue_free()
+  if not session_requests.has(id) or session_requests[id].request!=request:return
+  session_requests.erase(id)
+  session_checked_at[id]=Time.get_ticks_msec()
   if not clients.has(id):return
   if result!=HTTPRequest.RESULT_SUCCESS or status!=200:reject(id,"账号服务暂不可用");return
   var answer=JSON.parse_string(body.get_string_from_utf8())
@@ -403,11 +602,11 @@ func verify_client(id: int,token: String,next_message: Dictionary={}):
   clients[id].account=account;clients[id].device=device;clients[id].platform=platform;clients[id].nickname=str(answer.get("nickname",account));clients[id].token=token
   clients[id].player_id=int(answer.get("player_id",0));clients[id].elo=int(answer.get("elo",1000))
   clients[id].rank=answer.get("rank",{})
-  if match_queue.entries.has(id):match_queue.entries[id].elo=clients[id].elo
-  if not next_message.is_empty():register(id,next_message)
+  if match_queue.entries.has(id):match_queue.entries[id].rank_step=MatchQueue.rank_step(clients[id].rank)
+  if not pending.next_message.is_empty():register(id,pending.next_message)
   else:control(id,"authenticated","",{"nickname":clients[id].nickname,"elo":clients[id].elo,"rank":clients[id].get("rank",{})}))
  var err=request.request(store_url("session"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"verify","token":token}))
- if err!=OK:request.queue_free();reject(id,"账号服务暂不可用")
+ if err!=OK:session_requests.erase(id);request.queue_free();reject(id,"账号服务暂不可用")
 
 func handle_account(id: int,data: PackedByteArray):
  if account_key==null:account_reply(id,{"ok":false,"message":"账号服务尚未启用"});return
@@ -453,41 +652,46 @@ func handle_account(id: int,data: PackedByteArray):
  if err!=OK:
   account_requests.erase(id);request.queue_free();account_reply(id,{"ok":false,"message":"账号服务暂不可用"})
 
-func plaza_reply(id: int,answer: Dictionary):
- send_raw(id,(PLAZA_PREFIX+JSON.stringify(answer)).to_utf8_buffer())
+func plaza_reply(id: int,answer: Dictionary,prefix: String=PLAZA_PREFIX):
+ send_raw(id,(prefix+JSON.stringify(answer)).to_utf8_buffer())
 
-func handle_plaza(id: int,data: PackedByteArray):
- if account_key==null:plaza_reply(id,{"ok":false,"message":"套牌广场尚未启用"});return
- if data.size()<=260 or data.size()>MAX_PLAZA_FRAME:plaza_reply(id,{"ok":false,"message":"套牌请求长度无效"});return
- if plaza_requests.has(id):plaza_reply(id,{"ok":false,"message":"请等待当前请求完成"});return
+func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false):
+ var prefix=TOURNAMENT_PREFIX if tournament else PLAZA_PREFIX
+ var service="比赛服务" if tournament else "套牌广场"
+ if account_key==null:plaza_reply(id,{"ok":false,"message":service+"尚未启用"},prefix);return
+ if data.size()<=260 or data.size()>MAX_PLAZA_FRAME:plaza_reply(id,{"ok":false,"message":service+"请求长度无效"},prefix);return
+ if plaza_requests.has(id):plaza_reply(id,{"ok":false,"message":"请等待当前请求完成"},prefix);return
  var auth=JSON.parse_string(Crypto.new().decrypt(account_key,data.slice(4,260)).get_string_from_utf8())
- if not auth is Dictionary:plaza_reply(id,{"ok":false,"message":"套牌请求凭据无效"});return
+ if not auth is Dictionary:plaza_reply(id,{"ok":false,"message":service+"请求凭据无效"},prefix);return
  var nonce=auth.get("n","")
  var stamp=auth.get("t",0)
  var body=data.slice(260)
  var hash=HashingContext.new();hash.start(HashingContext.HASH_SHA256);hash.update(body)
  if not nonce is String or nonce.length()!=16 or typeof(stamp) not in [TYPE_INT,TYPE_FLOAT] or absf(Time.get_unix_time_from_system()-float(stamp))>300 or account_nonces.has(nonce) or hash.finish().hex_encode()!=auth.get("h",""):
-  plaza_reply(id,{"ok":false,"message":"套牌请求已过期或校验失败，请重试"});return
+  plaza_reply(id,{"ok":false,"message":service+"请求已过期或校验失败，请重试"},prefix);return
  account_nonces[nonce]=Time.get_unix_time_from_system()
  var input=JSON.parse_string(body.get_string_from_utf8())
- if not input is Dictionary or input.has("token"):plaza_reply(id,{"ok":false,"message":"套牌请求格式无效"});return
+ if not input is Dictionary or input.has("token"):plaza_reply(id,{"ok":false,"message":service+"请求格式无效"},prefix);return
  input["token"]=auth.get("s","")
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0;request.body_size_limit=65536
  plaza_requests[id]=request
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,answer_body: PackedByteArray):
   plaza_requests.erase(id);request.queue_free()
   if not clients.has(id):return
-  if result!=HTTPRequest.RESULT_SUCCESS or status!=200:plaza_reply(id,{"ok":false,"message":"套牌广场暂不可用"});return
+  if result!=HTTPRequest.RESULT_SUCCESS or status!=200:plaza_reply(id,{"ok":false,"message":service+"暂不可用"},prefix);return
   var answer=JSON.parse_string(answer_body.get_string_from_utf8())
-  if not answer is Dictionary:plaza_reply(id,{"ok":false,"message":"套牌广场响应无效"});return
-  plaza_reply(id,answer))
- if request.request(store_url("deck-plaza"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
-  plaza_requests.erase(id);request.queue_free();plaza_reply(id,{"ok":false,"message":"套牌广场暂不可用"})
+  if not answer is Dictionary:plaza_reply(id,{"ok":false,"message":service+"响应无效"},prefix);return
+  plaza_reply(id,answer,prefix))
+ if request.request(store_url("tournaments" if tournament else "deck-plaza"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
+  plaza_requests.erase(id);request.queue_free();plaza_reply(id,{"ok":false,"message":service+"暂不可用"},prefix)
 
 func handle_packet(id: int,data: PackedByteArray,channel: int):
  if not clients.has(id) or rejected.has(id):return
+ clients[id].last_packet_at=Time.get_ticks_msec()
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==PLAZA_PREFIX:
   handle_plaza(id,data);return
+ if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==TOURNAMENT_PREFIX:
+  handle_plaza(id,data,true);return
  if data.size()<4 or data.size()>MAX_FRAME:reject(id,"数据包长度无效");return
  if data.slice(0,4).get_string_from_ascii()==ACCOUNT_PREFIX:
   handle_account(id,data);return
@@ -498,6 +702,10 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   var kind=msg.get("kind","")
   if kind=="auth":verify_client(id,str(msg.get("token","")))
   elif kind=="match_result":report_match(id,msg)
+  elif kind=="match_wait" and clients[id].role=="host":
+   var room=rooms.get(clients[id].room,{})
+   if room.get("ranked",false) and not room.settled and not room.cancel and str(msg.get("match_id",""))==room.match_id and not room.disconnected.has(1):
+    room.disconnected[1]=int(room.get("sync_pending",{}).get(1,Time.get_ticks_msec()))
   elif kind=="drop" and clients[id].role=="host":
    var room=rooms.get(clients[id].room,{})
    if room.get("ranked",false):return
@@ -530,6 +738,7 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
      if room.settled or room.cancel:return
      if str(msg.get("status",""))=="playing" and int(msg.get("round",0))>0:room.started=true
     room.status=str(msg.get("status","lobby"))
+    if not room.get("ranked",false) and room.status=="lobby" and room.format in [4,5] and int(msg.get("format",0)) in [4,5]:room.format=int(msg.format)
     room.round=maxi(0,int(msg.get("round",0)))
     var ready=msg.get("ready",[false,false])
     if ready is Array and ready.size()==2:room.ready=[bool(ready[0]),bool(ready[1])]
@@ -541,7 +750,10 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   if clients[id].role!="host" or data.size()<13:return
   var target=data.slice(4,12).get_string_from_ascii().hex_to_int()
   var room=rooms.get(clients[id].room,{})
-  if not room.is_empty() and target in room.slots and target!=id:send_raw(target,data.slice(12),channel)
+  if not room.is_empty() and target in room.slots and target!=id:
+   observe_match_sync(room,target,data.slice(12))
+   character_log.observe(room,target,data.slice(12))
+   send_raw(target,data.slice(12),channel)
   return
  var client=clients[id]
  if client.role=="" or not rooms.has(client.room):return
@@ -549,6 +761,23 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
  if client.role=="host":return
  if room.host!=0 and clients.has(room.host):
   send_raw(room.host,("MCD1"+"%08X" % id).to_utf8_buffer()+data,channel)
+
+func observe_match_sync(room: Dictionary,target: int,wire: PackedByteArray):
+ # Existing clients send a small ready_state only after both players acknowledge.
+ if not room.get("ranked",false) or target!=room.slots[1] or room.cancel:return
+ if room.disconnected.is_empty() and room.get("sync_pending",{}).is_empty():return
+ if wire.size()<4 or wire[0]!=TYPE_DICTIONARY:return
+ var frame=bytes_to_var(wire)
+ if not frame is Dictionary or frame.get("count",0)!=1 or frame.get("index",-1)!=0 or not frame.get("data") is PackedByteArray:return
+ var data=frame.data
+ if data.size()<4 or data[0]!=TYPE_DICTIONARY or data.hex_encode().sha256_text()!=frame.get("hash",""):return
+ var message=bytes_to_var(data)
+ if not message is Dictionary or message.get("type","")!="ready_state":return
+ # Late handshakes must not revive a seat beyond its original deadline.
+ var now=Time.get_ticks_msec()
+ for started in room.disconnected.values()+room.get("sync_pending",{}).values():
+  if now-int(started)>=MATCH_RECONNECT_MS:return
+ room.disconnected.clear();room.sync_pending={}
 
 func _process(_delta) -> bool:
  if peer==null:return false
@@ -562,7 +791,7 @@ func _process(_delta) -> bool:
   var ids=clients.keys()
   for offset in range(mini(64,ids.size())):
    var id=ids[(session_check_cursor+offset)%ids.size()]
-   if clients.has(id) and not clients[id].token.is_empty():verify_client(id,clients[id].token)
+   if clients.has(id) and not rejected.has(id) and not clients[id].token.is_empty() and not session_requests.has(id) and Time.get_ticks_msec()-int(session_checked_at.get(id,-SESSION_CHECK_MS))>=SESSION_CHECK_MS:verify_client(id,clients[id].token)
   if not ids.is_empty():session_check_cursor=(session_check_cursor+64)%ids.size()
  peer.poll()
  var budget=0

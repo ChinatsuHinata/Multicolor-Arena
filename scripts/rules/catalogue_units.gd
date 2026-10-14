@@ -38,7 +38,9 @@ static func on_leave(e,before,c):
    for u in e.units(who):
     if C.has(e,u,"character-fdn-036"):C.events(e,u,"character-fdn-036")
  if c.zone=="exile":on_sacrifice_or_exile(e,before)
- if e.is_unit(before) and c.zone in ["grave","exile"]:
+ # A leader returning home still preserves its original death/exile event.
+ var destination=c.get("return_destination",c.zone)
+ if e.is_unit(before) and destination in ["grave","exile"]:
   for u in C.with_key(e,1-who,"spell-fdn-005"):C.events(e,u,"spell-fdn-005")
  if C.has(e,before,"field-rei-013"):
   for r in before.get("catalogue_castle",[]):
@@ -219,9 +221,7 @@ static func resolve(e,t):
   "character-lof-002":
    if same and c.zone=="field":e.present_move(c,"field",1-who);p.field.erase(c);c.owner=1-who;e.players[c.owner].field.append(c);c.entered_turns=e.players[c.owner].turns;p.next_fairy_leader=e.turn
   "character-ucs-016":e.draw(who);e.gain_life(who,1)
-  "character-fdf-104":
-   var u=C.token(e,who,"虫群",1,1,1,["黄"])
-   if not u.is_empty():e.cards[u.card_id].race=["全部"]
+  "character-fdf-104":C.token(e,who,"虫群",1,1,1,["黄"])
   "character-fdf-117":
    for u in C.selected(e,a):C.unknown(e,u)
   "character-fdf-094":C.printed_token(e,who,"token-fdf-127")

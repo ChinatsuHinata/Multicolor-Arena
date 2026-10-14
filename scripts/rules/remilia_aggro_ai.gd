@@ -916,9 +916,10 @@ static func aurora_pressure_target(e,who: int) -> Dictionary:
  return {}
 
 static func groups(e,attacker: Dictionary) -> Array:
- var available=e.blockers_for(attacker)
+ var mandatory=e.combat.has("target") and e.combat.get("attacker",{}).get("uid",-1)==attacker.uid
+ var available=e.legal_blockers() if mandatory else e.blockers_for(attacker)
  var result=[]
- var minimum=2 if e.Extra.keyword(e,attacker,"威吓") else 1
+ var minimum=2 if e.Extra.keyword(e,attacker,"威吓") and not mandatory else 1
  for mask in range(1,1<<available.size()):
   var group=[]
   for i in range(available.size()):
@@ -931,11 +932,13 @@ static func preview_damage(e,source: Dictionary,target: Dictionary,amount: int,c
   amount+=e.players[source.owner].field.filter(func(c):return e.Pack.has(e.cards[c.card_id],"furnace")).size()
  if e.unpreventable_turn==e.turn:return amount
  if target.has("player"):
+  if e.Pack.has_next_damage_prevention(e,e.players[target.player]):return 0
   for ward in e.players[target.player].get("wards",[]):
    if ward.get("turn",e.turn) in [-1,e.turn]:amount=maxi(0,amount-int(ward.amount))
   return amount
  if e.Extra.keyword(e,target,"防止伤害"):return 0
  if not combat and (e.Roster.has(e.cards[target.card_id],"sannyo_prevent") or e.cards[target.card_id].kind=="自机" and e.players[target.owner].field.any(func(u):return e.Pack.has(e.cards[u.card_id],"paranoid"))):return 0
+ if e.Pack.has_next_damage_prevention(e,target):return 0
  for ward in target.get("wards",[]):
   if ward.get("turn",e.turn) in [-1,e.turn]:amount=maxi(0,amount-int(ward.amount))
  return amount
@@ -946,6 +949,9 @@ static func dies_to(e,c: Dictionary,damage: int) -> bool:
 static func fight(e,attacker: Dictionary,blockers: Array) -> Dictionary:
  # Preview both strike rounds on private fighter copies, consuming their wards.
  var a=attacker.duplicate(true);var remaining=blockers.duplicate(true)
+ if e.combat.has("target") and e.combat.get("attacker",{}).get("uid",-1)==attacker.uid and e.target_valid(e.combat.target,true):
+  var target=e.find_card(e.combat.target.uid)
+  if not remaining.any(func(c):return c.uid==target.uid):remaining.push_front(target.duplicate(true))
  var dead=[];var attacker_dead=false
  var first=e.Extra.keyword(e,a,"先制") or remaining.any(func(b):return e.Extra.keyword(e,b,"先制"))
  for stage in (["first","second"] if first else ["normal"]):
@@ -971,15 +977,17 @@ static func ward_amount(e,c: Dictionary) -> int:
 static func damage_allocation(e,attacker: Dictionary,blockers: Array,total: int) -> Dictionary:
  var allocation={};var left=total;var ordered=blockers.duplicate()
  var needed=func(b):return maxi(0,e.stat(b,"health")-b.damage)+ward_amount(e,b)
+ var prevented=func(b):return e.unpreventable_turn!=e.turn and e.Pack.has_next_damage_prevention(e,b) or e.Extra.keyword(e,b,"防止伤害")
  ordered.sort_custom(func(a,b):
+  if prevented.call(a)!=prevented.call(b):return not prevented.call(a)
   if night_empowered(e,attacker):
-   var a_core=night_core(e,a) and needed.call(a)<=total and not e.Extra.keyword(e,a,"防止伤害") and not e.Extra.keyword(e,a,"不会被消灭")
-   var b_core=night_core(e,b) and needed.call(b)<=total and not e.Extra.keyword(e,b,"防止伤害") and not e.Extra.keyword(e,b,"不会被消灭")
+   var a_core=night_core(e,a) and needed.call(a)<=total and not prevented.call(a) and not e.Extra.keyword(e,a,"不会被消灭")
+   var b_core=night_core(e,b) and needed.call(b)<=total and not prevented.call(b) and not e.Extra.keyword(e,b,"不会被消灭")
    if a_core!=b_core:return a_core
   return needed.call(a)<needed.call(b))
  for b in ordered:
   var amount=mini(left,needed.call(b))
-  if e.Extra.keyword(e,b,"防止伤害") or e.Extra.keyword(e,b,"不会被消灭"):amount=0
+  if prevented.call(b) or e.Extra.keyword(e,b,"不会被消灭"):amount=0
   allocation[str(b.uid)]=amount;left-=amount
  if left>0 and not ordered.is_empty():allocation[str(ordered[0].uid)]+=left
  return allocation
@@ -988,10 +996,12 @@ static func preview_hit(e,source: Dictionary,target: Dictionary,amount: int):
  if amount<=0:return
  var dealt=preview_damage(e,source,target,amount,true)
  if e.unpreventable_turn!=e.turn and not e.Extra.keyword(e,target,"防止伤害"):
-  for w in target.get("wards",[]).duplicate():
-   if amount<=0:break
-   target.wards.erase(w)
-   if w.get("turn",e.turn) in [-1,e.turn]:amount=maxi(0,amount-int(w.amount))
+  if e.Pack.has_next_damage_prevention(e,target):target.erase("next_damage_prevention_turn")
+  else:
+   for w in target.get("wards",[]).duplicate():
+    if amount<=0:break
+    target.wards.erase(w)
+    if w.get("turn",e.turn) in [-1,e.turn]:amount=maxi(0,amount-int(w.amount))
  if e.Roster.has(e.cards[source.card_id],"momoyo_wither"):target.minus_counters=int(target.get("minus_counters",0))+dealt
  else:target.damage+=dealt
 
@@ -1585,6 +1595,7 @@ static func position_key(e,who: int) -> String:
  state.append(Counterplay.Matchup.identify(e,who).key)
  for seat in [who,1-who]:
   state.append(e.players[seat].get("wards",[]))
+  state.append(e.players[seat].get("next_damage_prevention_turn",-1))
   state.append(e.players[seat].field)
   state.append(e.players[seat].palette)
   state.append(e.players[seat].get("mana",[]));state.append(e.players[seat].potato)

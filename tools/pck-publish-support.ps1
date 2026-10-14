@@ -41,7 +41,7 @@ function Assert-PckEdge {
 }
 
 function Merge-PckChain {
-    param($Previous, [object[]]$NewEdges, [string]$Version, [string]$Origin, [switch]$ReplaceExisting)
+    param($Previous, [object[]]$NewEdges, [string]$Version, [string]$Origin, [switch]$ReplaceExisting, [switch]$NoLegacyCumulative)
     Assert-PckPublication -Previous $Previous -Version $Version -ReplaceExisting:$ReplaceExisting
     $edges = [Collections.Generic.List[object]]::new()
     if ($Previous) {
@@ -81,11 +81,14 @@ function Merge-PckChain {
     }
     if ($edges.Count -eq 0 -or $edges.Count -gt 128) { throw 'PCK chain exceeds the supported 128 edges.' }
     $cumulative = @($edges | Where-Object { $_.from -ceq '1.2.7.1' -and $_.to -ceq $Version })
-    if ($cumulative.Count -ne 1) { throw 'A cumulative fixed-base patch is required for legacy clients.' }
-    return [ordered]@{
+    if (-not $NoLegacyCumulative -and $cumulative.Count -ne 1) { throw 'A cumulative fixed-base patch is required for legacy clients.' }
+    if ($NoLegacyCumulative -and $cumulative.Count -gt 0) { throw 'Adjacent-only publication cannot include a new cumulative patch.' }
+    $result = [ordered]@{
         format = 'multicolor:arena/pck-latest-1'; game = 'multicolor:arena'; base = '1.2.7.1'
-        version = $Version; windows = $cumulative[0].windows; android = $cumulative[0].android; patches = $edges.ToArray()
+        version = $Version; patches = $edges.ToArray()
     }
+    if (-not $NoLegacyCumulative) { $result.windows = $cumulative[0].windows; $result.android = $cumulative[0].android }
+    return $result
 }
 
 function ConvertTo-PosixLiteral {
@@ -133,13 +136,16 @@ for file in *.pck; do
     *) cp "`$file" '$RemoteRoot/$Version/'"`$file.new"; mv '$RemoteRoot/$Version/'"`$file.new" '$RemoteRoot/$Version/'"`$file"; rm -- "`$file" ;;
   esac
 done
-cp latest.json '$RemoteRoot/$Version/latest.json'
 cp chain.json '$RemoteRoot/$Version/chain.json'
-cp latest.json '$RemoteRoot/latest.json.new'
-mv '$RemoteRoot/latest.json.new' '$RemoteRoot/latest.json'
+if [ -f latest.json ]; then
+  cp latest.json '$RemoteRoot/$Version/latest.json'
+  cp latest.json '$RemoteRoot/latest.json.new'
+  mv '$RemoteRoot/latest.json.new' '$RemoteRoot/latest.json'
+  rm -- latest.json
+fi
 cp chain.json '$RemoteRoot/chain.json.new'
 mv '$RemoteRoot/chain.json.new' '$RemoteRoot/chain.json'
-rm -- latest.json chain.json SHA256SUMS
+rm -- chain.json SHA256SUMS
 cd '$RemoteRoot'
 rmdir '$Incoming'
 "@

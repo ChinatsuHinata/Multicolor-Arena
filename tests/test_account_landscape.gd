@@ -26,7 +26,7 @@ func controls_fit(captions: Array) -> bool:
  if not bounds.encloses(panel.get_global_rect()):
   print("Outside account panel: ",panel.get_global_rect()," screen=",bounds)
   return false
- for control in [app.account_username_input,app.account_password_input,app.account_confirm_input,app.account_status_label]:
+ for control in [app.account_username_input,app.account_old_password_input,app.account_password_input,app.account_confirm_input,app.account_status_label]:
   if is_instance_valid(control) and not bounds.encloses(control.get_global_rect()):
    print("Outside account control: ",control.name," ",control.get_global_rect())
    return false
@@ -45,7 +45,7 @@ func signed_in_settings_fit() -> bool:
  var rating=app.screen.find_child("AccountElo",true,false) as Label
  if panel==null or scroll==null or rating==null:return false
  if not bounds.encloses(panel.get_global_rect()) or not bounds.encloses(scroll.get_global_rect()) or not bounds.encloses(rating.get_global_rect()):return false
- var controls=[app.account_username_input,app.account_old_password_input,app.account_password_input,app.account_confirm_input]
+ var controls=[app.account_username_input]
  for caption in ["保存昵称","修改密码","退出账号","返回主菜单"]:controls.append(find_button(app.screen,caption))
  for control in controls:
   if not is_instance_valid(control):return false
@@ -61,7 +61,14 @@ func run():
  root.content_scale_size=Vector2i(1600,900)
  root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
- app=load("res://main.tscn").instantiate();root.add_child(app)
+ app=load("res://main.tscn").instantiate()
+ var fixture="res://work/account-landscape-checks/"+str(Time.get_ticks_usec())
+ DirAccess.make_dir_recursive_absolute(fixture)
+ app.account_session_path=fixture.path_join("account_session.json")
+ app.settings_path=fixture.path_join("settings.json")
+ app.lan_storage_directory=fixture.path_join("lan")
+ app.tutorial_local_directory=fixture.path_join("tutorials")
+ root.add_child(app)
  await frames()
  app.is_android=true
  app.layout_dpi_override=360
@@ -89,15 +96,19 @@ func run():
   await frames()
   check(await signed_in_settings_fit(),size_label+" signed-in identity fits and every setting is reachable in the local scroll")
   check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：%d" % app.account_elo,size_label+" signed-in account retains personal Elo")
+  check(app.account_old_password_input==null and app.account_password_input==null and app.account_confirm_input==null,size_label+" account page has no inline password form")
+  find_button(app.screen,"修改密码").pressed.emit();await frames()
+  check(app.page=="account_password" and controls_fit(["确认修改","返回账号"]),size_label+" password change opens a separate screen that fits")
   app.account_old_password_input.text="password123!"
   app.account_password_input.text="new-password!"
   app.account_confirm_input.text="new-password!"
   app.account_confirm_input.text_changed.emit(app.account_confirm_input.text)
   check(not app.account_password_change_button.disabled,size_label+" valid password change can be submitted")
   app.account_old_password_input.grab_focus();app.account_old_password_input.set_caret_column(3)
-  app.account_page();await frames()
-  check(app.account_old_password_input.text=="password123!" and app.account_password_input.text=="new-password!" and app.account_confirm_input.text=="new-password!",size_label+" signed-in reflow retains password change fields")
-  check(app.account_old_password_input.has_focus() and app.account_old_password_input.get_caret_column()==3,size_label+" signed-in reflow restores old password focus and caret")
+  app.refresh_responsive_layout();await frames()
+  check(app.page=="account_password" and app.account_old_password_input.text=="password123!" and app.account_password_input.text=="new-password!" and app.account_confirm_input.text=="new-password!",size_label+" password-page reflow retains password fields")
+  check(app.account_old_password_input.has_focus() and app.account_old_password_input.get_caret_column()==3,size_label+" password-page reflow restores old password focus and caret")
+  find_button(app.screen,"返回账号").pressed.emit();await frames()
   app.account_name="abcdefghijklmnopqrstuvwx";app.account_nickname="昵称".repeat(10);app.account_page()
   await frames()
   check(await signed_in_settings_fit(),size_label+" long account identity fits beside reachable settings")

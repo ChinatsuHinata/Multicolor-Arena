@@ -51,6 +51,25 @@ func check_assignment(prefix: String):
  view.confirm_damage()
  expect(e.pending.get("kind","")!="damage_assignment" and blockers.all(func(c):return c.damage==0),prefix+" zero damage can be confirmed without assigning a point")
 
+func check_rank_assignment(prefix: String):
+ clean(true)
+ var attacker=put("53","field",0);attacker.base_override={"power":4,"health":20};attacker.extra_keywords=["威吓"]
+ var target=put("53","field",1);target.base_override={"power":1,"health":20}
+ var blocker=put("53","field",1);blocker.base_override={"power":1,"health":20}
+ target.rank_target={"owner":0,"turns":e.players[0].turns+1}
+ e.attack(0,attacker.uid,e.ref_target(target));resolve()
+ view.selection=[blocker.uid];e.presentation_events.clear();view.reveal_player.reset();view.render()
+ var confirm=find_button(view.hud,"确认阻挡 1 个")
+ expect(confirm!=null and not confirm.disabled,prefix+" menace permits confirming one extra blocker alongside the rank target")
+ if confirm==null or confirm.disabled:return
+ confirm.emit_signal("pressed");resolve()
+ expect(e.pending.get("kind","")=="damage_assignment",prefix+" rank target and one extra blocker require joint damage assignment")
+ view.damage_dialog();await frames()
+ var target_key=str(target.uid);var blocker_key=str(blocker.uid)
+ expect(view.damage_controls.size()==2 and view.damage_controls.has(target_key) and view.damage_controls.has(blocker_key),prefix+" damage dialog includes the mandatory rank target and extra blocker")
+ view.change_damage(target_key,1);view.change_damage(blocker_key,3);view.confirm_damage()
+ expect(target.damage==1 and blocker.damage==3 and attacker.damage==2,prefix+" UI allocation damages both defenders and applies their combined retaliation")
+
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/combat-damage-assignment/fixtures/"+str(Time.get_ticks_usec()))
  root.mode=Window.MODE_WINDOWED;root.gui_embed_subwindows=true
@@ -64,5 +83,6 @@ func run():
   await frames();app.refresh_responsive_layout();app.begin_battle(true)
   view=app.duel_view;view.set_process(false);e=view.engine;await frames()
   await check_assignment("android" if mobile else "desktop")
+  await check_rank_assignment("android" if mobile else "desktop")
  print("COMBAT DAMAGE ASSIGNMENT UI: %d checks; %d failures" % [checks,failures.size()])
  app.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)

@@ -88,7 +88,7 @@ static func on_palette(e,c,old_zone):
  if old_zone=="hand" and has(e,c,"ETO-S001"):event(e,c,"ETO-S001",true,{"ref":e.Pack.ref(e,c)})
 static func stat(e,c,k):
  var n=int(c.get("drunk_counters",0))
- if has(e,c,"LOC-001") and k in ["power","spirit"]:n+=e.Cat.counter_total(e,[c])
+ if has(e,c,"LOC-001") and k in ["power","spirit"]:n+=e.Roster.count(e.cards[c.card_id],"n21:LOC-001")*e.Cat.counter_total(e,[c])
  if k=="spirit":
   for m in c.get("n21_spirit",[]):n+=m.amount
  return n

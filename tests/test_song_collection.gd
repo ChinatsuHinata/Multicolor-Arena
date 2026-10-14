@@ -57,6 +57,7 @@ func run():
   destinations=e.pending.options[0]
   var before_rng=e.rng.state
   e.choose_effect(pick(destinations,[[],[],[]]))
+  if e.pending.get("kind","")=="reveal_review":e.confirm_revealed(e.pending.owner,e.pending.serial)
   expect(e.pending.is_empty() and e.players[0].deck.size()==codes.size() and e.players[0].hand.is_empty() and e.players[0].grave.is_empty() and e.players[0].palette.is_empty(),"all destinations can be skipped, leaving every book in the library")
   if codes.size()>1:expect(e.rng.state!=before_rng,"remaining books are shuffled after all destinations are skipped")
  print("SONG COLLECTION: %d checks; %d failures" % [checks,failures.size()])

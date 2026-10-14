@@ -11,7 +11,7 @@ func account(action: String,username: String) -> Dictionary:
  var client=AccountClient.new();root.add_child(client);client.server_url=ENDPOINT
  client.call_deferred("submit",action,username,"password123!")
  var result=await client.finished
- var answer={"ok":result[0],"message":result[1],"token":client.session_token,"nickname":client.nickname,"elo":client.elo}
+ var answer={"ok":result[0],"message":result[1],"token":client.session_token,"nickname":client.nickname,"elo":client.elo,"rank":client.rank.duplicate(true)}
  client.queue_free();return answer
 
 func make_session(index: int):
@@ -51,9 +51,13 @@ func run():
  guest.start_matchmaking(ENDPOINT,decks[1])
  check(await until(func():return host.can_act() and guest.can_act()),"server assigns paired host and guest without a room application")
  if not host.can_act() or not guest.can_act():print("HOST ",host.notice," GUEST ",guest.notice);cleanup();quit(1);return
+ check(host.room.status=="sideboarding" and guest.room.status=="sideboarding" and host.room.ready==guest.room.ready,"initial ranked handshake immediately synchronizes both preparation views")
  check(host.is_host and not guest.is_host and host.cloud_ranked and guest.cloud_ranked,"automatic pairing assigns fixed battle seats")
+ check(host.match_room_public and guest.match_room_public,"both public queue preferences produce a public match")
  check(host.room.format==Series.BO1_SIDEBOARD and guest.room.format==Series.BO1_SIDEBOARD and host.room.strict,"ranked format is strict BO1 sideboarding")
  check(host.room.rule_set==Store.RuleSet.OFFICIAL and guest.room.rule_set==Store.RuleSet.OFFICIAL,"both matched clients use the fixed official rule set")
+ var matched_ranks=[accounts[0].rank,accounts[1].rank]
+ check(host.room.get("ranks",[])==matched_ranks and guest.room.get("ranks",[])==matched_ranks,"both matched clients receive authenticated ranks in battle seat order")
  check(not host.can_move_cloud_seats(),"matchmaking disables moving seats")
  var own_ratings=[];var other_ratings=[];var own_ranks=[]
  host.rank_updated.connect(func(rank):own_ranks.append(rank))
@@ -111,6 +115,7 @@ func run():
  guest.retry_connection(Time.get_ticks_msec(),true)
  check(await until(func():return host.can_act() and guest.can_act()),"original player resumes its reserved match")
  check(host.room.rule_set==Store.RuleSet.OFFICIAL and guest.room.rule_set==Store.RuleSet.OFFICIAL,"reconnection preserves official matching rules")
+ check(host.room.get("ranks",[])==matched_ranks and guest.room.get("ranks",[])==matched_ranks,"reconnection preserves the opponent rank snapshot")
  check(host.Codec.capture(host.authority)==opening,"reconnection preserves both original hands and the staged choice")
  sync_views()
  # Both clients may have submitted against the same opening sequence.
@@ -140,6 +145,34 @@ func run():
  check(not host.room.has("elo") and not guest.room.has("elo") and not JSON.stringify(directory.rooms).contains("elo"),"room state and directory contain no ratings")
  host.transport.relay_result(host.cloud_match_id,0);guest.transport.relay_result(guest.cloud_match_id,0)
  await create_timer(1.3).timeout
+ host.leave(false);guest.leave(false);outsider.leave(false)
+ check(not guest.resume_requested,"leaving clears the previous match's recovery handshake")
+ guest.start_matchmaking(ENDPOINT,decks[1]);host.start_matchmaking(ENDPOINT,decks[0])
+ check(await until(func():return host.can_act() and guest.can_act()),"both players can immediately match again after the recovered match ends")
+ guest.leave(false);guest.start_matchmaking(ENDPOINT,decks[1])
+ check(await until(func():return guest.matchmaking and guest.notice.contains("正在自动匹配") and host.match_settled),"leaving before play and immediately matching releases the old room and queues again")
+ host.leave(false);host.start_matchmaking(ENDPOINT,decks[0])
+ check(await until(func():return host.can_act() and guest.can_act()),"the former opponent can also match again after cancellation")
+ guest.transport.close()
+ check(await until(func():return not host.connected),"an unexpected transport exit is detected")
+ guest.start_matchmaking(ENDPOINT,decks[1],false)
+ check(await until(func():return guest.matchmaking and guest.notice.contains("正在自动匹配") and host.match_settled),"a fresh matching request after an unexpected exit releases the old reservation without waiting thirty seconds")
+ host.leave(false);host.start_matchmaking(ENDPOINT,decks[0])
+ check(await until(func():return host.can_act() and guest.can_act()),"matching remains usable after consecutive leave and crash recovery cycles")
+ check(not host.match_room_public and not guest.match_room_public,"one private queue preference makes both matched clients private")
+ var private_host=host if host.is_host else guest
+ var private_guest=guest if host.is_host else host
+ snapshots.clear();directory.refresh()
+ check(await until(func():return not snapshots.is_empty()) and directory.rooms.all(func(info):return info.id!=host.relay_code),"private matching is hidden from the authenticated room directory")
+ var privacy_errors=[];outsider.error_raised.connect(func(message):privacy_errors.append(message))
+ outsider.join_relay_room(ENDPOINT,host.relay_code,false,8)
+ check(await until(func():return outsider.rejected and not privacy_errors.is_empty()),"direct spectator requests to a known private room are rejected")
+ check(private_host.spectator_hub.watchers.is_empty() and privacy_errors.any(func(message):return message.contains("私人")),"private match admits no observers and explains the restriction")
+ check(private_guest.identity.resume.get("match_room_public",true)==false and private_host.Journal.load_from(private_host.storage+"/host.bin").get("match_room_public",true)==false,"both players persist the private room state for recovery")
+ private_guest.transport.close();private_guest.on_disconnect(1)
+ check(await until(func():return not private_host.connected),"private match pauses when the guest disconnects")
+ private_guest.retry_connection(Time.get_ticks_msec(),true)
+ check(await until(func():return host.can_act() and guest.can_act()) and not host.match_room_public and not guest.match_room_public,"original players reconnect to private matches with privacy preserved")
  var login=await account("login",prefix+"0")
  check(login.ok and login.elo==1016,"duplicate settlement cannot change persisted rating")
  directory.stop();directory.queue_free();cleanup()

@@ -46,7 +46,7 @@ func build(owner_view):
  refresh_layout()
 
 func can_show() -> bool:
- return view.is_android and view.host.android_zone_shortcuts and not (view.modal or view.history_open or view.debug_open or view.observing or view.host.menu_popup_open() or view.inspection.visible)
+ return view.is_android and view.host.android_zone_shortcuts and not (view.modal or view.history_open or view.debug_open or view.observing or is_instance_valid(view.android_battle_menu_root) or view.host.menu_popup_open() or view.inspection.visible)
 
 func can_use() -> bool:
  return can_show() and not view.revealing() and not view.table.combat_animating

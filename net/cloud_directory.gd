@@ -6,6 +6,7 @@ var peer: WebSocketMultiplayerPeer
 var rooms: Array=[]
 var queued=-1
 var version=""
+var match_mode="ranked"
 var rank: Dictionary={}
 var url=""
 var token=""
@@ -58,7 +59,7 @@ func refresh():
 func request_page(page: int):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
- peer.put_packet(("MCR1"+JSON.stringify({"kind":"list","token":token,"page":page,"version":version})).to_utf8_buffer())
+ peer.put_packet(("MCR1"+JSON.stringify({"kind":"list","token":token,"page":page,"version":version,"mode":match_mode})).to_utf8_buffer())
 
 func _process(_delta):
  if not active or application_suspended:return
@@ -78,6 +79,7 @@ func _process(_delta):
   if not answer is Dictionary:continue
   match str(answer.get("kind","")):
    "rooms":
+    if str(answer.get("mode","ranked"))!=match_mode:continue
     queued=int(answer.get("queued",-1));rank=answer.get("rank",{})
     if answer.get("rooms") is Array and int(answer.get("page",-1))==expected_page:
      pending_rooms.append_array(answer.rooms)

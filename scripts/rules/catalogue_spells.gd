@@ -276,7 +276,8 @@ static func resolve(e,t):
   "spell-fdf-013","spell-fdf-084":
    C.printed_tokens(e,who,3 if id=="spell-fdf-013" else 2,"token-fdf-129")
    if id=="spell-fdf-013":e.draw(who,3)
-   elif not p.deck.is_empty():e.move_to(p.deck[0],"palette");p.palette.back().tapped=true
+   elif not p.deck.is_empty():
+    var color=p.deck[0];e.move_to(color,"palette");color.tapped=true
   "spell-fdn-040":
    var u=C.token(e,who,"半灵",4,2,2,["黑","绿"],["疾行","先制"],[],"token-ucs-099")
    if not u.is_empty():C.delay(e,u,"sacrifice",who,"end",{},c)

@@ -8,7 +8,7 @@ static func defaults() -> Array:
  return STRATEGIES.map(func(strategy):return {"strategy":strategy,"enabled":strategy=="largest","cards":[]} if strategy=="selected" else {"strategy":strategy,"enabled":strategy=="largest"})
 
 static func legal_group(e,attacker: Dictionary,group: Array) -> bool:
- return not group.is_empty() and (group.size()>1 or not e.Extra.keyword(e,attacker,"威吓"))
+ return not group.is_empty() and (group.size()>1 or e.combat.has("target") or not e.Extra.keyword(e,attacker,"威吓"))
 
 static func ordered(e,legal: Array,largest: bool) -> Array:
  var result=legal.duplicate()
@@ -21,12 +21,13 @@ static func ordered(e,legal: Array,largest: bool) -> Array:
  return result
 
 static func lethal_group(e,attacker: Dictionary,legal: Array) -> Array:
- if legal.size()<2:return []
+ var minimum=1 if e.combat.has("target") else 2
+ if legal.size()<minimum:return []
  var group=ordered(e,legal,true)
  if not Preview.fight(e,attacker,group).attacker_dead:return []
  # Start with every legal blocker, then remove unnecessary smaller units.
  for card in ordered(e,legal,false):
-  if group.size()<=2:break
+  if group.size()<=minimum:break
   var reduced=group.duplicate();reduced.erase(card)
   if Preview.fight(e,attacker,reduced).attacker_dead:group=reduced
  return group

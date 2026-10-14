@@ -27,9 +27,14 @@ tests/*
 !tests/*.gd.uid
 !tests/test_account_store.py
 !tests/test_deck_plaza_store.py
+!tests/test_tournament_store.py
+!tests/test_tournament_competition.py
+!tests/run_tournaments.py
 !tests/test_match_store.py
 !tests/test_rank_progression.py
 !tests/run_cloud_matchmaking.py
+!tests/test_match_preparation_sync.gd
+!tests/test_match_room_exit_ui.gd
 !tests/run_password_change.py
 !tests/README.md
 !tests/AGENTS.md
@@ -53,6 +58,7 @@ tests/*
 !tests/test_rain_fire_mill.gd
 !tests/test_ran_discount.gd
 !tests/test_ran_discount_ui.gd
+!tests/test_sisters_support.gd
 
 # Installer packages and local packaging automation
 *-setup.exe

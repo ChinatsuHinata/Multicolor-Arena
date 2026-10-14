@@ -2,6 +2,45 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "云端: 下载段位匹配自机使用率与胜率",
+      "detail": "沿用本机加密 SSH 口令，仅统计 1.2.8 自机采集上线后的已结算段位匹配，忽略此前缺失的对局；输出 CSV 到 D:\\云端报告，并保留 TXT/JSON 说明与快照。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/download-cloud-rank-report.ps1", "-Report", "characters"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "云端: 下载段位前20名报告",
+      "detail": "只读查询 ECS 段位前 20 名及每位玩家的段位对局数、胜负场数和胜率，仅统计已结算段位对局；按北京时间输出 CSV 到 D:\\云端报告，更新最新 CSV 并保留 TXT/JSON。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/download-cloud-rank-report.ps1"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "云端: 更新报告 SSH 口令并下载",
+      "detail": "重新输入并验证 SSH 私钥口令，成功生成报告后更新本机 Windows 加密缓存。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/download-cloud-rank-report.ps1", "-UpdatePassphrase"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true },
+      "problemMatcher": []
+    },
+    {
       "label": "Godot: 开始游戏测试",
       "type": "process",
       "command": "${workspaceFolder}/.godot-toolchain/editor/Godot_v4.7.2-stable_win64.exe",
@@ -231,7 +270,7 @@
     },
     {
       "label": "发布: 创建并推送双端 PCK 差分更新包到云端",
-      "detail": "检查云端版本，以本机安装版 PCK 和已安装补丁链生成相邻差分；同时保留固定基底累计补丁，验签并合并版本链后上传。",
+      "detail": "检查云端版本，以本机安装版 PCK 和已安装补丁链生成相邻差分，验签并合并历史版本链后上传；不制作新的旧版累计兼容包。",
       "type": "process",
       "command": "powershell.exe",
       "args": [
@@ -241,6 +280,7 @@
         "-File",
         "${workspaceFolder}/tools/publish-pck-update.ps1",
         "-UseInstalledWindowsPck",
+        "-NoLegacyCumulative",
         "-Publish"
       ],
       "options": { "cwd": "${workspaceFolder}" },
@@ -250,7 +290,7 @@
     },
     {
       "label": "PCK: 推送已构建差分更新包到云端",
-      "detail": "按本机安装版实际版本读取已构建相邻补丁，并读取 1.2.7.1 累计补丁；合并签名版本链后上传 ECS。",
+      "detail": "按本机安装版实际版本读取已构建双端相邻补丁，合并签名历史版本链后上传 ECS；不读取新的累计兼容包。",
       "type": "process",
       "command": "powershell.exe",
       "args": [
@@ -261,6 +301,7 @@
         "${workspaceFolder}/tools/publish-pck-update.ps1",
         "-UseInstalledWindowsPck",
         "-SkipBuild",
+        "-NoLegacyCumulative",
         "-Publish"
       ],
       "options": { "cwd": "${workspaceFolder}" },
@@ -276,7 +317,7 @@
       "args": [
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
         "${workspaceFolder}/tools/publish-pck-update.ps1",
-        "-UseInstalledWindowsPck", "-SkipBuild", "-Publish", "-ReplaceExisting"
+        "-UseInstalledWindowsPck", "-SkipBuild", "-Publish", "-ReplaceExisting", "-NoLegacyCumulative"
       ],
       "options": { "cwd": "${workspaceFolder}" },
       "group": "build",

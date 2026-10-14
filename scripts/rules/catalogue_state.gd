@@ -3,7 +3,7 @@ extends RefCounted
 static func stat_adjust(e,c,k):
  if c.zone!="field":return 0
  var C=e.Cat;var who=c.owner;var n=int(c.get("madness",0))
- if C.has(e,c,"character-fdn-013") and k in ["power","spirit"]:n+=e.units(who).filter(func(u):return u.uid!=c.uid and C.race(e,u,"妖精")).size()
+ if C.has(e,c,"character-fdn-013") and k in ["power","spirit"]:n+=e.Roster.count(e.cards[c.card_id],"character-fdn-013")*e.units(who).filter(func(u):return u.uid!=c.uid and C.race(e,u,"妖精")).size()
  if C.has(e,c,"character-fdf-100") and k=="spirit":n+=e.players[1-who].grave.filter(func(u):return e.cards[u.card_id].kind=="符卡").size()
  if C.character(e,c,"火焰猫燐"):n+=e.players[who].grave.filter(func(u):return C.has(e,u,"spell-fdf-006")).size()
  for u in e.players[who].field:
@@ -18,7 +18,7 @@ static func keyword(e,c,k):
   if C.character(e,c,"半灵") and not C.with_key(e,who,"spell-fdn-012").is_empty():return true
  if c.zone!="field":return false
  if k=="不会被消灭":return e.players[who].get("indestructible",-1)==e.turn or e.players[who].get("dolls_indestructible",-1)==e.turn and (C.race(e,c,"人偶") or C.character(e,c,"爱丽丝"))
- if k=="追击" and (C.race(e,c,"神") or C.character(e,c,"御柱")) and not C.with_key(e,who,"spell-ucs-033").is_empty():return true
+ if k=="追击" and (C.race(e,c,"神") or C.race(e,c,"御柱")) and not C.with_key(e,who,"spell-ucs-033").is_empty():return true
  if k=="不能被阻挡" and C.enabled(e,c,"character-fdn-026:self"):return true
  if k=="英勇" and C.enabled(e,c,"character-ucs-061:self"):return true
  if k=="退治" and C.enabled(e,c,"character-fdf-041:self"):return true
@@ -35,7 +35,7 @@ static func grant_self(e,c):
 static func permission(e,c,who):
  var C=e.Cat;var p=e.players[who]
  if c.zone=="exile" and c.get("catalogue_access",{}).get("owner",-1)==who:return true
- if c.zone=="exile" and p.get("exile_free",{}).get("turn",-1)==e.turn and p.exile_free.remaining>0:return true
+ # Modern History waives constraints and costs after another effect grants access.
  if c.owner!=who:return false
  if c.zone=="grave" and C.has(e,c,"spell-fdf-012"):return true
  if c.zone=="palette":return p.get("palette_access",-1)==e.turn or C.role(e,c,"魂魄妖梦") and p.get("youmu_palette_turn",-1)!=e.turn and e.active==who and not C.with_key(e,who,"character-fdf-102:self").is_empty()
@@ -54,10 +54,11 @@ static func bypass(e,c,who):
  return false
 static func role_present(e,c,who):
  var C=e.Cat;var required=e.cards[c.card_id].requires_character
- if C.normalized(required).contains("小野冢小町") and e.players[who].grave.any(func(u):return C.has(e,u,"character-fdf-029")):return true
+ if C.normalized(required).contains("小野冢小町") and e.players[who].grave.any(func(u):return C.has(e,u,"character-fdf-029") or e.Exploration.wildcard(e,u,required)):return true
  if required.contains("铃仙") and not C.with_key(e,who,"spell-fdn-032").is_empty() and not e.units(who).is_empty():return true
  if C.has(e,c,"spell-fdn-023") and e.players[who].grave.any(func(u):return C.character(e,u,"少名针妙丸") and e.Extra.cost_value(e,u)==3):return true
- if c.get("catalogue_access",{}).get("support",false) and e.players[who].leader.zone=="leader" and C.role(e,c,e.cards[e.players[who].leader.card_id].character):return true
+ if c.zone=="exile" and c.get("catalogue_access",{}).get("support",false):
+  return e.leaders(who).any(func(leader):return leader.zone=="leader" and e.character_matches(leader,required))
  return false
 static func mandatory_free_cast(e,c,who):
  var C=e.Cat;var p=e.players[who]
@@ -206,14 +207,15 @@ static func sync_fairies(e):
    if u.uid==c.uid or not e.Cat.race(e,u,"妖精"):continue
    var other=e.cards[u.get("habitat_base",u.card_id)]
    for a in other.abilities:
-    if a not in info.abilities:info.abilities.append(a.duplicate(true))
+    info.abilities.append(a.duplicate(true))
    var explicit_keywords=other.get("keywords",[]).duplicate()
    explicit_keywords.append_array(u.get("extra_keywords",[]))
    for modifier in u.get("modifiers",[]):
     for k in modifier:
-     if modifier[k] is bool and modifier[k] and k not in explicit_keywords:explicit_keywords.append(k)
+     if modifier[k] is bool and modifier[k]:explicit_keywords.append(k)
    for k in keyword_candidates:
     # Slot exemptions from the habitat leader are rules for fairies, not abilities they pass back to the habitat.
     if k=="不占战场格" and k not in explicit_keywords:continue
-    if k not in info.keywords and e.Extra.keyword(e,u,k):info.keywords.append(k)
+    if e.Extra.keyword(e,u,k):
+     for instance in range(maxi(1,explicit_keywords.count(k))):info.keywords.append(k)
   var id="catalogue_habitat_"+str(c.uid);e.cards[id]=info;c.card_id=id;c.habitat_base=base;c.inherited_self=true

@@ -1,4 +1,5 @@
 extends RefCounted
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 ## Human text remains text; selected actions are separate, validated teacher labels.
 var player
 var panel: Panel
@@ -31,7 +32,7 @@ func open(owner):
  app.label(panel,"回放训练标注 · 第 %d 步 / 第 %d 回合"%[frame_index+1,player.archive.frames[frame_index].turn],Rect2(28,16,1210,40),26,app.GOLD)
  app.label(panel,"评价哪一方",Rect2(28,65,150,35),18)
  seat_choice=OptionButton.new();seat_choice.position=Vector2(180,65);seat_choice.size=Vector2(360,35)
- for name in player.archive.frame(frame_index).room.names:seat_choice.add_item(name)
+ for name in player.archive.frame(frame_index).room.names:seat_choice.add_item(PlayerNameDisplay.caption(name))
  seat_choice.selected=editing_seat;panel.add_child(seat_choice)
  seat_choice.item_selected.connect(func(value):
   if not flush():seat_choice.selected=editing_seat;return
@@ -74,7 +75,7 @@ func load_row():
  var computer=ctx.get("computer_choice",{})
  if not computer.is_empty():
   var name=player.archive.frame(frame_index).room.get("names",["玩家","玩家"])[editing_seat]
-  var title="电脑实际操作（录像）" if "人机" in name or "电脑" in name else "实际操作（录像 · "+name+"）"
+  var title="电脑实际操作（录像）" if "人机" in name or "电脑" in name else "实际操作（录像 · "+PlayerNameDisplay.caption(name)+"）"
   alternative.add_item(title+"："+computer.label)
   alternative.set_item_metadata(alternative.item_count-1,computer)
  for choice in ctx.choices:

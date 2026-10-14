@@ -93,7 +93,7 @@ static func name_is(info: Dictionary,name: String) -> bool:
 static func spark(info: Dictionary) -> bool: return name_is(info,"恋符「极限火花」")
 static func role(info: Dictionary) -> bool: return info.kind=="符卡" and not info.requires_character.is_empty()
 static func has_character(e,who: int,name: String) -> bool:
- return e.units(who).any(func(c): return e.Roster.character_matches(e.cards[c.card_id].character,name))
+ return e.units(who).any(func(c): return e.character_matches(c,name))
 static func colors(e,c: Dictionary) -> Array:
  if c.zone in ["field","palette"] and has(e.cards[c.card_id],"all_colors"): return e.COLORS.duplicate()
  var result=c.get("token_colors",e.cards[c.card_id].colors).duplicate()
@@ -161,8 +161,8 @@ static func spell_options(e,id: String,who: int) -> Variant:
   "counter_three":
    return e.Pack.none() if e.stack.any(func(s): return s.kind=="card" and e.Extra.cost_value(e,s.card)<=3) else []
   "reveal_counter":
-   var leader=e.cards[e.players[who].leader.card_id].character
-   var reveal=e.players[who].hand.filter(func(c): return e.cards[c.card_id].requires_character==leader)
+   var leader=e.players[who].leader
+   var reveal=e.players[who].hand.filter(func(c): return e.character_matches(leader,e.cards[c.card_id].requires_character))
    var counters=e.stack.filter(func(s): return s.kind=="card" and (e.cards[s.card.card_id].kind=="道具" or role(e.cards[s.card.card_id]))).map(func(s): return {"stack_id":s.id})
    return selection([group(refs(e,reveal),1,1,"展示一张角色符卡"),group(counters,1,1,"反制目标")],k)
   "double_spark": return selection([group(e.ability_targets(),0,2,"选择至多两个目标")],k)
@@ -266,7 +266,7 @@ static func trigger_options(e,t: Dictionary) -> Array:
   "tenshi_tap","tenshi_ping": return all_units(e)
   "marisa_untap":
    return selection([group(objects(e,["自机","单位","结界","道具"],who),0,2,"重置永久物")],"permanents")+[{"none":true,"mode":"重置颜色盘"}]
-  "scarlet_anthem": return zone(e,who,"grave").filter(func(r): return e.cards[e.find_card(r.uid).card_id].race.any(func(race): return race in ["吸血鬼","人类"]))
+  "scarlet_anthem": return zone(e,who,"grave").filter(func(r): return e.Cat.race(e,e.find_card(r.uid),"吸血鬼") or e.Cat.race(e,e.find_card(r.uid),"人类"))
  return none()
 static func resolve_trigger(e,t: Dictionary):
  var who=t.owner; var target=t.target; var data=t.get("data",{}); var c=e.find_card(t.source.uid)
@@ -278,7 +278,7 @@ static func resolve_trigger(e,t: Dictionary):
   "tewi_counters":
    for r in picked(target):
     if e.target_valid(r,true): var u=e.find_card(r.uid); e.Roster.plus(e,u,1,who)
-  "shou_shield": shield(e,target,[999999],true)
+  "shou_shield": prevent_next_damage(e,target)
   "kosuzu_destroy":
    if e.Extra.valid(e,target): e.destroy(e.find_card(target.uid))
   "eirin_return":
@@ -403,7 +403,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
    if e.target_valid(t,true):
     e.apply_turn_buff(t,{"灵力":4})
     var c=e.find_card(t.uid)
-    if e.cards[c.card_id].character=="博丽灵梦": e.gain_life(who,e.stat(c,"spirit"))
+    if e.character_matches(c,"博丽灵梦"): e.gain_life(who,e.stat(c,"spirit"))
   "double_spark":
    for r in picked(t): e.damage_target(r,6)
   "spread_damage":
@@ -531,6 +531,12 @@ static func shield(e,t: Dictionary,amounts: Array,next_damage: bool=false,this_t
  for amount in amounts:
   e.next_buff_order+=1
   c.wards=c.get("wards",[])+[{"amount":amount,"turn":e.turn if this_turn else -1,"next":next_damage,"order":e.next_buff_order}]
+static func prevent_next_damage(e,t: Dictionary):
+ if not e.target_valid(t):return
+ var c=e.players[t.player] if t.has("player") else e.find_card(t.uid)
+ c.next_damage_prevention_turn=e.turn
+static func has_next_damage_prevention(e,c: Dictionary) -> bool:
+ return int(c.get("next_damage_prevention_turn",-1))==e.turn
 static func adjusted_damage(e,t: Dictionary,amount: int) -> int:
  var context=e.damage_context; var source=context.get("source",{}); var combat=context.get("combat",false)
  if not combat and not source.is_empty() and context.get("single",false):
@@ -542,6 +548,9 @@ static func adjusted_damage(e,t: Dictionary,amount: int) -> int:
   if e.Extra.keyword(e,c,"防止伤害"): return 0
   if not combat and e.Roster.has(e.cards[c.card_id],"sannyo_prevent"):return 0
   if not combat and e.cards[c.card_id].kind=="自机" and e.players[c.owner].field.any(func(u): return has(e.cards[u.card_id],"paranoid")): return 0
+ if has_next_damage_prevention(e,c):
+  c.erase("next_damage_prevention_turn")
+  return 0
  var wards=c.get("wards",[])
  for w in wards.duplicate():
   if amount<=0: break
@@ -591,6 +600,7 @@ static func single_damage_target(entry: Dictionary) -> bool:
  return flatten(t).size()==1
 static func ai_target(e,who: int,options: Array,effect: String="") -> Dictionary:
  if options.is_empty(): return {}
+ if effect=="exploration:take":return e.Exploration.ai_pick(e,who,options[0])
  if effect=="cat:copy_x":
   for option in options:
    if option.has("value") and e.Cat.field(e,1-who).any(func(c):return e.Roster.permanent(e,c) and e.Extra.cost_value(e,c)==int(option.value)):return option

@@ -1,7 +1,7 @@
 extends "res://tests/support/network_ui_base.gd"
 
 func run():
- app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ app=load("res://main.tscn").instantiate();app.account_session_path="res://work/disconnect-wait/account.bin";root.add_child(app);await process_frame
  authority_session=Session.new();client_session=Session.new();root.add_child(authority_session);root.add_child(client_session)
  authority_session.initialize("res://work/disconnect-wait/ui-host")
  client_session.initialize("res://work/disconnect-wait/ui-guest")
@@ -24,7 +24,22 @@ func run():
  await process_frame
  expect(find_button(view.ui,"不再等待，离开对局")!=null and view.network_status_label.text.contains("秒"),"exit is available during initial countdown even after another lock")
  expect(find_button(view.ui,"继续等待")==null,"continue choice appears after 30 seconds")
- client_session.check_reconnect_timeout(client_session.disconnected_at+30000);await process_frame
+ client_session.cloud_ranked=true;client_session.cloud_match_id="TEST_ONLY_WAIT_MATCH"
+ var saved_room=client_session.room_id;var saved_resume=client_session.identity.resume.duplicate(true)
+ for mobile in [false,true]:
+  app.is_android=mobile;app.return_network_battle();view=app.duel_view
+  await until(func():return not view.revealing());view.render();await process_frame
+  expect(find_button(view.ui,"不再等待，离开对局")==null and view.network_status_label!=null,"ranked battlefield hides abandon waiting for "+str(mobile))
+  client_session.check_reconnect_timeout(client_session.disconnected_at+30000);view.network_changed();await process_frame
+  expect(not client_session.wait_choice_pending and find_button(view.ui,"继续等待")==null,"ranked outage automatically keeps recovering for "+str(mobile))
+  client_session.stop_waiting()
+  expect(client_session.room_id==saved_room and client_session.identity.resume==saved_resume,"ranked abandon callback cannot erase recovery for "+str(mobile))
+  app.online();await process_frame
+  var lobby=app.screen.get_children().filter(func(child):return child.get_script()==preload("res://net/lan_lobby.gd"))[0]
+  expect(not lobby.back_button.visible and find_button(lobby.body,"不再等待，离开对局")==null,"ranked lobby hides its exit during a battle outage for "+str(mobile))
+ client_session.cloud_ranked=false;client_session.cloud_match_id="";app.is_android=false;app.return_network_battle();view=app.duel_view
+ await until(func():return not view.revealing())
+ client_session.check_reconnect_timeout(client_session.disconnected_at+30000);view.render();await process_frame
  expect(find_button(view.ui,"继续等待")!=null and find_button(view.ui,"不再等待，离开对局")!=null,"both choices appear after 30 seconds")
  await press("继续等待")
  expect(client_session.wait_choice_confirmed and find_button(view.ui,"不再等待，离开对局")!=null,"exit remains available during indefinite wait")

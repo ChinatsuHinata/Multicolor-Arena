@@ -94,7 +94,7 @@ func run():
   mana();var enemy=put("50","field",1);put("164","palette",1);discard=put("50","hand")
   habitat.courage=2;e.judge()
   choices=e.activation_options(habitat,k)
-  target={"selection_id":choices[0].selection_id,"picks":[[e.Pack.ref(e,discard)]]} if k=="character-fdn-006" else {"none":true} if k=="clown_sweep" else {"player":1} if k=="courage_ping" else e.ref_target(enemy) if k=="courage_die" else e.Pack.ref(e,e.players[1].palette[0])
+  target={"selection_id":choices[0].selection_id,"picks":[[e.Pack.ref(e,discard)]]} if k=="character-fdn-006" else {"none":true} if k=="clown_sweep" else {"player":1} if k in ["courage_ping","character-fdf-113"] else e.ref_target(enemy)
   var enabled=e.available_actions(0,habitat.uid).any(func(action):return action.type=="extension" and action.key==k)
   expect(enabled and e.Pack.choice_valid(e,choices,target),"habitat inherited activation can be selected: "+k)
   error=e.commit_extension(0,habitat.uid,target,e.payment(0,e.extension_cost(0,habitat,k,target)).plan,k)

@@ -42,6 +42,9 @@ func measure(owner_view):
   measure_hand_controls()
   return
  var life_width=maxf(180,metrics.body*6.5)
+ var curse_count=0 if view.engine==null else clampi(maxi(view.ConditionHints.curse_count(view.engine,0),view.ConditionHints.curse_count(view.engine,1)),0,view.CurseWarning.MAX_VISIBLE)
+ if curse_count>0:
+  life_width+=curse_count*view.CurseWarning.ICON_SIZE.x+maxi(0,curse_count-1)*view.CurseWarning.GAP
  var action_width=maxf(244,metrics.body*9.5)
  var g=metrics.gap
  var hit=metrics.hit
@@ -139,6 +142,7 @@ func begin_frame():
  if not view.is_android:
   desktop_frame()
   return
+ measure(view)
  toolbar=HBoxContainer.new();view.hud.add_child(toolbar);toolbar.name="BattleToolbar"
  toolbar.position=toolbar_rect.position;toolbar.size=toolbar_rect.size
  var phase=Label.new();phase.name="BattlePhase";toolbar.add_child(phase)
@@ -183,7 +187,10 @@ func tools_actions() -> Array:
   actions.append(["操作说明",view.open_android_help])
  else:actions.push_front(["设置",view.settings_menu])
  if view.network_session!=null and not view.network_session.replay_mode and not view.network_session.read_only and view.network_session.room.get("undo_request",{}).is_empty():
-  actions.append(["请求悔棋" if view.is_android else "悔棋",func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
+  var caption="请求悔棋" if view.is_android else "悔棋"
+  var limit=int(view.network_session.room.get("undo_limit",0))
+  if limit>0:caption+="（剩余 %d 次）" % maxi(0,limit-int(view.network_session.room.get("undo_used",0)))
+  actions.append([caption,func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
  if view.debug_mode:
   actions.append(["测试说明",view.open_debug_help,view.modal or view.history_open or view.table.combat_animating])
   actions.append(["收起调试" if view.debug_open else "调试",view.debug_menu,view.history_open or view.table.combat_animating])
@@ -443,6 +450,12 @@ func position_persistent():
    var dialog=view.modal_root.get_child(0) as Control
    view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,
     maxf(safe.position.y,dialog.get_global_rect().position.y-view.observe_button.size.y-metrics.gap))
+  elif view.debug_open and is_instance_valid(view.browser_panel) and view.browser_panel.visible:
+   var browser_close=view.browser_panel.get_node_or_null("ClosePileBrowser") as Button
+   if browser_close!=null:
+    view.observe_button.position=Vector2(browser_close.get_global_rect().position.x-metrics.gap-view.observe_button.size.x,browser_close.get_global_rect().position.y)
+    var browser_title=view.browser_panel.get_node_or_null("PileBrowserTitle") as Label
+    if browser_title!=null:browser_title.size.x=maxf(0,view.observe_button.get_global_rect().position.x-browser_title.get_global_rect().position.x-metrics.gap)
   else:
    view.observe_button.position=Vector2(back_rect.position.x-metrics.gap-view.observe_button.size.x,toolbar_rect.end.y+metrics.gap)
  var stack_top=view.OPPONENT_HAND_COUNT.size.y+metrics.gap

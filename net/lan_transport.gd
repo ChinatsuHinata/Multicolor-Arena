@@ -7,7 +7,7 @@ signal relay_ready
 signal relay_seats_changed(seats: Array,peer_ids: Array)
 signal relay_seat_changed(seat: int,role: String)
 signal relay_notice(message: String)
-signal relay_match_queued(wait_seconds: int,gap: int,queued: int)
+signal relay_match_queued(wait_seconds: int,rank_gap: int,queued: int)
 signal relay_matched(info: Dictionary)
 signal relay_match_settled(info: Dictionary)
 signal relay_room_closed(info: Dictionary)
@@ -38,8 +38,8 @@ func relay_host(address: String,port: int,code: String,websocket: bool=false,tok
 func relay_join(address: String,port: int,code: String,websocket: bool=false,token: String="",options: Dictionary={},watch: bool=false) -> Error:
  return connect_relay(address,port,code,"watch" if watch else "guest",websocket,token,options)
 
-func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="") -> Error:
- return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash})
+func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="",public_room: bool=true,mode: String="ranked",competition: String="") -> Error:
+ return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash,"public":public_room,"mode":mode,"tournament_match":competition})
 
 func relay_result(match_id: String,winner: int):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
@@ -66,10 +66,10 @@ func relay_control(kind: String):
  var payload={"kind":kind,"room":relay_code,"token":relay_token}
  payload.merge(relay_options,true)
  peer.put_packet(("MCR1"+JSON.stringify(payload)).to_utf8_buffer())
-func relay_update(status: String,name: String,ready: Array=[false,false],round_number: int=0):
+func relay_update(status: String,name: String,ready: Array=[false,false],round_number: int=0,format_value: int=0):
  if relay_role!="host" or peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
- peer.put_packet(("MCR1"+JSON.stringify({"kind":"update","status":status,"name":name,"ready":ready,"round":round_number})).to_utf8_buffer())
+ peer.put_packet(("MCR1"+JSON.stringify({"kind":"update","status":status,"name":name,"ready":ready,"round":round_number,"format":format_value})).to_utf8_buffer())
 func relay_move(from_slot: int,to_slot: int):
  if relay_role!="host" or peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
@@ -146,7 +146,7 @@ func _process(_delta):
    var control=JSON.parse_string(bytes.get_string_from_utf8().substr(4))
    if control is Dictionary:
     match control.get("kind",""):
-     "match_queued":relay_match_queued.emit(int(control.get("wait_seconds",0)),int(control.get("gap",100)),int(control.get("queued",-1)))
+     "match_queued":relay_match_queued.emit(int(control.get("wait_seconds",0)),int(control.get("rank_gap",0)),int(control.get("queued",-1)))
      "matched":
       relay_role=str(control.get("role","guest"));relay_code=str(control.get("room",""))
       relay_options.merge({"resume":true,"match_id":str(control.get("match_id","")),"seat":int(control.get("seat",0))},true)

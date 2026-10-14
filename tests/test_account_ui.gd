@@ -18,9 +18,11 @@ func run():
  app=load("res://main.tscn").instantiate()
  app.tutorial_local_directory="res://work/account-plaza-checks/tutorials"
  DirAccess.make_dir_recursive_absolute(app.tutorial_local_directory)
- root.add_child(app)
+ app.lan_storage_directory="res://work/account-plaza-checks/lan"
+ app.settings_path="res://work/account-plaza-checks/settings.json"
  app.account_session_path="res://work/test_account_ui_session.json"
  AccountSessionStore.clear(app.account_session_path)
+ root.add_child(app)
  await process_frame
  app.account_page();await process_frame
  check(app.page=="account" and app.account_username_input!=null and app.account_password_input.secret,"login page has account and masked password fields")
@@ -58,6 +60,11 @@ func run():
  check(AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path)=="b".repeat(64),"login remembers a device-bound token")
  for android in [false,true]:
   app.is_android=android;app.account_page();await process_frame
+  var entry=app.screen.find_child("AccountOpenPasswordChange",true,false) as Button
+  check(entry!=null and not entry.disabled and app.account_old_password_input==null and app.account_password_input==null and app.account_confirm_input==null,"account page exposes a password-change button without password fields")
+  entry.pressed.emit();await process_frame
+  check(app.page=="account_password" and app.account_username_input==null and app.screen.find_child("AccountNickname",true,false)==null,"password-change button opens a separate form")
+  check(app.account_old_password_input.text.is_empty() and app.account_password_input.text.is_empty() and app.account_confirm_input.text.is_empty(),"opening password change starts with empty fields")
   check(app.account_old_password_input is PasswordEdit and app.account_password_input is PasswordEdit and app.account_confirm_input is PasswordEdit,"password change masks all three fields on each platform")
   check(app.account_password_change_button.disabled,"empty password change remains locked")
   app.account_old_password_input.text="password123!"
@@ -70,21 +77,24 @@ func run():
   app.account_confirm_input.text="new-password!";app.account_confirm_input.text_changed.emit(app.account_confirm_input.text)
   check(not app.account_password_change_button.disabled,"valid old, new, and matching confirmation unlock submission")
   app.account_old_password_input.grab_focus();app.account_old_password_input.set_caret_column(3)
-  app.account_page();await process_frame;await process_frame
-  check(app.account_old_password_input.text=="password123!" and app.account_password_input.text=="new-password!" and app.account_confirm_input.text=="new-password!" and app.account_old_password_input.has_focus() and app.account_old_password_input.get_caret_column()==3,"rebuilding the account page preserves all fields and old-password focus")
+  app.account_password_page();await process_frame;await process_frame
+  check(app.account_old_password_input.text=="password123!" and app.account_password_input.text=="new-password!" and app.account_confirm_input.text=="new-password!" and app.account_old_password_input.has_focus() and app.account_old_password_input.get_caret_column()==3,"rebuilding the password page preserves all fields and old-password focus")
   app.account_old_password_input.text="new-password!";app.account_old_password_input.text_changed.emit(app.account_old_password_input.text)
   check(app.account_password_change_button.disabled,"reusing the old password keeps submission locked")
   app.account_old_password_input.text="password123!";app.account_pending=true;app.account_refresh_password_button()
   check(app.account_password_change_button.disabled,"pending requests cannot be submitted twice")
   app.account_pending=false
-  for field in [app.account_old_password_input,app.account_password_input,app.account_confirm_input]:field.clear()
+  app.screen.find_child("AccountPasswordBack",true,false).pressed.emit();await process_frame
+  check(app.page=="account" and app.account_username_input.name=="AccountNickname" and app.account_old_password_input==null and app.account_password_input==null and app.account_confirm_input==null,"returning from password change restores the compact account page")
+  app.screen.find_child("AccountOpenPasswordChange",true,false).pressed.emit();await process_frame
+  check(app.account_old_password_input.text.is_empty() and app.account_password_input.text.is_empty() and app.account_confirm_input.text.is_empty(),"leaving password change discards unfinished passwords")
  app.account_client=AccountClient.new();app.add_child(app.account_client);app.account_action="password"
  app.account_request_finished(false,"账号或旧密码错误","");await process_frame
- check(app.account_name=="sample_user" and app.account_token=="a".repeat(64) and AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path)=="b".repeat(64),"failed password change retains the current login and remembered credential")
+ check(app.page=="account_password" and app.account_name=="sample_user" and app.account_token=="a".repeat(64) and AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path)=="b".repeat(64),"failed password change retains the current login and remembered credential")
  app.account_client=AccountClient.new();app.add_child(app.account_client);app.account_action="password"
  app.account_request_finished(true,"密码已修改，请使用新密码重新登录","");await process_frame
  check(app.account_name.is_empty() and app.account_token.is_empty() and app.account_remember_token.is_empty() and AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path).is_empty(),"successful password change clears current and remembered credentials")
- check(app.account_mode=="login" and app.account_old_password_input==null and app.account_password_input.text.is_empty() and app.account_status_label.text.contains("新密码重新登录"),"password change returns to a cleared login form")
+ check(app.page=="account" and app.account_mode=="login" and app.account_old_password_input==null and app.account_password_input.text.is_empty() and app.account_status_label.text.contains("新密码重新登录"),"password change returns to a cleared login form")
  AccountSessionStore.clear(app.account_session_path)
  check(AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path).is_empty(),"clearing the token prevents the next automatic login")
  print("ACCOUNT UI: ",checks-errors.size(),"/",checks," checks")

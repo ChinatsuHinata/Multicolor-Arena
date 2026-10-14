@@ -1,6 +1,7 @@
 extends Control
 const Client=preload("res://scripts/deck_plaza_client.gd")
 const Store=preload("res://scripts/deck_store.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const Art=preload("res://scripts/card_art.gd")
 const CardInspection=preload("res://scripts/card_inspection.gd")
 # The service returns six posts; Android presents that batch one row at a time.
@@ -245,7 +246,7 @@ func make_tile(post: Dictionary):
  column.mouse_filter=Control.MOUSE_FILTER_IGNORE
  if app.is_android:column.add_theme_constant_override("separation",4 if compact_tiles else maxi(4,int(app.ui_metrics.gap*0.5)))
  tile_text(column,str(post.title),app.ui_metrics.body+4,app.GOLD)
- tile_text(column,"上传："+str(post.get("nickname","")),app.ui_metrics.small,app.MUTED)
+ tile_text(column,"上传："+PlayerNameDisplay.caption(str(post.get("nickname",""))),app.ui_metrics.small,app.MUTED)
  var tags="，".join(post.get("tags",[]))
  var colors=" / ".join(post.get("colors",[])) if not post.get("colors",[]).is_empty() else "无色"
  if app.is_android and compact_tiles:
@@ -360,7 +361,7 @@ func show_upload():
  text(form,"标签（最多十个，用中文逗号 ， 分隔；每个最多 20 字）",app.ui_metrics.body,app.GOLD)
  tags_input=LineEdit.new();tags_input.name="PlazaTags";form.add_child(tags_input)
  tags_input.text=saved.get("tags","");tags_input.placeholder_text="例如：灵梦，速攻，官限";tags_input.custom_minimum_size.y=app.ui_metrics.hit
- text(form,"上传玩家："+app.account_nickname,app.ui_metrics.body,app.MUTED)
+ text(form,"上传玩家："+PlayerNameDisplay.caption(app.account_nickname),app.ui_metrics.body,app.MUTED)
  submit_button=action(form,"保存套牌更新" if updating else "上传到套牌广场",submit_upload,true);submit_button.name="PlazaSubmit"
  tags_input.text_changed.connect(func(value):
   var parsed=parse_tags(value)
@@ -468,7 +469,7 @@ func show_detail():
  var deck=decoded(current_post)
  detail_deck=deck
  text(column,str(current_post.get("title","")),app.ui_metrics.title,app.GOLD)
- text(column,"上传玩家："+str(current_post.get("nickname","")),app.ui_metrics.body,app.MUTED).name="PlazaAuthorNickname"
+ text(column,"上传玩家："+PlayerNameDisplay.caption(str(current_post.get("nickname",""))),app.ui_metrics.body,app.MUTED).name="PlazaAuthorNickname"
  if not current_post.get("owned",false):
   var follow=action(column,"取消关注作者" if current_post.get("following",false) else "关注作者",toggle_author_follow)
   follow.name="PlazaFollowAuthor";follow.disabled=busy

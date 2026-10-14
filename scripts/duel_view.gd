@@ -2,9 +2,11 @@ extends Control
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const RevealReview=preload("res://scripts/duel_reveal_review.gd")
 const History=preload("res://scripts/duel_history.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const PaymentDraft=preload("res://scripts/payment_draft.gd")
 const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
+const DevourMarker=preload("res://scripts/devour_marker.gd")
 const RemoteDuel=preload("res://net/remote_duel.gd")
 const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
 const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
@@ -18,6 +20,10 @@ const AndroidSwipeScroll=preload("res://scripts/android_swipe_scroll.gd")
 const LocalExperiment=preload("res://scripts/ai/local_experiment.gd")
 const HoldConfirmButton=preload("res://scripts/hold_confirm_button.gd")
 const XValueInput=preload("res://scripts/x_value_input.gd")
+const TriggerOrderList=preload("res://scripts/trigger_order_list.gd")
+var trigger_order_list: Control
+var trigger_order_draft: Array=[]
+var trigger_order_draft_key=""
 var x_input_draft_key=""
 var x_input_draft=""
 var STAGE=Rect2(0,0,1600,900)
@@ -181,6 +187,7 @@ var android_palette_touch_last=Vector2.ZERO
 var android_palette_touch_dragged=false
 var android_palette_scroll_x=0
 var zone_pagers={}
+var field_capacity_badge: Panel
 var zone_page_touch_index=-1
 var zone_page_touch_key=""
 var zone_page_touch_start=Vector2.ZERO
@@ -247,7 +254,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  responsive.measure(self)
  var model_path=parent.get("experiment_model_path")
- var experiment_error="" if tutorial_runtime!=null else experiment_agent.configure(parent.get("experimental_ai")==true,str(model_path) if model_path!=null else "",parent.debug_mode,session)
+ var experiment_error="" if tutorial_runtime!=null else experiment_agent.configure(parent.get("experimental_ai")==true and not b.get("ai_passive",false),str(model_path) if model_path!=null else "",parent.debug_mode,session)
  if not experiment_error.is_empty():host.alert(experiment_error,"试验 AI")
  if tutorial_runtime!=null:
   debug_mode=false;engine=tutorial_runtime.adapter.engine
@@ -894,13 +901,28 @@ func set_response_mode(mode: int):
   if is_instance_valid(drag_art): drag_art.queue_free()
  clock_time=0
  render()
+func mulligan_selection_for_snapshot(packet: Dictionary) -> Array:
+ if selection.is_empty() or network_session==null or engine==null:return []
+ if network_session.read_only or network_session.replay_mode or not network_session.connected or network_session.ended() or network_session.disconnected_at>0 or not network_session.room.get("undo_request",{}).is_empty():return []
+ if packet.get("recovery",false) or packet.get("game_id","")!=network_session.local_game_id:return []
+ if packet.get("rewinds",[]).any(func(rewind):return int(rewind.get("id",0))>last_rewind_id):return []
+ var state=packet.get("projection",{}).get("state",{})
+ if engine.phase!="mulligan" or engine.winner!=-2 or engine.players[local_seat].mulligan_done:return []
+ if state.get("phase","")!="mulligan" or state.get("winner",-2)!=-2 or state.get("turn",-1)!=engine.turn:return []
+ var players=state.get("players",[])
+ if players.size()!=2 or players[local_seat].mulligan_done:return []
+ # The opponent's submission changes only readiness; this private hand choice is still valid.
+ var hand=engine.players[local_seat].hand.map(func(card):return [card.uid,card.epoch])
+ if hand!=players[local_seat].hand.map(func(card):return [card.uid,card.epoch]):return []
+ return selection.duplicate()
 func _process(delta):
  if engine==null: return
  if network_session!=null:
   if not network_session.snapshots.is_empty() and not revealing() and not table.combat_animating:
+   selection=mulligan_selection_for_snapshot(network_session.snapshots[0])
    var packet=network_session.pop_snapshot()
    observe_rewind(packet)
-   local={};selection=[];picker.reset();attack_preview_uid=0;close_overlay()
+   local={};picker.reset();attack_preview_uid=0;close_overlay()
    if packet.get("recovery",false):reveal_player.reset()
    engine.apply_snapshot(packet.projection);render()
   if is_instance_valid(network_status_label):
@@ -1058,6 +1080,7 @@ func render_android_palette(_available: Array):
 
 func render_zone_pagers():
  zone_pagers={}
+ render_field_capacity()
  var hit=host.ui_metrics.hit if is_android else 36.0
  for who in range(2):
   for group in ["palette","unit"]:
@@ -1065,29 +1088,125 @@ func render_zone_pagers():
    if pages<=1:continue
    var key=group+str(who)
    var pager=Control.new();pager.name="ZonePager"+key
-   pager.size=Vector2(hit,hit);pager.mouse_filter=Control.MOUSE_FILTER_IGNORE
+   pager.size=Vector2(hit*1.5 if group=="palette" else hit,hit);pager.mouse_filter=Control.MOUSE_FILTER_IGNORE
    hud.add_child(pager)
-   var button=host.button(pager,"%d/%d\n▶" % [table.zone_pages[who][group]+1,pages],Rect2(Vector2.ZERO,pager.size),func():next_zone_page(who,group),true)
+   var caption="%d/%d\n▶" % [table.zone_pages[who][group]+1,pages]
+   if group=="palette":caption=("我 " if who==local_seat else "敌 ")+caption
+   var button=host.button(pager,caption,Rect2(Vector2.ZERO,pager.size),func():next_zone_page(who,group),true)
    button.name="NextZonePage"
    if is_android:host.ui_metrics.button(button)
    button.add_theme_font_size_override("font_size",host.ui_metrics.small if is_android else 12)
    button.custom_minimum_size=Vector2(hit,hit);button.size=pager.size
+   if group=="palette":
+    pager.size=pager.size.max(button.get_combined_minimum_size());button.size=pager.size
    button.tooltip_text=("我方" if who==local_seat else "敌方")+("颜色盘" if group=="palette" else "单位栏")+"：下一页，末页返回第一页"
    zone_pagers[key]={"root":pager,"button":button,"owner":who,"group":group}
  update_zone_pager_positions()
+
+func render_field_capacity():
+ var used=engine.field_slots(local_seat)
+ var limit=engine.Cat.field_limit(engine,local_seat)
+ var font_size=host.ui_metrics.body if is_android else 20
+ var caption="%d/%d" % [used,limit]
+ var font=host.get_theme_default_font()
+ var dimensions=Vector2(maxf(64,font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+20),maxf(32,font_size*1.5))
+ field_capacity_badge=host.box(hud,Rect2(Vector2.ZERO,dimensions),Color("#101e2b"),host.GOLD)
+ field_capacity_badge.name="FieldCapacity"
+ field_capacity_badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var value=txt(caption,Rect2(Vector2.ZERO,dimensions),font_size,host.GOLD,field_capacity_badge)
+ value.name="FieldCapacityValue"
+ value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ field_capacity_badge.tooltip_text="我方单位战场格：已用 %d / 上限 %d，剩余 %d 格；不占战场格的单位不计入" % [used,limit,maxi(0,limit-used)]
+
+func update_field_capacity_position():
+ if not is_instance_valid(field_capacity_badge):return
+ var bounds=projected_android_focus(table.zone_page_bounds(local_seat,"unit"))
+ var clear=host.ui_metrics.safe if is_android else STAGE
+ var x=minf(bounds.end.x+8,SIDEBAR.position.x-field_capacity_badge.size.x-8)
+ field_capacity_badge.position=Vector2(clampf(x,clear.position.x,clear.end.x-field_capacity_badge.size.x),clampf(bounds.get_center().y-field_capacity_badge.size.y*0.5,clear.position.y,clear.end.y-field_capacity_badge.size.y))
+ for i in range(zone_pagers.size()+1):
+  for parts in zone_pagers.values():
+   if not is_instance_valid(parts.root) or not parts.root.visible:continue
+   var pager_rect=parts.root.get_global_rect().grow(8)
+   if field_capacity_badge.get_global_rect().intersects(pager_rect):field_capacity_badge.position.y=pager_rect.position.y-field_capacity_badge.size.y
+ field_capacity_badge.visible=not (is_android and android_palette_view)
 
 func next_zone_page(who: int,group: String):
  if table.combat_animating or revealing() or modal or history_open:return
  table.next_zone_page(who,group)
  render()
 
+func palette_pager_obstacles() -> Array:
+ var blocked=[]
+ for control in hud.get_children():
+  if not control is Control or control==field_capacity_badge or control.name.begins_with("ZonePager"):continue
+  if control.is_visible_in_tree() and not control.is_queued_for_deletion():blocked.append(control.get_global_rect())
+ for control in [hand_scroll,stack_panel,stack_panel.toggle_button,android_back_button]:
+  if is_instance_valid(control) and control.is_visible_in_tree():blocked.append(control.get_global_rect())
+ if opponent_layer.visible:
+  for tile in enemy_nodes.values():
+   if is_instance_valid(tile) and tile.is_visible_in_tree():blocked.append(tile.get_global_rect())
+ if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
+  for button in android_zone_shortcuts.buttons.values():
+   if button.is_visible_in_tree():blocked.append(button.get_global_rect())
+ return blocked.map(func(rect):return rect.grow(host.ui_metrics.gap))
+
+func clear_palette_pager_position(preferred: Vector2,dimensions: Vector2,area: Rect2,blocked: Array) -> Vector2:
+ # At each obstacle edge, find the nearest free vertical interval for the button.
+ var last=area.end-dimensions
+ if last.x<area.position.x or last.y<area.position.y:return Vector2.INF
+ blocked=blocked.filter(func(rect):return rect.has_area() and area.intersects(rect))
+ preferred=preferred.clamp(area.position,last)
+ var columns=[preferred.x,area.position.x,last.x]
+ for rect in blocked:
+  columns.append(clampf(rect.position.x-dimensions.x,area.position.x,last.x))
+  columns.append(clampf(rect.end.x,area.position.x,last.x))
+ var best=Vector2.INF;var distance=INF
+ for x in columns:
+  var intervals=[Vector2(area.position.y,last.y)]
+  for rect in blocked:
+   if x>=rect.end.x or x+dimensions.x<=rect.position.x:continue
+   var bottom=rect.position.y-dimensions.y;var top=rect.end.y
+   for i in range(intervals.size()-1,-1,-1):
+    var span=intervals[i]
+    if top<=span.x or bottom>=span.y:continue
+    intervals.remove_at(i)
+    if bottom>=span.x:intervals.append(Vector2(span.x,bottom))
+    if top<=span.y:intervals.append(Vector2(top,span.y))
+  for span in intervals:
+   var candidate=Vector2(x,clampf(preferred.y,span.x,span.y))
+   var score=candidate.distance_squared_to(preferred)
+   if score<distance:best=candidate;distance=score
+ return best
+
 func update_zone_pager_positions():
- for parts in zone_pagers.values():
+ var occupied=[]
+ var palette_pagers=zone_pagers.values().filter(func(parts):return parts.group=="palette")
+ var unit_pagers=zone_pagers.values().filter(func(parts):return parts.group=="unit")
+ var palette_blocked=palette_pager_obstacles() if not palette_pagers.is_empty() else []
+ var card_rects=[]
+ if not palette_pagers.is_empty():
+  for descriptor in table.descriptors.values():
+   if descriptor.zone not in ["field","palette","leader"]:continue
+   var node=table.visuals[descriptor.key]
+   if node.is_visible_in_tree() and not table.camera.is_position_behind(node.global_position):card_rects.append(projected_card_rect(node).grow(host.ui_metrics.gap))
+ for parts in unit_pagers+palette_pagers:
   var pager=parts.root
   if not is_instance_valid(pager) or pager.is_queued_for_deletion():continue
   var bounds=projected_android_focus(table.zone_page_bounds(parts.owner,parts.group))
   pager.position=bounds.end-pager.size-Vector2(4,4)
   var clear=responsive.camera_focus_rect() if is_android else STAGE
+  if parts.group=="palette":
+   clear=responsive.camera_focus_rect()
+   var obstacles=palette_blocked+occupied
+   var preferred=pager.position
+   var at=clear_palette_pager_position(preferred,pager.size,clear,obstacles+card_rects)
+   # When the focused row fills its frame, use free screen space around the HUD.
+   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,host.ui_metrics.safe,obstacles+card_rects)
+   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,host.ui_metrics.safe,obstacles)
+   pager.position=at if at.is_finite() else preferred.clamp(host.ui_metrics.safe.position,host.ui_metrics.safe.end-pager.size)
+   pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
+   continue
   if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
    for shortcut in android_zone_shortcuts.buttons.values():
     var shortcut_rect=shortcut.get_global_rect().grow(host.ui_metrics.gap)
@@ -1095,12 +1214,20 @@ func update_zone_pager_positions():
     var left=Vector2(shortcut_rect.position.x-pager.size.x,pager.position.y)
     var above=Vector2(pager.position.x,shortcut_rect.position.y-pager.size.y)
     pager.position=left if clear.encloses(Rect2(left,pager.size)) else above
+  for other_rect in occupied:
+   if not Rect2(pager.position,pager.size).intersects(other_rect):continue
+   var right=Vector2(other_rect.end.x+host.ui_metrics.gap,pager.position.y)
+   var left=Vector2(other_rect.position.x-pager.size.x-host.ui_metrics.gap,pager.position.y)
+   var above=Vector2(pager.position.x,other_rect.position.y-pager.size.y-host.ui_metrics.gap)
+   pager.position=right if clear.encloses(Rect2(right,pager.size)) else left if clear.encloses(Rect2(left,pager.size)) else above
   pager.visible=clear.encloses(Rect2(pager.position,pager.size))
-  if is_android and android_palette_view and (parts.group!="palette" or parts.owner!=android_palette_focus_owner()):pager.hide()
+  if is_android and android_palette_view:pager.hide()
   if pager.visible and hand_scroll.visible and hand_scroll.get_global_rect().intersects(pager.get_global_rect()):pager.hide()
   if pager.visible and opponent_layer.visible:
    for tile in enemy_nodes.values():
     if is_instance_valid(tile) and tile.is_visible_in_tree() and tile.get_global_rect().intersects(pager.get_global_rect()):pager.hide();break
+  if pager.visible:occupied.append(pager.get_global_rect())
+ update_field_capacity_position()
 
 func zone_page_button_at(point: Vector2) -> String:
  for key in zone_pagers:
@@ -1235,7 +1362,7 @@ func render():
   var notice=txt(message,NOTICE,18,Color("#f0cf93"))
   if is_android and android_palette_view:responsive.add_choice_notice(notice)
   else:notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- if not engine.log.is_empty(): txt(engine.log.back(),responsive.log_rect,15,host.MUTED)
+ if not engine.log.is_empty(): txt(PlayerNameDisplay.battle_text(engine.log.back(),engine.player_names),responsive.log_rect,15,host.MUTED)
  update_inspection()
  if last_phase!=engine.phase or last_turn!=engine.turn:
   show_phase_banner()
@@ -1325,19 +1452,20 @@ func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array
    node.size=tile_size
    if not node.hidden_card:
     var card_info=engine.cards[c.card_id]
-    node.update_cost(card_info.cost,card_info.get("variable_cost",""))
+    node.update_cost(CostDisplay.for_card(card_info),card_info.get("variable_cost",""),card_info.get("variable_multiplier",1))
   if node.card_id!=c.card_id or node.art_id!=c.get("art_id",""):
    node.card_id=c.card_id
    node.art_id=c.get("art_id","")
    if not node.hidden_card and (who==local_seat or debug_mode or replay_view()):
     var info=engine.cards[c.card_id]
     node.art.texture=card_texture(c)
-    node.update_cost(info.cost,info.get("variable_cost",""))
+    node.update_cost(CostDisplay.for_card(info),info.get("variable_cost",""),info.get("variable_multiplier",1))
   if not node.hidden_card:node.tooltip_text=hand_card_tooltip(c)
   node.show()
   if table.presented_moves.has(c.uid):
    node.position=target;node.modulate.a=1;node.set_meta("target",target);fresh=false
   node.update_style(not node.hidden_card and (c.uid in available or (c.zone!="hand" and can_use_region_card(c))),not node.hidden_card and c.uid in selected_uids(),not node.hidden_card and ConditionHints.active(engine,c))
+  DevourMarker.apply(node,{} if node.hidden_card else c,local_seat)
   if fresh or node.get_meta("target",Vector2(-999,-999))!=target:
    if hand_tweens.has(c.uid) and hand_tweens[c.uid].is_valid(): hand_tweens[c.uid].kill()
    var tween=create_tween().set_parallel(true)
@@ -1576,6 +1704,7 @@ func card_texture(c: Dictionary,preview: bool=false) -> Texture2D:
 func card_tile(parent: Node,c: Dictionary,rect: Rect2,clickable: Callable=Callable()) -> Control:
  var tile=host.card(parent,c.card_id,rect,clickable,c.get("art_id",""))
  UnknownArt.apply(tile.get_child(0),tile,engine,c)
+ DevourMarker.apply(tile,c,local_seat)
  if c.has("uid"):sync_stack_target_marker(tile,engine.ref_target(c))
  if is_android:
   android_card_touch.bind_card(tile,func():inspect_card(c.card_id,c.get("uid",0),"",c.get("art_id","")),clickable,c.get("zone","")=="hand")
@@ -1604,18 +1733,21 @@ func damage_caption(c: Dictionary) -> String:
    if state.group==1 and not state.current.is_empty():
     draft=local.duplicate();draft.preview_exiled_hand=state.current.size()
  return SpellDamagePreview.caption(engine,c,draft,engine.queries.get("pending_keystones",{}) if engine is RemoteDuel else {})
+func variable_cost_caption(c: Dictionary) -> String:
+ if c.is_empty() or c.get("zone","")!="stack" or engine.cards[c.card_id].get("variable_cost","").is_empty():return ""
+ return CostDisplay.caption(engine.Extra.color_cost(engine,c))+"（共 %d 费，X = %d）" % [engine.Extra.cost_value(engine,c),int(c.get("cast_x",0))]
 func card_context_caption(c: Dictionary) -> String:
  var lines=[]
  if not c.is_empty() and c.get("zone","")=="field" and engine.Roster.has(engine.cards[c.card_id],"ran_discount"):
   lines.append("常驻减费：已关闭" if c.get("ran_discount_disabled",false) else "常驻减费：已开启（蓝色费用减少 1）")
  if not c.is_empty() and c.get("zone","")=="field" and engine.Roster.has(engine.cards[c.card_id],"spell-fdf-017"):
   lines.append("空场自动跳过：已关闭（对方场上无单位时仍可选择目标）" if c.get("murder_dolls_skip_disabled",false) else "空场自动跳过：已开启（对方场上无单位时跳过）")
- for caption in [declaration_caption(c),additional_name_caption(c),damage_caption(c),ConditionHints.caption(engine,c)]:
+ for caption in [variable_cost_caption(c),declaration_caption(c),additional_name_caption(c),damage_caption(c),ConditionHints.caption(engine,c)]:
   if not caption.is_empty():lines.append(caption)
  return "\n".join(lines)
 func hand_card_tooltip(c: Dictionary) -> String:
  var info=engine.cards[c.card_id]
- var result=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X" if not info.variable_cost.is_empty() else "")
+ var result=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X".repeat(maxi(1,int(info.get("variable_multiplier",1)))) if not info.variable_cost.is_empty() else "")
  var context=card_context_caption(c)
  return result+("\n"+context if not context.is_empty() else "")
 func refresh_stage_tooltip():
@@ -1627,6 +1759,18 @@ func refresh_stage_tooltip():
  if not context.is_empty():stage.tooltip_text=engine.cards[c.card_id].name+"\n"+context
 func inspect_declaring_unit(c: Dictionary):
  if not declaration_caption(c).is_empty() or not additional_name_caption(c).is_empty() or not c.is_empty() and c.get("zone","")=="field" and (engine.Roster.has(engine.cards[c.card_id],"ran_discount") or engine.Roster.has(engine.cards[c.card_id],"spell-fdf-017")):inspect_card(c.card_id,c.uid)
+func original_unit_caption(c: Dictionary) -> String:
+ if c.is_empty() or c.get("network_hidden",false):return ""
+ var original=engine.cards.get(c.get("copy_original",""),{})
+ if original.is_empty():return ""
+ var lines=["原本信息",str(original.name),"类别："+str(original.kind)]
+ if not original.get("race",[]).is_empty():lines.append("种族："+"、".join(original.race))
+ lines.append("颜色："+("无色" if original.get("colors",[]).is_empty() else "、".join(original.colors)))
+ lines.append(CostDisplay.caption(original.get("cost",{})))
+ lines.append("原本属性：%d/%d/%d（攻击/血量/灵力）" % [original.get("power",0),original.get("health",0),original.get("spirit",0)])
+ var rules=str(original.get("rules_text","")).strip_edges()
+ lines.append("原本能力："+("高速。" if original.get("fast",false) else "")+("无能力。" if rules.is_empty() else rules))
+ return "\n".join(lines)
 func update_inspection():
  var current=engine.find_card(inspect_uid)
  var declared=card_context_caption(current) if inspect_id not in ["back","potato"] else ""
@@ -1636,6 +1780,10 @@ func update_inspection():
  var counters=counter_lines(current)
  var shown_id=current.card_id if not current.is_empty() and inspect_id not in ["back","potato"] else inspect_id
  var info=engine.cards.get(shown_id,{})
+ if not current.is_empty() and info.get("token",false):
+  info=info.duplicate();info.colors=engine.Pack.colors(engine,current)
+ if not variable_cost_caption(current).is_empty():
+  info=info.duplicate();info.cost=engine.Extra.color_cost(engine,current);info.variable_cost=""
  var inherited_keywords=[]
  var inherited_abilities=[]
  if not current.is_empty() and engine.Roster.has(info,"character-fdn-007"):
@@ -1647,14 +1795,25 @@ func update_inspection():
    if source_id.is_empty() or not engine.cards.has(source_id):break
    base_id=source_id
   var base_info=engine.cards[base_id]
+  var base_keywords=base_info.get("keywords",[]).duplicate()
+  var keyword_counts={}
   for keyword in info.get("keywords",[]):
-   if keyword not in base_info.get("keywords",[]):inherited_keywords.append(keyword)
+   if keyword in base_keywords:base_keywords.erase(keyword)
+   else:keyword_counts[keyword]=int(keyword_counts.get(keyword,0))+1
+  for keyword in keyword_counts:
+   inherited_keywords.append(keyword+("（×%d）" % keyword_counts[keyword] if keyword_counts[keyword]>1 else ""))
+  var base_abilities=base_info.get("abilities",[]).duplicate(true)
+  var ability_counts={}
   for ability in info.get("abilities",[]):
-   if ability not in base_info.get("abilities",[]):
+   if ability in base_abilities:base_abilities.erase(ability)
+   else:
     var ability_text=String(ability.get("名称",""))
-    if not ability_text.is_empty() and ability_text not in inherited_abilities:inherited_abilities.append(ability_text)
+    if not ability_text.is_empty():ability_counts[ability_text]=int(ability_counts.get(ability_text,0))+1
+  for ability_text in ability_counts:
+   inherited_abilities.append(ability_text+("（×%d）" % ability_counts[ability_text] if ability_counts[ability_text]>1 else ""))
  var shown_art=current.get("art_id","") if not current.is_empty() else inspect_art_id
- var signature=str(INSPECTION)+inspect_id+shown_id+shown_art+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))+str(inherited_keywords)+str(inherited_abilities)+declared
+ var original_caption=original_unit_caption(current) if inspect_id not in ["back","potato"] else ""
+ var signature=str(INSPECTION)+inspect_id+shown_id+shown_art+str(inspect_uid)+inspect_caption+str(enabled)+str(counters)+str(current.get("moods",[]))+str(inherited_keywords)+str(inherited_abilities)+declared+original_caption+str(info.get("colors",[]))
  if signature==inspection_signature: return
  inspection_signature=signature
  clear_children(inspection)
@@ -1674,7 +1833,7 @@ func update_inspection():
  title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; title.size=Vector2(198,74)
  if info.has("cost"):
   var cost_icons=HexCost.new();cost_icons.position=Vector2(10,239 if landscape else 372)
-  bg.add_child(cost_icons);cost_icons.configure(info.cost,false,198,31,info.get("variable_cost",""))
+  bg.add_child(cost_icons);cost_icons.configure(CostDisplay.for_card(info),false,198,31,info.get("variable_cost",""),info.get("variable_multiplier",1))
  inspection_text=RichTextLabel.new(); inspection_text.position=Vector2(10,378); inspection_text.size=Vector2(198,270)
  if landscape:inspection_text.position.y=278;inspection_text.size.y=370
  else:inspection_text.position.y=411;inspection_text.size.y=237
@@ -1685,7 +1844,9 @@ func update_inspection():
  if rules.strip_edges().is_empty():rules="无能力。"
  if not declared.is_empty():
   inspection_text.push_color(host.GOLD);inspection_text.add_text(declared+"\n\n");inspection_text.pop()
- if info.get("fast",false): inspection_text.add_text("高速\n")
+ var attributes=host.Store.Database.spell_attributes(info)
+ if not attributes.is_empty():inspection_text.add_text(attributes+"\n")
+ elif info.get("fast",false):inspection_text.add_text("高速\n")
  var at=rules.find("自机能力：")
  if at>=0:
   inspection_text.add_text(rules.left(at))
@@ -1696,6 +1857,8 @@ func update_inspection():
  if not inherited_abilities.is_empty():inspection_text.add_text("\n继承能力：\n"+"\n".join(inherited_abilities))
  for line in counters:inspection_text.add_text("\n"+line)
  if not current.get("moods",[]).is_empty():inspection_text.add_text("\n已选心情："+"、".join(current.moods))
+ if not original_caption.is_empty():
+  inspection_text.add_text("\n\n");inspection_text.push_color(host.GOLD);inspection_text.add_text(original_caption);inspection_text.pop()
  inspection_text.set_meta("leader_enabled",enabled)
  layout_inspection(bg,image,title,info)
 
@@ -1707,7 +1870,7 @@ func board_counter_text(c: Dictionary) -> String:
  if not stats.is_empty():marks.append("  ".join(stats))
  for line in counter_lines(c):
   if line.begins_with("属性指示物"):continue
-  marks.append(line.replace("色指示物", "").replace("：", " "))
+  marks.append(line.replace("色指示物", "").replace("：", " ").replace("本回合防止下一次伤害","下次防伤"))
  return "\n".join(marks)
 
 func counter_lines(c: Dictionary) -> Array:
@@ -1724,6 +1887,7 @@ func counter_lines(c: Dictionary) -> Array:
  for color in engine.COLORS:
   if colors.count(color)>0:lines.append(color+"色指示物："+str(colors.count(color)))
  lines.append_array(ward_timeline(c.get("wards",[]),0,-1))
+ if engine.Pack.has_next_damage_prevention(engine,c):lines.append("本回合防止下一次伤害")
  for name in c.get("counters",{}):
   if c.counters[name]!=0:lines.append(str(name)+"："+str(c.counters[name]))
  return lines
@@ -1741,9 +1905,9 @@ func render_prompt():
   if network_session.ended() or network_session.read_only and not network_session.replay_mode:
    if not is_android or not spectator_view():battle_button("返回联机房间",Rect2(1330,799,237,49),ANDROID_ACTION_CONFIRM_Y,func():host.online(),true)
   else:
-   if network_session.wait_choice_pending:
+   if network_session.wait_choice_pending and not network_session.ranked_match_pending():
     battle_button("继续等待",Rect2(1300,750,267,49),695,func():network_session.continue_waiting(),true)
-   if network_session.disconnected_at>0:
+   if network_session.can_stop_waiting():
     battle_button("不再等待，离开对局",Rect2(1300,810,267,49),ANDROID_ACTION_CONFIRM_Y,func():network_session.stop_waiting();host.online())
   return
  if table.combat_animating: return
@@ -1758,7 +1922,7 @@ func render_prompt():
   elif local.mode=="target": render_inline_picker(confirm_declaration)
   elif local.mode=="payment":
    if payment_ready():battle_button("发动",Rect2(1330,799,237,49),ANDROID_ACTION_CONFIRM_Y,commit_local,true)
-  if local.mode!="target" and not is_android:btn("取消使用",Rect2(1330,853,237,36),cancel_cast)
+  if local.mode!="target" and not is_android:battle_button("取消使用",Rect2(1330,853,237,36),ANDROID_ACTION_FOOTER_Y,cancel_cast)
   if local.mode in ["target","payment"]:render_floating_resources()
  elif engine.phase=="mulligan" and not engine.players[acting_player()].mulligan_done:
   text="选择要调度的手牌"
@@ -1798,7 +1962,7 @@ func render_prompt():
    "block":
     text="选择阻挡单位"
     var confirm=battle_button("不阻挡" if selection.is_empty() else "确认阻挡 %d 个" % selection.size(),Rect2(1330,770,237,55),ANDROID_ACTION_CONFIRM_Y,func(): engine.block(selection); selection=[]; render(),true)
-    confirm.disabled=(selection.size()==1 and engine.Extra.keyword(engine,engine.find_card(engine.combat.attacker.uid),"威吓")) or (selection.is_empty() and engine.must_block())
+    confirm.disabled=(selection.size()==1 and not engine.combat.has("target") and engine.Extra.keyword(engine,engine.find_card(engine.combat.attacker.uid),"威吓")) or (selection.is_empty() and engine.must_block())
    "grave_replacement":
     text="改为移回战场？"
     battle_button("移回战场",Rect2(1330,741,237,49),695,func(): engine.choose_grave_replacement(true); render(),true)
@@ -1808,7 +1972,7 @@ func render_prompt():
     optional_trigger_prompt()
    "leader_return":
     text="将自机放回自机区？"
-    battle_button("返回自机区",Rect2(1330,740,237,49),695,func(): engine.choose_return(true); render(),true)
+    battle_button("返回自机区",Rect2(1330,740,237,49),695,confirm_leader_return,true)
     var destination=engine.pending.card.get("return_destination","grave")
     var label={"grave":"送入墓地","exile":"移除游戏","hand":"移回手牌","deck":"放入牌库","palette":"放入颜色盘"}.get(destination,"继续移动")
     battle_button(label,Rect2(1330,810,237,43),ANDROID_ACTION_CONFIRM_Y,func(): engine.choose_return(false); render())
@@ -1995,7 +2159,7 @@ func _input(event: InputEvent):
   get_viewport().set_input_as_handled();return
  if is_instance_valid(android_battle_menu_root) and android_battle_menu_root.visible:
   if is_android and touch_android_back_swipe(event):return
-  if event is InputEventKey and event.pressed and (event.keycode==KEY_ESCAPE or event.keycode==KEY_BACK):
+  if event.is_action_pressed("ui_cancel") or event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_BACK:
    close_android_battle_menu();get_viewport().set_input_as_handled()
   return
  if tutorial_runtime!=null and tutorial_runtime.playing_sequence():
@@ -2022,11 +2186,14 @@ func _input(event: InputEvent):
  # Tutorial controls remain usable while a cast/reveal animates below them.
  if is_instance_valid(tutorial_guide) and tutorial_guide.owns_pointer_event(event):return
  if host.menu_popup_open():return
+ if is_android and (event.is_action_pressed("ui_cancel") or event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_BACK):
+  android_back();get_viewport().set_input_as_handled();return
  if is_android and event is InputEventMouse and event.device==-1:
   var point=make_input_local(event).position
   if not camera_touches.is_empty() or STAGE.has_point(point) and android_card_touch.surface_at(ui,event.position)==null:
    get_viewport().set_input_as_handled();return
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.handle(event):return
+ if is_instance_valid(trigger_order_list) and trigger_order_list.handle(event):return
  if is_android and android_card_touch.handle(event,self):return
  if is_android and event is InputEventScreenTouch and event.pressed and event.double_tap and event.index==0 and android_double_tap(make_input_local(event).position):
   camera_touches.clear();camera_touch_mode=""
@@ -2239,7 +2406,7 @@ func open_android_help():
  guide.bbcode_enabled=true;guide.scroll_active=true
  guide.add_theme_font_size_override("normal_font_size",m.body)
  guide.add_theme_color_override("default_color",host.WHITE)
- guide.text="[b]卡牌与颜色盘[/b]\n点按卡牌进行选择或查看操作；能力／效果选项在屏幕中央分列显示，目标直接点选战场高亮对象，右侧弹窗用于确认或重选。点按面板左下角「隐藏」可收起，再点「展开」继续选择。点按左侧视角开关可直接操作我方或敌方颜色盘。颜色盘和双方单位栏每页显示十张，超过十张时点按对应区域右下角箭头翻页，末页继续点按返回第一页。长按卡牌查看详情，点按详情以外区域关闭。\n\n[b]结束主要阶段[/b]\n在对战设置中开启「延迟回合结束」后，连续按住「结束主要阶段」1 秒，圆环画满后结束主要阶段。松开或移出按钮会取消并重置进度。关闭后点按即可结束主要阶段。\n\n[b]滚动列表[/b]\n在堆叠、卡库、记录等区域上下滑动浏览；横向卡列左右滑动。\n\n[b]快捷操作[/b]\n快速双击战场空白处：跳过可响应时点。快速双击可攻击的己方单位：发起攻击。\n\n[b]战场视角[/b]\n点按左侧视角开关依次切换「战场视角／我方颜色盘视角／敌方颜色盘视角」。颜色盘视角直接聚焦对应颜色盘，并避开手牌；凭依阶段可自由切换视角。长按并拖动战场：平移视角。双指张开或捏合：缩放视角。点按「视角复原」恢复当前视角的对焦位置。\n\n[b]取消[/b]\n有选择时点按「取消」，或从屏幕右侧边缘向左滑动：关闭当前选择、面板或弹窗。空闲时通过「菜单」进入战斗菜单或对战设置。"
+ guide.text="[b]卡牌与颜色盘[/b]\n点按卡牌进行选择或查看操作；能力／效果选项在屏幕中央分列显示，目标直接点选战场高亮对象，右侧弹窗用于确认或重选。点按面板左下角「隐藏」可收起，再点「展开」继续选择。点按左侧视角开关可直接操作我方或敌方颜色盘。双方单位栏每页显示六个单位，第七至第十二个单位在第二页；颜色盘每页显示十张。点按对应区域右下角箭头翻页，末页继续点按返回第一页。战场旁的 X/6 显示我方已占用战场格数，上限随扩容效果更新，不占战场格的单位不计入。长按卡牌查看详情，点按详情以外区域关闭。\n\n[b]结束主要阶段[/b]\n在对战设置中开启「延迟回合结束」后，连续按住「结束主要阶段」1 秒，圆环画满后结束主要阶段。松开或移出按钮会取消并重置进度。关闭后点按即可结束主要阶段。\n\n[b]滚动列表[/b]\n在堆叠、卡库、记录等区域上下滑动浏览；横向卡列左右滑动。\n\n[b]快捷操作[/b]\n快速双击战场空白处：跳过可响应时点。快速双击可攻击的己方单位：发起攻击。\n\n[b]战场视角[/b]\n点按左侧视角开关依次切换「战场视角／我方颜色盘视角／敌方颜色盘视角」。颜色盘视角直接聚焦对应颜色盘，并避开手牌；凭依阶段可自由切换视角。长按并拖动战场：平移视角。双指张开或捏合：缩放视角。点按「视角复原」恢复当前视角的对焦位置。\n\n[b]取消[/b]\n有选择时点按「取消」，或从屏幕右侧边缘向左滑动：关闭当前选择、面板或弹窗。空闲时通过「菜单」进入战斗菜单或对战设置。"
  panel.add_child(guide)
  var back=btn("返回对局",Rect2(28,panel.size.y-m.hit-20,panel.size.x-56,m.hit),close_overlay,false,panel)
  m.button(back)
@@ -2387,33 +2554,13 @@ func choice_card_position(index: int,count: int,card_width: float=173.0) -> Vect
  var row_width=(row_count-1)*222+card_width
  return Vector2((688-row_width)*0.5+(index%3)*222,row*335)
 func trigger_order_menu():
- var panel=overlay("选择入堆叠顺序")
- if is_android:
-  panel.set_meta("trigger_order",true)
-  var layout=responsive.dialog_content(panel,1100,engine.pending.options.size()*196,false)
-  for i in range(engine.pending.options.size()):
-   var trigger=engine.pending.options[i]
-   var choose=func():
-    if observing or engine.pending.get("kind","")!="trigger_order":return
-    engine.choose_trigger_order(i);picker.reset();render()
-   var tile=responsive.choice_card_row(layout.body,trigger.source,AbilityCaption.text(trigger),choose,layout.scroll.size.x-18)
-   tile.set_meta("trigger_index",i)
-  return
- panel.size=Vector2(728,495); center_panel(panel)
+ if engine.pending.get("kind","")!="trigger_order":return
+ var key=str(engine.revision)+":"+JSON.stringify(engine.pending)
+ if key!=trigger_order_draft_key:
+  trigger_order_draft_key=key;trigger_order_draft=range(engine.pending.options.size());trigger_order_draft.reverse()
+ var panel=overlay("调整触发顺序")
  panel.set_meta("trigger_order",true)
- var options=engine.pending.options
- var content=choice_card_content(panel,options.size(),Vector2(688,395))
- for i in range(options.size()):
-  var t=options[i]; var at=choice_card_position(i,options.size())
-  var tile=card_tile(content,t.source,Rect2(at,Vector2(173,241)),func():
-   if observing or engine.pending.get("kind","")!="trigger_order": return
-   engine.choose_trigger_order(i); picker.reset(); render())
-  tile.set_meta("trigger_index",i)
-  var caption=AbilityCaption.text(t)
-  var detail_height=104 if caption.begins_with("来源：") else 78
-  var label=txt(caption,Rect2(at+Vector2(-4,251),Vector2(194,detail_height)),15 if detail_height>78 else 17,host.WHITE,content)
-  label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-  label.size=Vector2(194,detail_height)
+ trigger_order_list=TriggerOrderList.new();trigger_order_list.build(self,panel,trigger_order_draft)
 func ward_order_menu():
  if engine.pending.get("kind","")!="ward_order":return
  var target=engine.find_card(engine.pending.target.uid)
@@ -2597,6 +2744,7 @@ func close_overlay(preserve_android_action: bool=false):
  if is_instance_valid(modal_root):
   modal_root.get_parent().remove_child(modal_root); modal_root.queue_free()
  modal_root=null
+ trigger_order_list=null
  if is_instance_valid(stack_panel):stack_panel.visible=not engine.unresolved_stack_entries().is_empty()
  refresh_observation()
 
@@ -2692,7 +2840,9 @@ func network_changed():
  if locked==was_network_locked and ended==was_network_ended and disconnected==was_network_disconnected and wait_choice==was_network_wait_choice:return
  was_network_locked=locked;was_network_ended=ended;was_network_disconnected=disconnected;was_network_wait_choice=wait_choice
  if locked:
-  local={};selection=[];picker.reset();attack_preview_uid=0;engine.paid_cast_uid=-1
+  # A cloud host briefly pauses for snapshot acknowledgments after every submission.
+  selection=mulligan_selection_for_snapshot(network_session.latest_snapshot) if network_session.cloud_mode and network_session.paused else []
+  local={};picker.reset();attack_preview_uid=0;engine.paid_cast_uid=-1
   close_overlay()
  render()
 func open_tools_menu():
@@ -2784,6 +2934,20 @@ func close_android_battle_menu():
  if is_instance_valid(observe_button):
   observe_button.z_index=0
   refresh_observation()
+
+func confirm_leader_return():
+ if network_locked() or engine.pending.get("kind","")!="leader_return" or engine.pending.owner!=acting_player():return
+ var card=engine.pending.card
+ if card.get("return_snapshot",{}).get("zone","")=="field" and card.get("return_destination","grave")=="grave":
+  engine.choose_return(true);render();return
+ var current_engine=engine;var uid=card.uid;var epoch=card.epoch;var view_ref=weakref(self)
+ host.confirm_action("确认将「%s」放回自机区？" % engine.cards[card.card_id].name,func():
+  var current_view=view_ref.get_ref()
+  if current_view==null or current_view.engine!=current_engine or current_view.network_locked():return
+  var pending=current_engine.pending
+  if pending.get("kind","")!="leader_return" or pending.owner!=current_view.acting_player():return
+  if pending.card.uid!=uid or pending.card.epoch!=epoch:return
+  current_engine.choose_return(true);current_view.render())
 
 func confirm_surrender():
  if tutorial_runtime!=null or network_locked() or engine.winner!=-2:return
@@ -2951,6 +3115,7 @@ func combat_marker(uid: int) -> String:
  if engine.combat.is_empty(): return ""
  if engine.combat.attacker.uid==uid: return "sword"
  if engine.combat.blockers.any(func(t): return t.uid==uid): return "shield"
+ if engine.combat.blockers.is_empty() and engine.combat.get("target",{}).get("uid",-1)==uid:return "shield"
  if engine.pending.get("kind","")=="block" and uid in selection: return "shield"
  return ""
 func show_combat_impact(attacker_uid: int,blocker_uid: int):
@@ -3098,7 +3263,9 @@ func browse_zone(who: int,zone: String,scroll_position: int=0):
  var browser_header=host.box(browser_panel,Rect2(0,0,browser_panel.size.x,m.hit+12),Color("#101c28"),Color("#637a93"))
  browser_header.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var cards=zone_cards(who,zone)
- txt(player_caption(who)+" · "+ZONE_NAMES[zone]+" · %d" % cards.size(),Rect2(10,10,browser_panel.size.x-m.hit-24,m.hit),m.title if is_android else 18,host.GOLD,browser_panel)
+ var browser_title=txt(player_caption(who)+" · "+ZONE_NAMES[zone]+" · %d" % cards.size(),Rect2(10,10,browser_panel.size.x-m.hit-24,m.hit),m.title if is_android else 18,host.GOLD,browser_panel)
+ browser_title.name="PileBrowserTitle"
+ if is_android:browser_title.clip_text=true
  var close=btn("×",Rect2(browser_panel.size.x-m.hit-8,6,m.hit,m.hit),close_debug,false,browser_panel)
  m.button(close)
  close.name="ClosePileBrowser"; close.tooltip_text="返回对局"
@@ -3737,6 +3904,7 @@ func ward_timeline(wards: Array,coins: int=0,coin_order: int=-1) -> Array:
 func player_buffs(who: int) -> String:
  var p=engine.players[who];var lines=[]
  lines.append_array(ward_timeline(p.get("wards",[]),int(p.get("coins",0)),int(p.get("coin_order",-1))))
+ if engine.Pack.has_next_damage_prevention(engine,p):lines.append("本回合防止下一次伤害")
  if p.get("shroud_turn",-1)==engine.turn:lines.append("不能成为目标")
  if not p.get("wine",[]).is_empty():lines.append("减费："+"、".join(p.wine))
  for key in p.get("counters",{}):
@@ -3749,6 +3917,7 @@ func player_buffs_compact(who: int) -> String:
  for w in p.get("wards",[]):
   if int(w.get("turn",engine.turn)) in [-1,engine.turn]:ward+=maxi(0,int(w.get("amount",0)))
  if ward>0:lines.append("防避：%d" % ward)
+ if engine.Pack.has_next_damage_prevention(engine,p):lines.append("本回合防止下一次伤害")
  if p.get("shroud_turn",-1)==engine.turn:lines.append("不能成为目标")
  if not p.get("wine",[]).is_empty():lines.append("减费："+"、".join(p.wine))
  for key in p.get("counters",{}):
@@ -3810,7 +3979,7 @@ func render_life(who: int,rect: Rect2):
  if button.tooltip_text.is_empty():button.tooltip_text="当前没有玩家指示物或增益"
  var panel=host.style(Color("#192a38"),color); panel.set_border_width_all(4 if selected or legal else 1)
  if warning_count>0:
-  panel.content_margin_right=warning_width+16
+  panel.content_margin_right=warning_width+12
   panel.content_margin_bottom=15
   button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  button.add_theme_stylebox_override("normal",panel)
@@ -3830,7 +3999,7 @@ func render_life(who: int,rect: Rect2):
   life_widgets[who].curse_warnings=[]
   for i in range(warning_count):
    var warning=CurseWarning.new();warning.name="CurseWarning"+str(i+1);warning.size=CurseWarning.ICON_SIZE
-   warning.position=Vector2(rect.size.x-8-warning_width+i*(CurseWarning.ICON_SIZE.x+CurseWarning.GAP),(rect.size.y-CurseWarning.ICON_SIZE.y)*0.5-4)
+   warning.position=Vector2(rect.size.x-4-warning_width+i*(CurseWarning.ICON_SIZE.x+CurseWarning.GAP),(rect.size.y-CurseWarning.ICON_SIZE.y)*0.5-4)
    warning.tooltip_text=curse
    button.add_child(warning);life_widgets[who].curse_warnings.append(warning)
   life_widgets[who].curse_warning=life_widgets[who].curse_warnings[0]
@@ -4068,7 +4237,8 @@ func region_card(atom: Dictionary) -> Dictionary:
  if atom.value.has("uid"):return engine.find_card(atom.value.uid)
  return {"card_id":atom.value.outside_id,"owner":acting_player(),"zone":"outside"}
 func region_picker_needed() -> bool:
- return picker_active() and not picker.ready() and not region_atoms().is_empty() and (not exposed_grave_choice() or not region_batch_group().is_empty())
+ # Earlier stack targets must not suppress the full list for a new grave choice.
+ return picker_active() and not picker.ready() and not region_atoms().is_empty()
 func region_batch_group() -> Dictionary:
  if picker.specs.is_empty() or picker.ready():return {}
  var state=picker.dynamic_state()
@@ -4317,8 +4487,8 @@ func render_floating_resources():
   button.add_theme_stylebox_override("normal",host.style(Color("#172936"),ink))
 
 func player_caption(who: int) -> String:
- if tutorial_runtime!=null:return engine.player_names[who]
- return engine.player_names[who] if network_session!=null else ("你" if who==0 else "试验 AI" if experiment_agent.enabled else "人机")
+ if tutorial_runtime!=null:return PlayerNameDisplay.caption(engine.player_names[who])
+ return PlayerNameDisplay.caption(engine.player_names[who]) if network_session!=null else ("你" if who==0 else "试验 AI" if experiment_agent.enabled else "人机")
 
 func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Dictionary):
  if not is_android:return
@@ -4348,7 +4518,7 @@ func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Diction
  var cost_bottom=title.position.y+title.size.y
  for child in bg.get_children():
   if child.get_script()==HexCost:
-   child.configure(info.cost,false,width-padding*2,minf(34.0,width*0.18),info.get("variable_cost",""))
+   child.configure(CostDisplay.for_card(info),false,width-padding*2,minf(34.0,width*0.18),info.get("variable_cost",""),info.get("variable_multiplier",1))
    child.position=Vector2(padding,cost_bottom+m.gap)
    cost_bottom=child.position.y+child.size.y
  inspection_text.position=Vector2(padding,cost_bottom+m.gap)

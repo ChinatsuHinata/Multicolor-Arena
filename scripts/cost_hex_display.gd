@@ -8,10 +8,11 @@ var hex_width=30.0
 var hex_height=30.0
 var step=30.0
 
-static func tokens(cost: Dictionary,stack_vertical: bool=false,variable_color: String="") -> Array:
+static func tokens(cost: Dictionary,stack_vertical: bool=false,variable_color: String="",variable_multiplier: int=1) -> Array:
  var total=0
  for amount in cost.values():total+=maxi(0,int(amount))
- var expanded=not stack_vertical and total+(1 if not variable_color.is_empty() else 0)<=8
+ var variable_count=maxi(1,variable_multiplier) if not variable_color.is_empty() else 0
+ var expanded=not stack_vertical and total+variable_count<=8
  var result=[]
  for key in CostDisplay.sorted_keys(cost):
   var count=maxi(0,int(cost[key]))
@@ -20,12 +21,12 @@ static func tokens(cost: Dictionary,stack_vertical: bool=false,variable_color: S
   elif expanded:
    for i in range(count):result.append({"colors":colors,"number":""})
   else:result.append({"colors":colors,"number":"" if count==1 else str(count)})
- if not variable_color.is_empty():result.append({"colors":Array(variable_color.split("/")),"number":"X"})
+ for i in range(variable_count):result.append({"colors":Array(variable_color.split("/")),"number":"X"})
  if result.is_empty():result.append({"colors":["灰"],"number":"0"})
  return result
 
-func configure(cost: Dictionary,stack_vertical: bool=false,available_width: float=198.0,preferred_width: float=32.0,variable_color: String=""):
- vertical=stack_vertical;symbols=tokens(cost,vertical,variable_color)
+func configure(cost: Dictionary,stack_vertical: bool=false,available_width: float=198.0,preferred_width: float=32.0,variable_color: String="",variable_multiplier: int=1):
+ vertical=stack_vertical;symbols=tokens(cost,vertical,variable_color,variable_multiplier)
  hex_width=preferred_width
  if not vertical:hex_width=minf(preferred_width,available_width/float(symbols.size()))
  hex_width=maxf(16.0,hex_width)

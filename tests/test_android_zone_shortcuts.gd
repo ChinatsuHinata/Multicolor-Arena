@@ -94,6 +94,19 @@ func verify_browsing():
    expect(view.browser_zone=="exile" and view.browser_owner==1-view.local_seat,"enemy exile tab switches owner")
    expect(view.browser_cards.get_child(0).get_meta("display_id")=="169","enemy exile renders its own card")
    await shot("exile")
+  var close=view.browser_panel.get_node("ClosePileBrowser") as Button
+  var title=view.browser_panel.get_node("PileBrowserTitle") as Label
+  expect(view.observe_button.is_visible_in_tree(),key+" observation is available")
+  expect(not close.get_global_rect().intersects(view.observe_button.get_global_rect()),key+" observation leaves the close button clear")
+  expect(not title.get_global_rect().intersects(view.observe_button.get_global_rect()),key+" observation leaves the browser title clear")
+  expect(app.ui_metrics.safe.grow(1).encloses(view.observe_button.get_global_rect()),key+" observation stays inside the safe area")
+  await tap(view.observe_button)
+  expect(view.observing and not view.debug_root.visible,key+" native touch hides the browser to observe the battlefield")
+  await tap(view.observe_button)
+  expect(not view.observing and view.debug_root.visible,key+" native touch returns to the same browser")
+  await tap(close)
+  expect(not view.debug_open and not is_instance_valid(view.browser_panel),key+" native touch closes the browser")
+  expect(shortcuts.is_visible_in_tree(),key+" closing restores zone shortcuts")
   await close_browser()
  expect(is_equal_approx(shortcuts.buttons.enemy_grave.get_node("ZoneIcon").rotation,PI),"enemy skull is reversed")
  expect(is_zero_approx(shortcuts.buttons.own_grave.get_node("ZoneIcon").rotation),"own skull is upright")
@@ -194,13 +207,13 @@ func verify_touch_targets():
 
 func verify_settings():
  view.settings_menu();await frames()
- var setting=view.modal_root.find_child("AndroidZoneShortcutsSetting",true,false)
+ var setting=view.android_battle_menu_root.find_child("AndroidZoneShortcutsSetting",true,false)
  expect(setting is CheckButton and setting.button_pressed,"battle settings exposes an enabled toggle")
  expect(not shortcuts.is_visible_in_tree(),"settings modal blocks shortcuts")
  await shot("battle-settings")
  await tap(setting)
  expect(not app.android_zone_shortcuts,"battle setting disables shortcuts immediately")
- view.close_overlay();await frames()
+ view.close_android_battle_menu();await frames()
  expect(not shortcuts.is_visible_in_tree(),"disabled shortcuts stay hidden on the board")
  var saved=JSON.parse_string(FileAccess.get_file_as_string(app.settings_path))
  expect(saved.android_zone_shortcuts==false,"disabled setting is saved")
@@ -252,10 +265,10 @@ func run():
  expect(app.android_zone_shortcuts and app.android_zone_shortcut_positions.has("own_grave"),"restart loads the toggle and positions")
  expect(shortcuts.buttons.own_grave.position.is_equal_approx(shortcuts.bounds.position+Vector2(ratio[0],ratio[1])*shortcuts.travel()),"restart restores the button position")
  e=view.engine;app.android_zone_shortcut_positions={};shortcuts.bounds=Rect2()
- await fill_board();verify_layout("1280x720");await shot("battle-1280")
+ await fill_board();verify_layout("1280x720");await shot("battle-1280");await verify_browsing()
  for fixture in [{"size":Vector2i(1440,720),"dpi":320.0},{"size":Vector2i(1560,720),"dpi":280.0}]:
   root.size=fixture.size;app.layout_dpi_override=fixture.dpi
-  app.refresh_responsive_layout();await settle();await frames();verify_layout(str(fixture.size)+" dpi "+str(fixture.dpi))
+  app.refresh_responsive_layout();await settle();await frames();verify_layout(str(fixture.size)+" dpi "+str(fixture.dpi));await verify_browsing()
  view.queue_free();app.duel_view=null;await frames();app.is_android=false;app.layout_dpi_override=0;app.refresh_ui_metrics();app.begin_battle(true)
  view=app.duel_view;view.set_process(false);await frames()
  expect(view.android_zone_shortcuts==null,"desktop has no floating zone buttons")

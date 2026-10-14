@@ -16,6 +16,8 @@ func run():
  await process_frame
  app.editor()
  await process_frame
+ var stock_rows=app.library_rows.values().filter(func(item):return item.remaining_label!=null)
+ expect(not stock_rows.is_empty() and stock_rows.all(func(item):return item.row.get_global_rect().encloses(item.remaining_label.get_global_rect()) and item.remaining_label.position.y<=8 and item.remaining_label.horizontal_alignment==HORIZONTAL_ALIGNMENT_RIGHT),"desktop remaining inventory stays at the top right of its library row")
  expect(find_button(app.screen,"打开 deck 文件夹")!=null,"PC deck folder button is present")
  expect(app.DeckImage.folder()==Store.folder().path_join("image"),"folder button and capture use the same screenshot directory")
  var timer=app.get_node("DeletedDeckCleanupTimer")

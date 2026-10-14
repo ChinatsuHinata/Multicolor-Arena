@@ -19,11 +19,13 @@ func run():
    "history":spell.excel_access={"owner":0,"turn":e.turn,"ignore":false}
    "philosopher":spell.excel_access={"owner":0,"turn":e.turn,"ignore":true}
    "seiran":spell.free_exile_owner=0
-   "exile_free":e.players[0].exile_free={"turn":e.turn,"remaining":1}
+   "exile_free":
+    var teacher=put("character-fdf-ex05");teacher.leader=true;spell.devour_owner=0
+    e.players[0].exile_free={"turn":e.turn,"remaining":1}
   expect(e.Roster.mandatory_free_cast(e,spell,0),access+" marks exile use as mandatory free")
   expect(not e.offers_free_cast(0,spell),access+" hides the paid option")
   e.paid_cast_uid=spell.uid
-  expect(e.cast_cost(0,spell).is_empty(),access+" stays free under a paid preference")
+  expect(e.cast_cost(0,spell).values().all(func(amount):return int(amount)==0),access+" stays free under a paid preference")
   mana()
   var paid_plan=e.payment(0,e.cards[spell.card_id].cost).plan
   expect(not e.cast_payment_valid(0,spell,{},paid_plan),access+" rejects a normal-cost payment plan")

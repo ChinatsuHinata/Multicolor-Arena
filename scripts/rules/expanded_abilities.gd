@@ -9,9 +9,16 @@ static func parameters(info: Dictionary,effect: String) -> Dictionary:
 static func keyword(e,c: Dictionary,k: String) -> bool:
  if c.is_empty(): return false
  return e.Roster.keyword(e,c,k) or e.Pack.dynamic_keyword(e,c,k) or k in e.cards[c.card_id].get("keywords",[]) or c.get("modifiers",[]).any(func(m): return m.get(k,false))
+static func color_cost(e,c: Dictionary) -> Dictionary:
+ # Only X color costs expand; counts such as X sacrifices do not add mana.
+ var info=e.cards[c.card_id];var cost=info.cost.duplicate()
+ var color=String(info.get("variable_cost",""))
+ if c.get("zone","")=="stack" and not color.is_empty():
+  cost[color]=int(cost.get(color,0))+int(c.get("cast_x",0))*int(info.get("variable_multiplier",1))
+ return cost
 static func cost_value(e,c: Dictionary) -> int:
- var n=int(c.get("cast_x",0))*int(e.cards[c.card_id].get("variable_multiplier",1)) if c.zone=="stack" else 0
- for v in e.cards[c.card_id].cost.values(): n+=int(v)
+ var n=0
+ for v in color_cost(e,c).values(): n+=int(v)
  return n
 static func refs(e,list: Array) -> Array:
  return list.map(func(c): return e.ref_target(c))
@@ -28,6 +35,8 @@ static func no_target() -> Array: return [{"none":true}]
 static func add_mode(options: Array,mode: String) -> Array:
  return options.map(func(t): var result=t.duplicate(true); result.mode=mode; return result)
 static func spell_options(e,id: String,who: int) -> Variant:
+ var exploration=e.Exploration.spell_options(id)
+ if exploration!=null:return exploration
  var roster=e.Roster.spell_options(e,id,who)
  if roster!=null:return roster
  var precon=e.Pack.spell_options(e,id,who)
@@ -56,7 +65,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
     var targets=[entry.target]+entry.target.get("parts",[])
     var hits=targets.any(func(t):
      var c=e.find_card(t.get("uid",-1))
-     return not c.is_empty() and c.owner==who and c.zone=="field" and (e.cards[c.card_id].character=="魂魄妖梦" or c.card_id=="token_halfghost"))
+     return not c.is_empty() and c.owner==who and c.zone=="field" and (e.character_matches(c,"魂魄妖梦") or c.card_id=="token_halfghost"))
     if hits: result.append({"stack_id":entry.id})
    return result
   "130": return all_units.filter(func(t): return e.stat(e.find_card(t.uid),"spirit")>=3)
@@ -100,6 +109,7 @@ static func on_enter(e,c: Dictionary):
  if e.Cat.has(e,c,"character-fdf-101"):
   e.queue_entry_choice(c,"cat:momiji_name",e.Cat.name_options(e),e.Roster.text(info,"character-fdf-101"),{"ref":e.Cat.ref(e,c)},true)
  e.Roster.on_enter(e,c)
+ info=e.cards[c.card_id]
  e.Pack.on_enter(e,c)
  if e.DB.has_ability(info,"marisa_enter"):e.queue_trigger(c.owner,c,int(e.DB.ability(info,"marisa_enter")["数值"]),"进战场能力")
  if has(info,"leader_enter_modes") and e.has_leader_ability(c): event(e,c,"leader_enter_modes",true)
@@ -186,6 +196,7 @@ static func resolution_choice(e,t: Dictionary,effect: String,options: Array):
  e.revision+=1
 
 static func resolve_trigger(e,t: Dictionary):
+ if e.Exploration.resolve_trigger(e,t):return
  if t.get("roster",false):e.Roster.resolve_trigger(e,t);return
  if t.get("precon",false): e.Pack.resolve_trigger(e,t); return
  var effect=t.effect; var who=t.owner; var target=t.target; var source=t.source; var data=t.get("data",{})
@@ -287,7 +298,7 @@ static func resolve_trigger(e,t: Dictionary):
      return
     var cast_target=target if e.cards[c.card_id].kind=="符卡" else {"none":true}
     if e.cards[c.card_id].kind=="符卡" and not e.Pack.choice_valid(e,e.targets_for(c.card_id,who,c.uid),cast_target):return
-    e.detach(c); e.shift(c,"stack")
+    e.detach(c); e.shift(c,"stack"); c.cast_x=int(cast_target.get("x",0))
     e.stack.append({"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":cast_target.duplicate(true),"name":e.cards[c.card_id].name})
     e.next_stack+=1; e.priority=1-who; e.passes=0
     e.note("奇迹 · "+e.cards[c.card_id].name)

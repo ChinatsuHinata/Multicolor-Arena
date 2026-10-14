@@ -328,6 +328,7 @@ func sequence_action(a: Variant,path: String):
  if not a is Dictionary:error(path,"动作必须是对象");return
  var keys={"pass_priority":[],"cast":["card","target","payment"],"ability":["source","index","key","target","payment"],"possession":["palette","hand"],"attack":["card","target","payment"],"block":["cards"],"discard":["cards"],"mulligan":["cards"],"choose_trigger":["target"],"choose_effect":["target","grant_payment"],"choose_trigger_order":["index"],"choose_ward":["index"],"choose_return":["yes"],"choose_grave_replacement":["yes"],"choose_timer":["value"],"combat_damage":["assignments"],"delay":["seconds"],"toggle_ran_discount":["card"],"toggle_murder_dolls_skip":["card"]}
  var kind=a.get("type","")
+ keys.choose_trigger_order.append("order")
  keys.cast.append("pay_colors")
  if not keys.has(kind):error(path+".type","不支持的固定动作："+str(kind));return
  object(a,path,["type"]+([] if kind=="delay" else ["player"])+keys[kind])
@@ -353,6 +354,14 @@ func sequence_action(a: Variant,path: String):
   var move={"type":"block","cards":a.get("cards")};opponent_action(move,path)
  elif kind in ["choose_trigger","choose_effect"]:
   if a.has("target"):opponent_target(a.target,path+".target")
+ elif kind=="choose_trigger_order" and a.has("order"):
+  if a.has("index"):error(path,"触发排序只能指定 order 或 index")
+  if array(a.order,path+".order"):
+   var seen=[]
+   for i in range(a.order.size()):
+    var value=a.order[i]
+    if not value is int or value<0 or value>=a.order.size() or value in seen:error(path+".order."+str(i),"触发排序须包含每个序号且不能重复")
+    seen.append(value)
  elif kind in ["choose_trigger_order","choose_ward"]:integer(a.get("index"),path+".index")
  elif kind in ["choose_return","choose_grave_replacement"]:boolean(a.get("yes"),path+".yes")
  elif kind=="choose_timer":choice(a.get("value"),path+".value",[-1,0,1])

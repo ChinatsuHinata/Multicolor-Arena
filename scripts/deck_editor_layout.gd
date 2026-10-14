@@ -186,7 +186,7 @@ func update_preview():
  app.preview.add_child(scroll);expand(scroll,true)
  var body=column(scroll)
  var title=text(body,info.name,metrics.body+2);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.add_theme_color_override("font_color",app.GOLD)
- var costs=app.HexCost.new();body.add_child(costs);costs.configure(info.cost,false,width-12,metrics.body*1.5,info.get("variable_cost",""))
+ var costs=app.HexCost.new();body.add_child(costs);costs.configure(app.CostDisplay.for_card(info),false,width-12,metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
  var description=text(body,app.card_description(app.selected));description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  if app.sideboard_session==null:
   if not app.RuleSet.allowed(app.selected,info,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL))):

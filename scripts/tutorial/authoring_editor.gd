@@ -1,6 +1,7 @@
 extends Control
 ## Node management and recording, with private native tutorial surfaces.
 const Model=preload("res://scripts/tutorial/authoring_model.gd")
+const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const Runtime=preload("res://scripts/tutorial/runtime.gd")
 const Conditions=preload("res://scripts/tutorial/condition_graph.gd")
 const Actions=preload("res://scripts/tutorial/ui_actions.gd")
@@ -792,7 +793,7 @@ func apply_initial_board():
 
 func edit_setup_life(who: int):
  if recorder==null or recorder.adapter.scene_type!="battlefield" or not recorder.can_edit_setup():return
- var column=modal("修改初始血量 · "+recorder.adapter.engine.player_names[who])
+ var column=modal("修改初始血量 · "+PlayerNameDisplay.caption(recorder.adapter.engine.player_names[who]))
  var panel=column.get_parent();panel.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;panel.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  panel.custom_minimum_size.x=minf(460,size.x-56)
  text(column,"初始血量")

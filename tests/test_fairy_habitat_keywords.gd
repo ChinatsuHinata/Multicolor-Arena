@@ -9,7 +9,7 @@ func run():
   if info.kind not in ["单位","自机"] or "妖精" not in info.race:continue
   put(id)
   for keyword in info.keywords:
-   if keyword not in expected:expected.append(keyword)
+   expected.append(keyword)
  e.judge()
  expected.sort()
  var inherited=e.cards[habitat.card_id].keywords.duplicate();inherited.sort()

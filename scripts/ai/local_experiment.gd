@@ -32,6 +32,8 @@ func configure(requested: bool,path: String,manual: bool=false,session=null) -> 
 
 func step(e,manual: bool=false,session=null) -> Dictionary:
  if session!=null or manual:return {}
+ if e.ai_profiles[1]==e.PASSIVE_AI:
+  e.ai_step(1);return {"passive":true}
  if enabled and available():
   last_decision=Agent.step(e,1,Tactics,weights)
   if last_decision.get("applied",true)==false:

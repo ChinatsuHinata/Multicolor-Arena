@@ -109,6 +109,16 @@ func observer_exclusions(label: String):
   expect(not view.responsive.tools_actions().any(func(action):return action[0] in ["悔棋","请求悔棋"]),label+" "+role+" cannot request player undo")
  session.read_only=false;session.replay_mode=false
 
+func ranked_budget_menu(label: String):
+ session.room.undo_limit=5;session.room.undo_used=4;session.room.undo_available=true
+ var caption="请求悔棋" if view.is_android else "悔棋"
+ var actions=view.responsive.tools_actions().filter(func(action):return str(action[0]).begins_with(caption))
+ expect(actions.size()==1 and actions[0][0]==caption+"（剩余 1 次）" and not actions[0][2],label+" menu displays the final shared undo request")
+ session.room.undo_used=5;session.room.undo_available=false
+ actions=view.responsive.tools_actions().filter(func(action):return str(action[0]).begins_with(caption))
+ expect(actions.size()==1 and actions[0][0]==caption+"（剩余 0 次）" and actions[0][2],label+" menu disables undo when all five requests are spent")
+ session.room.erase("undo_limit");session.room.erase("undo_used");session.room.undo_available=true
+
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/undo-ui/"+str(Time.get_ticks_usec()))
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1600,900)
@@ -122,6 +132,7 @@ func run():
     await pause_and_resume(label+" requester "+str(requester)+" default response",view.ResponseMode.DEFAULT,requester)
     await pause_and_resume(label+" requester "+str(requester)+" response off",view.ResponseMode.OFF,requester)
    await menu_and_reply(label)
+   ranked_budget_menu(label)
    observer_exclusions(label)
  print("UNDO UI: %d/%d checks" % [checks-failures.size(),checks])
  app.queue_free();session.queue_free();await process_frame

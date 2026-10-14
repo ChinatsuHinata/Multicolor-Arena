@@ -5,14 +5,32 @@ const Identity=preload("res://net/local_identity.gd")
 const BO1=1
 const BO1_SIDEBOARD=2
 const BO3=3
+const EXPLORATION=4
+const EXPLORATION_RANDOM=5
+const Exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
 const SIDEBOARD_LIMIT=3
 static func format_label(format_value: int) -> String:
+ if is_entertainment(format_value):return "娱乐模式 · "+entertainment_name(format_value)
  return "BO1 换备牌" if format_value==BO1_SIDEBOARD else "BO%d" % format_value
+static func is_entertainment(format_value: int) -> bool:
+ return format_value in [EXPLORATION,EXPLORATION_RANDOM]
+static func entertainment_name(format_value: int) -> String:
+ return Exploration.RANDOM_MODE_NAME if format_value==EXPLORATION_RANDOM else Exploration.MODE_NAME
+static func entertainment_deck(format_value: int) -> Dictionary:
+ return Exploration.deck(format_value==EXPLORATION_RANDOM)
 static func sideboard_limit(room: Dictionary) -> int:
  return SIDEBOARD_LIMIT if int(room.get("format",BO3))==BO1_SIDEBOARD else -1
 var state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"chooser":-1,"first_chosen":false,"choice_reason":"","roll":{},"roll_history":[],"choice_history":[],"last_winner":-2,"counted":[],"winner":-2}
 func setup(format_value: int,strict: bool,rule_set: String=RuleSet.UNRESTRICTED):
- state.match_id=Identity.token();state.format=format_value if format_value in [BO1,BO1_SIDEBOARD,BO3] else BO1;state.strict=strict;state.rule_set=rule_set
+ state.match_id=Identity.token();state.format=format_value if format_value in [BO1,BO1_SIDEBOARD,BO3,EXPLORATION,EXPLORATION_RANDOM] else BO1;state.strict=strict;state.rule_set=rule_set
+ if is_entertainment(state.format):
+  state.strict=true;state.rule_set=RuleSet.UNRESTRICTED;state.decks=[entertainment_deck(state.format),entertainment_deck(state.format)]
+func select_entertainment(format_value: int) -> String:
+ if state.status!="lobby" or not is_entertainment(state.format):return "只能在娱乐房间准备阶段切换模式"
+ if not is_entertainment(format_value):return "娱乐模式无效"
+ state.format=format_value;state.strict=true;state.rule_set=RuleSet.UNRESTRICTED
+ state.decks=[entertainment_deck(format_value),entertainment_deck(format_value)];state.ready=[false,false]
+ return ""
 func rematch() -> String:
  if state.status!="complete" or state.has("forfeit"):return "当前不能开始新的一场"
  var old=state
@@ -20,6 +38,7 @@ func rematch() -> String:
  setup(old.format,old.strict,old.rule_set)
  return ""
 func set_deck(seat: int,deck: Dictionary) -> String:
+ if is_entertainment(state.format):return entertainment_name(state.format)+"使用双方固定卡组"
  if state.status not in ["lobby","sideboarding","between"]:return "当前不能换牌"
  if state.status=="sideboarding" and state.ready[seat]:return "请先取消准备再换备牌"
  var error=sideboard_error(deck,state.registered[seat],state.strict,state.rule_set,sideboard_limit(state)) if state.status!="lobby" else Store.validate(deck,state.strict,state.rule_set)
@@ -55,6 +74,9 @@ func forfeit(disconnected_seat: int,local_record: bool=false):
  state.end_reason=state.names[disconnected_seat]+"掉线超时，整场判负"+("（本地记录）" if local_record else "")
 func ready(seat: int) -> String:
  if state.status not in ["lobby","sideboarding","between"]:return "当前不能准备"
+ if is_entertainment(state.format):
+  if not Exploration.fixed_deck(state.decks[seat],state.format==EXPLORATION_RANDOM):return entertainment_name(state.format)+"固定卡组无效"
+  state.ready[seat]=true;return ""
  var error=sideboard_error(state.decks[seat],state.registered[seat],state.strict,state.rule_set,sideboard_limit(state)) if state.status=="sideboarding" else Store.validate(state.decks[seat],state.strict,state.rule_set)
  if not error.is_empty():return error
  state.ready[seat]=true
@@ -96,6 +118,7 @@ func start_game() -> bool:
  if state.status!="choosing" or not state.first_chosen:return false
  if state.round==0 and state.format!=BO1_SIDEBOARD:state.registered=state.decks.duplicate(true)
  state.round+=1;state.game_id=Identity.token();state.status="playing";state.ready=[false,false]
+ state.undo_used=0
  state.choice_history.append({"game_id":state.game_id,"round":state.round,"chooser":state.chooser,"first":state.first,"reason":state.choice_reason})
  return true
 func opening_text() -> String:

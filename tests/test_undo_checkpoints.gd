@@ -63,13 +63,37 @@ func run():
  history.remember(e,"same-game",2);var exchange=Codec.capture(e)
  e.pending={};history.remember(e,"same-game",3)
  e.phase="main";history.remember(e,"same-game",4)
- for entry in history.entries:entry.erase("can_decide")
+ for entry in history.entries:
+  for key in ["can_decide","phase","turn","active","possession_ready"]:entry.erase(key)
  before=Codec.capture(e)
  check(history.available(e,"same-game") and history.previous(e,"same-game").sequence==2,"legacy history skips the unplayable exchange response window")
  check(Codec.capture(e)==before,"legacy eligibility queries never restore into the live authority")
  check(history.restore_previous(e,"same-game").sequence==2 and Codec.capture(e)==exchange,"legacy recovery restores the actionable snapshot exactly")
  check(history.entries.size()==2,"legacy recovery removes all skipped future snapshots")
  check(history.restore_previous(e,"same-game").sequence==1 and not history.available(e,"same-game"),"a second undo reaches the retained initial boundary")
+
+ # Multiple exchanges and a legal response still rewind to the first selection.
+ fresh();history=Undo.new()
+ var incoming=put("119","hand");var outgoing=put("53","palette")
+ put("spell-htk-004","field");put("token-fdf-127","field")
+ e.pending={"kind":"possession","owner":0};history.remember(e,"exchanges",1)
+ var possession_start=Codec.capture(e)
+ e.possession(outgoing.uid,incoming.uid);history.remember(e,"exchanges",2)
+ check(e.pending.get("kind","")=="possession" and e.players[0].possession_count==1,"extra possession permits a second exchange")
+ e.possession(incoming.uid,outgoing.uid);history.remember(e,"exchanges",3)
+ check(history.previous(e,"exchanges").sequence==2,"undo during possession still selects the preceding exchange")
+ e.possession();history.remember(e,"exchanges",4)
+ check(history.can_decide(e),"a legal activation retains the post-possession response window")
+ e.advance_phase();e.presentation_events.clear();history.remember(e,"exchanges",5)
+ var main_start=Codec.capture(e)
+ check(history.previous(e,"exchanges").sequence==1,"entering main skips every completed exchange and legal response window")
+ e.players[0].life-=1;e.revision+=1;history.remember(e,"exchanges",6)
+ check(history.restore_previous(e,"exchanges").sequence==5 and Codec.capture(e)==main_start,"a later main operation restores main before rewinding possession")
+ for entry in history.entries:
+  for key in ["phase","turn","active","possession_ready"]:entry.erase(key)
+ check(history.restore_previous(e,"exchanges").sequence==1 and Codec.capture(e)==possession_start,"main-start undo restores cards, possession count and RNG before the first exchange")
+ e.possession();history.remember(e,"exchanges",7);e.advance_phase();history.remember(e,"exchanges",8)
+ check(history.restore_previous(e,"exchanges").sequence==1 and e.pending.get("kind","")=="possession","a skipped possession can also be reconsidered from main")
 
  # Long runs of passive transitions retain the prior decision within the bound.
  fresh();history=Undo.new();e.phase="main";history.remember(e,"long-game",100);before=Codec.capture(e)

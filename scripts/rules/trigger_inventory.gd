@@ -19,7 +19,7 @@ static func force(e,who):
    if handler=="precon" and k=="sanae_end":templates.append({"family":"precon","effect":k})
    if handler=="extension" and k in MAIN_EXTENSION:templates.append({"family":"extension","effect":k})
    if handler=="marisa_enter":templates.append({"family":"demo","amount":int(binding.get("参数",{}).get("数值",1))})
-  if "结晶" in info.get("keywords",[]):templates.append({"family":"extension","effect":"crystal"})
+  for instance in range(info.get("keywords",[]).count("结晶")):templates.append({"family":"extension","effect":"crystal"})
   # These properties may be granted to a unit by another resolved card.
   if c.get("drunk_counters",0)>0:templates.append({"family":"roster","effect":"n21:drunk_bottom"})
   if c.get("imp_growth",false):templates.append({"family":"roster","effect":"cat:imp_growth"})
@@ -27,7 +27,7 @@ static func force(e,who):
   for repeat in range(2 if e.Cat.character(e,c,"秦心") else 1):
    for template in templates:
     var k=template.get("effect","")
-    var data={"ref":e.ref_target(c),"power":e.stat(c,"power"),"x":int(c.get("cast_x",0)),"player":1-who,"owner":who,"value":0,"amount":0,"event":"forced"}
+    var data={"ref":e.ref_target(c),"power":e.stat(c,"power"),"x":int(c.get("cast_x",0)),"player":1-who,"owner":who,"value":0,"amount":0,"event":"forced","single_instance":true}
     data.merge(template.get("data",{}),true)
     if template.family=="demo":e.queue_trigger(who,c,template.amount,"主要触发能力");continue
     # Event-dependent recipients do not exist when triggering without an event.
