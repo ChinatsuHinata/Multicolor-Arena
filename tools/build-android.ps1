@@ -1,5 +1,5 @@
 param(
-    [string]$OutputPath = 'builds/Android-debug/Mtest.apk',
+    [string]$OutputPath = 'builds/Android-debug/MulticolorArena-debug.apk',
     [string]$JavaSdkPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path '.godot-toolchain/jdk-17')
 )
 

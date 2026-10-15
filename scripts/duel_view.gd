@@ -2243,6 +2243,12 @@ func _input(event: InputEvent):
  # Tutorial controls remain usable while a cast/reveal animates below them.
  if is_instance_valid(tutorial_guide) and tutorial_guide.owns_pointer_event(event):return
  if host.menu_popup_open():return
+ if History.handle(self,event):
+  android_card_touch.cancel();android_swipe_scroll.reset()
+  if is_android and (event is InputEventScreenTouch or event is InputEventScreenDrag):
+   suppress_touch_mouse_until=Time.get_ticks_msec()+250
+   suppress_touch_mouse_point=event.position
+  return
  if is_android and (event.is_action_pressed("ui_cancel") or event is InputEventKey and event.pressed and not event.echo and event.keycode==KEY_BACK):
   android_back();get_viewport().set_input_as_handled();return
  if is_android and event is InputEventMouse and event.device==-1:

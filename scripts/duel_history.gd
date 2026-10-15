@@ -1,6 +1,14 @@
 extends RefCounted
 const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
+const FastScroll=preload("res://scripts/history_fast_scroll.gd")
 ## History uses detached public artwork snapshots, never live card lookup.
+
+static func handle(view,event: InputEvent) -> bool:
+ if not view.history_open:return false
+ var panel=view.history_detail_panel if is_instance_valid(view.history_detail_panel) else view.history_panel
+ if not is_instance_valid(panel):return false
+ var fast=panel.get_node_or_null("HistoryFastScroll")
+ return fast!=null and fast.handle(event)
 
 static func hidden(view,art: Dictionary) -> bool:
  return art.get("card_id","")=="back" or art.get("hidden",false) and art.get("owner",-1)!=view.local_seat and not view.debug_mode and not view.replay_view()
@@ -49,6 +57,7 @@ static func build(view):
  var top=hint.position.y+hint.size.y+12
  var scroll=ScrollContainer.new();scroll.name="HistoryScroll";scroll.position=Vector2(16,top);scroll.size=Vector2(width-32,height-top-16)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;view.history_panel.add_child(scroll)
+ FastScroll.attach(scroll,view.is_android,m.hit)
  var column=VBoxContainer.new();column.name="HistoryEntries";column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  column.add_theme_constant_override("separation",int(m.gap) if view.is_android else 8);scroll.add_child(column)
  var events=view.engine.history.duplicate();events.reverse()
@@ -99,6 +108,7 @@ static func detail(view,entry: Dictionary):
  var footer_height=maxf(44,view.host.ui_metrics.hit)
  var scroll=ScrollContainer.new();scroll.name="HistoryDetailScroll";scroll.position=Vector2(24,70);scroll.size=Vector2(panel.size.x-48,panel.size.y-70-footer_height-32)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
+ FastScroll.attach(scroll,view.is_android,view.host.ui_metrics.hit)
  var body=VBoxContainer.new();body.name="HistoryDetailBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  body.add_theme_constant_override("separation",16);scroll.add_child(body)
  label(view,body,stamp(view,entry),view.host.ui_metrics.small if view.is_android else 17,view.host.MUTED)
