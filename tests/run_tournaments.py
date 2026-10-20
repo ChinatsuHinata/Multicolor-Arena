@@ -58,7 +58,13 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as directory:
                     raise RuntimeError(f"Local test services failed to start; see {scratch / 'services.log'}")
                 time.sleep(0.1)
             display = ["--rendering-method", "gl_compatibility"] if "--render" in sys.argv else ["--headless"]
-            scripts = ("test_tournament_game_formats.gd",) if "--formats-only" in sys.argv else (("test_tournament_rounds.gd",) if "--rounds-only" in sys.argv else ("test_tournaments.gd", "test_tournament_rounds.gd", "test_tournament_game_formats.gd"))
+            scripts = ("test_tournament_unread.gd", "test_tournaments.gd", "test_tournament_rounds.gd", "test_tournament_game_formats.gd")
+            if "--unread-only" in sys.argv:
+                scripts = ("test_tournament_unread.gd",)
+            elif "--formats-only" in sys.argv:
+                scripts = ("test_tournament_game_formats.gd",)
+            elif "--rounds-only" in sys.argv:
+                scripts = ("test_tournament_rounds.gd",)
             for script in scripts:
                 result = subprocess.run([str(godot), *display, "--path", ".", "--log-file", str(scratch / (script + ".log")),
                     "--script", "res://tests/" + script, "--", "--fixture", str(config)],

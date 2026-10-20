@@ -22,7 +22,7 @@ class DeckPlazaTests(unittest.TestCase):
         accounts.handle(self.conn, {"action": "register", "username": "plaza_player", "password": "password123!", "device": "a" * 32})
         self.login = accounts.handle(self.conn, {"action": "login", "username": "plaza_player", "password": "password123!", "device": "a" * 32})
         self.account = accounts.verify(self.conn, self.login["token"])
-        self.parts = ["原卡组", "70", [["100", 4]], [], "official_spx", {"70": "tts_151600"}]
+        self.parts = ["原卡组", "70", [["100", 4]], [], "official", {"70": "tts_151600"}]
         self.payload = {"action": "upload", "token": self.login["token"], "title": "灵梦套牌", "description": "第一行\n第二行", "tags": ["灵梦", "速攻"], "deck_code": "MA1:" + json.dumps(self.parts, ensure_ascii=False)}
 
     def tearDown(self):
@@ -32,6 +32,35 @@ class DeckPlazaTests(unittest.TestCase):
     def request(self, data):
         account = accounts.verify(self.conn, data.get("token"))
         return plaza.handle(self.conn, data, account) if account["ok"] else account
+
+    def test_retired_rule_migrates_to_unrestricted(self):
+        self.assertEqual(plaza.RULES, ("unrestricted", "official", "test"))
+        parts = self.parts.copy()
+        parts[4] = "official_spx"
+        raw = json.dumps(parts, ensure_ascii=False).encode("utf-8")
+        compressed = "MA1Z:" + str(len(raw)) + ":" + base64.b64encode(zlib.compress(raw)).decode().rstrip("=")
+        for code in ("MA1:" + raw.decode("utf-8"), compressed):
+            with self.subTest(code=code[:5]):
+                parsed = plaza.deck_parts(code)
+                self.assertEqual(parsed[4], "unrestricted")
+                self.assertEqual(parsed[2:4], parts[2:4])
+                result = self.request(dict(self.payload, deck_code=code))
+                self.assertTrue(result["ok"], result)
+                detail = self.request({"action": "detail", "id": result["id"], "token": self.login["token"]})
+                self.assertEqual(plaza.deck_parts(detail["deck"]["deck_code"])[4], "unrestricted")
+
+    def test_disabled_cards_rejected_in_every_rule_set(self):
+        for card_id in (f"new-spx-{number:03d}" for number in range(1, 8)):
+            for rule in plaza.RULES:
+                with self.subTest(card=card_id, rule=rule):
+                    parts = ["限定卡", "70", [[card_id, 1]], [], rule]
+                    request = dict(self.payload, deck_code="MA1:" + json.dumps(parts))
+                    self.assertFalse(self.request(request)["ok"])
+                    if plaza.catalogue()[card_id]["leader"]:
+                        parts[1], parts[2] = card_id, [["100", 1]]
+                        request["deck_code"] = "MA1:" + json.dumps(parts)
+                        self.assertFalse(self.request(request)["ok"])
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM deck_posts").fetchone()[0], 0)
 
     def test_upload_persists_author_and_alternate_art(self):
         result = self.request(self.payload)
@@ -48,6 +77,15 @@ class DeckPlazaTests(unittest.TestCase):
         self.assertEqual(detail["tags"], ["灵梦", "速攻"])
         self.assertEqual(plaza.deck_parts(detail["deck_code"])[5], {"70": "tts_151600"})
         self.assertEqual(plaza.deck_parts(detail["deck_code"])[0], detail["title"])
+
+    def test_random_exploration_leader_constructed_rules(self):
+        for rule in plaza.RULES:
+            parts = ["全随机秘封构筑", "exploration-random-leader", [["100", 4]], [], rule]
+            result = self.request(dict(self.payload, deck_code="MA1:" + json.dumps(parts, ensure_ascii=False)))
+            self.assertEqual(result["ok"], rule in ("unrestricted", "test"), rule)
+        for leader in ("exploration-leader", "token-fdn-082"):
+            parts = ["不可构筑", leader, [["100", 4]], [], "unrestricted"]
+            self.assertFalse(self.request(dict(self.payload, deck_code="MA1:" + json.dumps(parts)))["ok"])
 
     def test_compressed_code_and_assets_rejected(self):
         raw = json.dumps(self.parts, ensure_ascii=False).encode("utf-8")

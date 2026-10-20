@@ -8,13 +8,14 @@ static func parameters(info: Dictionary,effect: String) -> Dictionary:
  return {}
 static func keyword(e,c: Dictionary,k: String) -> bool:
  if c.is_empty(): return false
- return e.Roster.keyword(e,c,k) or e.Pack.dynamic_keyword(e,c,k) or k in e.cards[c.card_id].get("keywords",[]) or c.get("modifiers",[]).any(func(m): return m.get(k,false))
+ var base=e.Roster.keyword(e,c,k) or e.Pack.dynamic_keyword(e,c,k) or k in e.cards[c.card_id].get("keywords",[]) or c.get("modifiers",[]).any(func(m): return m.get(k,false))
+ return bool(e.Mods.Rules.query(e,{"kind":"keyword","card":c,"keyword":k},base))
 static func color_cost(e,c: Dictionary) -> Dictionary:
  # Only X color costs expand; counts such as X sacrifices do not add mana.
  var info=e.cards[c.card_id];var cost=info.cost.duplicate()
  var color=String(info.get("variable_cost",""))
  if c.get("zone","")=="stack" and not color.is_empty():
-  cost[color]=int(cost.get(color,0))+int(c.get("cast_x",0))*int(info.get("variable_multiplier",1))
+  for part in color.split("+"):cost[part]=int(cost.get(part,0))+int(c.get("cast_x",0))*int(info.get("variable_multiplier",1))
  return cost
 static func cost_value(e,c: Dictionary) -> int:
  var n=0
@@ -101,6 +102,7 @@ static func event(e,c: Dictionary,effect: String,optional: bool=false,data: Dict
  if e.Pack.trigger_locked(e): return
  e.Cat.enqueue(e,{"extended":true,"owner":c.owner,"source":c.duplicate(true),"effect":effect,"optional":optional,"data":data.duplicate(true),"name":e.cards[c.card_id].name})
 static func on_enter(e,c: Dictionary):
+ e.Mods.event(e,c,"self_enter")
  # "于该单位进战场时" describes its entry properties, not a triggered event.
  # Apply counters before any observer captures the entering unit's statistics.
  var info=e.cards[c.card_id]

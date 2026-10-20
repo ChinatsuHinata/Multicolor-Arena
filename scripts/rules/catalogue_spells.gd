@@ -93,12 +93,12 @@ static func options(e,id,who):
    var max_x=e.VariableChoice.limit(e,id,who)
    for x in range(max_x+1):
     if id=="spell-fdf-024":out.append({"none":true,"x":x,"mode":"X = %d" % x});continue
-    var targets=C.refs(e,C.field(e).filter(func(c):return e.Roster.permanent(e,c) and e.Extra.cost_value(e,c)==x)) if id=="spell-fdf-051" else e.stack.filter(func(s):return s.kind=="card" and not e.is_unit(s.card) and e.Extra.cost_value(e,s.card)==x).map(func(s):return {"stack_id":s.id})
     if id=="spell-fdf-051":
+     var targets=C.refs(e,C.field(e).filter(func(c):return e.Roster.permanent(e,c) and e.Extra.cost_value(e,c)==x))
      var spec=e.Pack.selection([e.Pack.group(targets,0,1,"X = %d · 消灭永久物" % x)],id+":"+str(x))[0];spec.x=x;out.append(spec)
     else:
      for n in range(mini(x,C.counter_total(e,own))+1):
-      var groups=[e.Pack.group(targets,1,1,"X = %d · 反制非单位牌" % x)]
+      var groups=[]
       for j in range(n):
        var cg=e.Pack.group(C.counter_refs(e,own),1,1,"移除一个指示物");cg.exclude_previous=true;cg.cost=true;groups.append(cg)
       var specs=e.Pack.selection(groups,id+":"+str(x)+":"+str(n))
@@ -272,7 +272,8 @@ static func resolve(e,t):
    for s in e.stack.duplicate():
     if s.id==aim.stack_id:
      var n=e.Extra.cost_value(e,s.card);e.counter_entry(s.id);C.distribution(e,t,e.Pack.all_units(e,who),n,true);break
-  "spell-fdf-053":e.counter_entry(aim.picks[0][0].stack_id)
+  "spell-fdf-053":
+   if aim.has("stack_id"):e.counter_entry(aim.stack_id)
   "spell-fdf-013","spell-fdf-084":
    C.printed_tokens(e,who,3 if id=="spell-fdf-013" else 2,"token-fdf-129")
    if id=="spell-fdf-013":e.draw(who,3)
@@ -470,6 +471,10 @@ static func resolve_complex_choice(e,t):
    C.choose(e,t,"cat:four_enter",C.pick(e,eligible,mini(1,eligible.size()),1,"放进战场的一张牌"),{"all":C.refs(e,list)})
   "cat:four_enter":
    var chosen=C.selected(e,a);e.Roster.field_many(e,chosen,who)
+   # Older time spells initialize counters on cast instead of on_enter.
+   for u in chosen:
+    if u.zone=="field" and u.card_id not in C.SPELLS and "时符" in e.cards[u.card_id].get("spell_type","") and u.timer==0:
+     e.add_timer(u,int(e.cards[u.card_id].get("time",0)))
    for r in d.all:
     if C.valid(e,r):e.move_to(e.find_card(r.uid),"hand")
    e.shuffle(p.deck)

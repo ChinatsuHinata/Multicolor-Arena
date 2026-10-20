@@ -4,8 +4,19 @@ extends RefCounted
 const MAIN_ROSTER=["letty_freeze","dai_search","medicine_kill","luna_life","mystia_life","hatate_replace","komachi_exile","star_destroy","seiga_death","akyuu_counter","keiki_copy","chen_counter","meiling_spell","seiga_imp","nazrin_draw","kyouko_shuffle","hourai_ping","koishi_coin","satori_scry","shanghai_draw","kanako_pillar","suika_attack","suwako_top","character-fdf-046","character-fdf-065","character-fdf-069","character-fdf-091","character-fdf-092","character-fdf-093","character-fdf-094","character-fdf-100","character-fdf-103","character-fdf-104","character-fdf-105","character-fdf-110","character-fdf-114","character-fdf-117","character-fdf-119","character-fdn-004","character-fdn-021","character-fdn-024","character-fdn-025","character-fdn-026","character-fdn-034","character-fdn-035","character-fdn-036","character-fdn-037","character-fdn-038","character-fdn-042","character-fdn-045","lily_color","kokoro_mood","character-htk-005","komachi_minus","character-lof-002","larva_sacrifice","shinmy_cast","character-ucs-003","character-ucs-016","character-ucs-020","character-ucs-021","character-ucs-023","character-ucs-025","sakuya_timer","character-ucs-034","character-ucs-036","orin_discard","parsee_catchup","character-ucs-044","character-ucs-056","miko_divide","kogasa_scare","kanako_cast","character-ucs-073","n21:ETO-001","n21:ETO-002","n21:ETO-003","n21:LOC-001","n21:SPX-005"]
 const MAIN_PRECON=["miyoi_wine","mike_swap","eirin_return","yukari_blink","byakuren_x","tenshi_tap","marisa_untap","patch_exchange","seiran_exile","koakuma_palette","tokiko_search","marisa_search","patch_topthree","tewi_counters","kosuzu_destroy","sand_add","shou_shield","larva_draw","ramp_enter","oni_attack"]
 const MAIN_EXTENSION=["enter_haste","enter_drain","enter_grave_damage","enter_sweep","enter_color_evasion","enter_blink","enter_fight","enter_palette_replace","enter_unblockable","enter_halfghost","leave_ufo","death_draw_life","death_drain","death_palette","death_damage","death_poverty","death_six","death_undying","death_devour","hand_autumn"]
+const LEADER_ROSTER=["character-ucs-067:self","character-fdn-048:self","character-fdn-025:self"]
+static func force_leader(e,c: Dictionary):
+ if e.Pack.trigger_locked(e):return
+ # A forced printed leader trigger does not require leader-ability authorization.
+ # Activated, static and replacement abilities are deliberately absent.
+ e.Mods.force(e,c,"leader",true)
+ for binding in e.cards[c.card_id].abilities:
+  var effect=binding.get("参数",{}).get("效果","")
+  if binding.get("实现","")=="roster" and effect in LEADER_ROSTER:
+   e.Roster.event(e,c,effect,optional(e,c,effect),{"event":"forced","single_instance":true})
 static func force(e,who):
  for c in e.units(who).duplicate():
+  e.Mods.force(e,c)
   var info=e.cards[c.card_id];var templates=[]
   for binding in info.abilities:
    var handler=binding.get("实现","");var k=binding.get("参数",{}).get("效果",handler)

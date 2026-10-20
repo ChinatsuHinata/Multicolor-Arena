@@ -1,5 +1,11 @@
 extends Button
 ## A trophy drawn at native touch size, without a symbol-font dependency.
+var unread=0:
+ set(value):
+  unread=maxi(0,value)
+  tooltip_text="比赛 · %d 场未读" % unread if unread>0 else "比赛"
+  queue_redraw()
+
 func _draw():
  var unit=minf(size.x,size.y)*0.52
  var origin=(size-Vector2(unit,unit))*0.5
@@ -12,3 +18,5 @@ func _draw():
   draw_polyline(PackedVector2Array([edge,edge+Vector2(side*unit*0.18,0),edge+Vector2(side*unit*0.15,unit*0.24),edge+Vector2(0,unit*0.3)]),color,stroke,true)
  draw_line(origin+Vector2(unit*0.5,unit*0.62),origin+Vector2(unit*0.5,unit*0.92),color,stroke,true)
  draw_line(origin+Vector2(unit*0.24,unit*0.95),origin+Vector2(unit*0.76,unit*0.95),color,stroke,true)
+ if unread>0:
+  draw_circle(origin+Vector2(unit*0.8+2,-2),maxf(5.0,unit*0.14),Color("#f16d69"),true,-1,true)

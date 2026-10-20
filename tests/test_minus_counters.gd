@@ -2,8 +2,8 @@ extends "res://tests/support/rules_base.gd"
 
 const Codec=preload("res://net/state_codec.gd")
 
-func counter_choice(spec: Dictionary,stack_id: int,counters: Array) -> Dictionary:
- var choice=spec.duplicate(true);choice.erase("selection");choice.picks=[[{"stack_id":stack_id}]]
+func counter_choice(spec: Dictionary,counters: Array) -> Dictionary:
+ var choice=spec.duplicate(true);choice.erase("selection");choice.picks=[]
  for counter in counters:choice.picks.append([counter])
  return choice
 
@@ -100,7 +100,7 @@ func byakuren_payment():
   var spec=payment_spec(spell,n)
   if spec.is_empty():continue
   var refs=e.Cat.counter_refs(e,[victim]).slice(0,n)
-  var choice=counter_choice(spec,f.stack_id,refs)
+  var choice=counter_choice(spec,refs)
   var cost=e.cast_cost(0,spell,choice)
   expect(int(cost.get("黄",0))==1 and int(cost.get("绿",0))==3-n,"each removed negative counter pays exactly one green, n="+str(n))
   var plan=e.payment(0,cost)
@@ -113,41 +113,38 @@ func byakuren_payment():
    var graph=Codec.capture(e);e=Duel.new();Codec.restore(e,graph)
    victim=e.find_card(victim.uid);spell=e.find_card(spell.uid)
    expect(victim.get("minus_counters",0)==0 and e.stack.back().target.counter_payment==3,"state roundtrip preserves paid negative counters and declared X")
-  one()
+  one();e.choose_effect(e.pending.options[0])
   expect(e.find_card(f.spark.uid).zone=="grave" and spell.zone=="grave" and e.stack.is_empty(),"Byakuren resolves and counters the real spell, n="+str(n))
   expect(e.players[0].life==20,"the countered spell deals no player damage")
  var f=response_fixture();var victim=f.victim;var spell=f.counterspell
  victim.minus_counters=1
  e.Roster.Batch.counter(e,victim,"courage",1,0);e.Roster.Batch.color_counter(e,victim,"绿",0)
- var choice=counter_choice(payment_spec(spell,3),f.stack_id,e.Cat.counter_refs(e,[victim]))
+ var choice=counter_choice(payment_spec(spell,3),e.Cat.counter_refs(e,[victim]))
  expect(e.commit_cast(0,spell.uid,choice,e.payment(0,e.cast_cost(0,spell,choice)).plan).is_empty(),"negative counters can be mixed with other counter types in one payment")
  expect(e.Cat.counter_total(e,[victim])==0 and e.stat(victim,"health")==5,"mixed payment removes every chosen counter exactly once")
- one();expect(e.find_card(f.spark.uid).zone=="grave","mixed-counter payment resolves the counterspell")
+ one();e.choose_effect(e.pending.options[0]);expect(e.find_card(f.spark.uid).zone=="grave","mixed-counter payment resolves the counterspell")
  f=response_fixture()
  var donor=put("53");donor.plus_counters=4;donor.minus_counters=3
  var idol=e.Roster.copy_idol(e,0,donor);spell=f.counterspell
  var copied_negatives=e.Cat.counter_refs(e,[idol]).filter(func(r):return r.counter=="minus_counters")
- choice=counter_choice(payment_spec(spell,3),f.stack_id,copied_negatives)
+ choice=counter_choice(payment_spec(spell,3),copied_negatives)
  expect(e.commit_cast(0,spell.uid,choice,e.payment(0,e.cast_cost(0,spell,choice)).plan).is_empty(),"Byakuren can pay with negative counters copied by Keiki")
  expect(idol.minus_counters==0 and donor.minus_counters==3 and idol.plus_counters==4,"paying copied negative counters changes only the copy's chosen counters")
- one();expect(e.find_card(f.spark.uid).zone=="grave","Keiki's copied negative counters successfully fund the counterspell")
+ one();e.choose_effect(e.pending.options[0]);expect(e.find_card(f.spark.uid).zone=="grave","Keiki's copied negative counters successfully fund the counterspell")
 
 func invalid_payments():
- for invalid in ["duplicate","opponent","removed","zone_changed","wrong_x","unit_target"]:
+ for invalid in ["duplicate","opponent","removed","zone_changed","wrong_x"]:
   var f=response_fixture();var victim=f.victim;var spell=f.counterspell
-  var refs=e.Cat.counter_refs(e,[victim]);var choice=counter_choice(payment_spec(spell,3),f.stack_id,refs)
+  var refs=e.Cat.counter_refs(e,[victim]);var choice=counter_choice(payment_spec(spell,3),refs)
   match invalid:
-   "duplicate":choice.picks[2]=choice.picks[1].duplicate(true)
+   "duplicate":choice.picks[1]=choice.picks[0].duplicate(true)
    "opponent":
     var enemy=put("character-fdf-106","field",1)
     e.Roster.Batch.counter(e,enemy,"minus_counters",1,0)
-    choice.picks[1]=[e.Cat.counter_refs(e,[enemy])[0]]
+    choice.picks[0]=[e.Cat.counter_refs(e,[enemy])[0]]
    "removed":victim.minus_counters=2
    "zone_changed":e.move_to(victim,"hand");e.enter_field(victim,0)
    "wrong_x":choice.x=2
-   "unit_target":
-    var enemy=put("53","hand",1);e.detach(enemy);e.shift(enemy,"stack")
-    e.stack[0].card=enemy
   var before=victim.get("minus_counters",0);var yellow=e.players[0].palette[0]
   expect(not e.commit_cast(0,spell.uid,choice,e.payment(0,{"黄":1}).plan).is_empty(),"counter payment rejects invalid selection: "+invalid)
   expect(spell.zone=="hand" and victim.get("minus_counters",0)==before and not yellow.tapped,"rejected payment leaves counters, card and mana unchanged: "+invalid)

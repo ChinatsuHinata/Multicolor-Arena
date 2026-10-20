@@ -28,6 +28,7 @@ static func binding(effect: String,caption: String) -> Dictionary:
 static func register(cards: Dictionary):
  if not cards.has("new-eto-003"):return
  var leader=cards["new-eto-003"].duplicate(true)
+ leader.title="探索的旅者";leader.name="探索的旅者「莲子」&「梅莉」"
  leader.colors=["红","蓝","绿","黄","黑"];leader.color=" / ".join(leader.colors)
  leader.cost={"红":1,"蓝":1,"绿":1,"黄":1,"黑":1}
  leader.canonical_id=LEADER
@@ -61,6 +62,7 @@ static func register(cards: Dictionary):
   info.description=info.rules_text;cards[SPELLS[i]]=info
  var random_leader=leader.duplicate(true)
  random_leader.canonical_id=RANDOM_LEADER;random_leader.source="娱乐模式："+RANDOM_MODE_NAME
+ random_leader.constructible=true;random_leader.rule_sets=["unrestricted","test"]
  random_leader.abilities[1]=binding(ANY_SELF,"自机能力：该牌在任何区域都视为任意自机。")
  random_leader.rules_text="\n".join(random_leader.abilities.map(func(a):return a.get("名称","")))
  random_leader.description=random_leader.rules_text;cards[RANDOM_LEADER]=random_leader

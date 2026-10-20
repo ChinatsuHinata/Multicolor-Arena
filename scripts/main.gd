@@ -15,6 +15,10 @@ const CostDisplay=preload("res://scripts/card_cost_display.gd")
 const HexCost=preload("res://scripts/cost_hex_display.gd")
 const LocalExperiment=preload("res://scripts/ai/local_experiment.gd")
 const AccountSessionStore=preload("res://scripts/account_session_store.gd")
+const MatchDeckMemory=preload("res://scripts/match_deck_memory.gd")
+const RemiliaChallenge=preload("res://scripts/rules/remilia_challenge.gd")
+var private_cloud_decks
+var ai_opponent="remilia"
 const PatchService=preload("res://scripts/pck_patch_service.gd")
 const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
 const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
@@ -29,6 +33,7 @@ var tournament_button
 var tournament_ui
 var tournament_account_return=false
 var tournament_server_url=preload("res://scripts/account_client.gd").SERVER_URL
+var tournament_unread=preload("res://scripts/tournament_unread.gd").new()
 const GOLD = Color("#e8c77e")
 const INK = Color("#101c28")
 const MUTED = Color("#b2c2ce")
@@ -233,8 +238,12 @@ func _ready():
  tutorial_progress.directory=settings_path.get_base_dir().path_join("tutorial_progress")
  announcement_store.initialize(patch_manager().active_version,settings_path.get_base_dir().path_join("announcements.json"),announcement_catalogue_path)
  if not announcement_store.last_error.is_empty():push_warning(announcement_store.last_error)
- menu()
+ tournament_unread.initialize(settings_path.get_base_dir().path_join("tournament_reads.json"))
+ add_child(tournament_unread);tournament_unread.changed.connect(refresh_tournament_badge)
+ var tournament_timer=Timer.new();tournament_timer.name="TournamentUnreadTimer";tournament_timer.wait_time=60.0
+ add_child(tournament_timer);tournament_timer.timeout.connect(check_tournament_unread);tournament_timer.start()
  call_deferred("restore_account")
+ menu()
  if not load_error.is_empty(): alert(load_error)
  elif not loaded.get("warnings",[]).is_empty():
   call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
@@ -341,10 +350,15 @@ func deck_picker_open() -> bool:
 
 func close_deck_picker():
  if not deck_picker_open():deck_picker_ui=null;return
+ var cloud_gallery=deck_picker_ui.get_script()==preload("res://scripts/cloud_deck_slots.gd")
  var focus=deck_picker_ui.previous_focus.get_ref() if deck_picker_ui.previous_focus!=null else null
  deck_picker_ui.get_parent().remove_child(deck_picker_ui);deck_picker_ui.queue_free();deck_picker_ui=null
  if is_instance_valid(focus) and not focus.is_queued_for_deletion() and focus.is_visible_in_tree():focus.grab_focus()
  if deck_picker_layout_changed:deck_picker_layout_changed=false;queue_layout_refresh()
+ if cloud_gallery:call_deferred("refresh_editor_after_cloud")
+
+func refresh_editor_after_cloud():
+ if page=="editor" and not deck_picker_open():editor()
 
 func open_deck_picker(callback: Callable,current_id: String="",title: String="选择套牌"):
  close_deck_picker();close_menu_popup();reload_decks()
@@ -364,6 +378,7 @@ func open_editor_deck_picker():
   guard(func():draft=chosen;dirty=false;editor()),str(draft.get("id","")),"选择要编辑的套牌")
 
 func open_match_deck_picker(seat: int):
+ if seat==1 and remilia_challenge():return
  var index=player_choice if seat==0 else ai_choice
  var current_id=str(decks[index].id) if index>=0 and index<decks.size() else ""
  open_deck_picker(func(chosen):
@@ -418,8 +433,21 @@ func add_tournament_button(extent: float):
  tournament_button.offset_left=-extent-ui_metrics.padding;tournament_button.offset_right=-ui_metrics.padding
  tournament_button.offset_top=ui_metrics.padding;tournament_button.offset_bottom=ui_metrics.padding+extent
  tournament_button.pressed.connect(open_tournaments)
+ refresh_tournament_badge()
+ call_deferred("check_tournament_unread")
+
+func refresh_tournament_badge():
+ if is_instance_valid(tournament_button):tournament_button.unread=tournament_unread.unread_count()
+
+func sync_tournament_unread():
+ tournament_unread.set_session(account_name,account_token,tournament_server_url)
+
+func check_tournament_unread():
+ sync_tournament_unread()
+ if page=="menu" and not account_pending:tournament_unread.refresh()
 
 func open_tournaments():
+ sync_tournament_unread()
  if account_token.is_empty() or account_name.is_empty():
   tournament_account_return=true;account_mode="login";account_notice="登录后即可加入比赛群组和完成赛前签到"
   account_page();return
@@ -446,6 +474,7 @@ func open_announcement_mailbox(entry: Dictionary={},automatic: bool=false):
 func push_update_announcement():
  if OS.has_feature("editor") and not announcement_push_in_editor:return
  if page!="menu" or announcement_store.pending().is_empty():return
+ if menu_popup_open() and menu_popup is AnnouncementPopup:return
  if menu_popup_open() or account_pending or get_children().any(func(child):return child is Window and child.visible):
   get_tree().create_timer(0.5).timeout.connect(push_update_announcement)
   return
@@ -521,7 +550,7 @@ func texture(id: String,art_id: String="") -> Texture2D:
  if textures.has(key):
   var cached=textures[key]; textures.erase(key); textures[key]=cached
   return cached
- var resource = load(image_path) as Texture2D
+ var resource = CardArt.load_texture(image_path)
  if resource == null: return null
  var img = resource.get_image()
  if img.get_width() > img.get_height(): img.rotate_90(CLOCKWISE)
@@ -536,6 +565,10 @@ func texture(id: String,art_id: String="") -> Texture2D:
 func landscape_card(id: String) -> bool:
  var info=Store.CARDS.get(id,{})
  return info.get("landscape",info.get("kind","") in ["符卡","结界"])
+func deck_cover_texture(deck: Dictionary) -> Texture2D:
+ var id=str(deck.get("leader",""))
+ if Store.CARDS.has(id) and not Store.CARDS[id].get("disabled",false):return texture(id,CardArt.selected(deck,id,Store.CARDS))
+ return CardArt.load_texture(CARD_BACK_PATH)
 func preview_texture(id: String,art_id: String="") -> Texture2D:
  if art_id.is_empty():art_id=editor_art_id(id)
  var original=texture(id,art_id)
@@ -612,6 +645,16 @@ func main_menu_entries() -> Array:
  return [["游戏教程",tutorials],["人机对战",setup],["联网对战",online],["卡组编辑",func():editor()],["玩家账号",account_page],["对局回放",replays],["设置",settings],["退出游戏",func():get_tree().quit()]]
 
 func menu():
+ # Account restoration can refresh the menu while its announcement is being read.
+ var announcement=menu_popup if page=="menu" and menu_popup_open() and menu_popup is AnnouncementPopup else null
+ if announcement!=null:
+  announcement.reparent(self);menu_popup=null
+ build_main_menu()
+ if is_instance_valid(announcement):
+  menu_popup=announcement;announcement.reparent(screen)
+  announcement.backdrop.theme=theme;announcement.relayout()
+
+func build_main_menu():
  if not is_android:
   desktop_menu()
   return
@@ -701,7 +744,7 @@ func online():
  lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname;lan_session.cloud_account=account_name
  clear_page("online")
  var lobby=preload("res://net/lan_lobby.gd").new();lobby.deck_index=remaining_deck_index(lobby_deck_id,0)
- lobby.match_deck_index=remaining_deck_index(matching_deck_id,-1) if not matching_deck_id.is_empty() else -1
+ lobby.match_deck_index=decks.find_custom(func(deck):return str(deck.id)==matching_deck_id) if not matching_deck_id.is_empty() else -1
  lobby.cloud_home_view=cloud_home_view
  lobby.cloud_form_draft=cloud_form.duplicate(true)
  screen.add_child(lobby);lobby.build(self,lan_session)
@@ -956,6 +999,8 @@ func account_request_finished(ok: bool,message: String,username: String):
  elif account_action=="resume" and message=="自动登录已失效，请重新登录":
   AccountSessionStore.clear(account_session_path)
  account_notice=message
+ sync_private_cloud_decks()
+ sync_tournament_unread()
  if ok and account_action in ["login","resume"]:
   auto_patch_check_pending=not OS.has_feature("editor") or auto_patch_update_in_editor
   if restore_pending_ranked_match():
@@ -964,7 +1009,7 @@ func account_request_finished(ok: bool,message: String,username: String):
   call_deferred("check_cloud_pck_patch")
  if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
   var destination=deck_account_return;deck_account_return=""
-  call_deferred("upload_current_deck" if destination=="upload" else "open_deck_plaza")
+  call_deferred("open_cloud_deck_slots" if destination=="cloud" else ("upload_current_deck" if destination=="upload" else "open_deck_plaza"))
   return
  if ok and account_action in ["login","resume"] and tournament_account_return:
   tournament_account_return=false;call_deferred("open_tournaments");return
@@ -981,6 +1026,8 @@ func account_request_finished(ok: bool,message: String,username: String):
 func network_snapshot_ready():
  if lan_session.latest_snapshot.game_id!=network_game_open:
   network_game_open=lan_session.latest_snapshot.game_id
+  if not lan_session.read_only and not lan_session.replay_mode:
+   record_deck_usage([str(lan_session.room.get("own_deck",{}).get("id",""))],network_game_open)
   call_deferred("return_network_battle")
 func return_network_battle():
  if lan_session.latest_snapshot.is_empty():return
@@ -990,6 +1037,7 @@ func return_network_battle():
  clear_page("battle")
  duel_view=preload("res://scripts/duel_view.gd").new();screen.add_child(duel_view);duel_view.begin(self,{},{},0,0,lan_session)
 
+func mod_settings():preload("res://scripts/mod_settings.gd").show(self)
 func settings():
  if not is_android:
   desktop_settings()
@@ -1326,13 +1374,14 @@ func return_from_account():
 
 func require_deck_login(destination: String) -> bool:
  if not account_token.is_empty() and not account_name.is_empty():return true
- deck_account_return=destination;account_mode="login";account_notice="登录后即可"+("上传套牌" if destination=="upload" else "进入套牌广场")
+ deck_account_return=destination;account_mode="login";account_notice="登录后即可"+("管理云端卡组" if destination=="cloud" else ("上传套牌" if destination=="upload" else "进入套牌广场"))
  account_page()
  if is_instance_valid(account_status_label):account_status_label.text=account_notice
  return false
 
 func deck_login_expired(destination: String,message: String):
  account_name="";account_nickname="";account_token="";account_elo=1000;account_rank={}
+ sync_private_cloud_decks()
  require_deck_login(destination)
  account_notice=message
  if is_instance_valid(account_status_label):account_status_label.text=message
@@ -1342,6 +1391,66 @@ func open_deck_plaza():
  clear_page("deck_plaza")
  deck_plaza_ui=preload("res://scripts/deck_plaza.gd").new();deck_plaza_ui.app=self
  screen.add_child(deck_plaza_ui)
+
+func cloud_decks_store():
+ if not is_instance_valid(private_cloud_decks):
+  private_cloud_decks=preload("res://scripts/private_cloud_decks.gd").new();add_child(private_cloud_decks)
+  private_cloud_decks.changed.connect(private_cloud_decks_changed)
+ return private_cloud_decks
+
+func sync_private_cloud_decks():
+ cloud_decks_store().set_session(account_name,account_token)
+
+func private_cloud_decks_changed():
+ reload_decks()
+ var entry_button=screen.find_child("CloudDecksButton",true,false) if is_instance_valid(screen) else null
+ if entry_button!=null:
+  entry_button.text="云端卡组 %d/10" % private_cloud_decks.decks.size()
+  entry_button.tooltip_text=private_cloud_decks.status
+ if page=="online" and not deck_picker_open():
+  for child in screen.get_children():
+   if child.get_script()==preload("res://net/lan_lobby.gd") and not child.session.matchmaking and child.session.room_id.is_empty():
+    child.restore_match_deck();child.refresh(true)
+
+func open_cloud_deck_slots():
+ if not require_deck_login("cloud"):return
+ if page in ["account","account_password"]:editor()
+ sync_private_cloud_decks()
+ if deck_picker_open() and deck_picker_ui.get_script()==preload("res://scripts/cloud_deck_slots.gd"):return
+ close_deck_picker();close_menu_popup()
+ deck_picker_ui=preload("res://scripts/cloud_deck_slots.gd").new()
+ deck_picker_ui.app=self;deck_picker_ui.store=cloud_decks_store()
+ var focus=get_viewport().gui_get_focus_owner()
+ if focus!=null:deck_picker_ui.previous_focus=weakref(focus)
+ screen.add_child(deck_picker_ui)
+
+func upload_private_deck(done: Callable):
+ var snapshot=draft.duplicate(true)
+ cloud_decks_store().save_deck(snapshot,func(answer):
+  if answer.get("ok",false):
+   if snapshot.has("cloud_slot") and draft==snapshot:
+    for deck in private_cloud_decks.decks:
+     if deck.id==snapshot.id:draft=deck.duplicate(true);dirty=false;break
+   reload_decks()
+  if done.is_valid():done.call(answer))
+
+func delete_cloud_deck(deck: Dictionary):
+ confirm_action("从云端删除「%s」？所有设备将同步移除该云端卡组。" % deck.name,func():
+  cloud_decks_store().delete_deck(deck,func(answer):
+   if not answer.get("ok",false):alert(str(answer.get("message","删除失败")));return
+   if draft.get("id","")==deck.id:draft=Store.blank();dirty=false
+   reload_decks()
+   if page=="editor" and not deck_picker_open():editor()))
+
+func remembered_match_deck_index(rule_set: String) -> int:
+ var id=MatchDeckMemory.selected(account_name)
+ for i in range(decks.size()):
+  if decks[i].id==id and Store.validate(decks[i],true,rule_set).is_empty():return i
+ return -1
+
+func remember_match_deck(id: String):
+ var error=MatchDeckMemory.remember(account_name,id)
+ if not error.is_empty():alert(error,"匹配卡组记忆保存失败")
 
 func upload_current_deck():
  if not require_deck_login("upload"):return
@@ -1547,6 +1656,7 @@ func library_ids() -> Array:
  var race_characters=library_race_characters(str(filters.get("race","")))
  for id in Store.CARDS:
   var info=Store.CARDS[id]
+  if info.get("disabled",false):continue
   if info.get("canonical_id",id)!=id: continue
   if not library_matches_query(id,info,role_characters,alias_ids,alias_result.exclusive,filters,race_characters): continue
   if not library_kind_matches(info,filter_kind): continue
@@ -1802,10 +1912,21 @@ func rename_dialog():
  entry.grab_focus()
  entry.select_all()
 
-func save_deck():
+func save_deck(after_saved: Callable=Callable()):
  if not load_error.is_empty(): alert(load_error); return
  var error = Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
  if not error.is_empty(): alert(error,"无法保存"); return
+ if draft.has("cloud_slot"):
+  var snapshot=draft.duplicate(true)
+  cloud_decks_store().save_deck(snapshot,func(answer):
+   if not answer.get("ok",false):alert(str(answer.get("message","云端保存失败")),"保存失败");return
+   if draft==snapshot:
+    for deck in private_cloud_decks.decks:
+     if deck.id==snapshot.id:draft=deck.duplicate(true);dirty=false;break
+   reload_decks()
+   if page=="editor":editor()
+   if after_saved.is_valid() and not dirty:after_saved.call())
+  return
  var next = decks.duplicate(true)
  var found = false
  for i in range(next.size()):
@@ -1816,9 +1937,11 @@ func save_deck():
  decks = next
  dirty = false
  editor()
+ if after_saved.is_valid():after_saved.call()
 
 func delete_deck_dialog():
  if not load_error.is_empty(): alert(load_error,"无法删除"); return
+ if draft.has("cloud_slot"):delete_cloud_deck(draft.duplicate(true));return
  confirm_action("删除卡组「%s」？" % draft.name,func():
   var error=delete_current_deck()
   if not error.is_empty(): alert(error,"删除失败")
@@ -1897,10 +2020,10 @@ func start_match():
  if not entertainment_battle() and experimental_ai and LocalExperiment.available() and not debug_mode:
   var model=LocalExperiment.read_model(experiment_model_path)
   if model.has("error"):alert(model.error,"试验 AI");return
- for i in ([] if entertainment_battle() else [player_choice,ai_choice]):
-  var error=Store.validate(decks[i],true,str(decks[i].get("rule_set",RuleSet.OFFICIAL)))
+ for deck in ([] if entertainment_battle() else [match_setup_deck(0),match_setup_deck(1)]):
+  var error=Store.validate(deck,true,str(deck.get("rule_set",RuleSet.OFFICIAL)))
   if not error.is_empty():
-   alert("「%s」：%s" % [decks[i].name,error],"卡组不合规")
+   alert("「%s」：%s" % [deck.name,error],"卡组不合规")
    return
  if debug_mode:
   choose_first_player("测试模式","请选择先后手。")
@@ -1935,11 +2058,19 @@ func begin_battle(first: bool):
  duel_view=preload("res://scripts/duel_view.gd").new()
  duel_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  screen.add_child(duel_view)
- var exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
- var a=exploration.deck(battle_mode=="exploration_random") if entertainment_battle() else decks[player_choice]
- var b=exploration.deck(battle_mode=="exploration_random") if entertainment_battle() else decks[ai_choice]
+ var a=match_setup_deck(0)
+ var b=match_setup_deck(1)
  if entertainment_battle():b.ai_passive=true
  duel_view.begin(self,a,b,0 if first else 1)
+ if not entertainment_battle():record_deck_usage([str(a.id),str(b.id)],preload("res://net/local_identity.gd").token())
+
+func record_deck_usage(ids: Array,game_id: String):
+ var saved_ids=ids.filter(func(id):return decks.any(func(deck):return str(deck.id)==str(id)))
+ if saved_ids.is_empty():return
+ var library=preload("res://scripts/deck_library.gd").new()
+ var error=library.load_data()
+ if error.is_empty():error=library.record_usage(saved_ids,game_id)
+ if not error.is_empty():push_warning(error)
 
 func battle_mode_selector(parent: Node,rect: Rect2=Rect2()) -> OptionButton:
  var row=HBoxContainer.new();parent.add_child(row);row.position=rect.position;row.size=rect.size
@@ -1948,6 +2079,12 @@ func battle_mode_selector(parent: Node,rect: Rect2=Rect2()) -> OptionButton:
  choice.select(1 if entertainment_battle() else 0)
  choice.item_selected.connect(func(index):battle_mode="exploration" if index==1 else "standard";setup())
  if is_android:ui_metrics.button(choice)
+ if not entertainment_battle():
+  var opponent=OptionButton.new();opponent.name="AIOpponentSelect";row.add_child(opponent);opponent.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  opponent.add_item("挑战蕾米");opponent.add_item("使用其他卡组")
+  opponent.select(0 if ai_opponent=="remilia" else 1)
+  opponent.item_selected.connect(func(index):ai_opponent="remilia" if index==0 else "custom";setup())
+  if is_android:ui_metrics.button(opponent)
  if entertainment_battle():
   var submode=OptionButton.new();submode.name="BattleEntertainmentMode";row.add_child(submode);submode.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   var modes=preload("res://scripts/rules/gensokyo_exploration.gd")
@@ -1965,7 +2102,14 @@ func selected_match_mode() -> String:
 
 func match_setup_deck(seat: int) -> Dictionary:
  if entertainment_battle():return preload("res://scripts/rules/gensokyo_exploration.gd").deck(battle_mode=="exploration_random")
+ if seat==1 and remilia_challenge():return RemiliaChallenge.deck()
  return {} if decks.is_empty() else decks[player_choice if seat==0 else ai_choice]
+
+func remilia_challenge() -> bool:return not entertainment_battle() and ai_opponent=="remilia"
+
+func setup_deck_caption(seat: int) -> String:
+ if entertainment_battle() or seat==1 and remilia_challenge():return match_setup_deck(seat).name+" · 内嵌卡组"
+ return deck_choice_caption(player_choice if seat==0 else ai_choice)
 
 func choose_experiment_model():
  if not LocalExperiment.available() or debug_mode:return
@@ -1998,6 +2142,7 @@ func load_test_decks():
   else: decks[found]=template.duplicate(true)
   positions.append(found)
  player_choice=positions[0]; ai_choice=positions[1]
+ ai_opponent="custom"
  setup()
 
 func load_legacy_test_decks():
@@ -2185,11 +2330,10 @@ func drop_editor_card(data: Dictionary, target: String, target_index: int=-1, ta
 func use_deck():
  var error=Store.validate(draft,false,str(draft.get("rule_set",RuleSet.OFFICIAL)))
  if not error.is_empty(): alert(error); return
- save_deck()
- if dirty: return
- for i in range(decks.size()):
-  if decks[i].id==draft.id: player_choice=i; break
- setup()
+ save_deck(func():
+  for i in range(decks.size()):
+   if decks[i].id==draft.id:player_choice=i;break
+  setup())
 
 
 func about():
@@ -2309,10 +2453,13 @@ func reload_decks():
  var loaded=Store.load_decks()
  if loaded.has("error"):load_error=loaded.error;return
  load_error="";decks=loaded.decks
+ if is_instance_valid(private_cloud_decks) and private_cloud_decks.account==account_name and not account_token.is_empty():decks.append_array(private_cloud_decks.decks.map(Store.migrate_unavailable_cards))
  player_choice=remaining_deck_index(a,player_choice);ai_choice=remaining_deck_index(b,ai_choice)
  if not dirty and not draft.is_empty():
   for d in decks:
    if d.id==draft.id:draft=d.duplicate(true);break
+ if draft.has("cloud_slot") and (draft.get("cloud_account","")!=account_name.to_lower() or not dirty and not decks.any(func(deck):return deck.id==draft.id)):
+  draft=Store.blank();dirty=false
  if not loaded.get("warnings",[]).is_empty():call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
 
 func offer_replay(archive):
@@ -2369,7 +2516,7 @@ func replays():
   if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)
 
 func uses_responsive_layout() -> bool:
- return is_android and page in ["","menu","editor","sideboard","setup","settings","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
+ return is_android and page in ["","menu","editor","sideboard","setup","settings","mods","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
 
 func refresh_ui_metrics():
  ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override)
@@ -2400,6 +2547,7 @@ func refresh_responsive_layout():
  elif page=="menu":menu()
  elif page=="setup":setup()
  elif page=="settings":settings()
+ elif page=="mods":mod_settings()
  elif page=="about":about()
  elif page=="tutorials" and is_instance_valid(tutorial_ui):tutorial_ui.refresh_metrics()
  elif page=="tutorial_directory" and is_instance_valid(tutorial_directory_ui):tutorial_directory_ui.refresh_metrics()
@@ -2471,6 +2619,7 @@ func desktop_menu():
 func desktop_settings():
  clear_page("settings")
  header("设置",menu)
+ button(screen,"模组",Rect2(1100,32,140,46),mod_settings).name="ModSettings"
  button(screen,"关于",Rect2(1260,32,140,46),about)
  var sound_settings=preload("res://scripts/menu_ui_layout.gd").new()
  sound_settings.app=self;sound_settings.metrics=ui_metrics
@@ -2523,8 +2672,7 @@ func desktop_settings():
   training_cb.button_pressed=replay_training_mode
   training_cb.toggled.connect(set_replay_training_mode)
   screen.add_child(training_cb)
- button(screen,"加载 PCK 补丁…",Rect2(420,780,360,58),choose_pck_patch)
- label(screen,"当前版本："+patch_manager().active_version,Rect2(800,784,500,48),20,GOLD)
+ label(screen,"当前版本："+patch_manager().active_version,Rect2(420,784,500,48),20,GOLD)
 
 func desktop_editor(sideboarding: bool=false):
  if not sideboarding:reload_decks()
@@ -2560,7 +2708,7 @@ func desktop_editor(sideboarding: bool=false):
  rules.name="DeckRuleSet"
  rules.position=Vector2(826,78)
  rules.size=Vector2(250,40)
- rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用线下独占卡。\n官限有限定卡：三张限 2，可以使用线下独占卡。\n测试卡组：所有卡均可加入，同名张数不限。"
+ rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用线下独占卡。\n测试卡组：所有卡均可加入，同名张数不限。"
  for index in range(RuleSet.IDS.size()):rules.add_item("规则集："+RuleSet.LABELS[index])
  rules.select(maxi(0,RuleSet.IDS.find(str(draft.get("rule_set",RuleSet.OFFICIAL)))))
  rules.disabled=sideboarding
@@ -2631,8 +2779,9 @@ func desktop_editor(sideboarding: bool=false):
  library.add_theme_constant_override("v_separation",6)
  scroll.add_child(library)
  library.set_drag_forwarding(Callable(),can_return_card,return_card_to_library)
- saved_select=button(screen,"选择卡组",Rect2(1252,602,314,40),open_editor_deck_picker)
+ saved_select=button(screen,"选择卡组",Rect2(1252,602,150,40),open_editor_deck_picker)
  saved_select.name="SavedDeckSelect"
+ if not sideboarding:button(screen,"云端卡组",Rect2(1416,602,150,40),open_cloud_deck_slots).name="CloudDecksButton"
  button(screen,"保存",Rect2(1252,656,150,42),save_deck,true)
  button(screen,"使用卡组",Rect2(1416,656,150,42),use_deck)
  button(screen,"导出代码",Rect2(1252,710,150,42),export_deck)
@@ -2774,13 +2923,13 @@ func desktop_setup():
   var x=220+i*620
   box(screen,Rect2(x,186,540,340))
   label(screen,"你的卡组" if i==0 else "人机的卡组",Rect2(x+24,205,440,40),24,GOLD)
-  var pick=button(screen,match_setup_deck(i).name+" · 固定卡组" if entertainment_battle() else deck_choice_caption(player_choice if i==0 else ai_choice),Rect2(x+24,266,492,50),func():open_match_deck_picker(i))
-  pick.disabled=entertainment_battle()
+  var pick=button(screen,setup_deck_caption(i),Rect2(x+24,266,492,50),func():open_match_deck_picker(i))
+  pick.disabled=entertainment_battle() or i==1 and remilia_challenge()
   pick.name="PlayerDeckSelect" if i==0 else "AIDeckSelect"
   pick.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
   var chosen=match_setup_deck(i)
   if not chosen.is_empty():
-   card(screen,chosen.leader,Rect2(x+24,340,106,151))
+   card(screen,chosen.leader,Rect2(x+24,340,106,151)).get_child(0).texture=deck_cover_texture(chosen)
    label(screen,"拜访 ×15 · 探索 ×15\n旅行包 ×8 · 活动 ×12" if entertainment_battle() else "主卡组 %d\n副卡组 %d" % [chosen.main.size(),chosen.side.size()],Rect2(x+160,352,340,110),22)
  var test_mode=CheckButton.new()
  if entertainment_battle():label(screen,"人机全程让过，不出牌、不攻击、不发动能力。",Rect2(220,534,1160,38),20,MUTED)
@@ -2847,9 +2996,10 @@ func import_dialog():
 func rank_display(parent: Node,show_username: bool=false) -> HBoxContainer:
  var row=HBoxContainer.new();row.name="PlayerRank";parent.add_child(row)
  row.add_theme_constant_override("separation",16)
- var badge=preload("res://scripts/rank_badge.gd").new();row.add_child(badge);badge.setup(account_rank,Store.CARDS)
+ if not account_token.is_empty():
+  var badge=preload("res://scripts/rank_badge.gd").new();row.add_child(badge);badge.setup(account_rank,Store.CARDS)
  var text=Label.new();text.name="RankCaption";row.add_child(text)
- text.text=preload("res://scripts/rank_badge.gd").caption(account_rank) if not account_token.is_empty() else "毛玉级 2 · 登录后开始排位"
+ text.text=preload("res://scripts/rank_badge.gd").caption(account_rank) if not account_token.is_empty() else "登录后开始排位"
  if show_username:text.text=PlayerNameDisplay.caption(account_nickname if not account_nickname.is_empty() else account_name if not account_name.is_empty() else "未登录")+"\n"+text.text
  text.add_theme_font_size_override("font_size",mini(ui_metrics.body,30) if show_username else ui_metrics.body);text.add_theme_color_override("font_color",GOLD)
  text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.size_flags_horizontal=Control.SIZE_EXPAND_FILL

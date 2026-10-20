@@ -10,7 +10,7 @@ cp "$relay_dir/project.godot" "$staging_dir/project.godot"
 if [ ! -f "$staging_dir/server.gd" ]; then cp "$relay_dir/server.gd" "$staging_dir/server.gd"; fi
 if [ ! -f "$staging_dir/match_queue.gd" ] && [ -f "$relay_dir/match_queue.gd" ]; then cp "$relay_dir/match_queue.gd" "$staging_dir/"; fi
 if [ ! -f "$staging_dir/match_character_log.gd" ] && [ -f "$relay_dir/match_character_log.gd" ]; then cp "$relay_dir/match_character_log.gd" "$staging_dir/"; fi
-python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/deck_plaza_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py"
+python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/deck_plaza_store.py" "$staging_dir/cloud_deck_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py"
 "$HOME/.local/bin/godot" --headless --path "$staging_dir" --script server.gd --check-only
 restart_services=(multicolor-account-user.service)
 if ! cmp -s "$staging_dir/server.gd" "$relay_dir/server.gd" || { [ -f "$staging_dir/match_queue.gd" ] && ! cmp -s "$staging_dir/match_queue.gd" "$relay_dir/match_queue.gd"; } || { [ -f "$staging_dir/match_character_log.gd" ] && ! cmp -s "$staging_dir/match_character_log.gd" "$relay_dir/match_character_log.gd"; }; then
@@ -20,6 +20,7 @@ for file in server.gd account_store.py; do cp "$relay_dir/$file" "$backup_dir/$f
 if [ -f "$relay_dir/match_queue.gd" ]; then cp "$relay_dir/match_queue.gd" "$backup_dir/"; fi
 if [ -f "$relay_dir/match_character_log.gd" ]; then cp "$relay_dir/match_character_log.gd" "$backup_dir/"; fi
 if [ -f "$relay_dir/deck_plaza_store.py" ]; then cp "$relay_dir/deck_plaza_store.py" "$backup_dir/"; fi
+if [ -f "$relay_dir/cloud_deck_store.py" ]; then cp "$relay_dir/cloud_deck_store.py" "$backup_dir/"; fi
 if [ -f "$relay_dir/tournament_store.py" ]; then cp "$relay_dir/tournament_store.py" "$backup_dir/"; fi
 if [ -f "$relay_dir/tournament_pairing.py" ]; then cp "$relay_dir/tournament_pairing.py" "$backup_dir/"; fi
 if [ -f "$relay_dir/deck_plaza_catalogue.json" ]; then cp "$relay_dir/deck_plaza_catalogue.json" "$backup_dir/"; fi
@@ -36,13 +37,14 @@ rollback() {
     if [ -f "$backup_dir/match_queue.gd" ]; then cp "$backup_dir/match_queue.gd" "$relay_dir/"; fi
     if [ -f "$backup_dir/match_character_log.gd" ]; then cp "$backup_dir/match_character_log.gd" "$relay_dir/"; else rm -f -- "$relay_dir/match_character_log.gd"; fi
     if [ -f "$backup_dir/deck_plaza_store.py" ]; then cp "$backup_dir/deck_plaza_store.py" "$relay_dir/"; fi
+    if [ -f "$backup_dir/cloud_deck_store.py" ]; then cp "$backup_dir/cloud_deck_store.py" "$relay_dir/"; else rm -f -- "$relay_dir/cloud_deck_store.py"; fi
     if [ -f "$backup_dir/tournament_store.py" ]; then cp "$backup_dir/tournament_store.py" "$relay_dir/"; else rm -f -- "$relay_dir/tournament_store.py"; fi
     if [ -f "$backup_dir/tournament_pairing.py" ]; then cp "$backup_dir/tournament_pairing.py" "$relay_dir/"; else rm -f -- "$relay_dir/tournament_pairing.py"; fi
     if [ -f "$backup_dir/deck_plaza_catalogue.json" ]; then cp "$backup_dir/deck_plaza_catalogue.json" "$relay_dir/"; fi
     systemctl --user restart "${restart_services[@]}" || true
 }
 trap rollback ERR
-for file in server.gd account_store.py deck_plaza_store.py tournament_store.py tournament_pairing.py deck_plaza_catalogue.json; do
+for file in server.gd account_store.py deck_plaza_store.py cloud_deck_store.py tournament_store.py tournament_pairing.py deck_plaza_catalogue.json; do
     install -m 600 "$staging_dir/$file" "$relay_dir/$file.next"
     mv "$relay_dir/$file.next" "$relay_dir/$file"
 done

@@ -8,6 +8,7 @@ var server_url=Account.SERVER_URL
 var protocol_prefix=PREFIX
 var service_name="套牌广场"
 var content_limit_message="上传内容过长，请缩短描述或卡组代码"
+var response_limit=65536
 var peer: WebSocketMultiplayerPeer
 var packet=PackedByteArray()
 var sent=false
@@ -41,7 +42,7 @@ func _process(_delta):
     sent=true;packet.clear()
    while peer.get_available_packet_count()>0:
     var bytes=peer.get_packet()
-    if bytes.size()<4 or bytes.size()>65536 or bytes.slice(0,4).get_string_from_ascii()!=protocol_prefix:
+    if bytes.size()<4 or bytes.size()>response_limit or bytes.slice(0,4).get_string_from_ascii()!=protocol_prefix:
      fail(service_name+"响应无效");return
     var answer=JSON.parse_string(bytes.slice(4).get_string_from_utf8())
     if not answer is Dictionary:fail(service_name+"响应无效");return

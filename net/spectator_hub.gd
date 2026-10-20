@@ -30,6 +30,7 @@ func changed(events: Array=[]):
 func receive(id: int,message: Dictionary):
  var type=message.get("type","")
  if type=="watch":
+  if session.Series.uses_mods(session.series.state) and message.get("mods",[])!=session.series.state.get("mods",[]):transport.send_to(id,{"type":"rejected","message":"观战模组配置不一致"});return
   if message.get("version")!=session.fingerprint or session.room_id.is_empty():transport.drop(id);return
   if not watchers.has(id):
    watchers[id]={"seen":Time.get_ticks_msec(),"sent":-1,"ack":-1}

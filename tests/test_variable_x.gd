@@ -113,15 +113,15 @@ func bounds():
  resources(["164"]);c=put("spell-fdf-053","hand")
  e.stack=[{"kind":"card","id":27,"owner":1,"card":e.make_card("99",1,"stack"),"target":{"player":0},"name":"target"}]
  options=legal_options(e,c)
- expect(values(options)==[3] and options.all(func(option):return option.counter_payment==3),"counter payment and target cost produce a sparse fixed X set")
+ expect(values(options)==[0,1,2,3] and options.all(func(option):return option.counter_payment==option.x),"counter payment permits X independently of spells currently on the stack")
  picker=Picker.new();picker.configure(options,"counter-payment")
- expect(picker.available()==[{"kind":"x","value":3}] and not picker.ready(),"even a fixed X is shown before declaration")
+ expect(picker.x_values==[0,1,2,3] and not picker.ready(),"X is entered before choosing counter payment")
  picker.select({"kind":"x","value":3})
  for i in range(12):
   if picker.ready():break
   var atoms=picker.available();if atoms.is_empty():break
   picker.select(atoms[0])
- expect(picker.ready() and e.Pack.choice_valid(e,options,picker.option()),"X selection retains counter-payment groups and exact target metadata")
+ expect(picker.ready() and e.Pack.choice_valid(e,options,picker.option()),"X selection retains the chosen counter-payment groups")
  var target=picker.option()
  expect(e.commit_cast(0,c.uid,target,e.payment(0,e.cast_cost(0,c,target)).plan).is_empty(),"the full counter-funded X declaration actually commits")
  fresh();resources(["167","167","164","164"]);c=put("111","hand")

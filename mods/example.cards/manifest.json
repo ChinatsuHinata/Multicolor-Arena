@@ -1,0 +1,59 @@
+{
+  "id": "example.cards",
+  "version": "0.1.0",
+  "api": 1,
+  "enabled": false,
+  "abilities": {
+    "top_three": {
+      "script": "top_three.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "查看牌库顶三张，选择一张放入手牌，其余以任意顺序放回牌库顶。",
+      "parameters": {}
+    },
+    "grave_blast": {
+      "script": "grave_blast.gd",
+      "kind": "activated",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "支付红1，横置并弃一张牌：对一个目标造成2点伤害。",
+      "parameters": {
+        "伤害倍率": {
+          "type": "integer",
+          "required": false
+        }
+      }
+    },
+    "last_word": {
+      "script": "last_word.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "events": [
+        "self_leave"
+      ],
+      "optional": false,
+      "forced": "empty_event",
+      "text": "此单位离场时，对目标造成等同于此单位离场前攻击力的伤害。",
+      "parameters": {}
+    }
+  },
+  "cards": [
+    "top_three.json",
+    "grave_blast.json",
+    "last_word.json"
+  ],
+  "state": {
+    "last_seen": {
+      "scope": "match",
+      "visibility": "owner"
+    }
+  }
+}

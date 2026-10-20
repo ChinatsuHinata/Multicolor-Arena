@@ -1,10 +1,11 @@
 extends RefCounted
-## Read-only hints for the card's extra condition, independent of action legality.
+## Condition captions stay informative; red frames also require a legal action.
 static func caption(e,c: Dictionary) -> String:
  if c.is_empty() or c.get("network_hidden",false) or not e.cards.has(c.card_id):return ""
  var info=e.cards[c.card_id];var p=e.players[c.owner];var C=e.Cat
  # Casting discounts stop being relevant once the unit has entered the field.
  var casting_zone=c.zone in ["hand","leader","deck","exile","stack"]
+ if casting_zone and e.Roster.New.has(e,c,"LOC-006") and not e.Roster.New.autumn_has_human(e,c.owner):return "额外条件满足：我方自机区和战场没有人类牌，可以使用"
  if casting_zone and C.has(e,c,"character-fdf-105") and e.Extra.cost_value(e,p.leader)>=5:return "额外条件满足：套牌自机颜色值至少 5，减费 2"
  if C.has(e,c,"spell-ucs-050") and p.grave.size()>=10:return "额外条件满足：墓地至少 10 张，额外抓 2 张"
  if C.has(e,c,"spell-fdn-009") and p.grave.size()>=4:return "额外条件满足：墓地至少 4 张，可以使用"
@@ -24,6 +25,11 @@ static func caption(e,c: Dictionary) -> String:
  return "\n".join(lines)
 
 static func active(e,c: Dictionary) -> bool:return not caption(e,c).is_empty()
+
+static func actionable(e,c: Dictionary,who: int) -> bool:
+ if not active(e,c):return false
+ if e.cast_error(who,c.uid).is_empty():return true
+ return not e.available_actions(who,c.uid).is_empty()
 
 static func curse_count(e,who: int) -> int:return int(e.players[1-who].get("etb_curse",0))
 static func curse_caption(e,who: int) -> String:

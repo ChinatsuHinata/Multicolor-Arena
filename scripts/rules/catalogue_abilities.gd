@@ -290,7 +290,8 @@ static func copy_spell(e,t,x=-1,copy_menu=false):
  choose(e,wrapper,"cat:spell_copy",choices,data)
 static func name_options(e):
  var names=[];var pool=[]
- for id in e.DB.IDS:
+ for id in e.cards:
+  if id not in e.DB.IDS and str(e.cards[id].get("mod_namespace","")).is_empty():continue
   if e.cards[id].get("canonical_id",id)!=id:continue
   var name=e.cards[id].name
   if name not in names:names.append(name);pool.append({"card_name":name,"mode":name,"none":true})
@@ -387,17 +388,17 @@ static func paid_cast(e,c,t,controller=-1):
   for u in selected(e,t):e.move_to(u,"grave")
  if id=="spell-fdf-053":
   var counters=[]
-  for i in range(1,t.picks.size()):counters.append_array(t.picks[i])
+  for group in t.get("picks",[]):counters.append_array(group)
   remove_counters(e,counters)
  if id=="character-fdf-046":meta.ichirin_paid=t.get("extra_green",false)
  return meta
 static func target_survives(e,id,t):
  # Optional single targets never prevent the spell's remaining effects.
- if id in ["spell-ucs-015","spell-ucs-050","spell-fdf-051"]:return true
+ if id in ["spell-ucs-015","spell-ucs-050","spell-fdf-051","spell-fdf-053"]:return true
  if id in ["spell-fdn-046","spell-fdf-030","spell-fdf-072"] and t.has("picks"):return true
  var targets=e.Pack.flatten(t)
  if id=="spell-fdf-025":targets=picked(e,t,1)
- if id=="spell-fdf-048" or id=="spell-fdf-053":targets=picked(e,t)
+ if id=="spell-fdf-048":targets=picked(e,t)
  if id=="spell-fdf-012":
   targets=[]
   for i in range(1,t.get("picks",[]).size()):targets.append_array(t.picks[i])
@@ -421,8 +422,9 @@ static func forced_battle(e,a,b):
  if not e.combat.is_empty() or not unit(e,a) or not unit(e,b) or a.uid==b.uid:return
  e.combat_queue.append({"attacker":a,"owner":e.find_card(a.uid).owner,"blockers":[b],"blocked":true,"step":"block_window","forced":true})
 static func target_tax(e,who,target):
- if not e.Pack.flatten(target).any(func(r):return unit(e,r) and e.find_card(r.uid).owner!=who and race(e,e.find_card(r.uid),"鬼")):return 0
- return 3*with_key(e,1-who,"spell-fdn-015").size()
+ var targets=e.Pack.flatten(target)
+ var tax=3*with_key(e,1-who,"spell-fdn-015").size() if targets.any(func(r):return unit(e,r) and e.find_card(r.uid).owner!=who and race(e,e.find_card(r.uid),"鬼")) else 0
+ return maxi(0,int(e.Mods.Rules.query(e,{"kind":"target_tax","controller":who,"targets":targets},tax)))
 static func may_peek(e,who):return not with_key(e,who,"character-ucs-068").is_empty() or not with_key(e,who,"character-fdn-071").is_empty()
 
 static func milled(e,who,amount):
@@ -445,6 +447,7 @@ static func retarget_options(e,entry,x=-1,change_modes=false,repay_cost=false,pr
     options.append(option)
    options=e.Roster.filter_options(e,options,entry.owner,true)
   else:options=e.targets_for(entry.card.card_id,entry.owner)
+ elif entry.has("mod_frame"):options=e.Mods.retarget_options(e,entry)
  elif entry.get("activation",false):options=e.Extra.activation_options(e,entry.source,entry.effect)
  elif entry.get("generic_activation",false):
   var previous=e.priority;e.priority=entry.owner;options=e.ability_targets();e.priority=previous

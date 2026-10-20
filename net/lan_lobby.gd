@@ -76,6 +76,11 @@ func room_entertainment_selector(parent: Node,rect: Rect2=Rect2()):
  choice.item_selected.connect(func(_index):session.room_action({"name":"entertainment_mode","format":choice.get_selected_id()}))
 
 func preparation_hint(room: Dictionary) -> String:
+ var hint=format_preparation_hint(room)
+ if Series.uses_mods(room):hint+="；模组配置："+", ".join(room.get("mods",[]).map(func(m):return m.id+" "+m.version+" / "+m.hash.left(8)))
+ return hint
+
+func format_preparation_hint(room: Dictionary) -> String:
  if Series.is_entertainment(int(room.format)):return "双方固定卡组：拜访 15、探索 15、旅行包 8、活动 12；准备后投点选择先后手"+("；所有寻找牌按对应卡池等概率随机抽取，选项不同名，无费用或颜色筛选、保底或加权" if int(room.format)==Series.EXPLORATION_RANDOM else "")
  if room.status=="sideboarding":return "赛前换备牌：最多换入 3 张；双方准备后投骰选择先后手"
  if room.status=="lobby":
@@ -124,6 +129,7 @@ func register_deck_button(parent: Node,rect: Rect2=Rect2()) -> Button:
 
 func build(parent,net):
  app=parent;session=net;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ if match_deck_index<0:restore_match_deck()
  if not session.room_id.is_empty() or session.joining or session.matchmaking:
   mode_selected=true;cloud_selected=session.cloud_mode
  cloud_directory=preload("res://net/cloud_directory.gd").new();add_child(cloud_directory)
@@ -313,6 +319,7 @@ func start_matchmaking():
  var deck=Series.Exploration.deck(app.entertainment_mode=="exploration_random") if app.match_mode=="entertainment" else app.decks[match_deck_index]
  var error=session.start_matchmaking(DEFAULT_RELAY_SERVER,deck,app.match_room_public,app.selected_match_mode())
  if not error.is_empty():show_error(error)
+ elif app.match_mode!="entertainment":app.remember_match_deck(str(deck.id))
 
 func match_room_privacy_label(parent: Node):
  var mode=mobile_text(parent,session.match_caption()+(" · 不影响段位和 Elo" if session.match_mode!="ranked" else ""));mode.name="MatchedMode"
@@ -901,6 +908,7 @@ func select_match_mode(mode: String):
  if mode not in session.MATCH_CATEGORIES:return
  app.match_mode=mode;app.save_settings();last_error=""
  if match_deck_index>=0 and not app.Store.validate(app.decks[match_deck_index],true,selected_match_rule_set()).is_empty():match_deck_index=-1
+ if match_deck_index<0:restore_match_deck()
  cloud_directory.match_mode=app.selected_match_mode();cloud_directory.queued=-1;cloud_directory.refresh()
  refresh(true)
 
@@ -912,7 +920,10 @@ func select_match_deck(index: int):
  if app.match_mode=="entertainment" or session.matchmaking or not session.room_id.is_empty() or index<0 or index>=app.decks.size():return
  var error=app.Store.validate(app.decks[index],true,selected_match_rule_set())
  if not error.is_empty():show_error(error);return
- match_deck_index=index;last_error="";refresh(true)
+ match_deck_index=index;app.remember_match_deck(str(app.decks[index].id));last_error="";refresh(true)
+
+func restore_match_deck():
+ match_deck_index=app.remembered_match_deck_index(selected_match_rule_set())
 
 func refresh_rank_display():
  var display=body.find_child("PlayerRank",true,false) if is_instance_valid(body) else null

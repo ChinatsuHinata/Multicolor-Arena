@@ -9,6 +9,7 @@ const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
 const DevourMarker=preload("res://scripts/devour_marker.gd")
 const RemoteDuel=preload("res://net/remote_duel.gd")
+const ResponseClock=preload("res://scripts/response_clock.gd")
 const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
 const ConditionalFrame=preload("res://scripts/conditional_frame_pulse.gd")
 const CurseWarning=preload("res://scripts/duel_curse_warning.gd")
@@ -148,6 +149,8 @@ var selection: Array=[]
 enum ResponseMode { DEFAULT, ON, OFF }
 const RESPONSE_LABELS=["默认","开","关"]
 var response_mode=ResponseMode.DEFAULT
+var response_prompt: Label
+var response_prompt_text=""
 var modal=false
 var modal_root: Control
 var action_menu_open=false
@@ -280,6 +283,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  stage.mouse_exited.connect(func():stage_hover_uid=0;table.set_hovered_card(0);stage.tooltip_text="")
  table=preload("res://scripts/duel_table.gd").new(); viewport.add_child(table)
  table.external_stack=true;table.local_seat=local_seat
+ table.condition_hint_provider=conditional_hint
  table.build(engine,host.texture,host.battlefield_background)
  table.set_top_down_view(host.top_down_view)
  table.object_selected.connect(object_clicked)
@@ -566,6 +570,12 @@ func focus_android_camera(animate: bool):
 func focus_palette_camera(animate: bool):
  if not is_instance_valid(table):return
  if is_instance_valid(android_camera_tween):android_camera_tween.kill()
+ var area=responsive.camera_focus_rect()
+ # Opening/reflowing panels can briefly leave only a sliver. Fitting the whole
+ # palette into it would multiply the camera distance and pan far off the board.
+ if not area.position.is_finite() or not area.size.is_finite() or area.size.x<responsive.metrics.hit*2 or area.size.y<responsive.metrics.hit:
+  android_camera_area=Rect2()
+  return
  var start_offset: Vector3=table.camera_offset
  var start_scale: float=table.camera_frame_scale
  table.camera_distance=table.NEAREST_CAMERA
@@ -574,7 +584,6 @@ func focus_palette_camera(animate: bool):
  table.camera_offset=Vector3.ZERO
  table.set_camera()
  var bounds=android_focus_bounds()
- var area=responsive.camera_focus_rect()
  android_camera_area=area
  # Palette focus clears both hand rows; battlefield focus uses the taller board area.
  for i in range(10):
@@ -601,17 +610,21 @@ func focus_palette_camera(animate: bool):
  update_badge_positions()
 func touch_card_at(point: Vector2) -> int:
  var exact=table.card_at(stage_point(point))
- if not is_android or exact!=0:return exact
- # Keep the physics hit authoritative; only near misses on visible units get
- # finger-sized padding in screen space, independent of camera zoom/rotation.
- var padding=maxf(TOUCH_CARD_HOLD_THRESHOLD,host.ui_metrics.hit/3.0)
+ if exact!=0:return exact
+ # Exact hits retain priority. Give the small potato payment card an edge
+ # margin on both platforms; Android units also keep their finger-sized padding.
+ var padding=maxf(TOUCH_CARD_HOLD_THRESHOLD,host.ui_metrics.hit/3.0) if is_android else 8.0
  var nearest=0;var nearest_distance=INF;var nearest_center=INF
  var half=table.CARD_SIZE*0.5
  for key in table.descriptors:
   var descriptor=table.descriptors[key]
-  if descriptor.get("kind","")!="object" or descriptor.get("zone","")!="field":continue
-  var card=engine.find_card(descriptor.uid)
-  if card.is_empty() or not engine.is_unit(card):continue
+  if descriptor.get("kind","")!="object":continue
+  if descriptor.card_id=="potato":
+   if not payment_sources().any(func(source):return source.uid==descriptor.uid):continue
+  else:
+   if not is_android or descriptor.get("zone","")!="field":continue
+   var card=engine.find_card(descriptor.uid)
+   if card.is_empty() or not engine.is_unit(card):continue
   var node=table.visuals[key]
   if not node.is_visible_in_tree() or table.camera.is_position_behind(node.global_position):continue
   if not projected_card_rect(node).grow(padding).has_point(point):continue
@@ -624,7 +637,7 @@ func touch_card_at(point: Vector2) -> int:
   if distance>padding:continue
   var center=point.distance_squared_to(project(node.global_position))
   if distance<nearest_distance or is_equal_approx(distance,nearest_distance) and center<nearest_center:
-   nearest=card.uid;nearest_distance=distance;nearest_center=center
+   nearest=descriptor.uid;nearest_distance=distance;nearest_center=center
  return nearest
 
 func touch_camera_available(point: Vector2) -> bool:
@@ -643,6 +656,7 @@ func touch_camera_available(point: Vector2) -> bool:
  for card in hand_nodes.values():
   if is_instance_valid(card) and card.is_visible_in_tree() and card.get_global_rect().has_point(point):return false
  var uid=touch_card_at(point)
+ if uid<0:return payment_sources().any(func(source):return source.uid==uid)
  if uid<=0:return false
  var card=engine.find_card(uid)
  var zone=card.get("zone","")
@@ -781,7 +795,7 @@ func touch_camera_input(event: InputEvent) -> bool:
   elif camera_touch_mode=="pending" and camera_touches.size()==1:
    # Native fingers drift during a one-second hold. Reserve the tighter gesture
    # threshold for empty-board movement so that card holds do not become drags.
-   var threshold=maxf(TOUCH_CARD_HOLD_THRESHOLD,host.ui_metrics.hit/3.0) if camera_touch_card_uid>0 else TOUCH_DRAG_THRESHOLD
+   var threshold=maxf(TOUCH_CARD_HOLD_THRESHOLD,host.ui_metrics.hit/3.0) if camera_touch_card_uid!=0 else TOUCH_DRAG_THRESHOLD
    var moved=point.distance_to(camera_touch_start)>threshold
    if moved:
     android_card_touch.cancel_ring()
@@ -865,8 +879,10 @@ func stage_input(event: InputEvent,touch_uid: int=0):
     return
  if history_open or (modal and not observing) or dragging or debug_drag_uid!=0: return
  if event is InputEventMouseButton:
-  if touch_uid>0 and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
-   object_clicked(touch_uid);return
+  if event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
+   var uid=touch_uid if touch_uid!=0 else touch_card_at(STAGE.position+event.position)
+   if touch_uid>0 or uid<0 and payment_sources().any(func(source):return source.uid==uid):
+    object_clicked(uid);return
   var converted=event.duplicate()
   converted.position=event.position/STAGE.size*Vector2(viewport.size)
   if event.pressed and event.button_index==MOUSE_BUTTON_LEFT and can_debug_add() and table.card_at(converted.position)==0:
@@ -889,6 +905,25 @@ func pass_response():
  engine.pass_priority(acting_player())
  message=""
  render()
+func update_response_clock(now: float=-1.0):
+ if tutorial_runtime!=null or replay_view():return
+ if now<0:now=Time.get_unix_time_from_system()
+ if network_session==null:
+  ResponseClock.sync(engine,now)
+  if ResponseClock.expired(engine,now):
+   engine.paid_cast_uid=-1;local={};selection=[];picker.reset();attack_preview_uid=0
+   drag_uid=0;dragging=false;android_action_uid=0;action_menu_open=false
+   if is_instance_valid(drag_art):drag_art.queue_free()
+   close_overlay()
+   engine.pass_priority(engine.priority)
+   ResponseClock.sync(engine,now)
+   message="响应超时，已自动不响应"
+   render()
+ update_response_countdown(now)
+func update_response_countdown(now: float=-1.0):
+ if not is_instance_valid(response_prompt):return
+ var countdown="" if tutorial_runtime!=null or replay_view() or network_locked() else ResponseClock.caption(engine,acting_player(),now)
+ response_prompt.text=response_prompt_text+(" · " if not response_prompt_text.is_empty() and not countdown.is_empty() else "")+countdown
 func response_disabled() -> bool:
  return network_locked() or engine.pending.get("kind","")=="reveal_review" or response_mode==ResponseMode.OFF and in_response_window()
 func cycle_response_mode():
@@ -929,6 +964,7 @@ func _process(delta):
   if is_instance_valid(network_status_label):
    network_status_label.text=network_session.connection_status() if not network_session.can_act(true) else ""
   if is_instance_valid(network_latency_label):update_network_latency_text()
+ update_response_clock()
  if not engine.presentation_events.is_empty() or revealing():
   render();return
  if network_session==null and not debug_mode and engine.pending.get("kind","")=="reveal_review" and engine.pending.owner==1:
@@ -1257,6 +1293,9 @@ func touch_zone_pagers(event: InputEvent) -> bool:
  get_viewport().set_input_as_handled()
  return true
 
+func conditional_hint(c: Dictionary) -> bool:
+ return local.is_empty() and not response_disabled() and ConditionHints.actionable(engine,c,acting_player())
+
 func highlights() -> Array:
  var result=[]
  if network_locked():return result
@@ -1288,6 +1327,7 @@ func tutorial_presentation_busy() -> bool:
  return not engine.presentation_events.is_empty() or revealing() or table.is_animating() or last_revision!=engine.revision
 func render():
  if not is_inside_tree() or not is_instance_valid(ui): return
+ if network_session==null and tutorial_runtime==null:ResponseClock.sync(engine)
  var match_complete=engine.winner!=-2 and engine.pending.get("kind","")!="reveal_review"
  if tutorial_runtime==null and network_session==null and not replay_recording.finished and replay_recording.last_key!="offline:"+str(engine.revision)+":"+("complete" if match_complete else "playing"):
   var room={"format":1,"round":1,"status":"complete" if match_complete else "playing","winner":engine.winner,"names":engine.player_names,"scores":[1 if match_complete and engine.winner==0 else 0,1 if match_complete and engine.winner==1 else 0]}
@@ -1310,6 +1350,7 @@ func render():
  close_overlay(true)
  if is_instance_valid(android_palette_scroll):android_palette_scroll_x=android_palette_scroll.scroll_horizontal
  clear_children(hud)
+ response_prompt=null
  android_choice_panel=null
  android_choice_restore=null
  battle_choice_scroll=null
@@ -1468,7 +1509,7 @@ func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array
   node.show()
   if table.presented_moves.has(c.uid):
    node.position=target;node.modulate.a=1;node.set_meta("target",target);fresh=false
-  node.update_style(not node.hidden_card and (c.uid in available or (c.zone!="hand" and can_use_region_card(c))),not node.hidden_card and c.uid in selected_uids(),not node.hidden_card and ConditionHints.active(engine,c))
+  node.update_style(not node.hidden_card and (c.uid in available or (c.zone!="hand" and can_use_region_card(c))),not node.hidden_card and c.uid in selected_uids(),not node.hidden_card and conditional_hint(c))
   DevourMarker.apply(node,{} if node.hidden_card else c,local_seat)
   if fresh or node.get_meta("target",Vector2(-999,-999))!=target:
    if hand_tweens.has(c.uid) and hand_tweens[c.uid].is_valid(): hand_tweens[c.uid].kill()
@@ -1696,6 +1737,7 @@ func position_card_icons(icons: Array, rect: Rect2):
   icons[index].position=Vector2(right-row_width+column*(CARD_ICON_SIZE+CARD_ICON_GAP),top+row*(CARD_ICON_SIZE+CARD_ICON_GAP))
 func update_badge_positions():
  if not is_instance_valid(table): return
+ responsive.position_hand_toggle()
  if is_instance_valid(android_zone_shortcuts):android_zone_shortcuts.position_exile()
  update_zone_pager_positions()
  update_deck_cast_positions()
@@ -2056,6 +2098,8 @@ func render_prompt():
    var response_button=battle_button("不响应 / 继续",Rect2(1330,770,237,55),ANDROID_ACTION_CONFIRM_Y,pass_response,true)
    response_button.tooltip_text="快速双击屏幕：跳过时点" if is_android else "快捷键：Q"
  var prompt=txt(text,PROMPT,21,host.GOLD)
+ response_prompt=prompt;response_prompt.name="ResponseCountdown";response_prompt_text=text
+ update_response_countdown()
  if is_android and android_palette_view:responsive.add_choice_notice(prompt)
  else:prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 
@@ -2501,7 +2545,9 @@ func object_clicked(uid: int):
  if history_open or observing or table.combat_animating: return
  message=""
  if not local.is_empty():
-  if local.mode=="target" and picker.available_refs().any(func(ref):return ref.get("uid",0)==uid):
+  if uid in payment_item_targets() and not local.get("item_target_mode",false):
+   reserve_resource(uid)
+  elif local.mode=="target" and picker.available_refs().any(func(ref):return ref.get("uid",0)==uid):
    choose_target(engine.ref_target(engine.find_card(uid)))
   elif local.mode in ["target","payment"] and payment_sources().any(func(r):return r.uid==uid): reserve_resource(uid)
   elif local.mode=="target":
@@ -2774,6 +2820,7 @@ func local_targets() -> Array:
  if local.get("action","")=="ability": return engine.ability_targets()
  return engine.targets_for(engine.find_card(local.uid).card_id,acting_player(),local.uid)
 func payment_excluded() -> Array:
+ if local.get("action","")=="extension":return engine.extension_payment_excluded(acting_player(),engine.find_card(local.uid),local.key,activation_target())
  if local.get("action","")!="ability" or not engine.ability_parameters(local.uid,local.index).get("横置",false):return []
  var c=engine.find_card(local.uid)
  var members=engine.stackable_members(c) if local.get("stackable_count",1)>1 else [c]
@@ -2795,6 +2842,13 @@ func payment_ready() -> bool:
  return not local.is_empty() and local_cost_options().any(func(cost):return engine.payment_valid(acting_player(),cost,local.get("plan",[])))
 func payment_sources() -> Array:
  return local.get("payment_options",[]) if not local.is_empty() else []
+func payment_item_targets() -> Array:
+ if local.get("mode","")!="target":return []
+ var excluded=payment_excluded()
+ # Include sources outside the current payment options: a full reservation can
+ # temporarily prevent adding another item, but must not turn it into a target.
+ var items=engine.source_resources(acting_player()).filter(func(source):return source.get("kind","")=="item" and source.uid not in excluded).map(func(source):return source.uid)
+ return picker.available_refs().filter(func(ref):return ref.get("uid",0) in items).map(func(ref):return ref.uid)
 func close_overlay(preserve_android_action: bool=false):
  modal=false; action_menu_open=preserve_android_action and android_action_uid>0; observing=false
  if is_instance_valid(android_battle_menu_root):android_battle_menu_root.visible=true
@@ -3397,7 +3451,7 @@ func update_browser_styles():
   var selected=c.uid in selected_uids()
   var legal=(c.owner==acting_player() or engine.Pack.cast_from(engine,c,acting_player())) and not response_disabled() and (engine.cast_error(acting_player(),c.uid).is_empty() or not engine.extra_action(c).is_empty() and engine.extension_activation_error(c.owner,c).is_empty())
   var style=host.style(Color("#172936"),Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#304657"))
-  var conditional=ConditionHints.active(engine,c)
+  var conditional=conditional_hint(c)
   style.set_border_width_all(4 if selected or legal or conditional else 1); art.add_theme_stylebox_override("panel",style)
   ConditionalFrame.apply(art,style,conditional and not selected)
 func browse_card_action(c: Dictionary):
@@ -3665,6 +3719,7 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
     responsive.add_choice_notice(summary)
    summary.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var available_atoms=picker.available()
+ var item_click_mode=not payment_item_targets().is_empty()
  var centered=not available_atoms.any(func(atom):return atom.kind=="target") and not picker.has_manual_targets()
  # Targets represented on the battlefield are chosen there, never in a menu.
  var options=available_atoms.filter(func(atom):return atom.kind!="target" or not atom.value.has("uid") and not atom.value.has("player") and not atom.value.has("stack_id"))
@@ -3706,6 +3761,7 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
     uniform_height=maxf(uniform_height,row_heights.back())
    var rows=ceili(float(options.size())/columns)
    var content_height=rows*uniform_height+gap*maxi(0,rows-1)
+   if item_click_mode:content_height+=hit+gap
    if options.size()>16:content_height+=hit+gap
    if not centered:content_height+=scroll_actions*(hit+gap)
    choice_box.size.y=minf(responsive.choice_popup_max_height(choice_box),chrome+content_height)
@@ -3726,6 +3782,7 @@ func render_inline_picker(confirm: Callable,optional: bool=false):
      var query=SearchAliases.prepare_query(engine.cards,value,SearchAliases.load_rules())
      var names=SearchAliases.matching_names(engine.cards,query)
      for child in grid.get_children():child.visible=choice_matches_query(child.get_meta("choice_atom"),child.tooltip_text,query,names,str(child.get_meta("search_card_name",""))))
+   if item_click_mode:render_item_click_mode(content,Rect2(0,0,choice_box.size.x-24,hit))
    content.add_child(grid)
    for i in range(options.size()):
     var atom=options[i]
@@ -3823,6 +3880,13 @@ func render_x_picker(atoms: Array,confirm: Callable,optional: bool):
  input.text_submitted.connect(func(_value):
   if not submit.disabled:submit.pressed.emit())
 
+func render_item_click_mode(parent: Node,rect: Rect2):
+ var caption="己方道具：选择目标" if local.get("item_target_mode",false) else "己方道具：调整支付"
+ var button=btn(caption,rect,func():local.item_target_mode=not local.get("item_target_mode",false);render(),false,parent)
+ button.name="ItemClickMode";button.toggle_mode=true;button.button_pressed=local.get("item_target_mode",false)
+ button.custom_minimum_size.y=rect.size.y
+ button.add_theme_font_size_override("font_size",responsive.choice_font_size([caption],rect.size.x))
+
 func render_board_target_picker(confirm: Callable,optional: bool):
  var key="board-target:"+picker.key+JSON.stringify(picker.path)
  var panel=android_choice_box("选择目标",key,false,choice_requires_stack())
@@ -3832,6 +3896,7 @@ func render_board_target_picker(confirm: Callable,optional: bool):
  var gap=host.ui_metrics.gap
  var top=float(panel.get_meta("choice_content_top"))
  var refs=picker.selected_refs()
+ var item_click_mode=not payment_item_targets().is_empty()
  var caption="请点击堆叠中高亮的卡牌。" if picker.available_refs().any(func(ref):return ref.has("stack_id")) else "请直接点击战场上高亮的目标。"
  if picker.ready() and refs.is_empty():caption="选择已完成，可以确认发动。"
  if not refs.is_empty():caption="已选择："+"、".join(refs.map(func(ref):return target_caption(ref)))
@@ -3843,10 +3908,12 @@ func render_board_target_picker(confirm: Callable,optional: bool):
   else:
    caption="请选择蓝色高亮的原目标；改后的目标会自动成为键山雏。"
  if not picker.prompt().is_empty():caption=picker.prompt()+"\n"+caption
+ if item_click_mode:caption+="\n己方供费道具可在下方切换支付或目标。"
  var font=host.ui_metrics.small
  var utility_count=(1 if optional or not local.is_empty() else 0)+(1 if picker.can_reselect() else 0)
  var utility_height=hit+gap if utility_count>0 else 0.0
- var chrome=top+utility_height+hit+gap+24
+ var item_mode_height=hit+gap if item_click_mode else 0.0
+ var chrome=top+utility_height+item_mode_height+hit+gap+24
  var wrapped=responsive.wrap_choice_prompt(caption,panel.size.x-24,font)
  var prompt_room=maxf(0,responsive.choice_rect.size.y-chrome)
  var minimum_font=maxi(14,roundi(font*0.7))
@@ -3861,6 +3928,7 @@ func render_board_target_picker(confirm: Callable,optional: bool):
  prompt_label.size.y=text_height
  panel.size.y=minf(responsive.choice_rect.size.y,chrome+text_height)
  var utility_y=panel.size.y-hit-12-utility_height
+ if item_click_mode:render_item_click_mode(panel,Rect2(12,utility_y-item_mode_height,panel.size.x-24,hit))
  var utility_width=(panel.size.x-24-gap*maxi(0,utility_count-1))/maxi(1,utility_count)
  var utility_x=12.0
  if optional:

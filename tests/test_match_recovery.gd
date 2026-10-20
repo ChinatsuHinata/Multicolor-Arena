@@ -30,6 +30,9 @@ func replacement(actor: int) -> int:
  clients[id]={"role":"","room":"","seat":0,"account":"TEST_ONLY_"+str(11 if actor==0 else 22),"nickname":"Replacement","device":"test","platform":"pc","token":"a".repeat(64),"cloud_active":true,"player_id":11 if actor==0 else 22,"elo":1000}
  return id
 func new_match(id: int):register(id,{"kind":"match","version":"v".repeat(64),"deck_hash":"a".repeat(64)})
+func wire(message: Dictionary) -> PackedByteArray:
+ var data=var_to_bytes(message)
+ return var_to_bytes({"count":1,"index":0,"data":data,"hash":data.hex_encode().sha256_text()})
 func run():
  var code=fixture();var room=rooms[code];remove_client(22)
  var id=replacement(1);new_match(id)
@@ -81,8 +84,10 @@ func run():
  check(int(room.disconnected[1])==first_departure,"repeated reconnect failures cannot restart the one-minute deadline")
  code=fixture(true);room=rooms[code];remove_client(22);id=replacement(1)
  register(id,{"kind":"guest","room":code,"resume":true,"match_id":room.match_id,"version":room.version})
- var data=var_to_bytes({"type":"ready_state","sequence":1})
- observe_match_sync(room,id,var_to_bytes({"count":1,"index":0,"data":data,"hash":data.hex_encode().sha256_text()}))
+ observe_match_sync(room,id,wire({"type":"ready_state","sequence":1}))
+ check(not room.disconnected.is_empty(),"host ready-state alone cannot clear a recorded opponent outage")
+ observe_guest_ack(room,id,wire({"type":"ack","sequence":1}))
+ observe_match_sync(room,id,wire({"type":"ready_state","sequence":1}))
  check(room.disconnected.is_empty() and room.sync_pending.is_empty(),"acknowledged game handshake clears the reconnect reservation")
  code=fixture(true);room=rooms[code]
  clients[22].last_packet_at=1000;clients[11].last_packet_at=61000
@@ -90,10 +95,55 @@ func run():
  check(not rooms.has(code) and room.outcome==0,"unresponsive open game socket releases the seat and settles the surviving player")
  code=fixture(true);room=rooms[code]
  handle_packet(11,("MCR1"+JSON.stringify({"kind":"match_wait","match_id":room.match_id})).to_utf8_buffer(),0)
- var waiting_since=int(room.disconnected[1])
+ var waiting_since=Time.get_ticks_msec()
  clients[11].last_packet_at=waiting_since+60000;clients[22].last_packet_at=waiting_since+60000
  tick_matches(waiting_since+60000)
- check(not rooms.has(code) and room.outcome==0,"relay keepalive preserves a waiting survivor while a stalled gameplay connection times out")
+ check(rooms.has(code) and room.disconnected.is_empty() and room.outcome==-2,"forged host wait cannot blame or defeat a healthy guest")
+ observe_guest_ack(room,22,wire({"type":"ack","sequence":8}))
+ observe_match_sync(room,22,wire({"type":"ready_state","sequence":8}))
+ check(not room.has("sync_waits"),"a completed sync clears old wait reports even when both links stayed healthy")
+ code=fixture(true);room=rooms[code];remove_client(22)
+ room.server_fault_at=int(room.disconnected[1])+1
+ tick_matches(int(room.disconnected[1])+60000)
+ check(room.cancel and resolution_metadata(room).reason=="server_transport_error","server send faults prevent assigning a player loss")
+ code=fixture(true);room=rooms[code]
+ handle_packet(11,("MCD1"+"%08X" % 22+"MCR1"+JSON.stringify({"kind":"match_settled","winner":0,"match_id":room.match_id})).to_utf8_buffer(),0)
+ check(rejected.has(11) and room.outcome==-2,"host cannot smuggle forged server settlement or attribution through a relayed frame")
+ for actor in [0,1]:
+  code=fixture(true);room=rooms[code];id=replacement(actor)
+  var old_id=int(room.slots[actor])
+  var claim={"kind":"host" if actor==0 else "guest","room":code,"resume":true,"match_id":room.match_id,"version":room.version}
+  register(id,claim)
+  check(room.slots[actor]==id and not clients.has(old_id) and not rejected.has(id),"authenticated same-device recovery replaces an occupied seat: "+str(actor))
+  var deadline=int(room.disconnected[actor])
+  remove_client(old_id)
+  check(room.slots[actor]==id and int(room.disconnected[actor])==deadline,"late old-peer departure leaves the new seat and deadline intact")
+  var next=id+10;clients[next]=clients[id].duplicate(true);clients[next].role=""
+  register(next,claim)
+  check(room.slots[actor]==next and int(room.disconnected[actor])==deadline,"repeated same-device takeover does not extend the recovery window")
+ for invalid in ["device","match_id","version","resume"]:
+  code=fixture(true);room=rooms[code];id=replacement(1)
+  var claim={"kind":"guest","room":code,"resume":true,"match_id":room.match_id,"version":room.version}
+  if invalid=="device":clients[id].device="different"
+  elif invalid=="resume":claim.resume=false
+  else:claim[invalid]="wrong"
+  register(id,claim)
+  check(room.slots[1]==22 and clients.has(22) and rejected.has(id),"invalid takeover cannot evict the original player: "+invalid)
+ for missing_actor in [0,1]:
+  code=fixture(true);room=rooms[code]
+  var absent=int(room.slots[missing_actor]);var survivor=int(room.slots[1-missing_actor])
+  clients[absent].last_packet_at=1000;clients[survivor].last_packet_at=61000
+  tick_matches(61000)
+  check(room.outcome==1-missing_actor and resolution_metadata(room).evidence[0].player_id==absent,"server observed silence attributes the correct seat and winner: "+str(missing_actor))
+ code=fixture(true);room=rooms[code]
+ clients[22].probe_support=true;clients[22].last_verified_at=1000;clients[22].probe_nonce="server-nonce"
+ handle_packet(22,("MCR1"+JSON.stringify({"kind":"link_pong","nonce":"wrong"})).to_utf8_buffer(),0)
+ check(clients[22].last_verified_at==1000,"ordinary traffic or a forged nonce cannot prove a bidirectional link")
+ handle_packet(22,("MCR1"+JSON.stringify({"kind":"link_pong","nonce":"server-nonce"})).to_utf8_buffer(),0)
+ check(clients[22].last_verified_at!=1000 and clients[22].probe_nonce.is_empty(),"a matching probe response confirms only its own authenticated connection")
+ code=fixture(true);room=rooms[code];room.disconnected={1:500};clients[11].last_packet_at=1000
+ last_server_frame=1000;account_for_server_pause(16000)
+ check(room.disconnected[1]==15500 and clients[11].last_packet_at==16000,"server processing downtime is not charged to either player's grace period")
  code=fixture();rooms={}
  for occupant in [11,22]:clients[occupant].last_packet_at=-600000
  pair_match(11,22);code=str(clients[11].room)

@@ -35,6 +35,17 @@ func run():
    check(session.room.status=="aborted" and session.identity.resume.is_empty() and session.saved_ranked_recovery().is_empty() and not session.transport.online,"expiry clears recovery, stops reconnecting and closes the connection")
    check(session.notice.contains("60 秒") and session.room.get("winner",-2)==-2,"expiry explains release without creating a local rated result")
    session.leave(false);session.queue_free();await process_frame
+ for host in [true,false]:
+  var session=fixture(host,"ranked")
+  session.transport.online=true;session.transport.last_server_seen=Time.get_ticks_msec()
+  session.disconnect_deadline_unix=Time.get_unix_time_from_system()-1
+  check(not session.check_reconnect_timeout(Time.get_ticks_msec()) and session.ranked_match_pending(),"healthy relay waits for authoritative settlement rather than locally cancelling")
+  session.on_relay_link_status({"match_id":session.cloud_match_id,"source":"relay_observation","states":["online","offline"]})
+  check(session.notice.contains("对方" if host else "本方"),"server evidence is displayed relative to this player's seat")
+  check(session.connection_status().contains("对方" if host else "本方"),"the visible recovery panel retains the attributed side")
+  session.retry_connection(Time.get_ticks_msec())
+  check(session.transport.online,"game-sync silence does not close a healthy relay connection")
+  session.leave(false);session.queue_free();await process_frame
  var original=fixture(false,"exploration");var saved=original.saved_ranked_recovery();var storage=original.storage
  original.queue_free();await process_frame
  var restored=Session.new();root.add_child(restored);restored.initialize(storage);restored.set_process(false);restored.transport.set_process(false)

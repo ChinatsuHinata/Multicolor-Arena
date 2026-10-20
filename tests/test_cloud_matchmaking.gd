@@ -16,7 +16,7 @@ func account(action: String,username: String) -> Dictionary:
 
 func make_session(index: int):
  var session=Session.new();root.add_child(session)
- session.initialize("res://work/cloud-matchmaking/%s-%d" % [str(Time.get_ticks_usec()),index])
+ session.initialize(OS.get_environment("MULTICOLOR_TEST_STORAGE").path_join("%s-%d" % [str(Time.get_ticks_usec()),index]))
  session.cloud_token=accounts[index].token;session.cloud_nickname=accounts[index].nickname
  sessions.append(session);return session
 
@@ -43,7 +43,7 @@ func run():
  await create_timer(0.2).timeout
  check(host.start_matchmaking(ENDPOINT,decks[0]).is_empty(),"first player queues")
  check(await until(func():return host.notice.contains("正在自动匹配")),"first player awaits an opponent")
- var duplicate=Session.new();root.add_child(duplicate);duplicate.initialize("res://work/cloud-matchmaking/duplicate");duplicate.cloud_token=accounts[0].token
+ var duplicate=Session.new();root.add_child(duplicate);duplicate.initialize(OS.get_environment("MULTICOLOR_TEST_STORAGE").path_join("duplicate"));duplicate.cloud_token=accounts[0].token
  duplicate.error_raised.connect(func(_message):pass)
  duplicate.start_matchmaking(ENDPOINT,decks[0])
  check(await until(func():return not duplicate.matchmaking),"same account cannot queue twice")
@@ -81,7 +81,9 @@ func run():
  for id in ["new-spx-001"]+Store.RuleSet.OFFICIAL_TWO:
   var illegal=decks[1].duplicate(true);illegal.rule_set=Store.RuleSet.TEST;illegal.side=[id]
   if id in Store.RuleSet.OFFICIAL_TWO:illegal.main[0]=id;illegal.main[1]=id
-  check(Store.validate(illegal,true,Store.RuleSet.UNRESTRICTED).is_empty(),"rejected match deck is legal under unrestricted rules: "+id)
+  var unrestricted_error=Store.validate(illegal,true,Store.RuleSet.UNRESTRICTED)
+  if Store.unavailable_card(id):check(not unrestricted_error.is_empty(),"disabled match card also remains unavailable under unrestricted rules: "+id)
+  else:check(unrestricted_error.is_empty(),"rejected match deck is legal under unrestricted rules: "+id)
   errors.clear();guest.room_action({"name":"deck","deck":illegal})
   check(await until(func():return not errors.is_empty() and guest.can_act()),"guest deck rejection is synchronized: "+id)
   check(not errors.is_empty() and str(errors[0]).contains("官限") and host.series.state.decks[1]==Store.clean_deck(decks[1]),"official matching rejects banned or excess cards despite the deck's test tag: "+id)

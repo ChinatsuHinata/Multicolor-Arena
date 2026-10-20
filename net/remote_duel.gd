@@ -5,7 +5,13 @@ var seat=0
 var queries={}
 var grant_payment=false
 func apply_snapshot(snapshot: Dictionary):
+ response_clock={}
  for k in snapshot.state:set(k,snapshot.state[k])
+ if not response_clock.is_empty() and snapshot.has("response_clock_sampled_at"):
+  # Translate the host deadline to this device's clock, retaining time spent queued.
+  response_clock=response_clock.duplicate(true)
+  var remaining=float(response_clock.deadline)-float(snapshot.response_clock_sampled_at)
+  response_clock.deadline=float(snapshot.get("response_clock_received_at",Time.get_unix_time_from_system()))+remaining
  queries=snapshot.queries
  for id in snapshot.definitions:cards[id]=snapshot.definitions[id]
  if not cards.has("back"):
@@ -22,6 +28,14 @@ func legal_casts(who: int,fast_only: bool=false) -> Array:return queries.get("fa
 func cast_error(who: int,uid: int) -> String:return queries.get("cast",{}).get(uid,"当前不能使用") if who==seat else "不是你的卡牌"
 func targets_for(_id: String,_acting: int=-1,source_uid: int=-1) -> Array:return queries.get("targets",{}).get(str(source_uid)+(":paid" if paid_cast_uid==source_uid else ":free"),[])
 func activation_options(c: Dictionary,key: String) -> Array:return queries.get("extension_targets",{}).get(str(c.uid)+":"+key,[])
+func extension_cost(who: int,c: Dictionary,key: String,target: Dictionary={}) -> Dictionary:
+ if not key.begins_with(Mods.PREFIX):return super.extension_cost(who,c,key,target)
+ for action in available_actions(who,c.uid,true):
+  if action.get("key","")!=key:continue
+  var cost=action.get("mod_cost",{}).duplicate(true);var tax=Cat.target_tax(self,who,target)
+  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
+  return cost
+ return {}
 func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
  var actions=queries.get("actions",{}).get(uid,[]) if who==seat else []
  return actions if include_disabled else actions.filter(func(a):return a.enabled)

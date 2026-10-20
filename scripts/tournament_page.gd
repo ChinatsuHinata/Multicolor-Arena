@@ -3,8 +3,9 @@ const Client=preload("res://scripts/tournament_client.gd")
 const Series=preload("res://net/series_controller.gd")
 const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const PHASES={"registration":"报名中", "checkin":"比赛签到中", "locked":"等待首轮", "running":"比赛进行中", "complete":"比赛已结束"}
-const FORMATS={"swiss":"瑞士轮", "swiss_top4":"瑞士轮 + 四强"}
-const STAGES={"swiss":"瑞士轮", "semifinal":"半决赛", "final":"决赛"}
+const FORMATS={"swiss":"瑞士轮", "swiss_top2":"瑞士轮 + 2 强淘汰赛", "swiss_top4":"瑞士轮 + 4 强淘汰赛", "swiss_top8":"瑞士轮 + 8 强淘汰赛", "swiss_top16":"瑞士轮 + 16 强淘汰赛"}
+const KNOCKOUT_ROUNDS={"swiss_top2":1,"swiss_top4":2,"swiss_top8":3,"swiss_top16":4}
+const STAGES={"swiss":"瑞士轮", "round_of_16":"十六强赛", "quarterfinal":"四分之一决赛", "semifinal":"半决赛", "final":"决赛"}
 const TASKS={"open_checkin":"开启签到", "close_checkin":"结束签到", "start_round":"推进下一轮"}
 var app
 var mode="list"
@@ -291,6 +292,7 @@ func receive(answer: Dictionary):
    detail_tab="pairings";retained_scroll=0
   if mode=="list" or mode=="create":detail_tab="group";retained_scroll=0
   current=answer.tournament;members=answer.get("members",[])
+  app.tournament_unread.mark_read(int(current.id))
   member_page=int(answer.get("member_page",0));member_pages=int(answer.get("member_pages",1))
   my_pairing=answer.get("my_pairing",{});pairings=answer.get("pairings",[]);standings=answer.get("standings",[]);schedules=answer.get("schedules",[])
   pairing_page=int(answer.get("pairing_page",0));pairing_pages=int(answer.get("pairing_pages",1))
@@ -311,7 +313,7 @@ func round_caption() -> String:
 func advance_caption() -> String:
  if current.phase=="locked":return "开始首轮"
  if int(current.get("pending_matches",0))>0:return "等待本轮结果"
- var last=int(current.total_swiss_rounds)+(2 if current.format=="swiss_top4" else 0)
+ var last=int(current.total_swiss_rounds)+int(KNOCKOUT_ROUNDS.get(current.format,0))
  return "结束比赛" if int(current.round_number)>=last else "开始下一轮"
 
 func advance_round():
@@ -338,8 +340,8 @@ func build_settings_fields(parent: Node,editing: bool):
  text(parent,"赛程",app.ui_metrics.body,app.GOLD)
  format_input=OptionButton.new();parent.add_child(format_input);format_input.name="TournamentFormat"
  for value in FORMATS.values():format_input.add_item(value)
- app.ui_metrics.button(format_input)
- format_input.selected=1 if editing and current.get("format","")=="swiss_top4" else 0
+ app.ui_metrics.button(format_input);expand(format_input)
+ format_input.select(FORMATS.keys().find(current.get("format","swiss")) if editing else 0)
  format_input.disabled=locked;format_input.set_meta("page_disabled",locked)
  text(parent,"瑞士轮轮数（0 为按签到人数自动确定）",app.ui_metrics.small)
  rounds_input=SpinBox.new();rounds_input.name="TournamentSwissRounds";parent.add_child(rounds_input)
@@ -349,14 +351,15 @@ func build_settings_fields(parent: Node,editing: bool):
  interval_input=SpinBox.new();interval_input.name="TournamentRoundInterval";parent.add_child(interval_input)
  interval_input.min_value=0;interval_input.max_value=10080;interval_input.step=1;interval_input.value=float(current.get("round_interval",0))/60.0 if editing else 0
  interval_input.custom_minimum_size.y=app.ui_metrics.hit
- text(parent,"自动轮数为签到人数的 log₂ 向上取整。胜 3 分、平 1 分、负 0 分，轮空 3 分；同分依次比较对手积分总和、胜场及抽签序号。四强按第 1 对第 4、第 2 对第 3 编排，半决赛败者并列第三。",app.ui_metrics.small,app.MUTED)
+ text(parent,"自动轮数为签到人数的 log₂ 向上取整。胜 3 分、平 1 分、负 0 分，轮空 3 分；同分依次比较对手积分总和、胜场及抽签序号。",app.ui_metrics.small,app.MUTED)
+ text(parent,"可选瑞士轮前 2、4、8、16 名进入单败淘汰赛，签到人数须达到所选名额。按种子高低配对，前两名分处上下半区，胜者逐轮晋级直至决出冠军；半决赛、八强赛、十六强赛败者分别并列第 3、5、9 名。",app.ui_metrics.small,app.MUTED)
  text(parent,"轮次间隔从本轮开始计时。到点后有未结束或待确认对局，等待主办方裁定后再推进；自动轮次只在首轮开始后生效。",app.ui_metrics.small,app.MUTED)
 
 func settings_payload() -> Dictionary:
  var stamp=parse_china_time(start_time_input.text)
  if mode=="configure" and int(current.get("start_at",0))>0 and start_time_input.text==china_time(int(current.start_at)):stamp=int(current.start_at)
  if stamp<=0:say("请输入有效比赛时间，格式为 YYYY-MM-DD HH:MM（北京时间）");return {}
- return {"format":"swiss_top4" if format_input.selected==1 else "swiss","swiss_rounds":int(rounds_input.value),"round_interval":int(interval_input.value*60),"game_format":game_format_input.get_selected_id(),"start_at":stamp}
+ return {"format":FORMATS.keys()[format_input.selected],"swiss_rounds":int(rounds_input.value),"round_interval":int(interval_input.value*60),"game_format":game_format_input.get_selected_id(),"start_at":stamp}
 
 func show_settings():
  if busy or not current.owned:return

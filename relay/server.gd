@@ -6,11 +6,16 @@ const MAX_ROOMS=512
 const ACCOUNT_PREFIX="MCA1"
 const PLAZA_PREFIX="MCP1"
 const TOURNAMENT_PREFIX="MCT1"
+const CLOUD_DECK_PREFIX="MCK1"
 const MAX_PLAZA_FRAME=16384
 const MatchQueue=preload("match_queue.gd")
 const MATCH_RULE_SET="official"
 const MATCH_RECONNECT_MS=60000
 const SESSION_CHECK_MS=30000
+const LINK_IDLE_MS=10000
+const LINK_PROBE_MS=2000
+var last_server_frame=0
+var last_link_probe=0
 var match_queue=MatchQueue.new()
 var pending_matches={}
 var last_match_tick=0
@@ -65,6 +70,10 @@ func start():
  peer.peer_connected.connect(func(id):
   if clients.size()>=1024:peer.disconnect_peer(id);return
   clients[id]={"role":"","room":"","seat":0,"account":"","nickname":"","device":"","platform":"","token":"","cloud_active":false,"player_id":0,"elo":1000,"last_packet_at":Time.get_ticks_msec()}
+  if websocket:
+   clients[id].socket=peer.get_peer(id)
+   clients[id].gateway_port=clients[id].socket.get_connected_port()
+  connection_event("connected",id)
   print("relay connection ",id))
  peer.peer_disconnected.connect(remove_client)
  print("Multicolor relay listening on ","TCP/WebSocket " if websocket else "UDP ",port)
@@ -75,6 +84,73 @@ func valid_code(code: Variant) -> bool:
  for ch in code:
   if ch not in "0123456789ABCDEF":return false
  return true
+
+func connection_event(event: String,id: int,extra: Dictionary={}):
+ var client=clients.get(id,{})
+ var record={"event":event,"at":Time.get_unix_time_from_system(),"peer":id,"player_id":int(client.get("player_id",0)),"room":str(client.get("room","")),"seat":int(client.get("seat",0)),"platform":str(client.get("platform","")),"gateway_port":int(client.get("gateway_port",0))}
+ record.merge(extra,true)
+ print("relay_event ",JSON.stringify(record))
+
+func link_seen_at(id: int,now: int) -> int:
+ if not clients.has(id):return 0
+ var client=clients[id]
+ return int(client.get("last_verified_at",now)) if client.get("probe_support",false) else int(client.get("last_packet_at",now))
+
+func link_is_live(room: Dictionary,actor: int,now: int) -> bool:
+ var id=int(room.slots[actor])
+ return id!=0 and clients.has(id) and not rejected.has(id) and now-link_seen_at(id,now)<LINK_IDLE_MS
+
+func record_link_loss(room: Dictionary,actor: int,id: int,cause: String):
+ if not room.has("link_losses"):room.link_losses={}
+ if room.link_losses.has(actor):return
+ room.link_losses[actor]={"seat":actor+1,"player_id":int(room.players[actor]),"peer":id,"cause":cause,"at":int(Time.get_unix_time_from_system())}
+ print("relay_event ",JSON.stringify({"event":"player_link_lost","at":Time.get_unix_time_from_system(),"match_id":room.match_id,"evidence":room.link_losses[actor]}))
+
+func resolution_metadata(room: Dictionary) -> Dictionary:
+ var evidence=[]
+ for actor in room.get("link_losses",{}):evidence.append(room.link_losses[actor].duplicate(true))
+ return {"reason":str(room.get("resolution_reason","agreed_result" if room.outcome in [0,1] else "cancelled")),"evidence":evidence,"intent":"undetermined"}
+
+func publish_link_status(room: Dictionary,now: int,force: bool=false):
+ var states=[]
+ for actor in range(2):
+  states.append("offline" if not link_is_live(room,actor,now) else "recovering" if room.disconnected.has(actor) else "online")
+ if not force and states==room.get("last_link_states",[]):return
+ room.last_link_states=states.duplicate()
+ for actor in range(2):
+  var id=int(room.slots[actor])
+  if id!=0 and clients.has(id):control(id,"link_status","",{"match_id":room.match_id,"states":states,"source":"relay_observation"})
+
+func tick_link_probes(now: int):
+ for id in clients.keys():
+  var client=clients[id]
+  if not client.get("probe_support",false) or rejected.has(id):continue
+  if not str(client.get("probe_nonce","")).is_empty() and now-int(client.get("probe_at",now))<LINK_IDLE_MS:continue
+  client.probe_nonce=Crypto.new().generate_random_bytes(12).hex_encode();client.probe_at=now
+  control(id,"link_probe","",{"nonce":client.probe_nonce})
+
+func observe_guest_ack(room: Dictionary,id: int,wire: PackedByteArray):
+ if id!=int(room.slots[1]) or wire.size()<4 or wire[0]!=TYPE_DICTIONARY:return
+ var frame=bytes_to_var(wire)
+ if not frame is Dictionary or frame.get("count",0)!=1 or frame.get("index",-1)!=0 or not frame.get("data") is PackedByteArray:return
+ var data=frame.data
+ if data.size()<4 or data[0]!=TYPE_DICTIONARY or data.hex_encode().sha256_text()!=frame.get("hash",""):return
+ var message=bytes_to_var(data)
+ if message is Dictionary and message.get("type","")=="ack" and message.get("sequence") is int:
+  room.sync_ack={"peer":id,"sequence":message.sequence}
+
+func account_for_server_pause(now: int):
+ var gap=now-last_server_frame if last_server_frame>0 else 0
+ last_server_frame=now
+ if gap<LINK_IDLE_MS:return
+ # A paused relay cannot use its own missing observations against either player.
+ for client in clients.values():
+  for key in ["last_packet_at","last_verified_at","probe_at"]:
+   if client.has(key):client[key]=int(client[key])+gap
+ for room in rooms.values():
+  for key in ["disconnected","sync_pending","sync_waits"]:
+   for actor in room.get(key,{}):room[key][actor]=int(room[key][actor])+gap
+ print("relay_event ",JSON.stringify({"event":"server_observation_gap","at":Time.get_unix_time_from_system(),"gap_ms":gap}))
 
 func control(id: int,kind: String,message: String="",extra: Dictionary={}):
  if peer==null or not clients.has(id):return
@@ -91,12 +167,18 @@ func send_raw(id: int,data: PackedByteArray,channel: int=0):
  peer.set_target_peer(id)
  peer.transfer_channel=0 if websocket else channel
  peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
- peer.put_packet(data)
+ var error=peer.put_packet(data)
+ if error!=OK and clients.has(id):
+  if rooms.has(clients[id].room):rooms[clients[id].room].server_fault_at=Time.get_ticks_msec()
+  if Time.get_ticks_msec()-int(clients[id].get("send_error_at",-10000))>=10000:
+   clients[id].send_error_at=Time.get_ticks_msec();connection_event("relay_send_failed",id,{"error":int(error)})
 
 func reject(id: int,message: String):
  match_queue.remove(id)
  pending_matches.erase(id)
  print("relay rejection ",id," ",message)
+ if clients.has(id):clients[id].close_cause="server_rejection"
+ connection_event("rejected",id,{"reason":message})
  control(id,"error",message)
  rejected[id]=Time.get_ticks_msec()+500
 
@@ -113,6 +195,10 @@ func remove_client(id: int):
   plaza_requests[id].queue_free();plaza_requests.erase(id)
  account_attempts.erase(id)
  var client=clients[id]
+ var details={"cause":str(client.get("close_cause","transport_closed")),"last_rx_age_ms":maxi(0,Time.get_ticks_msec()-int(client.get("last_packet_at",Time.get_ticks_msec())))}
+ if client.get("socket") is WebSocketPeer and client.socket.get_ready_state()==WebSocketPeer.STATE_CLOSED:
+  details.close_code=client.socket.get_close_code()
+ connection_event("departed",id,details)
  print("relay departure ",id," role=",client.role)
  clients.erase(id);rejected.erase(id)
  var code=client.room
@@ -124,6 +210,8 @@ func remove_client(id: int):
    room.slots[actor]=0
    if room.host==id:room.host=0
    if not room.disconnected.has(actor):room.disconnected[actor]=int(room.get("sync_pending",{}).get(actor,Time.get_ticks_msec()))
+   record_link_loss(room,actor,id,str(details.cause))
+   room.erase("sync_ack")
    for occupant in room.slots:
     if occupant!=0:control(occupant,"guest_left","",{"peer":id if actor==1 else 1,"seat":client.seat})
    broadcast_seats(code)
@@ -197,9 +285,10 @@ func replace_previous_matches(id: int,msg: Dictionary) -> bool:
    if peer!=null:peer.disconnect_peer(old_peer)
   if room.outcome==-2 and not room.cancel:
    var survivor=1-actor
-   if room.started and room.slots[survivor]!=0:
+   if room.started and link_is_live(room,survivor,Time.get_ticks_msec()) and not room.disconnected.has(survivor):
     room.outcome=int(room.reports[survivor]) if room.reports.has(survivor) else survivor
    else:room.cancel=true
+   room.resolution_reason="player_abandoned" if room.outcome in [0,1] else "abandoned_unresolved"
   print("match replaced room=",code," player=",clients[id].player_id)
  tick_matches(Time.get_ticks_msec())
  return true
@@ -220,6 +309,9 @@ func register(id: int,msg: Dictionary):
  if clients[id].account.is_empty():reject(id,"请先登录玩家账号");return
  if kind=="match" and clients[id].role in ["queue","pending_match"]:return
  if clients[id].role!="":reject(id,"连接已登记");return
+ if msg.get("net_protocol",0)==1:
+  clients[id].probe_support=true
+  if not clients[id].has("last_verified_at"):clients[id].last_verified_at=Time.get_ticks_msec()
  if kind=="match":
   var hash_pattern=RegEx.new();hash_pattern.compile("^[a-f0-9]{64}$")
   if str(msg.get("version","")).length()!=64 or clients[id].player_id<=0:reject(id,"匹配版本或账号无效");return
@@ -231,6 +323,9 @@ func register(id: int,msg: Dictionary):
   if clients[other_id].account.to_lower()!=clients[id].account.to_lower():continue
   if clients[other_id].platform!=clients[id].platform or clients[other_id].device!=clients[id].device:
    reject(id,"此账号已在另一设备使用云端");return
+ # Validate the entire original-match claim before retiring any occupied peer.
+ if kind in ["host","guest"] and rooms.has(code) and rooms[code].get("ranked",false):
+  resume_match(id,msg);return
  if kind=="list":
   clients[id].cloud_active=true
   var all_rooms=public_rooms()
@@ -422,15 +517,27 @@ func resume_match(id: int,msg: Dictionary):
  if not msg.get("resume",false) or actor<0 or str(msg.get("match_id",""))!=room.match_id or str(msg.get("version",""))!=room.version:
   reject(id,"匹配房间仅限原玩家重连");return
  if room.settled or room.cancel:reject(id,"匹配对局已结束");return
- if room.slots[actor]!=0:reject(id,"匹配座位已占用");return
  var deadline_start=int(room.disconnected.get(actor,room.get("sync_pending",{}).get(actor,Time.get_ticks_msec())))
  if Time.get_ticks_msec()-deadline_start>=MATCH_RECONNECT_MS:
   reject(id,"匹配连接超时，原座位已释放");return
+ var old_id=int(room.slots[actor])
+ for other_id in clients:
+  if other_id not in [id,old_id] and clients[other_id].account.to_lower()==clients[id].account.to_lower() and clients[other_id].role in ["host","guest","watch","queue","pending_match","tournament_queue"]:
+   reject(id,"此账号已在云端房间或匹配队列中");return
+ if old_id!=0:
+  if not clients.has(old_id) or clients[old_id].player_id!=clients[id].player_id or clients[old_id].device!=clients[id].device or clients[old_id].platform!=clients[id].platform:
+   reject(id,"匹配座位已占用");return
+  # Keep the first outage deadline; late departure callbacks cannot clear the replacement.
+  clients[old_id].close_cause="same_device_replaced"
+  remove_client(old_id)
+  if peer!=null:peer.disconnect_peer(old_id)
+ room.erase("sync_ack")
  room.slots[actor]=id
  if not room.get("sync_pending",{}).has(actor):
   if not room.has("sync_pending"):room.sync_pending={}
   room.sync_pending[actor]=int(room.disconnected.get(actor,Time.get_ticks_msec()))
  clients[id].role="host" if actor==0 else "guest";clients[id].room=code;clients[id].seat=actor+1;clients[id].cloud_active=true
+ connection_event("resumed",id,{"old_peer":old_id,"remaining_ms":maxi(0,MATCH_RECONNECT_MS-(Time.get_ticks_msec()-int(room.disconnected.get(actor,deadline_start))))})
  if actor==0:
   room.host=id;control(id,"registered","",{"seat":1})
   if room.slots[1]!=0:
@@ -462,6 +569,7 @@ func match_store_request(code: String,action: String):
  var payload={"action":action,"match_id":room.match_id}
  if action=="create":payload.players=room.players;payload.mode=room.get("mode","ranked")
  if action=="settle":payload.winner=room.outcome
+ if action in ["settle","cancel"]:payload.resolution=resolution_metadata(room)
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
   request.queue_free()
@@ -500,6 +608,8 @@ func match_store_completed(code: String,action: String,answer: Dictionary):
   "start":room.stored_started=true
   "settle","cancel":
    room.settled=true
+   var resolution=resolution_metadata(room)
+   print("relay_event ",JSON.stringify({"event":"match_resolved","at":Time.get_unix_time_from_system(),"match_id":room.match_id,"players":room.players,"action":action,"winner":room.outcome if action=="settle" else -2,"resolution":resolution}))
    if rated:
     for waiting_id in pending_matches:
      if not clients.has(waiting_id):continue
@@ -511,6 +621,7 @@ func match_store_completed(code: String,action: String,answer: Dictionary):
     var id=int(room.slots[actor])
     if id==0 or not clients.has(id):continue
     var extra={"match_id":room.match_id,"rated":rated,"mode":room.get("mode","ranked"),"winner":room.outcome if action=="settle" else -2}
+    extra.resolution=resolution
     if rated:
      clients[id].elo=int(answer.ratings[actor]);extra.elo=clients[id].elo;extra.delta=int(answer.deltas[actor])
      if answer.get("ranks") is Array:
@@ -545,23 +656,34 @@ func tick_matches(now: int):
   if not room.get("ranked",false) or room.settled:continue
   if room.get("tournament",false) and room.stored and not room.cancel and not room.get("tournament_check_busy",false) and now-int(room.get("tournament_checked_at",0))>=3000:
    check_tournament_room(code)
-  # A TCP connection or repeated hello is not a completed game-state handshake.
+  # Only this relay's observations may attribute a player-link outage.
   for actor in range(2):
    var id=int(room.slots[actor])
-   var pending=room.get("sync_pending",{})
-   if pending.has(actor) and now-int(pending[actor])>=MATCH_RECONNECT_MS:
-    room.disconnected[actor]=mini(int(room.disconnected.get(actor,pending[actor])),int(pending[actor]))
-   elif id!=0 and clients.has(id) and now-int(clients[id].get("last_packet_at",now))>=MATCH_RECONNECT_MS:
-    room.disconnected[actor]=int(clients[id].last_packet_at)
+   if id!=0 and clients.has(id) and now-link_seen_at(id,now)>=LINK_IDLE_MS:
+    if not room.disconnected.has(actor):
+     room.disconnected[actor]=link_seen_at(id,now)
+     record_link_loss(room,actor,id,"probe_timeout" if clients[id].get("probe_support",false) else "receive_timeout")
+     room.erase("sync_ack")
+  publish_link_status(room,now)
   if room.outcome==-2 and not room.cancel:
    for actor in room.disconnected:
     if now-int(room.disconnected[actor])>=MATCH_RECONNECT_MS:
-     if room.started and room.disconnected.size()==1:
+     if int(room.get("server_fault_at",-1))>=int(room.disconnected[actor]):
+      room.cancel=true;room.resolution_reason="server_transport_error"
+     elif room.started and room.disconnected.size()==1 and link_is_live(room,1-int(actor),now):
       var survivor=1-int(actor)
       # A surviving player can acknowledge a loss already received before the departure.
       room.outcome=int(room.reports[survivor]) if room.reports.has(survivor) else survivor
-     else:room.cancel=true
+      room.resolution_reason="player_link_timeout" if room.outcome==survivor else "acknowledged_result"
+     else:room.cancel=true;room.resolution_reason="both_links_unavailable" if room.disconnected.size()>1 else "pregame_disconnect"
      break
+   if room.outcome==-2 and not room.cancel:
+    for started in room.get("sync_pending",{}).values():
+     if now-int(started)>=MATCH_RECONNECT_MS:
+      room.cancel=true;room.resolution_reason="sync_unconfirmed";break
+   var waits=room.get("sync_waits",{})
+   if room.outcome==-2 and not room.cancel and waits.has(0) and waits.has(1) and now-maxi(int(waits[0]),int(waits[1]))>=MATCH_RECONNECT_MS and link_is_live(room,0,now) and link_is_live(room,1,now):
+    room.cancel=true;room.resolution_reason="sync_unconfirmed"
   if room.store_busy or now<int(room.store_retry):continue
   if not room.stored:match_store_request(code,"create")
   elif room.cancel:match_store_request(code,"cancel")
@@ -655,9 +777,9 @@ func handle_account(id: int,data: PackedByteArray):
 func plaza_reply(id: int,answer: Dictionary,prefix: String=PLAZA_PREFIX):
  send_raw(id,(prefix+JSON.stringify(answer)).to_utf8_buffer())
 
-func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false):
- var prefix=TOURNAMENT_PREFIX if tournament else PLAZA_PREFIX
- var service="比赛服务" if tournament else "套牌广场"
+func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false,private_decks: bool=false):
+ var prefix=CLOUD_DECK_PREFIX if private_decks else (TOURNAMENT_PREFIX if tournament else PLAZA_PREFIX)
+ var service="云端卡组" if private_decks else ("比赛服务" if tournament else "套牌广场")
  if account_key==null:plaza_reply(id,{"ok":false,"message":service+"尚未启用"},prefix);return
  if data.size()<=260 or data.size()>MAX_PLAZA_FRAME:plaza_reply(id,{"ok":false,"message":service+"请求长度无效"},prefix);return
  if plaza_requests.has(id):plaza_reply(id,{"ok":false,"message":"请等待当前请求完成"},prefix);return
@@ -673,7 +795,7 @@ func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false):
  var input=JSON.parse_string(body.get_string_from_utf8())
  if not input is Dictionary or input.has("token"):plaza_reply(id,{"ok":false,"message":service+"请求格式无效"},prefix);return
  input["token"]=auth.get("s","")
- var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0;request.body_size_limit=65536
+ var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0;request.body_size_limit=131072 if private_decks else 65536
  plaza_requests[id]=request
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,answer_body: PackedByteArray):
   plaza_requests.erase(id);request.queue_free()
@@ -682,12 +804,14 @@ func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false):
   var answer=JSON.parse_string(answer_body.get_string_from_utf8())
   if not answer is Dictionary:plaza_reply(id,{"ok":false,"message":service+"响应无效"},prefix);return
   plaza_reply(id,answer,prefix))
- if request.request(store_url("tournaments" if tournament else "deck-plaza"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
+ if request.request(store_url("cloud-decks" if private_decks else ("tournaments" if tournament else "deck-plaza")),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
   plaza_requests.erase(id);request.queue_free();plaza_reply(id,{"ok":false,"message":service+"暂不可用"},prefix)
 
 func handle_packet(id: int,data: PackedByteArray,channel: int):
  if not clients.has(id) or rejected.has(id):return
  clients[id].last_packet_at=Time.get_ticks_msec()
+ if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==CLOUD_DECK_PREFIX:
+  handle_plaza(id,data,false,true);return
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==PLAZA_PREFIX:
   handle_plaza(id,data);return
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==TOURNAMENT_PREFIX:
@@ -702,10 +826,20 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   var kind=msg.get("kind","")
   if kind=="auth":verify_client(id,str(msg.get("token","")))
   elif kind=="match_result":report_match(id,msg)
-  elif kind=="match_wait" and clients[id].role=="host":
+  elif kind=="link_pong":
+   var nonce=str(msg.get("nonce",""))
+   if not nonce.is_empty() and nonce==str(clients[id].get("probe_nonce","")):
+    clients[id].last_verified_at=Time.get_ticks_msec();clients[id].probe_nonce=""
+  elif kind=="match_wait" and clients[id].role in ["host","guest"]:
    var room=rooms.get(clients[id].room,{})
-   if room.get("ranked",false) and not room.settled and not room.cancel and str(msg.get("match_id",""))==room.match_id and not room.disconnected.has(1):
-    room.disconnected[1]=int(room.get("sync_pending",{}).get(1,Time.get_ticks_msec()))
+   if room.get("ranked",false) and not room.settled and not room.cancel and str(msg.get("match_id",""))==room.match_id:
+    var actor=room.players.find(clients[id].player_id)
+    if actor<0 or int(room.slots[actor])!=id:return
+    if not room.has("sync_waits"):room.sync_waits={}
+    if not room.sync_waits.has(actor):room.sync_waits[actor]=Time.get_ticks_msec()
+    if Time.get_ticks_msec()-int(clients[id].get("last_wait_log",-10000))>=10000:
+     clients[id].last_wait_log=Time.get_ticks_msec();connection_event("client_reports_sync_wait",id,{"trusted_for_attribution":false})
+    publish_link_status(room,Time.get_ticks_msec(),true)
   elif kind=="drop" and clients[id].role=="host":
    var room=rooms.get(clients[id].room,{})
    if room.get("ranked",false):return
@@ -748,6 +882,8 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   return
  if data.slice(0,4).get_string_from_ascii()=="MCD1":
   if clients[id].role!="host" or data.size()<13:return
+  # Relayed game frames must never impersonate the relay's MCR1 control plane.
+  if data[12]!=TYPE_DICTIONARY:reject(id,"对局转发帧无效");return
   var target=data.slice(4,12).get_string_from_ascii().hex_to_int()
   var room=rooms.get(clients[id].room,{})
   if not room.is_empty() and target in room.slots and target!=id:
@@ -757,15 +893,17 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   return
  var client=clients[id]
  if client.role=="" or not rooms.has(client.room):return
+ if data[0]!=TYPE_DICTIONARY:reject(id,"对局转发帧无效");return
  var room=rooms[client.room]
  if client.role=="host":return
+ if client.role=="guest" and room.get("ranked",false):observe_guest_ack(room,id,data)
  if room.host!=0 and clients.has(room.host):
   send_raw(room.host,("MCD1"+"%08X" % id).to_utf8_buffer()+data,channel)
 
 func observe_match_sync(room: Dictionary,target: int,wire: PackedByteArray):
  # Existing clients send a small ready_state only after both players acknowledge.
  if not room.get("ranked",false) or target!=room.slots[1] or room.cancel:return
- if room.disconnected.is_empty() and room.get("sync_pending",{}).is_empty():return
+ if room.disconnected.is_empty() and room.get("sync_pending",{}).is_empty() and room.get("sync_waits",{}).is_empty():return
  if wire.size()<4 or wire[0]!=TYPE_DICTIONARY:return
  var frame=bytes_to_var(wire)
  if not frame is Dictionary or frame.get("count",0)!=1 or frame.get("index",-1)!=0 or not frame.get("data") is PackedByteArray:return
@@ -773,14 +911,19 @@ func observe_match_sync(room: Dictionary,target: int,wire: PackedByteArray):
  if data.size()<4 or data[0]!=TYPE_DICTIONARY or data.hex_encode().sha256_text()!=frame.get("hash",""):return
  var message=bytes_to_var(data)
  if not message is Dictionary or message.get("type","")!="ready_state":return
+ var ack=room.get("sync_ack",{})
+ if int(ack.get("peer",0))!=int(room.slots[1]) or ack.get("sequence",-1)!=message.get("sequence",-2):return
  # Late handshakes must not revive a seat beyond its original deadline.
  var now=Time.get_ticks_msec()
  for started in room.disconnected.values()+room.get("sync_pending",{}).values():
   if now-int(started)>=MATCH_RECONNECT_MS:return
  room.disconnected.clear();room.sync_pending={}
+ room.erase("sync_ack");room.erase("link_losses");room.erase("sync_waits")
+ publish_link_status(room,now,true)
 
 func _process(_delta) -> bool:
  if peer==null:return false
+ account_for_server_pause(Time.get_ticks_msec())
  if Time.get_ticks_msec()-last_nonce_cleanup>10000:
   last_nonce_cleanup=Time.get_ticks_msec()
   var now=Time.get_unix_time_from_system()
@@ -801,6 +944,8 @@ func _process(_delta) -> bool:
   var channel=peer.get_packet_channel()
   var packet=peer.get_packet()
   handle_packet(id,packet,channel)
+ if Time.get_ticks_msec()-last_link_probe>=LINK_PROBE_MS:
+  last_link_probe=Time.get_ticks_msec();tick_link_probes(last_link_probe)
  if Time.get_ticks_msec()-last_match_tick>=1000:
   last_match_tick=Time.get_ticks_msec();tick_matches(last_match_tick)
  for id in rejected.keys():

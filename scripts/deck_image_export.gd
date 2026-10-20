@@ -93,7 +93,7 @@ static func _card(parent: Control,id: String,rect: Rect2,cache: Dictionary,deck:
   _text(frame,"未知卡牌\n"+id,Rect2(8,8,rect.size.x-16,rect.size.y-16),20,Color("#e8edf0"))
   return
  if not cache.has(id):
-  var source=load(Store.Art.image_path(id,Store.Art.selected(deck,id,Store.CARDS),Store.CARDS)) as Texture2D
+  var source=Store.Art.load_texture(Store.Art.image_path(id,Store.Art.selected(deck,id,Store.CARDS),Store.CARDS))
   if source==null:return
   var image=source.get_image()
   if image.get_width()>image.get_height():image.rotate_90(CLOCKWISE)

@@ -14,10 +14,9 @@ func _initialize():
  deck.leader="70"
  var limited="character-ucs-038"
  check(Rules.limit(limited,Store.CARDS[limited],Rules.OFFICIAL)==2,"official pet limit")
- check(Rules.limit("104",Store.CARDS["104"],Rules.OFFICIAL_SPX)==2,"official spell limit")
+ check(Rules.limit("104",Store.CARDS["104"],Rules.OFFICIAL)==2,"official spell limit")
  check(Rules.limit("item-fdf-096",Store.CARDS["item-fdf-096"],Rules.OFFICIAL)==2,"official item limit")
  check(Rules.limit("new-spx-001",Store.CARDS["new-spx-001"],Rules.OFFICIAL)==0,"official SPX ban")
- check(Rules.limit("new-spx-001",Store.CARDS["new-spx-001"],Rules.OFFICIAL_SPX)>0,"official SPX exception")
  check(Rules.limit(limited,Store.CARDS[limited],Rules.TEST)==-1,"test copy count unlimited")
  check(Store.add_card(deck,limited,"main",Rules.OFFICIAL).is_empty(),"first official copy")
  check(Store.add_card(deck,limited,"side",Rules.OFFICIAL).is_empty(),"second official copy across sideboard")
@@ -29,7 +28,6 @@ func _initialize():
  deck.main.clear();deck.side.clear()
  deck.main.append("new-spx-001")
  check(not Store.validate(deck,false,Rules.OFFICIAL).is_empty(),"official ban applies to saved decks")
- check(Store.validate(deck,false,Rules.OFFICIAL_SPX).is_empty(),"official SPX rule accepts card")
  deck.main.clear()
  for i in range(5):deck.main.append("164")
  check(not Store.validate(deck,false,Rules.UNRESTRICTED).is_empty(),"ordinary cards capped at four")
@@ -52,9 +50,9 @@ func _initialize():
  deck.main=[limited,limited]
  check(series.set_deck(0,deck).is_empty(),"room accepts legal deck built under another editor rule")
  check(series.state.rule_set==Rules.OFFICIAL and series.public_state(1).rule_set==Rules.OFFICIAL,"room publishes chosen rule")
- deck.rule_set=Rules.OFFICIAL_SPX
+ deck.rule_set=Rules.UNRESTRICTED
  var decoded=Store.decode(Store.encode(deck))
- check(decoded.has("deck") and decoded.deck.rule_set==Rules.OFFICIAL_SPX,"deck code preserves editor rule")
+ check(decoded.has("deck") and decoded.deck.rule_set==Rules.UNRESTRICTED,"deck code preserves editor rule")
  var alias_rules=Aliases.load_rules()
  for pair in [["老虎","寅丸星"],["老鼠","纳兹琳"],["船长","村纱水蜜"],["兔子","因幡帝"],["兔子","铃仙·优昙华院·因幡"],["雷米","蕾米莉亚·斯卡雷特"],["9","琪露诺"],["神妈","八坂神奈子"],["鸡","庭渡久诧歌"],["花妈","风见幽香"],["僵尸","宫古芳香"],["猫车","火焰猫燐"]]:
   check(Aliases.find_rule(alias_rules,pair[0]).has(pair[1]),"alias "+pair[0])

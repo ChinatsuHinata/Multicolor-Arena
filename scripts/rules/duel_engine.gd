@@ -9,6 +9,18 @@ const ColorCost=preload("res://scripts/rules/color_cost.gd")
 const VariableChoice=preload("res://scripts/rules/variable_choice.gd")
 const RemiliaAI=preload("res://scripts/rules/remilia_aggro_ai.gd")
 const Exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
+const Mods=preload("res://scripts/rules/mod_runtime.gd")
+var mod_registry=Mods.Registry.shared()
+var mod_manifest: Array=[]
+var mod_state: Dictionary={}
+var mod_resolution: Dictionary={}
+var mod_changes: Array=[]
+var mod_change_serial=0
+var mod_change_processing=false
+var mod_query_guard: Dictionary={}
+var mod_x_casts: Dictionary={}
+var mod_timestamp=0
+var mod_prepares_remaining=0
 const PASSIVE_AI="passive"
 const COLORS=["红","蓝","绿","黄","黑"]
 var player_names=["你","人机"]
@@ -24,6 +36,7 @@ var entry_choices: Array=[]
 var combat: Dictionary={}
 var active=0
 var priority=0
+var response_clock: Dictionary={}
 var phase="mulligan"
 var tutorial_turn_end_blocked=false
 var turn=0
@@ -84,6 +97,7 @@ var ai_memory: Array=[{},{}]
 const CardArt=preload("res://scripts/card_art.gd")
 func _init(definitions: Dictionary={}):
  cards=DB.load_cards() if definitions.is_empty() else definitions.duplicate()
+ mod_manifest=mod_registry.manifest()
  Extra.register_tokens(self)
 func note(message: String,art: Array=[]):
  log.append(message)
@@ -187,6 +201,8 @@ func shuffle(cards_to_shuffle: Array):
   cards_to_shuffle[i]=cards_to_shuffle[j]
   cards_to_shuffle[j]=tmp
 func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
+ response_clock={}
+ mod_manifest=mod_registry.manifest();mod_state={};mod_resolution={};mod_changes=[];mod_x_casts={};mod_query_guard={};mod_change_serial=0;mod_change_processing=false;mod_timestamp=0;mod_prepares_remaining=0
  ai_profiles=[PASSIVE_AI if a.get("ai_passive",false) else RemiliaAI.profile(a),PASSIVE_AI if b.get("ai_passive",false) else RemiliaAI.profile(b)];ai_memory=[{},{}]
  forced_cast={};paid_cast_uid=-1;extra_turns=[];presentation_events.clear();reveal_serial=0
  reveal_resolution={};reveal_resolution_depth=0;reveal_review_serial=0
@@ -212,7 +228,11 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  for i in range(2): draw(i,4)
  note("对局开始，双方起手 4 张")
 func shift(c: Dictionary, location: String):
+ Mods.reset_source(self,c.uid)
+ mod_timestamp+=1;c.mod_timestamp=mod_timestamp
  var old=c.get("zone","")
+ if c.has("mod_access") and location not in ["stack",c.mod_access.zone]:c.erase("mod_access")
+ c.erase("mod_linked")
  var copy_entry_counters=Cat.counter_snapshot(c) if c.has("copy_entry_counters") else {}
  c.erase("copy_entry_counters")
  if location=="field" and old!="field":
@@ -240,7 +260,21 @@ func shift(c: Dictionary, location: String):
  if old!="stack" or location!="field": c.erase("cast_x");c.erase("exile_on_grave")
  # Copies enter with their counters before entry abilities and observers run.
  if location=="field" and not copy_entry_counters.is_empty():Cat.copy_counters(c,copy_entry_counters)
+func configure_mods(enabled: bool):
+ if enabled:return
+ mod_registry=Mods.Registry.new();mod_manifest=[]
+ for id in cards.keys():
+  if not cards[id].get("mod_namespace","").is_empty():cards.erase(id)
 func draw(who: int,count: int=1) -> Array:
+ var drawn=[]
+ for i in range(count):
+  var change={"type":"draw","owner":who,"count":count-i,"used":[]}
+  if not mod_changes.is_empty() or not Mods.Rules.offers(self,change).is_empty():
+   Mods.Rules.begin(self,change);break
+  else:drawn.append_array(draw_unreplaced(who,1))
+  if winner!=-2:break
+ return drawn
+func draw_unreplaced(who: int,count: int=1) -> Array:
  var drawn=[]
  for i in range(count):
   if players[who].deck.is_empty(): lose(who,"牌库不足，无法抓牌"); return drawn
@@ -274,13 +308,14 @@ func start_turn(who: int):
  if winner!=-2: return
  active=who; priority=who; passes=0; turn+=1; players[who].turns+=1
  players[who].possession_count=0
- phase="reset"; turn_usage.clear(); death_trigger_events.clear(); cleanup_done=false
+ phase="reset"; mod_x_casts.clear();turn_usage.clear(); death_trigger_events.clear(); cleanup_done=false
  discard_cleanup_pending=false;possession_resume=false
  for c in players[who].field+players[who].palette:
   if Pack.reset_allowed(self,c): c.tapped=false
   c.attacked=false
  if players[who].palette.size()<8 and not players[who].deck.is_empty():
   move_to(players[who].deck[0],"palette")
+ mod_prepares_remaining=clampi(int(Mods.Rules.query(self,{"kind":"extra_prepare","controller":who},0)),0,100)
  phase="prepare"
  run_delayed("prepare")
  Pack.on_phase(self,"prepare");Roster.on_phase(self,"prepare")
@@ -300,7 +335,7 @@ func find_card(uid: int) -> Dictionary:
 func stackable_signature(c: Dictionary) -> String:
  if c.is_empty() or c.get("zone","")!="field" or not cards.get(c.card_id,{}).get("stackable",false):return ""
  var state=c.duplicate(true)
- for field in ["uid","epoch","entered","entered_turns"]:state.erase(field)
+ for field in ["uid","epoch","entered","entered_turns","mod_timestamp"]:state.erase(field)
  # A fresh permanent and one that passed through shift() can have the same
  # effective state even though shift() wrote explicit zero-valued fields.
  for field in ["leader_counters","plus_counters","poverty"]:
@@ -397,13 +432,16 @@ func cast_error(who: int,uid: int) -> String:
  if Pack.response_locked(self): return "该牌不能被响应"
  var c=find_card(uid)
  if c.is_empty(): return "无法从该区域使用"
+ if cards.get(c.card_id,{}).get("disabled",false):return "该牌已被屏蔽，无法使用"
+ if Mods.Rules.query(self,{"kind":"action_lock","card":c,"controller":who,"action":"cast"},false):return "模组常驻效果禁止使用该牌"
  if miracle_waiting(c):return "请等待奇迹能力结算后使用该牌"
  if c.zone=="exile" and c.get("history_spent",false):return "该牌结算后不能再次使用"
- if not Pack.cast_from(self,c,who) and (c.owner!=who or c.zone not in ["hand","leader"] and not (c.zone=="deck" and Extra.has(cards[c.card_id],"deck_damage"))): return "无法从该区域使用"
+ if Mods.access(self,c,who).is_empty() and not Mods.Rules.query(self,{"kind":"cast_permission","card":c,"controller":who},false) and not Pack.cast_from(self,c,who) and (c.owner!=who or c.zone not in ["hand","leader"] and not (c.zone=="deck" and Extra.has(cards[c.card_id],"deck_damage"))): return "无法从该区域使用"
  var info=cards[c.card_id]
  var catalogue_error=Cat.State.cast_error(self,c,who)
  if not catalogue_error.is_empty():return catalogue_error
- if not Pack.fast(self,c,who) and (phase!="main" or not stack.is_empty() or not combat.is_empty() or active!=who): return "只能在自己主要阶段的空对抗时使用"
+ if not Pack.fast(self,c,who) and not Mods.Rules.query(self,{"kind":"cast_fast","card":c,"controller":who},false) and (phase!="main" or not stack.is_empty() or not combat.is_empty() or active!=who): return "只能在自己主要阶段的空对抗时使用"
+ if not field_error(c,who).is_empty() and not is_unit(c):return field_error(c,who)
  if c.zone=="leader" and c.timer>0: return "自机仍在计时"
  if is_unit(c):
   if field_slots(who)>=Cat.field_limit(self,who) and not Extra.keyword(self,c,"不占战场格"): return "单位战场格已满"
@@ -430,6 +468,8 @@ func cast_error(who: int,uid: int) -> String:
  return ""
 func targets_for(id: String,acting: int=-1,source_uid: int=-1) -> Array:
  if acting<0: acting=priority
+ var mod_options=Mods.spell_options(self,id,acting,source_uid)
+ if mod_options!=null:return mod_options
  catalogue_target_fast=cards[id].fast
  var previous_x_source=catalogue_x_source
  catalogue_x_source=find_card(source_uid) if source_uid>=0 else {}
@@ -486,6 +526,7 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  var target_spec={}
  if info.kind=="符卡" or not info.get("variable_cost","").is_empty() or c.card_id=="character-fdf-046":
   var legal_options=targets_for(c.card_id,who,uid)
+  if DB.has_ability(info,"mod") and not Mods.choice_valid(self,legal_options,target):return "模组选择已失效"
   if not Pack.choice_valid(self,legal_options,target): return "目标已失效"
   # A paid sacrifice/discard may remove a cost choice before an opponent can
   # redirect the spell. Keep only the matching declaration-time specification.
@@ -495,6 +536,8 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  if not cast_payment_valid(who,c,target,plan): return "支付方案已失效"
  if Roster.key(info,["discard_draw","door_reveal"])!="" and Pack.picked(target).any(func(r):return r.uid==uid):return "不能弃置正在使用的牌"
  var old_zone=c.zone
+ # Select the graveyard permission before costs and zone changes remove it.
+ var heart=Roster.heart_source(self,c,who)
  catalogue_serial+=1
  # All validation completes before any public mutation.
  if Roster.key(info,["discard_draw","door_reveal"])!="":
@@ -524,15 +567,15 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  if old_zone=="deck" and Extra.has(info,"deck_damage"):
   shuffle(players[who].deck)
   note(player_names[who]+"洗牌")
- Roster.on_cast(self,c,who,old_zone)
- Pack.on_cast(self,c,who,target);Roster.New.on_target(self,target)
- if info.kind=="符卡": Effects.spell_used(self,who)
+ if not info.get("variable_cost","").is_empty():Mods.Rules.begin(self,{"type":"cast_x","owner":who,"source":ref_target(c),"x":c.cast_x,"old_zone":old_zone,"heart":heart,"target":target.duplicate(true)})
+ else:Mods.finish_cast(self,c,who,old_zone,heart,target)
  judge();pump_choices()
  return ""
 func queue_trigger(who: int,source: Dictionary,amount: int,title: String):
  if Pack.trigger_locked(self): return
  Cat.enqueue(self,{"owner":who,"source":source.duplicate(true),"amount":amount,"optional":true,"name":cards[source.card_id].name+" · "+title})
 func trigger_options(t: Dictionary) -> Array:
+ if t.has("mod_frame"):return Mods.trigger_options(self,t)
  catalogue_target_fast=false
  if t.get("continuation",false):return Extra.trigger_options(self,t)
  if t.get("extended",false): return Roster.filter_options(self,Extra.trigger_options(self,t),t.owner,false)
@@ -546,6 +589,13 @@ func skip_flower_cast_trigger(t: Dictionary) -> bool:
 func begin_trigger(t: Dictionary):
  if skip_murder_dolls_trigger(t) or skip_flower_cast_trigger(t):return
  var options=trigger_options(t)
+ # A hand ability stays private until its owner agrees to announce it.
+ # Declining must not create a provisional stack entry or public history.
+ if t.get("effect","")=="hand_autumn":
+  var c=find_card(t.source.uid)
+  if c.is_empty() or c.zone!="hand" or c.owner!=t.owner or c.epoch!=t.source.epoch:return
+  pending={"kind":"effect_choice","owner":t.owner,"trigger":t,"options":options}
+  return
  # The owner first chooses whether to reveal the draw. The card stays in
  # hand while the announced Miracle ability receives normal responses.
  if t.get("effect","")=="miracle":
@@ -584,7 +634,7 @@ func accept_trigger(entry: Dictionary):
  if entry.get("announced",false):return
  entry.announced=true
  if entry.get("effect","")=="leader_death_damage" and not entry.get("no_legal_targets",false):use_once(entry.source.uid,"death_ping")
- if not entry.get("no_legal_targets",false):Roster.on_ability_announced(self,entry);Roster.New.on_target(self,entry.target)
+ if not entry.get("no_legal_targets",false):Roster.on_ability_announced(self,entry);Roster.New.on_target(self,entry.target);Mods.targeted(self,entry.target,entry.owner)
 func choose_trigger_order(index: Variant):
  if pending.get("kind","")!="trigger_order":return
  if index is Array:
@@ -604,6 +654,8 @@ func choose_trigger_order(index: Variant):
  begin_trigger(t); revision+=1; pump_choices()
 func pump_choices():
  if reveal_resolution_depth>0:return
+ if pending.is_empty() and not mod_changes.is_empty():Mods.Rules.advance(self)
+ if not mod_changes.is_empty() and not pending.is_empty():return
  if winner!=-2:
   finish_reveal_resolution();return
  # Intrinsic entry choices finish before state actions, trigger ordering or priority.
@@ -624,10 +676,16 @@ func pump_choices():
   if c.is_empty() or c.zone!="grave" or c.epoch!=request.target.epoch: continue
   if grave_replacement_sources(c).is_empty(): move_to(c,"hand",true,false); continue
   pending={"kind":"grave_replacement","owner":c.owner,"target":request.target}; return
+ if not mod_changes.is_empty():return
  if possession_resume:
   possession_resume=false
   if phase=="possession":offer_possession()
   if not pending.is_empty():return
+ if not mod_resolution.is_empty():
+  Mods.advance(self)
+  if not mod_resolution.is_empty() or not pending.is_empty():return
+  judge()
+  if not returns.is_empty() or not timer_changes.is_empty() or not zone_replacements.is_empty():pump_choices();return
  finish_reveal_resolution()
  if not pending.is_empty():return
  while not triggers.is_empty():
@@ -803,6 +861,7 @@ func damage_target(target: Dictionary,amount: int) -> int:
   else:c.damage+=amount
   record_history(cards[c.card_id].name+"受到%d点伤害" % amount,history_art(c))
   c.spell_damage=resolving_spell
+ Mods.record_damage(self,target,amount)
  Pack.on_damage(self,target,amount)
  Roster.on_damage(self,target,amount);Cat.State.on_damage(self,target,amount,remaining)
  return amount
@@ -881,12 +940,14 @@ func combat_hit(source: Dictionary,target: Dictionary,amount: int) -> int:
  var result=damage_target(target,amount); damage_context=old
  return result
 func stat(c: Dictionary,key: String) -> int:
- var value=Pack.base_stat(self,c,key)+int(c.get("plus_counters",0))+Roster.stat_adjust(self,c,key)
+ var q={"kind":"stat","card":c,"stat":key}
+ var value=int(Mods.Rules.query(self,q,Pack.base_stat(self,c,key),10))+int(c.get("plus_counters",0))+Roster.stat_adjust(self,c,key)
  if key=="spirit" and c.zone=="field":
   for permanent in players[c.owner].field:
    if Extra.has(cards[permanent.card_id],"spirit_aura"): value+=1
  var fields={"power":"攻击力","health":"血量","spirit":"灵力"}
  for modifier in c.get("modifiers",[]): value+=int(modifier.get(fields[key],0))
+ value=int(Mods.Rules.query(self,q,value,30));value=int(Mods.Rules.query(self,q,value,40))
  return value if key=="health" else maxi(0,value)
 func has_haste(c: Dictionary) -> bool:
  return Extra.keyword(self,c,"疾行")
@@ -898,6 +959,7 @@ func apply_turn_buff(target: Dictionary,params: Dictionary):
 var judging=false
 func judge():
  if not entry_choices.is_empty() or pending.get("trigger",{}).get("intrinsic_entry",false):return
+ if not mod_changes.is_empty():return
  if judging or players.size()!=2 or winner!=-2 or pending.get("kind","")=="ward_order" or not damage_queue.is_empty():return
  check_komachi_coins()
  if winner!=-2:return
@@ -954,7 +1016,8 @@ func pass_priority(who: int):
   if e.kind=="ability":
    if ability_fizzles or e.target.get("invalid",false):note("目标失效，"+e.name+"不结算",history_art(source))
    else:
-    if e.get("extended",false): Extra.resolve_trigger(self,e)
+    if e.has("mod_frame"):Mods.start_resolution(self,e)
+    elif e.get("extended",false): Extra.resolve_trigger(self,e)
     elif e.get("activation",false): Extra.resolve_activation(self,e)
     elif e.get("effect","")=="untap":
      if target_valid(e.target,true): find_card(e.target.uid).tapped=false
@@ -970,8 +1033,8 @@ func pass_priority(who: int):
    var options=Roster.Batch.spells(self)
    options.append({"mode":"青ノ花自身","self":true})
    pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"blue_flower_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
-  elif e.card.card_id in ["100","spell-rei-012"]:
-   var options=stack.filter(func(entry):return entry.kind=="card" and (e.card.card_id=="100" or Extra.cost_value(self,entry.card)<=3)).map(func(entry):return {"stack_id":entry.id})
+  elif e.card.card_id in ["100","spell-rei-012","spell-fdf-053"]:
+   var options=stack.filter(func(entry):return entry.kind=="card" and (cards[entry.card.card_id].kind=="符卡" and Extra.cost_value(self,entry.card)==int(e.card.get("cast_x",e.target.get("x",0))) if e.card.card_id=="spell-fdf-053" else e.card.card_id=="100" or Extra.cost_value(self,entry.card)<=3)).map(func(entry):return {"stack_id":entry.id})
    if options.is_empty():
     to_grave(e.card);note(e.name+"结算时没有可反制的牌",history_art(e.card))
    else:pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"counter_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
@@ -1003,6 +1066,11 @@ func advance_phase():
  priority=active; passes=0
  match phase:
   "prepare":
+   if mod_prepares_remaining>0:
+    mod_prepares_remaining-=1
+    run_delayed("prepare");Pack.on_phase(self,"prepare");Roster.on_phase(self,"prepare");pump_choices()
+    record_history("额外准备阶段")
+    return
    if turn==1: phase="possession"
    else:
     phase="draw";var drawn=draw(active)
@@ -1080,6 +1148,8 @@ func finish_turn():
    c.damage=0; c.modifiers=[]; c.spell_damage=false; c.wards=c.get("wards",[]).filter(func(w):return w.turn==-1); c.base_override={}; c.medicine=[]
  start_turn(extra_turns.pop_front() if not extra_turns.is_empty() else 1-active)
 func can_attack(who: int,uid: int) -> bool:
+ var mod_card=find_card(uid)
+ if not mod_card.is_empty() and Mods.Rules.query(self,{"kind":"action_lock","card":mod_card,"controller":who,"action":"attack"},false):return false
  var c=find_card(uid)
  return winner==-2 and pending.is_empty() and priority==who and active==who and phase=="main" and stack.is_empty() and combat.is_empty() and not c.is_empty() and c.owner==who and c.zone=="field" and is_unit(c) and not c.tapped and Cat.State.can_combat(self,c) and payment(who,attack_cost(who)).ways>0 and (not summoning_sick(c) or has_haste(c))
 func attacking_unit_ref() -> Dictionary:
@@ -1238,14 +1308,14 @@ func end_combat():
 func legal_casts(who: int,fast_only: bool=false) -> Array:
  var result=[]
  var options=players[who].hand.duplicate()
- options.append_array(players[who].grave.filter(func(c):return Roster.permission(self,c,who)))
- options.append_array((players[0].exile+players[1].exile).filter(func(c): return Pack.cast_from(self,c,who)))
+ options.append_array(players[who].grave.filter(func(c):return Roster.permission(self,c,who) or not Mods.access(self,c,who).is_empty() or Mods.Rules.query(self,{"kind":"cast_permission","card":c,"controller":who},false)))
+ options.append_array((players[0].exile+players[1].exile).filter(func(c): return Pack.cast_from(self,c,who) or not Mods.access(self,c,who).is_empty() or Mods.Rules.query(self,{"kind":"cast_permission","card":c,"controller":who},false)))
  options.append_array(players[who].palette.filter(func(c):return Cat.State.permission(self,c,who)))
  options.append_array(players[who].deck.filter(func(c): return Extra.has(cards[c.card_id],"deck_damage") or Cat.State.permission(self,c,who)))
  for leader in leaders(who):
   if leader.zone=="leader":options.append(leader)
  for c in options:
-  if fast_only and not Pack.fast(self,c,who): continue
+  if fast_only and not Pack.fast(self,c,who) and not Mods.Rules.query(self,{"kind":"cast_fast","card":c,"controller":who},false): continue
   if cast_error(who,c.uid).is_empty(): result.append(c)
  return result
 func ai_step(who: int=1):
@@ -1465,6 +1535,8 @@ func activation_error(who: int,uid: int,index: int) -> String:
  if Pack.response_locked(self): return "该牌不能被响应"
  var c=find_card(uid)
  if c.is_empty() or c.owner!=who or c.zone!="field": return "需要操控该永久物"
+ if cards.get(c.card_id,{}).get("disabled",false):return "该牌已被屏蔽，无法使用"
+ if Mods.Rules.query(self,{"kind":"action_lock","card":c,"controller":who,"action":"activate"},false):return "模组常驻效果禁止发动该能力"
  if Cat.State.activation_locked(self,c):return "该对象的启动能力被禁止"
  if Roster.Batch.locked(self,c):return "绵月丰姬：只能在自己的回合启动单位能力"
  var bindings=cards[c.card_id].abilities
@@ -1517,8 +1589,10 @@ func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
  var result=[]
  var c=find_card(uid)
  if c.is_empty() or c.owner!=who: return result
+ if cards.get(c.card_id,{}).get("disabled",false):return result
+ result.append_array(Mods.actions(self,c,who,include_disabled))
  var extra=extra_action(c)
- if not extra.is_empty() and extra.key not in Roster.ACTIVATIONS and c.zone==extension_activation_zone(extra.key):
+ if not extra.is_empty() and not extra.key.begins_with(Mods.PREFIX) and extra.key not in Roster.ACTIVATIONS and c.zone==extension_activation_zone(extra.key):
   extra.reason=extension_activation_error(who,c,extra.key)
   extra.enabled=extra.reason.is_empty()
   if extra.enabled or include_disabled: result.append(extra)
@@ -1555,7 +1629,7 @@ func available_actions(who: int,uid: int,include_disabled: bool=false) -> Array:
 
 func has_response(who: int) -> bool:
  if not legal_casts(who,true).is_empty(): return true
- for c in players[who].field+players[who].grave:
+ for c in players[who].field+players[who].grave+players[who].hand+leaders(who):
   if available_actions(who,c.uid).any(func(a): return a.type in ["ability","extension"]): return true
  return false
 
@@ -1593,7 +1667,7 @@ func commit_ability(who: int,uid: int,index: int,target: Dictionary,plan: Array)
   stack.back().ability_text=cards[member.card_id].abilities[index].get("名称","对目标造成%d点伤害。" % int(params["数值"]))
   activation_entries.append(stack.back())
   next_stack+=1
-  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target)
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target);Mods.targeted(self,stack.back().target,who)
  passes=0; priority=1-who
  note("发动 "+cards[members[0].card_id].name+"的异能"+(" ×%d" % count if count>1 else ""),history_art(members[0]))
  for entry in activation_entries:entry.history_index=history.size()-1
@@ -1607,7 +1681,7 @@ func character_matches(c: Dictionary,required: String) -> bool:
 func character_constraint_error(c: Dictionary,who: int) -> String:
  var info=cards[c.card_id]
  if not info.requires_character.is_empty() and not Roster.bypass(self,c,who):
-  var present=Cat.State.role_present(self,c,who)
+  var present=Cat.State.role_present(self,c,who) or bool(Mods.Rules.query(self,{"kind":"character_permission","card":c,"controller":who},false))
   for u in units(who):
    if character_matches(u,info.requires_character): present=true
   if "支援" in info.get("keywords",[]) and leaders(who).any(func(leader):return leader.zone=="leader" and character_matches(leader,info.requires_character)): present=true
@@ -1628,6 +1702,7 @@ func enter_token_batch(list: Array,who: int) -> Array:
  Roster.field_many(self,list,who)
  return list.filter(func(c):return c.zone=="field")
 func field_error(c: Dictionary,who: int) -> String:
+ if "唯一" in cards[c.card_id].get("keywords",[]) and players[who].field.any(func(other):return other.uid!=c.uid and cards[other.card_id].name==cards[c.card_id].name):return "只能操控一张同名道具"
  if is_unit(c):
   if field_slots(who)>=Cat.field_limit(self,who) and not Extra.keyword(self,c,"不占战场格"): return "单位战场格已满"
   for u in units(who):
@@ -1697,11 +1772,15 @@ func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacemen
  if zone=="grave" and (c.get("exile_on_grave",false) or c.card_id=="new-loc-002" or (c.card_id=="new-eto-005" and c.zone=="stack")):zone="exile"
  var before=c.duplicate(true)
  var return_death_observers=[]
+ if before.zone=="field" and not Mods.bindings(self,before).is_empty():
+  before.mod_leader_enabled=has_leader_ability(c)
+  before.mod_stats={}
+  for stat_key in ["power","health","spirit"]:before.mod_stats[stat_key]=stat(c,stat_key)
  if c.leader and offer_return and before.zone=="field" and zone=="grave":
   return_death_observers=(death_observers if not death_observers.is_empty() else units(0)+units(1)).duplicate(true)
  var from_top=c.zone=="deck" and not players[c.owner].deck.is_empty() and players[c.owner].deck[0].uid==c.uid
  detach(c)
- if before.zone=="field": Extra.on_leave(self,before)
+ if before.zone=="field":Extra.on_leave(self,before);Mods.leave_links(self,before)
  if c.get("token",false) and before.zone=="field":
   # Tokens still die and trigger death abilities, then cease to exist.
   if zone=="grave": Extra.on_death(self,c,before)
@@ -1723,6 +1802,7 @@ func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacemen
  if notify_mill and from_top and zone=="grave":Cat.milled(self,c.owner,1)
  if before.zone=="field" and zone=="grave": Extra.on_death(self,c,before)
  if before.zone=="field":Roster.on_leave(self,before,c)
+ if before.zone=="deck" and zone=="exile":Mods.event(self,c,"self_exiled_from_deck",before)
 func grave_replacement_sources(c: Dictionary) -> Array:
  if not is_unit(c) or c.zone!="grave" or not field_error(c,c.owner).is_empty(): return []
  if Cat.character(self,c,"藤原妹红") and not Cat.with_key(self,c.owner,"spell-fdn-001").is_empty():return Cat.with_key(self,c.owner,"spell-fdn-001")
@@ -1772,7 +1852,7 @@ func declare_trigger_target(t: Dictionary,target: Dictionary) -> bool:
   # Targeted triggers pay the same announcement tax as spells and activations.
   # Keep the provisional entry unannounced while its controller chooses payment.
   var original=pending.duplicate(true)
-  var choice={"effect":"trigger_target_payment","owner":t.owner,"source":t.source.duplicate(true),"optional":false,"continuation":true,"name":t.name,"ability_text":"雾符「云集雾散」：额外支付任意%d点颜色值以使用此能力。" % tax,"data":{"cost":cost}}
+  var choice={"effect":"trigger_target_payment","owner":t.owner,"source":t.source.duplicate(true),"optional":false,"continuation":true,"name":t.name,"ability_text":"额外支付任意%d点颜色值以使用此能力。" % tax,"data":{"cost":cost}}
   pending={"kind":"effect_choice","owner":t.owner,"trigger":choice,"options":Cat.pay_options(self,t.owner,cost),"original_choice":original,"target":checked_target}
   revision+=1
   return false
@@ -1796,6 +1876,11 @@ func choose_effect(target: Dictionary):
 func apply_effect_choice(target: Dictionary):
  if pending.get("kind","")!="effect_choice": return
  var t=pending.trigger
+ if t.get("mod_replace",false):Mods.Rules.answer(self,target);return
+ if t.get("mod_resume",false):Mods.answer(self,target);return
+ if t.has("mod_frame") and not target.is_empty():
+  var mod_target=target.duplicate(true);mod_target.erase("payment")
+  if not Mods.choice_valid(self,pending.options,mod_target):return
  if t.get("effect","")=="trigger_target_payment":
   var checked=target.duplicate(true);checked.erase("payment")
   if checked not in pending.options:return
@@ -1814,7 +1899,8 @@ func apply_effect_choice(target: Dictionary):
  if t.get("effect","")=="counter_resolution":
   if target not in pending.options:return
   pending={}
-  t.entry.target=target.duplicate(true)
+  if t.entry.card.card_id=="spell-fdf-053":t.entry.target.merge(target,true)
+  else:t.entry.target=target.duplicate(true)
   Effects.resolved(self,t.entry)
   retain_resolving_entry(t.entry)
   note(t.entry.name+"结算",history_art(t.entry.card))
@@ -1938,6 +2024,8 @@ func combat_exiles(c: Dictionary) -> bool:
  if Extra.has(cards[c.card_id],"combat_exile") and has_leader_ability(c): return true
  return c.card_id=="token_halfghost" and units(c.owner).any(func(u): return Extra.has(cards[u.card_id],"combat_exile") and has_leader_ability(u))
 func extra_action(c: Dictionary) -> Dictionary:
+ var mod_actions=Mods.actions(self,c,c.owner,true)
+ if not mod_actions.is_empty():return mod_actions[0]
  var key=Extra.activation_kind(cards[c.card_id])
  if key.is_empty(): return {}
  var labels={"grave_return":"支付红 1：移回手牌","grave_reanimate":"支付绿 1 黑 1，弃一张牌：横置移回战场","exile_grave":"横置：移除墓地中的牌","sacrifice_buff":"牺牲一个单位：+1/+1","leader_bounce":"自机能力：单位移回手牌"}
@@ -1945,7 +2033,13 @@ func extra_action(c: Dictionary) -> Dictionary:
 func extension_activation_zone(key: String) -> String:
  return "grave" if key in ["grave_return","grave_reanimate","spell-fdf-059","character-fdf-111"] else "field"
 func extension_activation_error(who: int,c: Dictionary,key: String="") -> String:
+ if cards.get(c.get("card_id",""),{}).get("disabled",false):return "该牌已被屏蔽，无法使用"
+ if key.begins_with(Mods.PREFIX):return Mods.activation_error(self,who,c,key)
+ if key.is_empty():
+  var mod_actions=Mods.actions(self,c,who,true)
+  if not mod_actions.is_empty():return mod_actions[0].reason
  if winner!=-2 or phase=="mulligan" or not pending.is_empty() or priority!=who or c.owner!=who or Pack.response_locked(self): return "当前不能发动"
+ if Mods.Rules.query(self,{"kind":"action_lock","card":c,"controller":who,"action":"activate"},false):return "模组常驻效果禁止发动该能力"
  if Cat.State.activation_locked(self,c):return "该对象的启动能力被禁止"
  if Roster.Batch.locked(self,c):return "绵月丰姬：只能在自己的回合启动单位能力"
  if key.is_empty():key=Extra.activation_kind(cards[c.card_id])
@@ -1967,6 +2061,7 @@ func extension_activation_error(who: int,c: Dictionary,key: String="") -> String
 func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: String="") -> String:
  var c=find_card(uid)
  if c.is_empty(): return "牌已离开"
+ if key.begins_with(Mods.PREFIX):return Mods.commit(self,who,c,key,target,plan)
  if key.is_empty():key=Extra.activation_kind(cards[c.card_id])
  var error=extension_activation_error(who,c,key)
  if not error.is_empty(): return error
@@ -2010,7 +2105,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
   if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[member.card_id],key)
   if key in Pack.ACTIVATIONS: stack.back().ability_text=Pack.text(cards[member.card_id],key)
   if key=="laser": stack.back().ability_text="支付黄并移去一个计时指示物："+clean_target.mode+"。"
-  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target)
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target);Mods.targeted(self,stack.back().target,who)
   next_stack+=1
  passes=0; priority=1-who; note("发动 "+cards[c.card_id].name+(" ×%d" % count if count>1 else ""),history_art(c))
  for entry in activation_entries:entry.history_index=history.size()-1
@@ -2102,6 +2197,14 @@ func ai_expanded_target(who: int,c: Dictionary,options: Array) -> Dictionary:
  return candidates[0] if not candidates.is_empty() else {}
 
 func ai_extended_ability(who: int) -> bool:
+ for zone in ["field","grave","hand","leader"]:
+  var sources=leaders(who) if zone=="leader" else players[who][zone]
+  for source in sources:
+   for action in Mods.actions(self,source,who,false):
+    if usage_count(source.uid,"ai_"+action.key)>0:continue
+    var target=Pack.ai_target(self,who,activation_options(source,action.key))
+    var plan=payment(who,extension_cost(who,source,action.key,target),extension_payment_excluded(who,source,action.key,target)).plan
+    if commit_extension(who,source.uid,target,plan,action.key).is_empty():use_once(source.uid,"ai_"+action.key);return true
  for c in players[who].field:
   for a in available_actions(who,c.uid):
    if a.type!="extension" or a.key not in Roster.ACTIVATIONS or usage_count(c.uid,"ai_"+a.key)>0:continue
@@ -2142,6 +2245,7 @@ func attack_cost(who: int) -> Dictionary:
  var n=Cat.with_key(self,1-who,"spell-ucs-031").size()
  return {"红/蓝/绿/黄/黑":n} if n>0 else {}
 func extension_cost(who: int,c: Dictionary,key: String,target: Dictionary={}) -> Dictionary:
+ if key.begins_with(Mods.PREFIX):return Mods.action_cost(self,who,c,key,target)
  if debug_enabled and debug_free_payment:return {}
  var cost=Extra.activation_cost(key).duplicate();var tax=Cat.target_tax(self,who,target)
  if tax>0:cost["红/蓝/绿/黄/黑"]=int(cost.get("红/蓝/绿/黄/黑",0))+tax
@@ -2161,4 +2265,15 @@ func must_block() -> bool:
  var c=find_card(combat.attacker.uid)
  return Cat.has(self,c,"character-fdf-090") and not legal_blockers().is_empty()
 
-func activation_options(c: Dictionary,key: String) -> Array:return Extra.activation_options(self,c,key)
+func activation_options(c: Dictionary,key: String) -> Array:
+ if key.begins_with(Mods.PREFIX):return Mods.options_for(self,c,key)
+ return Extra.activation_options(self,c,key)
+func extension_payment_excluded(who: int,c: Dictionary,key: String,target: Dictionary) -> Array:
+ for action in available_actions(who,c.uid,true):
+  if action.get("key","")!=key:continue
+  var excluded=[c.uid] if action.get("payment_tap",false) else []
+  for group in action.get("payment_groups",[]):
+   for ref in Pack.picked(target,group):
+    if ref.has("uid") and ref.uid not in excluded:excluded.append(ref.uid)
+  return excluded
+ return []

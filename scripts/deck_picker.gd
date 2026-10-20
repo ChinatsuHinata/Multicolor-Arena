@@ -3,15 +3,20 @@ extends Control
 const Store=preload("res://scripts/deck_store.gd")
 const Search=preload("res://scripts/card_search_aliases.gd")
 const Art=preload("res://scripts/card_art.gd")
+const Library=preload("res://scripts/deck_library.gd")
+var library=Library.new()
 var app
 var callback: Callable
 var selected_id=""
 var caption="选择套牌"
+var empty_message="还没有保存的套牌。请先在组卡器保存。"
+var show_favorites=true
 var previous_focus: WeakRef
 var entries=[]
 var matches=[]
 var colors=[]
 var search: LineEdit
+var sort_choice: OptionButton
 var grid: GridContainer
 var gallery: Control
 var notice: Label
@@ -63,6 +68,11 @@ func _ready():
  search.custom_minimum_size.y=app.ui_metrics.hit;search.clear_button_enabled=true
  search.placeholder_text="检索套牌名称 / 自机 / 卡牌名称或别名"
  search.text_changed.connect(func(_value):apply_search())
+ library.load_data()
+ sort_choice=OptionButton.new();sort_choice.name="DeckPickerSort";filters.add_child(sort_choice)
+ for title in ["使用次数","名称","自机"]:sort_choice.add_item("排序："+title)
+ sort_choice.select(Library.SORT_MODES.find(library.sort_mode));refresh_sort_metrics()
+ sort_choice.item_selected.connect(change_sort)
  action(filters,"清除",reset_search).name="DeckPickerClear"
  color_row=HBoxContainer.new();body.add_child(color_row)
  var inks=[Color("#344553"),Color("#a83035"),Color("#337aa7"),Color("#39794d"),Color("#ac963b"),Color("#383a42")]
@@ -84,20 +94,50 @@ func _ready():
  previous_button=action(pagination,"上一页",func():turn_page(-1));previous_button.name="DeckPickerPrevious"
  page_label=text(pagination,"",app.ui_metrics.small,app.MUTED);page_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  next_button=action(pagination,"下一页",func():turn_page(1));next_button.name="DeckPickerNext"
- for deck in app.decks:
-  var counts=Store.deck_color_counts(deck.main+deck.side+[deck.leader])
-  entries.append({"deck":deck.duplicate(true),"colors":Search.COLORS.filter(func(color):return counts[color]>0)})
+ reload_entries()
  gallery.resized.connect(queue_layout)
- apply_search();queue_layout()
+ queue_layout()
  if app.is_android:back.grab_focus()
  else:search.grab_focus()
+
+func source_decks() -> Array:return app.decks
+
+func reload_entries():
+ entries.clear()
+ for deck in source_decks():
+  var counts=Store.deck_color_counts(deck.main+deck.side+[deck.leader])
+  entries.append({"deck":deck.duplicate(true),"colors":Search.COLORS.filter(func(color):return counts[color]>0)})
+ apply_search()
 
 func apply_search():
  var queries=[]
  for token in search.text.strip_edges().replace("，"," ").replace(","," ").split(" ",false):
   queries.append(Search.prepare_query(Store.CARDS,token,alias_rules))
  matches=entries.filter(func(entry):return colors.all(func(color):return color in entry.colors) and queries.all(func(query):return matches_term(entry,query)))
+ sort_matches()
  page_index=0;render_tiles()
+
+func sort_matches():
+ matches.sort_custom(func(a,b):return library.comes_before(a.deck,b.deck))
+
+func refresh_sort_metrics():
+ app.ui_metrics.button(sort_choice)
+ var caption_width=sort_choice.get_theme_font("font").get_string_size("排序：使用次数",HORIZONTAL_ALIGNMENT_LEFT,-1,app.ui_metrics.button_font).x
+ sort_choice.custom_minimum_size.x=caption_width+app.ui_metrics.padding*3+sort_choice.get_theme_icon("arrow").get_width()
+
+func change_sort(index: int):
+ var error=library.set_sort(Library.SORT_MODES[index])
+ sort_choice.select(Library.SORT_MODES.find(library.sort_mode))
+ if not error.is_empty():app.alert(error,"排序保存失败");return
+ sort_matches();page_index=0;render_tiles()
+
+func toggle_favorite(id: String):
+ var error=library.set_favorite(id,not library.favorite(id))
+ if not error.is_empty():app.alert(error,"收藏保存失败");return
+ sort_matches();page_index=0;render_tiles()
+ var favorite_button=find_child("DeckPickerFavorite_"+id,true,false)
+ if favorite_button!=null:favorite_button.grab_focus()
+ else:sort_choice.grab_focus()
 
 func matches_term(entry: Dictionary,query: Dictionary) -> bool:
  if query.term in str(entry.deck.name).to_lower():return true
@@ -139,7 +179,8 @@ func refresh_metrics():
  page_label.add_theme_font_size_override("font_size",app.ui_metrics.small)
  search.custom_minimum_size.y=app.ui_metrics.hit
  for button in find_children("*","Button",true,false):
-  if not button.has_meta("deck_id"):app.ui_metrics.button(button)
+  if not button.has_meta("deck_id") and not button.has_meta("deck_favorite"):app.ui_metrics.button(button)
+ refresh_sort_metrics()
  grid.add_theme_constant_override("h_separation",int(app.ui_metrics.gap))
  grid.add_theme_constant_override("v_separation",int(app.ui_metrics.gap))
  last_gallery_size=Vector2(-1,-1);queue_layout()
@@ -150,7 +191,7 @@ func relayout():
  var columns=clampi(int((gallery.size.x+app.ui_metrics.gap)/(maxf(280,app.ui_metrics.hit*4.2)+app.ui_metrics.gap)),1,3)
  var rows=1 if app.is_android or gallery.size.y<560 else 2
  var next_size=columns*rows
- var next_compact=gallery.size.y/rows<app.ui_metrics.hit+app.ui_metrics.small*5+100
+ var next_compact=gallery.size.y/rows<app.ui_metrics.hit+app.ui_metrics.body*2+100
  if next_size!=page_size or grid.columns!=columns or compact!=next_compact or not last_gallery_size.is_equal_approx(gallery.size):
   var offset=page_index*page_size
   page_size=next_size;grid.columns=columns;compact=next_compact
@@ -162,7 +203,7 @@ func render_tiles():
  notice.text="共 %d 套" % matches.size()
  if app.is_android:notice.custom_minimum_size.x=notice.get_theme_font("font").get_string_size(notice.text,HORIZONTAL_ALIGNMENT_LEFT,-1,app.ui_metrics.small).x
  if matches.is_empty():
-  text(grid,"还没有保存的套牌。请先在组卡器保存。" if entries.is_empty() else "没有符合条件的套牌，请调整或清除筛选。",app.ui_metrics.body,app.MUTED)
+  text(grid,empty_message if entries.is_empty() else "没有符合条件的套牌，请调整或清除筛选。",app.ui_metrics.body,app.MUTED)
  var page_entries=matches.slice(page_index*page_size,mini(matches.size(),(page_index+1)*page_size))
  var tile_minimum_size=Vector2.ZERO
  for entry in page_entries:
@@ -197,27 +238,32 @@ func make_tile(entry: Dictionary) -> Button:
  tile.name="DeckPickerTile_"+str(deck.id);tile.set_meta("deck_id",str(deck.id));expand(tile,true)
  tile.tooltip_text=deck.name;tile.custom_minimum_size.x=0
  var padding=minf(10,app.ui_metrics.padding*0.5) if compact else app.ui_metrics.padding
- var tile_height=gallery.size.y/(float(page_size)/maxi(1,grid.columns))
- var font_scale=minf(1.0,maxf(1,tile_height-padding*2-16)/((app.ui_metrics.body+4+app.ui_metrics.small*4)*1.4)) if compact else 1.0
- var title_font=maxi(1,floori((app.ui_metrics.body+4)*font_scale))
- var detail_font=maxi(1,floori(app.ui_metrics.small*font_scale))
+ var rows=maxi(1,int(page_size/maxi(1,grid.columns)))
+ var tile_height=(gallery.size.y-app.ui_metrics.gap*(rows-1))/rows
+ var title_font=maxi(14,mini(app.ui_metrics.body+4,floori(tile_height*0.16)))
  var margin=MarginContainer.new();tile.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  margin.mouse_filter=Control.MOUSE_FILTER_IGNORE
  for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,int(padding))
- var content=HBoxContainer.new() if compact else VBoxContainer.new();margin.add_child(content)
+ var content=VBoxContainer.new();content.name="DeckPickerTileContent";margin.add_child(content)
+ content.add_theme_constant_override("separation",6)
  content.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var picture=TextureRect.new();picture.name="DeckPickerLeaderArt";content.add_child(picture);expand(picture,true)
  picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
- picture.texture=app.texture(deck.leader,Art.selected(deck,deck.leader,Store.CARDS)) if Store.CARDS.has(deck.leader) else null
+ picture.texture=app.deck_cover_texture(deck)
  picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
- if compact:picture.size_flags_stretch_ratio=0.65
- var info=VBoxContainer.new();content.add_child(info);expand(info);info.mouse_filter=Control.MOUSE_FILTER_IGNORE
- if compact:info.size_flags_vertical=Control.SIZE_SHRINK_CENTER;info.add_theme_constant_override("separation",4)
- text(info,deck.name,title_font,app.GOLD)
- text(info,"自机："+str(Store.CARDS.get(deck.leader,{}).get("name","未设置")),detail_font,app.WHITE)
- text(info,"主卡组 %d · 副卡组 %d" % [deck.main.size(),deck.side.size()],detail_font,app.MUTED)
- text(info,"颜色："+(" / ".join(entry.colors) if not entry.colors.is_empty() else "无色"),detail_font,app.MUTED)
- text(info,Store.RuleSet.label_for(str(deck.get("rule_set",Store.RuleSet.OFFICIAL)))+" · "+("当前选择" if deck.id==selected_id else "点击选择"),detail_font,app.GOLD if deck.id==selected_id else app.MUTED)
+ var title=text(content,("☁ %02d · " % int(deck.cloud_slot) if deck.has("cloud_slot") else "")+deck.name,title_font,app.GOLD);title.name="DeckPickerTitle"
+ title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ if not show_favorites:return tile
+ var favorite_button=app.button(tile,"★" if library.favorite(str(deck.id)) else "☆",Rect2(),func():toggle_favorite(str(deck.id)),library.favorite(str(deck.id)))
+ favorite_button.name="DeckPickerFavorite_"+str(deck.id);favorite_button.set_meta("deck_favorite",str(deck.id))
+ favorite_button.tooltip_text="取消收藏" if library.favorite(str(deck.id)) else "收藏套牌"
+ favorite_button.toggle_mode=true;favorite_button.set_pressed_no_signal(library.favorite(str(deck.id)))
+ favorite_button.mouse_filter=Control.MOUSE_FILTER_STOP
+ favorite_button.custom_minimum_size=Vector2(app.ui_metrics.hit,app.ui_metrics.hit)
+ favorite_button.add_theme_font_size_override("font_size",maxi(24,app.ui_metrics.small))
+ favorite_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ favorite_button.offset_left=-app.ui_metrics.hit-padding;favorite_button.offset_right=-padding
+ favorite_button.offset_top=padding;favorite_button.offset_bottom=padding+app.ui_metrics.hit
  return tile
 
 func choose(id: String):

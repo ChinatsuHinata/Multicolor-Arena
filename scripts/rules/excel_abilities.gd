@@ -108,14 +108,22 @@ static func keyword(e,c: Dictionary,k: String) -> bool:
 static func fast(e,c: Dictionary,who: int) -> bool:
  return (Cat.enabled(e,c,"character-fdn-036:self")) or (has(e.cards[c.card_id],"kogasa_flash") and not e.combat.is_empty() and e.combat.owner!=who) or forced(e,c,who)
 static func forced(e,c: Dictionary,who: int) -> bool: return e.forced_cast.get("uid",-1)==c.uid and e.forced_cast.get("owner",-1)==who
+static func heart_source(e,c: Dictionary,who: int) -> Dictionary:
+ if c.owner!=who or c.zone!="grave" or e.active!=who or e.cards[c.card_id].kind!="符卡" or e.Extra.cost_value(e,c)>2:return {}
+ if forced(e,c,who) or Cat.State.permission(e,c,who):return {}
+ # Each battlefield source grants its own once-per-turn permission.
+ for u in e.players[who].field:
+  if e.usage_count(u.uid,"heart_grave")<count(e.cards[u.card_id],"heart_grave"):return u
+ return {}
 static func permission(e,c: Dictionary,who: int) -> bool:
  if forced(e,c,who) or Cat.State.permission(e,c,who): return true
  if c.zone=="exile" and c.get("excel_access",{}).get("owner",-1)==who and c.excel_access.turn==e.turn: return true
- return c.owner==who and c.zone=="grave" and e.active==who and e.cards[c.card_id].kind=="符卡" and e.Extra.cost_value(e,c)<=2 and e.players[who].field.any(func(u): return has(e.cards[u.card_id],"heart_grave")) and not e.players[who].get("heart_used_turn",-1)==e.turn
+ return not heart_source(e,c,who).is_empty()
 static func bypass(e,c: Dictionary,who: int) -> bool:
  return (forced(e,c,who) and e.forced_cast.get("ignore",true)) or Cat.State.bypass(e,c,who) or permission(e,c,who) and c.get("excel_access",{}).get("ignore",false)
 static func mandatory_free_cast(e,c: Dictionary,who: int) -> bool:
  if c.is_empty():return false
+ if e.Mods.access(e,c,who).get("free",false) or e.Mods.Rules.query(e,{"kind":"free_cast","card":c,"controller":who},false):return true
  if forced(e,c,who) and e.forced_cast.get("free",true) and not e.forced_cast.get("optional_payment",false):return true
  if c.zone=="exile":
   if c.get("free_exile_owner",-1)==who:return true
@@ -134,8 +142,17 @@ static func cost(e,c: Dictionary,who: int,base: Dictionary) -> Dictionary:
  if int(result.get("蓝",0))>0:
   var discount=e.units(who).filter(func(u): return has(e.cards[u.card_id],"ran_discount") and not u.get("ran_discount_disabled",false)).size()
   result["蓝"]=maxi(0,int(result.get("蓝",0))-discount)
- return New.cost(e,c,who,Batch.cost(e,c,who,result))
+ result=New.cost(e,c,who,Batch.cost(e,c,who,result))
+ var query_colors=e.COLORS+["红/蓝/绿/黄/黑"]
+ for color in result:
+  if color not in query_colors:query_colors.append(color)
+ for color in query_colors:
+  var prior=int(result.get(color,0));var q={"kind":"cost","card":c,"controller":who,"color":color}
+  var amount=maxi(0,int(e.Mods.Rules.query(e,q,e.Mods.Rules.query(e,q,prior,30),40)))
+  if amount!=prior or result.has(color):result[color]=amount
+ return result
 static func protected(e,t: Dictionary,who: int,spell: bool) -> bool:
+ if e.Mods.Rules.query(e,{"kind":"target_protection","target":t,"controller":who,"spell":spell},false):return true
  if Cat.State.protected(e,t,who,spell):return true
  if not t.has("uid"): return false
  var c=e.find_card(t.uid)
@@ -245,6 +262,7 @@ static func on_enter(e,c: Dictionary):
   if has(e.cards[u.card_id],"activity") and e.is_unit(c) and not e.units(c.owner).any(func(other):return other.uid!=c.uid and e.cards[other.card_id].name==e.cards[c.card_id].name):event(e,u,"activity_draw")
   if u.uid!=c.uid and enabled(e,u,"shinmy_counter") and race(e,c,"小人"):event(e,u,"shinmy_counter",true)
 static func on_leave(e,before: Dictionary,c: Dictionary):
+ e.Mods.event(e,before,"self_leave",c)
  New.on_leave(e,before,c)
  Cat.on_leave(e,before,c)
  if has(e.cards[before.card_id],"hatate_replace") and c.zone=="hand":event(e,before,"hatate_replace",true)
@@ -260,17 +278,20 @@ static func on_death(e,c: Dictionary,before: Dictionary):
   if has(e.cards[f.card_id],"nether_ghost") and not before.get("token",false):event(e,f,"nether_ghost")
  if has(e.cards[before.card_id],"shanghai_draw") and named_character(e,before.owner,"爱丽丝·玛格特洛依德"):event(e,before,"shanghai_draw",true)
  if has(e.cards[before.card_id],"seiga_death"):event(e,before,"seiga_death")
-static func on_cast(e,c: Dictionary,who: int,old_zone: String):
+static func on_cast(e,c: Dictionary,who: int,old_zone: String,heart: Dictionary={}):
  New.on_cast(e,c,who,old_zone)
  Cat.on_cast(e,c,who,old_zone)
  Batch.on_cast(e,c,who)
  if has(e.cards[c.card_id],"kanako_cast"):event(e,c,"kanako_cast")
- if old_zone=="grave" and not forced(e,c,who):e.players[who].heart_used_turn=e.turn;c.exile_on_grave=true
+ if not heart.is_empty():e.use_once(heart.uid,"heart_grave")
+ var grant=c.get("mod_access",{})
+ if old_zone=="grave" and not forced(e,c,who) and not (grant.get("owner",-1)==who and grant.get("turn",-1)==e.turn and grant.get("zone","")=="grave"):c.exile_on_grave=true
  if has(e.cards[c.card_id],"perfect_freeze"):e.players[who].freeze_serial=int(e.players[who].get("freeze_serial",0))+1
  for u in e.units(who):
   if e.cards[c.card_id].kind=="符卡" and has(e.cards[u.card_id],"meiling_spell"):event(e,u,"meiling_spell")
   if e.is_unit(c) and has(e.cards[u.card_id],"shinmy_cast"):event(e,u,"shinmy_cast",true)
 static func on_phase(e,phase: String):
+ e.Mods.broadcast(e,"phase",{"phase":phase,"active":e.active})
  New.on_phase(e,phase)
  Cat.on_phase(e,phase)
  Batch.on_phase(e,phase)
@@ -851,6 +872,7 @@ static func end_now(e):
  for s in e.stack.duplicate():
   if s.kind=="card":e.move_to(s.card,"exile")
  e.stack.clear();e.triggers.clear();e.pending={};e.combat={};e.passes=0
+ e.combat_queue.clear();e.combat_ward_checked.clear();e.combat_resolving=false
  # Finishing immediately skips end-step events but still performs cleanup/discard.
  e.phase="end";e.cleanup_end()
 static func register_tokens(e):
@@ -883,6 +905,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
  Cat.prepare_copy_counters(c,source)
  return c if e.enter_field(c,who) else {}
 static func target_survives(e,id: String,t: Dictionary) -> bool:
+ if has(e.cards[id],"n21:LOC-006"):return unit(e,t) and e.Extra.cost_value(e,e.find_card(t.uid))<=4
  if has(e.cards[id],"n21:ETO-011"):return true
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
  if has(e.cards[id],"angry_mask"):return unit(e,t)
@@ -897,7 +920,7 @@ static func ai_target(e,who: int,c: Dictionary,options: Array) -> Dictionary:
   choices.sort_custom(func(a,b):return int(a.get("x",0))>int(b.get("x",0)))
   choices=choices.filter(func(t):return t.get("x",0)==choices[0].get("x",0))
  var helpful=k in ["counters_x","draw_x","leader_mark","unblock_reset","gather_counters"]
- var harmful=k in ["destroy_any","gungnir","destroy_item_field","exile_permanent","bounce_small","flower_damage","tap_destroy","perfect_freeze"]
+ var harmful=k in ["destroy_any","gungnir","destroy_item_field","exile_permanent","bounce_small","n21:LOC-006","flower_damage","tap_destroy","perfect_freeze"]
  if helpful or harmful:
   var preferred=choices.filter(func(t):return t.get("player",-1)==(who if helpful else 1-who) if t.has("player") else t.has("uid") and e.find_card(t.uid).owner==(who if helpful else 1-who))
   if not preferred.is_empty():choices=preferred

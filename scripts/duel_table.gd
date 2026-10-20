@@ -62,6 +62,7 @@ var camera_frame_scale=1.0
 var duel
 var external_stack=false
 var texture_provider: Callable
+var condition_hint_provider: Callable
 var materials={}
 var condition_materials={}
 var visuals={}
@@ -292,7 +293,8 @@ func card_snapshot() -> Dictionary:
 
 func description(c: Dictionary, at: Vector3, scale_value: float=1.0) -> Dictionary:
  var tapping=c.tapped
- return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":ConditionHints.active(duel,c),"unknown_noise":UnknownArt.active(duel,c)}
+ var conditional=condition_hint_provider.call(c) if condition_hint_provider.is_valid() else ConditionHints.actionable(duel,c,local_seat)
+ return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":conditional,"unknown_noise":UnknownArt.active(duel,c)}
 
 func layout() -> Dictionary:
  var result={}
@@ -663,6 +665,16 @@ func sync_color_hexes(node: Node3D,d: Dictionary):
   var hex=MeshInstance3D.new(); hex.mesh=mesh; hex.material_override=material(ink[colors[i]])
   hex.position=Vector3(-CARD_SIZE.x/2+width/2+i*width,0.06,-CARD_SIZE.y/2)
   group.add_child(hex)
+  if colors[i]=="黑":
+   var border_mesh=ImmediateMesh.new();border_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+   for corner in range(6):
+    var outer: Vector3=points[corner];var next_outer: Vector3=points[(corner+1)%6]
+    var inner=outer*0.94;var next_inner=next_outer*0.94
+    for vertex in [outer,next_outer,inner,inner,next_outer,next_inner]:border_mesh.surface_add_vertex(vertex)
+   border_mesh.surface_end()
+   var border=MeshInstance3D.new();border.name="Border";border.mesh=border_mesh
+   border.material_override=material("#d3d9dd");border.position.y=0.001
+   hex.add_child(border)
 
 func stop_tween(key: String):
  if tweens.has(key):

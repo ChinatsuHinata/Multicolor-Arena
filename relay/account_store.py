@@ -14,6 +14,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 import deck_plaza_store
+import cloud_deck_store
 import tournament_store
 
 USERNAME = re.compile(r"[A-Za-z0-9_]{3,24}\Z", re.ASCII)
@@ -101,6 +102,10 @@ def database(path):
             conn.execute(f"ALTER TABLE rating_matches ADD COLUMN {column} TEXT")
     if "mode" not in match_columns:
         conn.execute("ALTER TABLE rating_matches ADD COLUMN mode TEXT NOT NULL DEFAULT 'ranked'")
+    conn.execute("""CREATE TABLE IF NOT EXISTS match_resolutions (
+        match_id TEXT PRIMARY KEY, recorded_at INTEGER NOT NULL,
+        status TEXT NOT NULL, winner INTEGER, detail TEXT NOT NULL,
+        FOREIGN KEY(match_id) REFERENCES rating_matches(match_id))""")
     conn.commit()
     return conn
 
@@ -416,6 +421,15 @@ def handle_match(conn, data):
         row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b,rank_a,rank_b,mode FROM rating_matches WHERE match_id=?",
                            (match_id,)).fetchone()
         mode = row[8]
+        if action in ("settle", "cancel") and row[0] in ("settled", "cancelled"):
+            resolution = data.get("resolution", {})
+            if not isinstance(resolution, dict):
+                resolution = {}
+            # This endpoint is loopback-only. Keep the first durable decision on retries.
+            detail = json.dumps(resolution, ensure_ascii=False)
+            if len(detail.encode("utf-8")) <= 1536:
+                conn.execute("INSERT OR IGNORE INTO match_resolutions VALUES(?,?,?,?,?)",
+                             (match_id, int(time.time()), row[0], row[1], detail))
         if action == "cancel" and conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
             tournament_store.handle_game(conn, {"action": "cancel", "match_id": match_id})
         return {"ok": True, "mode": mode, "rated": mode == "ranked", "status": row[0], "winner": row[1], "ratings": list(row[2:4]), "deltas": list(row[4:6]),
@@ -427,14 +441,14 @@ class Handler(BaseHTTPRequestHandler):
     timeout = 10  # An incomplete loopback request must not block every account.
 
     def do_POST(self):
-        if self.path not in ("/account", "/session", "/deck-plaza", "/tournaments", "/tournament-game", "/match") or self.client_address[0] != "127.0.0.1":
+        if self.path not in ("/account", "/session", "/deck-plaza", "/cloud-decks", "/tournaments", "/tournament-game", "/match") or self.client_address[0] != "127.0.0.1":
             self.send_error(404)
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = 0
-        if not 0 < length <= (16384 if self.path in ("/deck-plaza", "/tournaments") else 2048):
+        if not 0 < length <= (16384 if self.path in ("/deck-plaza", "/cloud-decks", "/tournaments") else 2048):
             self.send_error(413)
             return
         try:
@@ -443,9 +457,9 @@ class Handler(BaseHTTPRequestHandler):
                 result = handle_match(self.conn, data)
             elif self.path == "/tournament-game":
                 result = tournament_store.handle_game(self.conn, data)
-            elif self.path in ("/deck-plaza", "/tournaments"):
+            elif self.path in ("/deck-plaza", "/cloud-decks", "/tournaments"):
                 account = verify(self.conn, data.get("token")) if isinstance(data, dict) else response(False, "请求格式无效")
-                service = deck_plaza_store if self.path == "/deck-plaza" else tournament_store
+                service = {"/deck-plaza": deck_plaza_store, "/cloud-decks": cloud_deck_store, "/tournaments": tournament_store}[self.path]
                 result = service.handle(self.conn, data, account) if account["ok"] else {"ok": False, "message": account["message"], "auth_required": True}
             else:
                 result = handle(self.conn, data)

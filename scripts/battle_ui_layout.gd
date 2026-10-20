@@ -97,6 +97,7 @@ func render_hand_controls():
  var toggle=view.host.button(view.hud,"隐藏手牌" if view.hand_display_enabled else "显示手牌",hand_toggle_rect,func():view.set_hand_display(not view.hand_display_enabled),not view.hand_display_enabled)
  toggle.name="HandDisplayToggle"
  if view.is_android:metrics.button(toggle)
+ position_hand_toggle()
  toggle.tooltip_text="隐藏双方手牌区域" if view.hand_display_enabled else "显示双方手牌区域"
  var badge=view.host.box(view.hud,view.OPPONENT_HAND_COUNT,Color("#101e2b"),view.host.GOLD)
  badge.name="OpponentHandCount"
@@ -121,6 +122,19 @@ func render_hand_controls():
  count.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  count.add_theme_font_size_override("font_size",metrics.title+6 if view.is_android else 36)
  position_hand_count()
+
+func position_hand_toggle():
+ if view.is_android or not is_instance_valid(view.hud) or not is_instance_valid(view.table):return
+ var toggle=view.hud.get_node_or_null("HandDisplayToggle")
+ if toggle==null:return
+ hand_toggle_rect=Rect2(view.HAND.position+Vector2(0,17),toggle.size)
+ # The perspective palette can project into the hand's reserved control column.
+ # Keep the visibility button clear of the potato and its click margin.
+ var key="card_"+str(-100-view.local_seat)
+ if view.table.visuals.has(key):
+  var potato=view.projected_card_rect(view.table.visuals[key]).grow(8)
+  if hand_toggle_rect.intersects(potato):hand_toggle_rect.position.y=view.HAND.end.y-hand_toggle_rect.size.y
+ toggle.position=hand_toggle_rect.position
 
 func position_hand_count():
  if view.is_android or not is_instance_valid(view.hud):return
@@ -190,7 +204,10 @@ func tools_actions() -> Array:
  if view.network_session!=null and not view.network_session.replay_mode and not view.network_session.read_only and view.network_session.room.get("undo_request",{}).is_empty():
   var caption="请求悔棋" if view.is_android else "悔棋"
   var limit=int(view.network_session.room.get("undo_limit",0))
-  if limit>0:caption+="（剩余 %d 次）" % maxi(0,limit-int(view.network_session.room.get("undo_used",0)))
+  if limit>0:
+   var used=view.network_session.room.get("undo_used",[0,0])
+   var own_used=int(used[view.network_session.seat]) if used is Array else int(used)
+   caption+="（剩余 %d 次）" % maxi(0,limit-own_used)
   actions.append([caption,func():view.network_session.room_action({"name":"undo_request"}),not view.network_session.can_act(true) or not view.network_session.room.get("undo_available",false) or not view.engine.stack.is_empty()])
  if view.debug_mode:
   actions.append(["测试说明",view.open_debug_help,view.modal or view.history_open or view.table.combat_animating])
@@ -219,7 +236,8 @@ func camera_focus_rect() -> Rect2:
  var bottom=view.HAND.position.y-metrics.gap
  var top=toolbar_rect.end.y+metrics.gap
  if view.android_palette_view:
-  top=maxf(log_rect.end.y+metrics.gap+98+metrics.gap,bottom-maxf(150,metrics.hit*2))
+  # Keep a usable row above the hand even when large touch controls crowd the HUD.
+  top=maxf(top,bottom-maxf(150,metrics.hit*2))
  elif is_instance_valid(view.table) and not view.table.top_down_view and view.hand_display_enabled:
   # Frame the enemy palette below the opposing hand and move focus toward that end.
   for card in view.enemy_nodes.values():

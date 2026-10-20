@@ -17,13 +17,13 @@ func build_setup(host):
   var surface=panel(middle);expand(surface,true)
   var body=column(surface)
   text(body,"你的卡组" if i==0 else "人机的卡组",metrics.title)
-  var pick=action(body,app.match_setup_deck(i).name+" · 固定卡组" if app.entertainment_battle() else app.deck_choice_caption(app.player_choice if i==0 else app.ai_choice),func():app.open_match_deck_picker(i))
-  pick.disabled=app.entertainment_battle()
+  var pick=action(body,app.setup_deck_caption(i),func():app.open_match_deck_picker(i))
+  pick.disabled=app.entertainment_battle() or i==1 and app.remilia_challenge()
   pick.name="PlayerDeckSelect" if i==0 else "AIDeckSelect"
   pick.custom_minimum_size.x=0;expand(pick)
   var chosen=app.match_setup_deck(i)
   if not chosen.is_empty():
-   var art=TextureRect.new();art.texture=app.texture(chosen.leader);art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+   var art=TextureRect.new();art.texture=app.deck_cover_texture(chosen);art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
    body.add_child(art);expand(art,true)
    text(body,"拜访 ×15 · 探索 ×15\n旅行包 ×8 · 活动 ×12" if app.entertainment_battle() else "主卡组 %d   ·   副卡组 %d" % [chosen.main.size(),chosen.side.size()])
  if not app.is_android:
@@ -113,7 +113,7 @@ func build_settings(host):
   var row=HBoxContainer.new();row.name="AndroidSettingsFooter";body.add_child(row);footer=row
  var version=text(footer,"当前版本："+app.patch_manager().active_version)
  if app.is_android:expand(version)
- action(footer,"加载 PCK 补丁…",app.choose_pck_patch)
+ action(footer,"模组",app.mod_settings).name="ModSettings"
  action(footer,"关于",app.about)
 
 func build_about(host):

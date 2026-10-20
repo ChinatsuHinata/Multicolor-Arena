@@ -4,10 +4,50 @@ const Observer=preload("res://net/observer_projection.gd")
 const Remote=preload("res://net/remote_duel.gd")
 func red_frame(node: Control) -> bool:
  return node.get_meta("conditional_frame",false) and node.has_node("ConditionalFramePulse")
+func check_action_legality():
+ clean()
+ e.players[0].leader=e.make_card("character-fdn-025",0,"leader",true)
+ var hatate=put("character-fdf-105","hand")
+ for id in ["165","166"]:
+  for i in range(3):put(id,"palette")
+ var murasa=put("character-fdf-100","field")
+ for top_down in [false,true]:
+  view.table.set_top_down_view(top_down);view.render();await settle()
+  expect(red_frame(view.hand_nodes[hatate.uid]),"payable conditional hand card is red in "+str(top_down))
+  var unit=view.table.visuals["card_"+str(murasa.uid)]
+  expect(unit.get_meta("conditional_frame",false),"an actionable conditional field unit is red in "+str(top_down))
+  murasa.tapped=true;view.render()
+  expect(not unit.get_meta("conditional_frame",false),"a tapped field unit loses its red frame in "+str(top_down))
+  murasa.tapped=false
+  for c in e.players[0].palette:c.tapped=true
+  view.render()
+  expect(not red_frame(view.hand_nodes[hatate.uid]) and view.hand_nodes[hatate.uid].tooltip_text.contains("额外条件满足"),"insufficient payment clears the red frame while preserving the condition explanation")
+  for c in e.players[0].palette:c.tapped=false
+  for state in [{"phase":"end"},{"priority":1},{"active":1},{"pending":{"kind":"discard","owner":0,"count":1}}]:
+   var previous={}
+   for key in state:previous[key]=e.get(key);e.set(key,state[key])
+   view.render()
+   expect(not red_frame(view.hand_nodes[hatate.uid]) and not unit.get_meta("conditional_frame",false),"unavailable actions clear both hand and field red frames in "+str(top_down)+": "+str(state))
+   for key in previous:e.set(key,previous[key])
+  e.players[0].night_lock=e.turn;view.render()
+  expect(not red_frame(view.hand_nodes[hatate.uid]),"cast restrictions clear the hand red frame in "+str(top_down))
+  e.players[0].night_lock=-1;view.render()
+  view.browse_zone(0,"hand");await process_frame
+  var art=top_art()
+  expect(red_frame(art),"the region browser marks a playable conditional card")
+  e.priority=1;view.render();art=top_art()
+  expect(not red_frame(art),"the open region browser clears its red frame when priority is lost")
+  e.priority=0;view.close_debug();view.render()
+  expect(red_frame(view.hand_nodes[hatate.uid]),"restoring legal use restores the red hand frame")
+  view.request_cast(hatate.uid)
+  expect(not view.local.is_empty() and not unit.get_meta("conditional_frame",false),"an unfinished declaration suppresses other usable-card red frames")
+  view.cancel_cast()
+  expect(red_frame(view.hand_nodes[hatate.uid]) and unit.get_meta("conditional_frame",false),"canceling the declaration restores legal red frames")
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/condition-hints-ui/"+str(Time.get_ticks_usec()))
- app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ app=load("res://main.tscn").instantiate();app.tutorial_local_directory=Store.Paths.root_override.path_join("tutorials");root.add_child(app);await process_frame
  app.load_test_decks();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
+ await check_action_legality()
  app.set_show_card_inspection(true);clean()
  e.debug_enabled=true;e.debug_free_payment=true
  e.players[0].leader=e.make_card("character-fdn-025",0,"leader",true)
@@ -18,7 +58,7 @@ func run():
  var moon=put("spell-mar-012","hand");var plain=put("53","hand")
  var anthem=put("spell-lof-006","field");var shrine=put("170","field")
  var murasa=put("character-fdf-100","field")
- put("166","field");put("68","field")
+ put("166","field");put("68","field");put("59","field")
  var victim=put("53","field",1)
  for i in range(8):put("53","grave")
  put("spell-mar-012","grave");put("spell-mar-012","grave")
@@ -84,7 +124,7 @@ func run():
   expect(e.commit_cast(0,c.uid,{"none":true},[]).is_empty(),"discounted unit commits a real cast: "+id)
   e.presentation_events.clear();view.reveal_player.reset();view.render()
   var stack_id=e.stack.back().id
-  expect(red_frame(view.stack_panel.tiles[stack_id].tile),"discounted unit keeps its hint while on the stack: "+id)
+  expect(not red_frame(view.stack_panel.tiles[stack_id].tile) and view.stack_panel.tiles[stack_id].tile.tooltip_text.contains("额外条件满足"),"a card on the stack keeps its condition explanation without a usable-card red frame: "+id)
   resolve()
   expect(c.zone=="field" and not view.ConditionHints.active(e,c),"discount hint clears when the unit resolves onto the field: "+id)
   e.presentation_events.clear();view.reveal_player.reset()

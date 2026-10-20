@@ -12,10 +12,8 @@ func check(ok: bool,title: String):
 func _initialize():
  var presets=Store.load_decks(Store.SAVE_PATH)
  check(not presets.has("error"),"Preset collection loads")
- var portable=[]
- for path in Store.scan_files("res://deck"):
-  var parsed=Store.read_file(path)
-  if parsed.has("deck"):portable.append(parsed.deck)
+ var portable=[presets.decks[0].duplicate(true)]
+ portable[0].id="local_fixture";portable[0].name="本地卡组"
  var source=presets.decks.duplicate(true)
  var test=source[0].duplicate(true);test.id="test_fixture";test.rule_set="test"
  var other_ai=source[0].duplicate(true);other_ai.id="other_ai";other_ai.name="其他人机（AI）"
@@ -27,6 +25,7 @@ func _initialize():
  if not release.has("error"):
   check(release.decks.size()==presets.decks.size()+1,"Existing presets plus approved AI only")
   check(release.decks.all(func(d):return d.id not in [test.id,other_ai.id,trial.id]),"Test and other AI decks excluded")
+  check(release.decks.all(func(d):return d.id!=portable[0].id),"Private local decks excluded")
   for deck in release.decks:
    check(Store.validate(deck,true,str(deck.get("rule_set","official"))).is_empty(),"Release deck is legal: "+deck.name)
   var remilia=release.decks[-1]
@@ -35,7 +34,7 @@ func _initialize():
   var named=remilia.duplicate(true);named.main=[]
   check(AI.profile(named)==AI.PROFILE,"New display name independently selects AI")
  check(JSON.stringify([source,portable])==original,"Packaging does not edit source decks")
- check(Policy.select_decks(presets.decks,[]).has("error"),"Missing approved AI blocks export")
+ check(not Policy.select_decks(presets.decks,[]).has("error"),"Missing local AI uses the embedded challenge deck")
  for path in ["res://test/probe.gd","res://tests/test_rules.gdc","res://training/corpus.json","res://models/value.onnx","res://data/test_precons.json","res://data/experimental-weights.json","res://work/experiment.bin"]:
   check(Policy.excluded_path(path),"Excluded: "+path)
  for path in ["res://scripts/ai/decision_agent.gd","res://scripts/ai/matchup_models.gd","res://scripts/rules/remilia_aggro_ai.gd","res://data/bundled_decks.json","res://data/alternate_art.json","res://cards/spell-fdn-010.json"]:

@@ -46,6 +46,10 @@ func card_face(parent: Control,id: String,rect: Rect2,leader: bool=false,zone: S
   var frame=Panel.new();parent.add_child(frame);frame.position=rect.position;frame.size=rect.size
   frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
   frame.add_theme_stylebox_override("panel",app.style(Color("#10202c"),Color("#243948")))
+  if leader:
+   var art=TextureRect.new();frame.add_child(art);art.texture=app.deck_cover_texture(deck)
+   art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+   art.mouse_filter=Control.MOUSE_FILTER_IGNORE;art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   return
  var frame=DeckCard.new();frame.is_android=app.is_android;frame.draggable=false
  frame.card_id=id;frame.long_press_enabled=app.is_android

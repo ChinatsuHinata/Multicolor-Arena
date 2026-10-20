@@ -35,7 +35,8 @@ static func on_leave(e,before,c):
   for k in ["character-fdn-037","character-fdn-038"]:
    if C.has(e,before,k):C.events(e,before,k)
   if C.race(e,before,"天狗"):
-   for u in e.units(who):
+   # The returning tengu has already left the field, but observes its own return.
+   for u in e.units(who)+[before]:
     if C.has(e,u,"character-fdn-036"):C.events(e,u,"character-fdn-036")
  if c.zone=="exile":on_sacrifice_or_exile(e,before)
  # A leader returning home still preserves its original death/exile event.

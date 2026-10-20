@@ -7,6 +7,7 @@ static func build(e,events: Array=[],perspective: int=-1,replay_hands: bool=fals
  for key in SeatView.PUBLIC_FIELDS:
   var v=e.get(key);state[key]=v.duplicate(true) if v is Array or v is Dictionary else v
  state.stack=SeatView.public_stack(state.stack)
+ state.mod_manifest=e.mod_manifest.duplicate(true);state.mod_state=e.Mods.projected_state(e,perspective)
  state.pending=e.pending.duplicate(true) if e.pending.get("kind","")=="reveal_review" else {"kind":"network_wait","owner":e.pending.get("owner",e.priority)} if not e.pending.is_empty() else {}
  if e.pending.has("resolving_entry"):state.pending.resolving_entry=SeatView.public_stack([e.pending.resolving_entry])[0]
  elif e.pending.get("trigger",{}).has("entry"):state.pending.resolving_entry=SeatView.public_stack([e.pending.trigger.entry])[0]
@@ -36,7 +37,7 @@ static func build(e,events: Array=[],perspective: int=-1,replay_hands: bool=fals
  collect_definitions(state.stack,e,definitions)
  collect_definitions(state.pending.get("resolving_entry",{}),e,definitions)
  collect_definitions(state.pending.get("cards",[]),e,definitions)
- var projection={"state":state,"queries":q,"definitions":definitions,"all_hands":replay_hands}
+ var projection={"state":state,"queries":q,"definitions":definitions,"all_hands":replay_hands,"response_clock_sampled_at":Time.get_unix_time_from_system()}
  if replay_hands:projection.training_context={"decision_point":e.winner==-2 and e.phase=="main" and e.active==e.priority and e.pending.is_empty() and e.stack.is_empty() and e.combat.is_empty() and e.entry_choices.is_empty()}
  return projection
 

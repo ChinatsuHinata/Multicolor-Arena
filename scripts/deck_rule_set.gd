@@ -2,10 +2,10 @@ extends RefCounted
 
 const UNRESTRICTED="unrestricted"
 const OFFICIAL="official"
-const OFFICIAL_SPX="official_spx"
 const TEST="test"
-const IDS=[UNRESTRICTED,OFFICIAL,OFFICIAL_SPX,TEST]
-const LABELS=["无限制","官限","官限有限定卡","测试卡组"]
+const MOD="mod"
+const IDS=[UNRESTRICTED,OFFICIAL,TEST,MOD]
+const LABELS=["无限制","官限","测试卡组","模组"]
 const OFFICIAL_TWO=["character-ucs-038","104","item-fdf-096"]
 
 static func main_limit(rule_set: String) -> int:
@@ -16,6 +16,8 @@ static func label_for(rule_set: String) -> String:
  return LABELS[index] if index>=0 else "未知规则集"
 
 static func allowed(id: String,info: Dictionary,rule_set: String) -> bool:
+ if info.get("disabled",false) or info.get("inactive_mod",false):return false
+ if rule_set not in info.get("rule_sets",IDS):return false
  if not info.get("constructible",false) or info.get("token",false):return false
  if rule_set==TEST:return true
  return rule_set!=OFFICIAL or not id in ["new-spx-001","new-spx-002","new-spx-003","new-spx-004","new-spx-005","new-spx-006","new-spx-007"]
@@ -26,7 +28,7 @@ static func limit(id: String,info: Dictionary,rule_set: String) -> int:
  var keywords=info.get("keywords",[])
  if "终言" in keywords:return 1
  if "限制级" in keywords or "限制级符卡" in keywords:return 2
- if rule_set in [OFFICIAL,OFFICIAL_SPX] and id in OFFICIAL_TWO:return 2
+ if rule_set==OFFICIAL and id in OFFICIAL_TWO:return 2
  if info.get("unlimited",false):return -1
  return 4
 

@@ -169,7 +169,7 @@ func build_management():
  expand(action(management,"保存",app.save_deck,true),true)
  var plaza=action(management,"套牌广场",app.open_deck_plaza);plaza.name="DeckPlazaButton";expand(plaza,true)
  var upload=action(management,app.deck_upload_caption(),app.upload_current_deck);upload.name="DeckUploadButton";expand(upload,true)
- var menu_entries=[["导出代码",app.export_deck],["导入代码",app.import_deck],
+ var menu_entries=[["云端卡组",app.open_cloud_deck_slots],["导出代码",app.export_deck],["导入代码",app.import_deck],
   ["新建",func():app.guard(func():app.draft=app.Store.blank();app.dirty=false;app.editor();app.rename_dialog())],
   ["重命名",app.rename_dialog],
   ["清空卡组",func():app.confirm_action("清空当前卡组？",func():app.draft.main.clear();app.draft.side.clear();app.draft.leader="";app.dirty=true;app.update_deck_rows())],
@@ -480,7 +480,7 @@ func refresh_gallery_art():
 func thumbnail(id: String) -> Texture2D:
  var path=app.CardArt.image_path(id,app.editor_art_id(id),app.Store.CARDS)
  if thumbnails.has(path):return thumbnails[path]
- var original=load(path) as Texture2D
+ var original=app.CardArt.load_texture(path)
  if original==null:return null
  var image=original.get_image()
  if image.get_width()>image.get_height():image.rotate_90(CLOCKWISE)
@@ -732,11 +732,12 @@ func update_preview():
  var width=maxf(100,(detail_popup_size.x-detail_metrics.padding*2-detail_metrics.gap)*0.52)
  var costs=app.HexCost.new();body.add_child(costs);costs.configure(app.CostDisplay.for_card(info),false,width-20,detail_metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
  var description=text(body,app.card_description(app.selected),detail_metrics.body);description.name="CardDescription";description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- var actions=GridContainer.new();actions.name="CardDetailsActions";actions.columns=2;left.add_child(actions)
  var allowed=app.RuleSet.allowed(app.selected,info,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))
  if not allowed:
-  var notice=text(actions,"此规则集仅供查看",detail_metrics.small);notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- else:
+  var notice=text(left,"此规则集仅供查看",detail_metrics.small);notice.name="CardDetailsReadOnly";expand(notice)
+  notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var actions=GridContainer.new();actions.name="CardDetailsActions";actions.columns=2;left.add_child(actions)
+ if allowed:
   var add_main=detail_action(actions,"加入主卡组",func():app.add_to("main");app.update_preview(),true);expand(add_main)
   var add_side=detail_action(actions,"加入副卡组",func():app.add_to("side");app.update_preview());expand(add_side)
   add_main.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING

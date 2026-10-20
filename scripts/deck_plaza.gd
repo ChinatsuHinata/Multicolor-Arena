@@ -220,7 +220,7 @@ func picture(parent: Node,deck: Dictionary,height: float) -> TextureRect:
  result.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
  result.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  result.mouse_filter=Control.MOUSE_FILTER_IGNORE
- if not deck.is_empty():result.texture=app.texture(deck.leader,Art.selected(deck,deck.leader,Store.CARDS))
+ if not deck.is_empty():result.texture=app.deck_cover_texture(deck)
  result.name="PlazaLeaderArt"
  return result
 
@@ -557,8 +557,8 @@ func download_deck():
  var deck=decoded(current_post)
  if deck.is_empty():notice.text="套牌代码无效，无法下载";return
  deck.name=str(current_post.title)
- var error=Store.save_file(deck)
- if not error.is_empty():notice.text=error;return
+ var result=Store.download_to_local(deck)
+ if result.has("error"):notice.text=result.error;return
  app.reload_decks()
  notice.text="已下载「%s」到本地，在编辑器的卡组列表中选择即可。" % deck.name
 

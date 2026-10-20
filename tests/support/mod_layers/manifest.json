@@ -1,0 +1,7 @@
+{
+  "id": "layers.test", "version": "1", "api": 2,
+  "abilities": {
+    "layer": {"script": "layer.gd", "kind": "static", "role": "main", "zones": ["field"], "text": "layer fixture"},
+    "replacement": {"script": "replacement.gd", "kind": "replacement", "role": "main", "zones": ["field"], "text": "return then gain", "changes": ["draw"]}
+  }, "cards": []
+}

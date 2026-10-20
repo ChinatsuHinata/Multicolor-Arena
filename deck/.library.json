@@ -1,0 +1,31 @@
+{
+  "decks": {
+    "1792202710.847_4086817408": {
+      "favorite": false,
+      "last_game_id": "2f77c05b223aa927a00a2db8323c1734aead07c13b738cff",
+      "usage_count": 1
+    },
+    "1792280204.211_3931447397": {
+      "favorite": false,
+      "last_game_id": "b9e103e9a10d0f17c1fb490e000509882bde75f88e800f8a",
+      "usage_count": 2
+    },
+    "1792282738.262_3872650018": {
+      "favorite": false,
+      "last_game_id": "e0e565a60604ca09a11506d93ced43f081cd5c778f7924bb",
+      "usage_count": 5
+    },
+    "precon_marisa_v1": {
+      "favorite": false,
+      "last_game_id": "34b09c644828efd4abc400bb1da8a28d31137cf7d149a506",
+      "usage_count": 4
+    },
+    "precon_reimu_v1": {
+      "favorite": false,
+      "last_game_id": "076a402954a2d9f409ed6e7d2822f52c383fff534e0d0c97",
+      "usage_count": 2
+    }
+  },
+  "sort_mode": "usage",
+  "version": 1
+}

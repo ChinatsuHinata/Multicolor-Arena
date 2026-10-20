@@ -85,6 +85,11 @@ func run():
  ui.title_input.text="群组与签到测试";ui.title_input.text_changed.emit(ui.title_input.text)
  ui.description_input.text="请在主办方开启签到后完成赛前签到。"
  expect(ui.game_format_input.item_count==5,"creation exposes all existing game formats")
+ expect(ui.format_input.item_count==5,"creation offers Swiss and 2/4/8/16-player knockout cuts")
+ for index in range(5):
+  ui.format_input.select(index)
+  expect(ui.settings_payload().format==["swiss","swiss_top2","swiss_top4","swiss_top8","swiss_top16"][index],"creation submits the selected knockout size")
+ ui.format_input.select(0)
  ui.game_format_input.select(ui.game_format_input.get_item_index(3))
  ui.start_time_input.text=""
  await press_node("TournamentSubmit")

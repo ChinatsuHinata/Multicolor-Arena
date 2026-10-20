@@ -12,7 +12,7 @@ PAGE_SIZE = 6
 MAX_CODE = 8192
 MAX_PLAIN = 16384
 IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,64}\Z", re.ASCII)
-RULES = ("unrestricted", "official", "official_spx", "test")
+RULES = ("unrestricted", "official", "test")
 COLORS = ("红", "蓝", "绿", "黄", "黑")
 
 
@@ -35,11 +35,12 @@ def deck_metadata(parts):
     leader = cards.get(parts[1], {})
     if not leader.get("leader"):
         raise ValueError("自机无效")
+    rule = parts[4] if len(parts) >= 5 else "unrestricted"
     found_colors = set()
     ids = [parts[1]] + [item[0] if isinstance(item, list) else item for zone in parts[2:4] for item in zone]
     for card_id in ids:
         info = cards.get(card_id, {})
-        if not info.get("constructible"):
+        if not info.get("constructible") or rule not in info.get("rule_sets", RULES):
             raise ValueError("卡组包含未知或不可构筑卡牌")
         if not info.get("exclude_colors"):
             found_colors.update(info["colors"])
@@ -113,6 +114,8 @@ def deck_parts(code):
         raise ValueError("卡组代码格式错误")
     if not visible_text(parts[0], 40) or not isinstance(parts[1], str) or not IDENTIFIER.fullmatch(parts[1]):
         raise ValueError("套牌名称或自机无效")
+    if len(parts) >= 5 and parts[4] == "official_spx":
+        parts[4] = "unrestricted"
     rule = parts[4] if len(parts) >= 5 else "unrestricted"
     for packed, maximum in ((parts[2], 70 if rule == "test" else 50), (parts[3], 10)):
         if not isinstance(packed, list) or len(packed) > maximum:

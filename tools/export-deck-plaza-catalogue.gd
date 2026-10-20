@@ -17,6 +17,7 @@ func _initialize():
   for variant in Art.options(id,Store.CARDS):art_ids.append(variant.id)
   var exclude=Store.excludes_deck_colors(id)
   cards[id]={"name":info.name,"leader":info.kind=="自机","constructible":info.get("constructible",false) and not info.get("token",false),"canonical":canonical,"colors":info.colors,"search":search,"arts":art_ids,"exclude_colors":exclude}
+  if info.has("rule_sets"):cards[id].rule_sets=info.rule_sets
  var file=FileAccess.open("res://relay/deck_plaza_catalogue.json",FileAccess.WRITE)
  if file==null:push_error("Could not write deck plaza catalogue");quit(1);return
  file.store_string(JSON.stringify({"version":1,"cards":cards}," "))

@@ -27,6 +27,8 @@ tests/*
 !tests/*.gd.uid
 !tests/test_account_store.py
 !tests/test_deck_plaza_store.py
+!tests/test_cloud_deck_store.py
+!tests/run_cloud_decks.py
 !tests/test_tournament_store.py
 !tests/test_tournament_competition.py
 !tests/run_tournaments.py
@@ -73,3 +75,10 @@ tests/*
 /relay/account_private.pem
 /relay/data/
 /relay/.ssh-deploy-key
+
+# Local external-mod selection (contains machine-specific paths).
+/mods.json
+/mod/
+
+# Local generated artwork and packaging output.
+/output/

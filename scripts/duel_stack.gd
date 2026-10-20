@@ -163,7 +163,7 @@ func sync():
   var caption=tiles[id].caption.text
   tile.tooltip_text=entry.name+("\n"+caption if not caption.is_empty() else "")+("\n"+context if not context.is_empty() else "")
   var style=StyleBoxFlat.new();style.bg_color=Color.TRANSPARENT
-  var conditional=entry.kind=="card" and view.ConditionHints.active(view.engine,entry.card)
+  var conditional=entry.kind=="card" and view.conditional_hint(entry.card)
   view.sync_stack_target_marker(tile,{"stack_id":id})
   if selected or legal or conditional:
    style.set_border_width_all(4);style.border_color=Color("#ffd65c") if selected else Color("#359bff")

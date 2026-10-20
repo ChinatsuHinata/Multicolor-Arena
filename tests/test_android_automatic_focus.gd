@@ -46,7 +46,7 @@ func run():
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1280,720);root.gui_embed_subwindows=true
  root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate();app.tutorial_local_directory=Store.Paths.root_override.path_join("tutorials");root.add_child(app);await frames()
  app.is_android=true;app.layout_dpi_override=240;app.load_legacy_test_decks();app.begin_battle(true)
  view=app.duel_view;view.set_process(false);e=view.engine;await frames()
  var original_phase=e.phase
@@ -136,12 +136,12 @@ func run():
  await touch(0,at,true);await touch(1,at+Vector2(100,0),true);await motion(1,at+Vector2(180,0));await touch(1,at+Vector2(180,0),false);await touch(0,at,false)
  expect(is_equal_approx(size_before,view.table.top_down_camera_size),"disabled manual camera ignores pinch")
  view.settings_menu();await frames()
- var setting=view.modal_root.find_child("AndroidManualCamera",true,false)
+ var setting=view.android_battle_menu_root.find_child("AndroidManualCamera",true,false)
  expect(setting!=null and not setting.button_pressed,"battle settings expose the default-disabled camera toggle")
  await capture("android-manual-camera-settings")
  if setting!=null:setting.button_pressed=true
  expect(app.android_manual_camera and JSON.parse_string(FileAccess.get_file_as_string(app.settings_path)).android_manual_camera,"manual camera setting is persisted")
- view.modal=false;view.render();await frames()
+ view.close_android_battle_menu();view.render();await frames()
  await touch(0,at,true);await create_timer(0.55).timeout;await motion(0,at+Vector2(100,50));await touch(0,at+Vector2(100,50),false)
  expect(not view.table.camera.global_transform.is_equal_approx(before),"enabled manual camera permits drag")
  await touch(0,at,true);await touch(1,at+Vector2(100,0),true);await motion(1,at+Vector2(180,0));await touch(1,at+Vector2(180,0),false);await touch(0,at,false)

@@ -1,7 +1,7 @@
 extends RefCounted
 const Codec=preload("res://net/state_codec.gd")
 const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
-const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names"]
+const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names","response_clock"]
 static func hidden_card(who: int,zone: String,index: int) -> Dictionary:
  return {"card_id":"back","uid":-1000000-who*100000-(10000 if zone=="deck" else 0)-index,"epoch":0,"owner":who,"original_owner":who,"zone":zone,"leader":false,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false,"network_hidden":true}
 static func collect_card_definitions(e,c: Dictionary,definitions: Dictionary):
@@ -11,7 +11,7 @@ static func collect_definition(e,id: String,definitions: Dictionary):
  definitions[id]=e.cards[id]
  collect_definition(e,str(e.cards[id].get("copy_source_id","")),definitions)
 static func public_stack(entries: Array) -> Array:
- var result=entries.duplicate(true)
+ var result=preload("res://scripts/rules/mod_runtime.gd").public_data(entries)
  for entry in result:entry.erase("target_spec")
  return result
 static func collect_refs(v: Variant,refs: Dictionary):
@@ -36,6 +36,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  # The authority alone needs declaration-time choice pools for retargeting.
  # A paid discard could otherwise disclose private hand choices in a snapshot.
  state.stack=public_stack(state.stack)
+ state.mod_manifest=e.mod_manifest.duplicate(true);state.mod_state=e.Mods.projected_state(e,seat)
  q.pending_keystones=SpellDamagePreview.public_keystone_estimates(e)
  q.resources=e.source_resources(seat).duplicate(true);q.response=e.has_response(seat);q.blockers=e.legal_blockers().map(func(c):return c.uid) if e.pending.get("kind","")=="block" and e.pending.owner==seat else []
  q.ability_targets=e.ability_targets().duplicate(true)
@@ -66,10 +67,11 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
    e.paid_cast_uid=c.uid;q.targets[str(c.uid)+":paid"]=e.targets_for(c.card_id,seat,c.uid).duplicate(true)
    e.paid_cast_uid=previous
   for action in q.actions[c.uid]:
-   if action.type=="extension" and action.enabled:q.extension_targets[str(c.uid)+":"+action.key]=e.Extra.activation_options(e,c,action.key).duplicate(true)
+   if action.type=="extension" and action.enabled:q.extension_targets[str(c.uid)+":"+action.key]=e.activation_options(c,action.key).duplicate(true)
  state.pending=e.pending.duplicate(true) if e.pending.get("owner",-1)==seat or e.pending.get("kind","")=="reveal_review" else {"kind":"network_wait","owner":e.pending.owner} if not e.pending.is_empty() else {}
  if e.pending.has("resolving_entry"):state.pending.resolving_entry=public_stack([e.pending.resolving_entry])[0]
  elif e.pending.get("trigger",{}).has("entry"):state.pending.resolving_entry=public_stack([e.pending.trigger.entry])[0]
+ state.pending=e.Mods.public_data(state.pending)
  if state.pending.get("kind","")=="effect_choice" and state.pending.trigger.effect=="cat:grant":
   var saved=e.pending;var paid=e.paid_cast_uid;var revision=e.revision
   q.grant_options={}
@@ -118,7 +120,7 @@ static func build(e,seat: int,events: Array=[]) -> Dictionary:
  # Searching an entire library permits seeing its cards, not their shuffled order.
  sort_search_pools(state.pending,e);sort_search_pools(q.targets,e);sort_search_pools(q.extension_targets,e)
  for key in scratch:e.set(key,scratch[key])
- return {"state":state,"queries":q,"definitions":definitions}
+ return {"state":state,"queries":q,"definitions":definitions,"response_clock_sampled_at":Time.get_unix_time_from_system()}
 static func sort_search_pools(v: Variant,e):
  if v is Dictionary:
   if v.has("pool") and v.pool is Array and ("检索" in str(v.get("title","")) or "搜寻" in str(v.get("title",""))):

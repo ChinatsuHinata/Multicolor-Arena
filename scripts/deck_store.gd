@@ -15,7 +15,7 @@ static func active_save_path() -> String:
 const Database = preload("res://scripts/card_database.gd")
 const RuleSet = preload("res://scripts/deck_rule_set.gd")
 const Art = preload("res://scripts/card_art.gd")
-static var CARDS: Dictionary = Database.load_cards()
+static var CARDS: Dictionary = Database.load_cards(true)
 
 static func excludes_deck_colors(id: String) -> bool:
  var info=CARDS.get(id,{})
@@ -32,6 +32,30 @@ static func deck_color_counts(ids: Array) -> Dictionary:
 
 static func blank(title: String = "未命名卡组") -> Dictionary:
  return {"id":str(Time.get_unix_time_from_system()) + "_" + str(randi()), "name":title, "main":[], "side":[], "leader":"","rule_set":RuleSet.OFFICIAL}
+
+static func card_counts(ids: Array) -> Dictionary:
+ var counts={}
+ for id in ids:
+  var canonical=Art.canonical(str(id),CARDS)
+  counts[canonical]=counts.get(canonical,0)+1
+ return counts
+
+static func same_cards(a: Dictionary,b: Dictionary) -> bool:
+ return Art.canonical(a.leader,CARDS)==Art.canonical(b.leader,CARDS) and card_counts(a.main)==card_counts(b.main) and card_counts(a.side)==card_counts(b.side)
+
+static func download_to_local(source: Dictionary) -> Dictionary:
+ var error=validate(source)
+ if not error.is_empty():return {"error":error}
+ # Read portable files again so downloads also see changes made outside this UI.
+ var local=load_decks()
+ if local.has("error"):return {"error":local.error}
+ for saved in local.decks:
+  if str(saved.name).strip_edges()==str(source.name).strip_edges() and same_cards(saved,source):
+   return {"error":"本地有重复卡组：「%s」。" % saved.name}
+ var deck=clean_deck(source)
+ deck.id=blank().id
+ error=save_file(deck)
+ return {"deck":deck} if error.is_empty() else {"error":error}
 
 static func prune_for_rule(d: Dictionary, rule_set: String) -> int:
  if rule_set not in RuleSet.IDS:return 0
@@ -60,7 +84,32 @@ static func prune_for_rule(d: Dictionary, rule_set: String) -> int:
    counts[key]=counts.get(key,0)+1
   d[zone]=kept
  return removed
-static func validate(d: Variant, strict: bool = false, rule_set: String = "") -> String:
+static func unavailable_card(id: Variant) -> bool:
+ if not id is String:return false
+ if id in Database.DISABLED_IDS:return true
+ if "/" not in id or CARDS.has(id):return false
+ var pack_id=id.get_slice("/",0)
+ if Database.ModRegistry.shared().packs.has(pack_id):return false
+ for item in Database.ModRegistry.configuration():
+  var path=str(item.get("path","" )).path_join("manifest.json") if item is Dictionary else ""
+  if path.is_empty() or not FileAccess.file_exists(path):continue
+  var manifest=JSON.parse_string(FileAccess.get_file_as_string(path))
+  if manifest is Dictionary and manifest.get("id","")==pack_id:return false
+ return true
+
+static func migrate_unavailable_cards(data: Variant) -> Variant:
+ if not data is Dictionary:return data
+ var deck=data.duplicate(true)
+ if deck.get("rule_set","")=="official_spx":deck.rule_set=RuleSet.UNRESTRICTED
+ for zone in ["main","side"]:
+  if deck.get(zone) is Array:deck[zone]=deck[zone].filter(func(id):return not unavailable_card(id))
+ if unavailable_card(deck.get("leader")):deck.leader=""
+ if deck.get("art_overrides") is Dictionary:
+  for id in deck.art_overrides.keys():
+   if unavailable_card(id):deck.art_overrides.erase(id)
+ return deck
+
+static func validate(d: Variant, strict: bool = false, rule_set: String = "", allow_missing_leader: bool = false) -> String:
  if not d is Dictionary: return "卡组数据必须是有效对象。"
  if not d.get("name") is String or d.get("name", "").strip_edges().is_empty(): return "请输入卡组名称。"
  if d.name.length() > 40: return "卡组名称不能超过 40 个字符。"
@@ -73,13 +122,14 @@ static func validate(d: Variant, strict: bool = false, rule_set: String = "") ->
  var main_limit=RuleSet.main_limit(selected_rule)
  if d.main.size()>main_limit:return "规则集「%s」主卡组最多 %d 张。" % [RuleSet.label_for(selected_rule),main_limit]
  if d.side.size() > 10: return "副卡组最多 10 张。"
- if not d.get("leader") is String or not CARDS.has(d.leader) or CARDS[d.leader].kind != "自机": return "自机位必须放置一张自机，才可以保存或对战。"
+ if not d.get("leader") is String:return "自机位必须放置一张自机，才可以保存或对战。"
+ if not (allow_missing_leader and d.leader.is_empty()) and (not CARDS.has(d.leader) or CARDS[d.leader].kind != "自机"):return "自机位必须放置一张自机，才可以保存或对战。"
  for id in d.main + d.side:
   if not id is String or not CARDS.has(id): return "卡组包含未知卡牌。"
- for id in d.main+d.side+[d.leader]:
+ for id in d.main+d.side+([d.leader] if not d.leader.is_empty() else []):
   if not rule_set.is_empty():
    if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
-  elif not CARDS[id].constructible or CARDS[id].get("token",false):return "不能加入常规卡组："+CARDS[id].name
+  elif not CARDS[id].constructible or CARDS[id].get("token",false) or selected_rule not in CARDS[id].get("rule_sets",RuleSet.IDS):return "不能加入常规卡组："+CARDS[id].name
  if strict and selected_rule!=RuleSet.TEST and d.main.size() != 50: return "主卡组需要 50 张，当前 %d 张。" % d.main.size()
  if not rule_set.is_empty():
   var names={}
@@ -88,7 +138,7 @@ static func validate(d: Variant, strict: bool = false, rule_set: String = "") ->
    names[key]=names.get(key,0)+1
    var maximum=RuleSet.limit(id,CARDS[id],rule_set)
    if maximum>=0 and names[key]>maximum:return "规则集「%s」同名牌最多 %d 张：%s" % [RuleSet.label_for(rule_set),maximum,key]
-  var leader_name=RuleSet.name_key(d.leader,CARDS)
+  var leader_name=RuleSet.name_key(d.leader,CARDS) if CARDS.has(d.leader) else ""
   if rule_set!=RuleSet.TEST and names.has(leader_name):return "主副卡组不能包含所选自机的同名牌。"
   return ""
  if strict and selected_rule!=RuleSet.TEST:
@@ -104,10 +154,11 @@ static func validate(d: Variant, strict: bool = false, rule_set: String = "") ->
  return ""
 static func add_card(d: Dictionary, id: String, zone: String, rule_set: String = "") -> String:
  if not CARDS.has(id): return "未知卡牌。"
+ var selected_rule=rule_set if not rule_set.is_empty() else str(d.get("rule_set",RuleSet.UNRESTRICTED))
  if not rule_set.is_empty():
   if rule_set not in RuleSet.IDS:return "规则集无效。"
   if not RuleSet.allowed(id,CARDS[id],rule_set):return "规则集「%s」不能使用：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
- elif not CARDS[id].constructible or CARDS[id].get("token",false):return "不能加入常规卡组："+CARDS[id].name
+ elif not CARDS[id].constructible or CARDS[id].get("inactive_mod",false) or CARDS[id].get("token",false) or selected_rule not in CARDS[id].get("rule_sets",RuleSet.IDS):return "不能加入常规卡组："+CARDS[id].name
  if zone == "leader":
   if CARDS[id].kind != "自机": return "自机位只能放置自机卡。"
   d.leader = id
@@ -118,7 +169,6 @@ static func add_card(d: Dictionary, id: String, zone: String, rule_set: String =
  if not rule_set.is_empty():
   var remaining=RuleSet.remaining(d,id,CARDS,rule_set)
   if remaining==0:return "规则集「%s」同名牌已达到上限：%s" % [RuleSet.label_for(rule_set),CARDS[id].name]
- var selected_rule=rule_set if not rule_set.is_empty() else str(d.get("rule_set",RuleSet.UNRESTRICTED))
  var limit = RuleSet.main_limit(selected_rule) if zone == "main" else 10
  if d[zone].size() >= limit: return "该区域已达到 %d 张的上限。" % limit
  d[zone].append(id)
@@ -169,7 +219,7 @@ static func encode(d: Dictionary) -> String:
  var bytes=payload.to_utf8_buffer()
  var compressed="MA1Z:"+str(bytes.size())+":"+_base64_short(bytes.compress(FileAccess.COMPRESSION_DEFLATE))
  return compressed if compressed.length()<plain.length() else plain
-static func decode(code: String) -> Dictionary:
+static func decode(code: String,copy_name: bool=true) -> Dictionary:
  code=code.strip_edges()
  if code.length() > 100000: return {"error":"卡组代码过长。"}
  var compact=false
@@ -208,9 +258,10 @@ static func decode(code: String) -> Dictionary:
   if side_cards.has("error"): return {"error":side_cards.error}
   var overrides=d[5] if d.size()==6 else {}
   d={"name":d[0],"leader":d[1],"main":main_cards.cards,"side":side_cards.cards,"rule_set":d[4] if d.size()>=5 else RuleSet.UNRESTRICTED,"art_overrides":overrides}
- var error = validate(d)
+ d=migrate_unavailable_cards(d)
+ var error = validate(d,false,"",true)
  if not error.is_empty(): return {"error":error}
- var clean = blank(d.name + "（副本）" if d.name.length() < 35 else d.name)
+ var clean = blank(d.name + "（副本）" if copy_name and d.name.length() < 35 else d.name)
  clean.main = d.main.duplicate()
  clean.side = d.side.duplicate()
  clean.leader = d.leader
@@ -227,13 +278,14 @@ static func load_decks(path: String = "") -> Dictionary:
   return {"error":"卡组文件损坏，原文件已保留。", "decks":[]}
  var ids = {}
  for i in range(data.decks.size()):
-  var d=data.decks[i]
-  var error = validate(d)
+  var d=migrate_unavailable_cards(data.decks[i])
+  var error = validate(d,false,"",true)
   if error.is_empty() and (not d.get("id") is String or d.id.is_empty()):error="卡组标识无效。"
   if error.is_empty() and ids.has(d.id):error="卡组标识重复。"
   if not error.is_empty():
    return {"error":"卡组文件包含无效数据，原文件已保留。第 %d 副：%s" % [i+1,error], "decks":[]}
   ids[d.id] = true
+  data.decks[i]=d
  return {"decks":data.decks,"upgrade_deck_ids":data.get("upgrade_deck_ids",[])}
 static func recover_legacy_decks(path: String) -> Dictionary:
  var result={"decks":[],"warnings":[]}
@@ -252,8 +304,8 @@ static func recover_legacy_decks(path: String) -> Dictionary:
   return result
  var ids={}
  for i in range(data.decks.size()):
-  var d=data.decks[i]
-  var error=validate(d)
+  var d=migrate_unavailable_cards(data.decks[i])
+  var error=validate(d,false,"",true)
   if not error.is_empty():
    result.warnings.append("旧卡组第 %d 副未迁移：%s" % [i+1,error])
    continue
@@ -333,7 +385,7 @@ static func initialize_portable() -> String:
    if not replaced:seeds.append(d)
  for deck in seeds:
   if existing.has(deck.id):continue
-  error=save_file(deck,defaults.path_join(filename(deck)))
+  error=save_file(deck,defaults.path_join(filename(deck)),true)
   if not error.is_empty():return error
  var f=FileAccess.open(marker,FileAccess.WRITE)
  if f==null:return "无法写入卡组初始化标记。"
@@ -394,14 +446,19 @@ static func read_file(path: String) -> Dictionary:
  if f==null:return {"error":"无法读取"}
  if f.get_length()>100000:return {"error":"文件过大"}
  var parser=JSON.new()
- if parser.parse(f.get_as_text())!=OK:return {"error":"不是有效的 JSON 文件"}
+ var content=f.get_as_text();f.close()
+ if parser.parse(content)!=OK:return {"error":"不是有效的 JSON 文件"}
  var data=parser.data
  if not data is Dictionary or data.get("format")!="multicolor:arena/deck" or data.get("version")!=1:return {"error":"不是受支持的 .mdeck 文件"}
- var d=data.get("deck")
- var error=validate(d)
+ var d=migrate_unavailable_cards(data.get("deck"))
+ var error=validate(d,false,"",true)
  if not error.is_empty():return {"error":error}
  if not d.get("id") is String or d.id.is_empty() or d.id.length()>200:return {"error":"卡组标识无效"}
- return {"deck":clean_deck(d)}
+ var clean=clean_deck(d)
+ if d!=data.deck:
+  error=save_file(clean,path,true)
+  if not error.is_empty():return {"deck":clean,"warning":"卡组迁移已完成，但保存失败："+error}
+ return {"deck":clean}
 static func load_portable() -> Dictionary:
  var error=initialize_portable()
  if not error.is_empty():return {"decks":[],"error":error}
@@ -411,6 +468,7 @@ static func load_portable() -> Dictionary:
  for path in scan_files(folder()):
   var parsed=read_file(path)
   if parsed.has("error"):warnings.append(path.get_file()+"："+parsed.error);continue
+  if parsed.has("warning"):warnings.append(path.get_file()+"："+parsed.warning)
   var d=parsed.deck
   if seen.has(d.id):
    if seen[d.id]==d:continue
@@ -418,9 +476,9 @@ static func load_portable() -> Dictionary:
    d.id="import_"+path.sha256_text()
   seen[d.id]=d;file_paths[d.id]=path;decks.append(d)
  return {"decks":decks,"warnings":warnings}
-static func save_file(d: Dictionary,path: String="") -> String:
+static func save_file(d: Dictionary,path: String="",allow_missing_leader: bool=false) -> String:
  if not d.get("id") is String or d.id.is_empty():return "卡组标识无效"
- var error=validate(d)
+ var error=validate(d,false,"",allow_missing_leader)
  if not error.is_empty():return error
  error=Paths.initialize()
  if not error.is_empty():return error

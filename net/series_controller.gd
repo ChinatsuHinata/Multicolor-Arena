@@ -25,6 +25,9 @@ func setup(format_value: int,strict: bool,rule_set: String=RuleSet.UNRESTRICTED)
  state.match_id=Identity.token();state.format=format_value if format_value in [BO1,BO1_SIDEBOARD,BO3,EXPLORATION,EXPLORATION_RANDOM] else BO1;state.strict=strict;state.rule_set=rule_set
  if is_entertainment(state.format):
   state.strict=true;state.rule_set=RuleSet.UNRESTRICTED;state.decks=[entertainment_deck(state.format),entertainment_deck(state.format)]
+ state.mods=Store.Database.ModRegistry.shared().manifest() if uses_mods(state) else []
+static func uses_mods(room: Dictionary) -> bool:
+ return room.get("rule_set",RuleSet.UNRESTRICTED)==RuleSet.MOD
 func select_entertainment(format_value: int) -> String:
  if state.status!="lobby" or not is_entertainment(state.format):return "只能在娱乐房间准备阶段切换模式"
  if not is_entertainment(format_value):return "娱乐模式无效"
@@ -37,7 +40,10 @@ func rematch() -> String:
  state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":old.names.duplicate(true),"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":old.decks.duplicate(true),"first":0,"chooser":-1,"first_chosen":false,"choice_reason":"","roll":{},"roll_history":[],"choice_history":[],"last_winner":-2,"counted":[],"winner":-2,"rematch":true}
  setup(old.format,old.strict,old.rule_set)
  return ""
+static func deck_has_mods(deck: Dictionary) -> bool:
+ return ([deck.get("leader","")]+deck.get("main",[])+deck.get("side",[])).any(func(id):return not Store.CARDS.get(id,{}).get("mod_namespace","").is_empty())
 func set_deck(seat: int,deck: Dictionary) -> String:
+ if not uses_mods(state) and deck_has_mods(deck):return "模组卡牌只能用于模组规则集"
  if is_entertainment(state.format):return entertainment_name(state.format)+"使用双方固定卡组"
  if state.status not in ["lobby","sideboarding","between"]:return "当前不能换牌"
  if state.status=="sideboarding" and state.ready[seat]:return "请先取消准备再换备牌"
@@ -73,6 +79,7 @@ func forfeit(disconnected_seat: int,local_record: bool=false):
  state.forfeit=disconnected_seat;state.local_record=local_record
  state.end_reason=state.names[disconnected_seat]+"掉线超时，整场判负"+("（本地记录）" if local_record else "")
 func ready(seat: int) -> String:
+ if not uses_mods(state) and deck_has_mods(state.decks[seat]):return "模组卡牌只能用于模组规则集"
  if state.status not in ["lobby","sideboarding","between"]:return "当前不能准备"
  if is_entertainment(state.format):
   if not Exploration.fixed_deck(state.decks[seat],state.format==EXPLORATION_RANDOM):return entertainment_name(state.format)+"固定卡组无效"
@@ -118,7 +125,7 @@ func start_game() -> bool:
  if state.status!="choosing" or not state.first_chosen:return false
  if state.round==0 and state.format!=BO1_SIDEBOARD:state.registered=state.decks.duplicate(true)
  state.round+=1;state.game_id=Identity.token();state.status="playing";state.ready=[false,false]
- state.undo_used=0
+ state.undo_used=[0,0]
  state.choice_history.append({"game_id":state.game_id,"round":state.round,"chooser":state.chooser,"first":state.first,"reason":state.choice_reason})
  return true
 func opening_text() -> String:
@@ -136,6 +143,10 @@ func record_result(winner: int) -> bool:
 func public_state(seat: int) -> Dictionary:
  var result=state.duplicate(true);result.erase("registered");result.erase("decks")
  result.erase("deck_hashes")
+ var limit=int(state.get("undo_limit",0))
+ var used=state.get("undo_used",[0,0])
+ if seat in [0,1] and limit>0 and used is Array and used.size()==2:
+  result.undo_available=result.get("undo_available",false) and int(used[seat])<limit
  result.own_deck=state.decks[seat].duplicate(true) if seat in [0,1] else {}
  if state.format==BO1_SIDEBOARD and not state.registered[0].is_empty() and not state.registered[1].is_empty():
   result.leaders=[state.registered[0].leader,state.registered[1].leader]

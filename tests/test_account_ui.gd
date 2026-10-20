@@ -24,6 +24,11 @@ func run():
  AccountSessionStore.clear(app.account_session_path)
  root.add_child(app)
  await process_frame
+ for android in [false,true]:
+  app.is_android=android;app.menu();await process_frame
+  var rank=app.screen.find_child("PlayerRank",true,false)
+  check(rank!=null and rank.get_child_count()==1 and not rank.get_node("RankCaption").text.contains("毛玉"),"signed-out menu hides rank text and badge on each platform")
+ app.is_android=false
  app.account_page();await process_frame
  check(app.page=="account" and app.account_username_input!=null and app.account_password_input.secret,"login page has account and masked password fields")
  check(app.account_password_input is PasswordEdit and app.account_password_input.virtual_keyboard_type==LineEdit.KEYBOARD_TYPE_PASSWORD,"login uses the IME-rejecting field and native password keyboard")
@@ -45,6 +50,7 @@ func run():
  app.account_submit()
  check(app.account_status_label.text.contains("不一致") and not app.account_pending,"mismatched registration is blocked locally")
  app.account_client=AccountClient.new();app.add_child(app.account_client)
+ app.cloud_decks_store().server_url="ws://127.0.0.1:1"
  app.account_client.session_token="a".repeat(64)
  app.account_client.remember_token="b".repeat(64)
  app.account_client.nickname="云端玩家"
@@ -56,6 +62,7 @@ func run():
  app.is_android=true;app.account_page();await process_frame
  check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：1000","Android account page also displays personal Elo")
  app.menu();await process_frame
+ check(app.screen.find_child("PlayerRank",true,false).get_child_count()==2,"signed-in menu displays its rank badge")
  check(app.screen.find_child("AccountElo",true,false)==null,"personal Elo is only displayed on the account page")
  check(AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path)=="b".repeat(64),"login remembers a device-bound token")
  for android in [false,true]:

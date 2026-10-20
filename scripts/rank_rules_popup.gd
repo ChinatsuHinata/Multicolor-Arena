@@ -25,7 +25,7 @@ func build_rules(app):
  sections.add_theme_constant_override("v_separation",int(host.ui_metrics.gap))
  section("升星与晋级","胜利获得 1 星，三连胜起每胜获得 2 星。每段从最大数字升到 1，满 3 星立即晋级，多余星不带入下一级。失败中断连胜；需要掉星时，0 星会降一级并保留 2 星，段位保护按上图执行。","RankProgressionRules")
  section("匹配范围",MATCH_RANGE_RULES,"MatchmakingRangeRules")
- section("对局形式","固定官限 · 主卡组 50 张 · BO1 换备牌。入队时锁定卡组，配对后公开自机；赛前最多从备牌换入 3 张。每局双方合计最多请求悔棋 5 次，发起即计数，被拒绝或取消也计数；悔棋需对方同意。","RankFormatRules")
+ section("对局形式","固定官限 · 主卡组 50 张 · BO1 换备牌。入队时锁定卡组，配对后公开自机；赛前最多从备牌换入 3 张。每局每人最多请求悔棋 5 次，双方独立计数，发起即计数，被拒绝或取消也计数；悔棋需对方同意。","RankFormatRules")
  section("贤者排名与结算","贤者按 Elo 从高到低排名，同分按账号创建顺序排列。段位、连胜与排名由账号服务统一结算；重复提交不会重复加星，取消的匹配不计胜负。","SageRankingRules")
  relayout()
 

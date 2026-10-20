@@ -96,6 +96,7 @@ static func cost_options(e,c,who,base,target):
  if C.has(e,c,"character-fdf-105") and e.Extra.cost_value(e,p.leader)>=5:n+=2
  if C.has(e,c,"spell-fdf-010"):n+=(e.players[0].exile+e.players[1].exile).filter(func(u):return u.has("devour_owner")).size()
  n+=int(c.get("catalogue_access",{}).get("discount",0))
+ n+=int(e.Mods.access(e,c,who).get("discount",0))
  if p.get("maid_discount",{}).get("turn",-1)==e.turn and (C.role(e,c) or C.race(e,c,"吸血鬼")):
   var color=p.maid_discount.color;result[color]=maxi(0,int(result.get(color,0))-1)
  var options=[]
@@ -115,6 +116,7 @@ static func cast_error(e,c,who):
  var lock=p.get("type_lock",{})
  if lock.get("turn",-1)==e.turn and (e.cards[c.card_id].kind==lock.kind or lock.kind=="单位" and e.is_unit(c)):return "本回合不能使用该类别的牌"
  if C.has(e,c,"spell-fdn-022") and (e.phase!="prepare" or e.active==who):return "只能在对手准备阶段使用"
+ if e.Roster.New.has(e,c,"LOC-006") and e.Roster.New.autumn_has_human(e,who):return "你的自机区和战场中没有人类牌才能使用"
  return ""
 static func protected(e,t,who,spell):
  var C=e.Cat

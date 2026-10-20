@@ -1,4 +1,8 @@
 extends "res://tests/support/rules_base.gd"
+const SeatView=preload("res://net/seat_projection.gd")
+const Observer=preload("res://net/observer_projection.gd")
+const Codec=preload("res://net/state_codec.gd")
+const Gateway=preload("res://net/command_gateway.gd")
 
 func autumn_count(who: int=0) -> int:
  return (e.triggers+e.stack).filter(func(t):return t.get("effect","")=="hand_autumn" and t.owner==who).size()
@@ -25,6 +29,8 @@ func run():
  ability_tokens()
  effective_colors()
  entry_boundaries()
+ private_choices()
+ private_batches()
  print("AUTUMN_ENTRY: ",checks," checks; ",failures.size()," failures")
  quit(0 if failures.is_empty() else 1)
 
@@ -102,3 +108,58 @@ func entry_boundaries():
  expect(autumn_count()==1,"a successful token entry still triggers Autumn when it fills the battlefield")
  finish_autumn()
  expect(autumn.zone=="hand","Autumn cannot enter when the battlefield has no remaining unit slot")
+
+func expect_hidden(who: int,stage: String):
+ for projection in [SeatView.build(e,1-who,e.presentation_events),Observer.build(e,e.presentation_events),Observer.build(e,e.presentation_events,1-who)]:
+  expect(not JSON.stringify(projection).contains("hand_autumn") and not projection.definitions.has("11"),stage+": opponent and spectators cannot identify Autumn")
+
+func private_choices():
+ for who in range(2):
+  fresh();var autumn=put("11","hand",who)
+  e.priority=1-who;e.passes=1
+  e.Cat.token(e,who,"人偶",1,1,1,["黄"])
+  var before_log=e.log.duplicate(true);var before_history=e.history.duplicate(true)
+  var before_events=e.presentation_events.duplicate(true);var before_stack_id=e.next_stack
+  e.pump_choices()
+  expect(e.pending.get("kind","")=="effect_choice" and e.pending.owner==who and not e.pending.has("stack_id"),"Autumn asks its owner privately before announcing an ability")
+  expect(e.stack.is_empty() and e.next_stack==before_stack_id and e.priority==1-who and e.passes==1,"private choice creates no stack entry or response window")
+  var own=SeatView.build(e,who,e.presentation_events)
+  expect(own.state.pending.get("trigger",{}).get("effect","")=="hand_autumn","owner receives the usable Autumn choice")
+  expect_hidden(who,"before declining")
+  var before=Codec.capture(e)
+  expect(not Gateway.apply(e,1-who,{"name":"choose_effect","args":[{}]}).is_empty() and Codec.capture(e)==before,"opponent cannot decline the private choice")
+  expect(not Gateway.apply(e,who,{"name":"choose_effect","args":[{"player":who}]}).is_empty() and Codec.capture(e)==before,"invalid Autumn acceptance leaves the choice unchanged")
+  var restored=Duel.new();Codec.restore(restored,Codec.capture(e));e=restored;autumn=e.find_card(autumn.uid)
+  expect(Gateway.apply(e,who,{"name":"choose_effect","args":[{}]}).is_empty(),"restored private choice can be declined through the network command")
+  expect(autumn.zone=="hand" and e.pending.is_empty() and e.stack.is_empty() and e.triggers.is_empty(),"declining Autumn keeps the hand card and leaves no ability")
+  expect(e.log==before_log and e.history==before_history and e.presentation_events==before_events,"declining produces no trigger, decline record or presentation event")
+  expect(e.next_stack==before_stack_id and e.priority==1-who and e.passes==1,"declining preserves stack numbering, priority and previous passes")
+  expect_hidden(who,"after declining")
+  e.Cat.token(e,who,"蝙蝠",1,1,1,["红"]);e.pump_choices()
+  expect(Gateway.apply(e,who,{"name":"choose_effect","args":[e.pending.options[0]]}).is_empty(),"a later eligible entry still allows Autumn to be accepted")
+  expect(e.stack.size()==1 and e.stack[0].effect=="hand_autumn" and e.stack[0].get("announced",false) and e.priority==1-who and e.passes==0,"accepting announces one normal ability and opens its response window")
+  for projection in [SeatView.build(e,1-who,e.presentation_events),Observer.build(e,e.presentation_events)]:
+   expect(projection.state.stack[0].source.uid==autumn.uid and projection.definitions.has("11"),"accepted ability becomes visible to opponent and spectators")
+  finish_autumn()
+  expect(autumn.zone=="field" and e.presentation_events.filter(func(v):return v.type=="reveal" and v.card.uid==autumn.uid).size()==1,"accepted Autumn still reveals and enters once after both players pass")
+
+func private_batches():
+ fresh();put("11","hand")
+ e.Cat.tokens(e,0,2,"人偶",1,1,1,["黄"]);e.pump_choices()
+ expect(e.pending.get("kind","")=="trigger_order","simultaneous Autumn opportunities retain owner ordering")
+ expect_hidden(0,"during batch ordering")
+ e.choose_trigger_order([1,0])
+ e.choose_effect({});e.choose_effect({})
+ expect(e.pending.is_empty() and e.stack.is_empty() and e.triggers.is_empty() and e.trigger_order_queue.is_empty(),"declining the entire ordered batch creates no ability")
+ expect_hidden(0,"after declining a batch")
+
+ fresh();var autumn=put("11","hand")
+ e.Cat.tokens(e,0,2,"人偶",1,1,1,["黄"]);e.pump_choices();e.choose_trigger_order([1,0])
+ e.choose_effect({});e.choose_effect({"none":true})
+ expect(e.stack.size()==1 and e.stack[0].effect=="hand_autumn" and e.history.filter(func(h):return h.text.contains(e.cards["11"].name)).size()==1,"mixed batch only records the accepted Autumn ability")
+ finish_autumn();expect(autumn.zone=="field","accepting after declining another simultaneous opportunity still enters")
+
+ fresh();autumn=put("11","hand")
+ e.Cat.token(e,0,"人偶",1,1,1,["黄"])
+ e.move_to(autumn,"grave");e.move_to(autumn,"hand");e.pump_choices()
+ expect(e.pending.is_empty() and e.stack.is_empty(),"a hand card that changed zones cannot announce an obsolete Autumn opportunity")

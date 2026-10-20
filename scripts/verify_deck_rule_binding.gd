@@ -13,13 +13,13 @@ func _initialize():
  check(deck.rule_set==Rules.OFFICIAL,"new decks default to official")
  var legacy={"id":"legacy","name":"旧卡组","leader":"70","main":[],"side":[]}
  check(Store.clean_deck(legacy).rule_set==Rules.UNRESTRICTED,"untagged custom decks keep their former rule")
- check(Rules.main_limit(Rules.TEST)==70 and Rules.main_limit(Rules.UNRESTRICTED)==50 and Rules.main_limit(Rules.OFFICIAL)==50 and Rules.main_limit(Rules.OFFICIAL_SPX)==50,"only test rule permits 70 main cards")
+ check(Rules.main_limit(Rules.TEST)==70 and Rules.main_limit(Rules.UNRESTRICTED)==50 and Rules.main_limit(Rules.OFFICIAL)==50,"only test rule permits 70 main cards")
  var capacity=Store.blank("容量测试")
  capacity.leader="70"
- capacity.rule_set=Rules.OFFICIAL_SPX
+ capacity.rule_set=Rules.UNRESTRICTED
  for i in range(51):capacity.main.append("new-spx-007")
  check(not Store.validate(capacity).is_empty(),"non-test deck over 50 cannot save or import")
- check(Store.prune_for_rule(capacity,Rules.OFFICIAL_SPX)==1 and capacity.main.size()==50,"rule check removes cards over 50")
+ check(Store.prune_for_rule(capacity,Rules.UNRESTRICTED)==1 and capacity.main.size()==50,"rule check removes cards over 50")
  capacity.rule_set=Rules.TEST
  capacity.main.clear()
  for i in range(70):capacity.main.append("164")
@@ -59,7 +59,7 @@ func _initialize():
   check(preset.has("deck") and preset.deck.rule_set==Rules.OFFICIAL,"preset uses official: "+path.get_file())
   if preset.has("deck"):check(Store.validate(preset.deck,false,Rules.OFFICIAL).is_empty(),"preset obeys official: "+path.get_file())
  var sumireko=Store.read_file("res://deck/堇子（副本）_35b0c227ae2c.mdeck")
- check(sumireko.has("deck") and sumireko.deck.rule_set==Rules.OFFICIAL_SPX,"Sumireko deck permits limited cards")
- if sumireko.has("deck"):check(Store.validate(sumireko.deck,false,Rules.OFFICIAL_SPX).is_empty(),"Sumireko deck obeys selected rule")
+ check(sumireko.has("deck") and sumireko.deck.rule_set==Rules.UNRESTRICTED,"retired rule deck migrates to unrestricted")
+ if sumireko.has("deck"):check(Store.validate(sumireko.deck,false,Rules.UNRESTRICTED).is_empty(),"migrated deck obeys selected rule")
  print("DECK_RULE_BINDING ","PASS" if failures.is_empty() else "FAIL")
  quit(0 if failures.is_empty() else 1)

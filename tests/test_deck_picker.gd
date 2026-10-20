@@ -59,7 +59,9 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(output.path_join("fixtures-"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.gui_embed_subwindows=true
  root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate();app.tutorial_local_directory=output.path_join("tutorials")
+ app.settings_path=output.path_join("settings.json");app.account_session_path=output.path_join("account-session.json")
+ root.add_child(app);await frames()
  var base=app.decks[0].duplicate(true)
  for i in range(14):
   var deck=base.duplicate(true);deck.id="picker_%02d" % i;deck.name="检索样本 编号%02d" % i
@@ -77,7 +79,7 @@ func run():
   root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND if android else Window.CONTENT_SCALE_ASPECT_KEEP
   app.is_android=android;app.layout_dpi_override=360 if android else 0
   app.layout_safe_override=Rect2(40,0,1200,690) if android else Rect2()
-  app.setup();await frames()
+  app.ai_opponent="custom";app.setup();await frames()
   var source=app.screen
   var player_id=app.decks[app.player_choice].id
   var ai_id=app.decks[app.ai_choice].id
@@ -156,8 +158,11 @@ func run():
    session.cloud_seats=["房主","玩家","","","","","",""]
    session.room_id="picker-test-room";session.connected=true;session.paused=false
    session.series.setup(1,false,"test");session.series.state.names=["房主","玩家"]
-   session.room=session.series.public_state(own_seat);app.lan_session=session;app.online();await frames()
+   # Build the isolated room without starting a real cloud directory login.
+   session.room=session.series.public_state(own_seat);session.cloud_mode=false
+   app.lan_session=session;app.online();await frames()
    var lobby=app.screen.get_children().filter(func(child):return child.get_script()==preload("res://net/lan_lobby.gd"))[0]
+   session.cloud_mode=cloud;lobby.cloud_selected=cloud;lobby.refresh(true);await frames()
    var pick=app.screen.find_child("NetworkDeckSelect",true,false)
    expect(pick is Button and not pick is OptionButton,"LAN and cloud room selectors use gallery buttons")
    await activate(pick);await choose_fixture("picker_13")
@@ -171,8 +176,10 @@ func run():
    expect(session.series.state.decks[own_seat].get("id","")=="picker_13","room registration submits the deck selected in the gallery")
    if cloud:session.paused=false;lobby.refresh(true);await frames()
    if android:
+    if cloud:session.cloud_mode=false;lobby.cloud_selected=false
     app.online();await frames()
     lobby=app.screen.get_children().filter(func(child):return child.get_script()==preload("res://net/lan_lobby.gd"))[0]
+    if cloud:session.cloud_mode=true;lobby.cloud_selected=true;lobby.refresh(true);await frames()
     expect(app.decks[lobby.deck_index].id=="picker_13","rebuilding an Android lobby preserves the selected deck")
    if cloud:
     session.read_only=true;session.room=session.series.public_state(-1);lobby.refresh(true);await frames()

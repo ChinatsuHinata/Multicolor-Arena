@@ -48,11 +48,11 @@
       "167",
       "167",
       "167",
-      "new-spx-002",
       "item-fdf-096",
       "170"
     ],
     "name": "未命名卡组",
+    "rule_set": "unrestricted",
     "side": []
   },
   "format": "multicolor:arena/deck",

@@ -4,10 +4,12 @@ extends RefCounted
 const VERSION=2
 const REMILIA_ID="1790434714.661_943735096"
 const REMILIA_NAME="蕾米速攻（AI）"
-const PRIVATE_DIRECTORIES=["saves/","deck/","replay/","work/","test/","tests/","tools/","docs/","builds/","addons/","training/","models/","experiments/","scripts/export_verification/"]
+const Challenge=preload("res://scripts/rules/remilia_challenge.gd")
+const PRIVATE_DIRECTORIES=["saves/","deck/","replay/","work/","test/","tests/","tools/","docs/","builds/","addons/","training/","models/","experiments/","scripts/export_verification/","examples/","mod/","output/","tmp/",".codex-remote-attachments/"]
 
 static func excluded_path(path: String) -> bool:
  var relative=path.trim_prefix("res://").to_lower()
+ if relative=="mods.json":return true
  for directory in PRIVATE_DIRECTORIES:
   if relative.begins_with(directory):return true
  var filename=relative.get_file().get_basename()
@@ -26,19 +28,15 @@ static func is_ai_deck(deck: Dictionary) -> bool:
  var name=str(deck.get("name","")).to_lower()
  return "ai" in name or "人机" in name or not str(deck.get("ai_profile","")).is_empty()
 
-static func select_decks(presets: Array,portable: Array) -> Dictionary:
+static func select_decks(presets: Array,_portable: Array) -> Dictionary:
  var selected=[]
- var remilia={}
+ var remilia=Challenge.deck()
  # Only the existing preset collection and the approved AI deck are public.
  for deck in presets:
   if deck.get("id","")==REMILIA_ID:continue
   if not is_test_deck(deck) and not is_ai_deck(deck):selected.append(deck.duplicate(true))
- for deck in portable+presets:
-  if deck.get("id","")==REMILIA_ID:
-   remilia=deck.duplicate(true)
-   break
- if remilia.is_empty():return {"error":"缺少发行人机卡组："+REMILIA_NAME}
- if remilia.get("leader","")!="74" or is_test_deck(remilia):return {"error":"发行人机卡组必须是非测试规则的蕾米速攻。"}
+ # Retain a portable example for existing players, sourced from embedded data.
+ remilia.id=REMILIA_ID
  remilia.name=REMILIA_NAME
  selected.append(remilia)
  return {"decks":selected}

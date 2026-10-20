@@ -6,14 +6,30 @@
 
 常用入口：
 
+绯红永夜模组扩充使用 `test_scarlet_moon.gd`：验证2黄2绿诵经妖怪的两种进场模式、墓地免费再用及过期、强制触发对手吸血鬼自机、时符复活与离场绑定、实际伤害与蝙蝠数量、额外准备阶段和神宝唯一性、道具极彩、搜寻及准备阶段结束回合。
+
 | 功能 | 测试 |
 | --- | --- |
-| 双端主菜单公告邮箱、未读红点及历史阅读、每个生效版本首次推送与重启去重、跨版本历史保留、PCK 待重启隔离及安卓安全区域／返回 | `test_announcements.gd`（有界面运行时保存截图） |
+| 魅力ノ四重结界搜寻四类牌、直接放入各类时符的计时、咲夜调整、杀人玩偶触发及其余牌入手 | `test_fourfold_barrier.gd` |
+| 当前四种构筑规则集、官限限二、卡组代码与房间登记、已移除规则的本地及压缩代码迁移 | `test_deck_rule_sets.gd`、`test_deck_plaza_store.py`、`test_cloud_deck_store.py` |
+| 幻想ノ秋司：官限构筑、卡图、红黄支付、自机区／额外自机与战场人类限制、颜色值不大于4的单位回拥有者手牌、目标失效、自机返回、响应／反制、联网查询与存档恢复、PC／安卓组卡预览 | `test_autumn_keeper.gd`、`test_autumn_keeper_ui.gd`（加 `-- --render` 保存截图） |
+| 模组规则集与 BO1／BO1 换备牌／BO3 独立组合、组卡边界与代码、换备及再战、PC／安卓及局域网／云端选项、配置不一致拒绝玩家／观众／存档恢复、回环联机及重连 | `test_mod_importer.gd`、`test_mod_rule_sets.gd`、`test_mod_rooms.gd`、`test_mod_settings_ui.gd`（仅 127.0.0.1，临时存档在 work） |
+| 可信模组接口：注册与第二卡包、组卡／支付／反制、可恢复多步结算、来源快照与复制、私密状态、双端界面、回环联机／观战及断线续接 | `test_mod_abilities.gd`、`test_mod_abilities_ui.gd`、`test_mod_abilities_network.gd`（仅 127.0.0.1，临时存档在 work） |
+| 多个心之箱各自提供每回合一次墓地使用、声明失败／反制、来源离场与重新进场、时符移除替代及存档恢复 | `test_heart_box.gd` |
+| 三费射命丸文自己及其他天狗回手制造新闻素材、多个来源各触发一次、自机返回区域选择、操控权及存档恢复 | `test_aya_news_material.gd` |
+| 安卓仅供查看卡牌的原生点选、提示整行显示、卡牌说明及卡图空间、关闭保留草稿；无限制下点选全随机秘封自机 | `test_android_read_only_cards.gd`（加 `-- --render` 保存截图） |
+| 全随机版梅莉／莲子自机的无限制及测试构筑、官限排除、规则切换、卡组代码、角色通配符及发现卡池隔离、广场上传校验 | `test_exploration_leader_construction.gd`、`test_deck_plaza_store.py` |
+| 上次匹配卡组按账号／卡组 ID 跨重启记忆、删除或变为不合规时回退；双端挑战蕾米／其他卡组切换、内嵌卡组独立副本及不受本地 AI 卡组或打包源影响 | `test_match_deck_memory_and_challenge.gd` |
+| 每账号十个私人云端槽、账号隔离、持久化、跨设备同步、编辑器保存及删除、旧设备冲突保护；双端卡图画廊、搜索与翻页、上传保留本地及草稿、独立下载；云端与广场下载仅在同名且卡牌构成完全相同时拒绝（忽略顺序及异画） | `test_cloud_deck_store.py`、`test_deck_downloads.gd`、`run_cloud_decks.py`（仅本机回环服务与临时账号数据库；加 `--render` 保存双端截图） |
+| 断线归因：独立双向探测、房主／客人真实超时判负、单方伪造断线和控制帧隔离、同设备旧连接接替、重连不延长期限、服务器故障不误罚、恢复提示与结算证据持久化 | `test_match_recovery.gd`、`test_match_connection_timeout.gd`、`run_cloud_matchmaking.py --attribution-only`、`test_connection_resolution_store.py`、`test_gateway_connection_evidence.py`（仅本机回环连接与临时数据库） |
+| 双端主菜单公告邮箱、未读红点及历史阅读、公告 ID 去重及补丁升级不重推、旧副本与已读记录迁移、跨版本历史保留、PCK 待重启隔离及安卓安全区域／返回 | `test_announcements.gd`（有界面运行时保存截图） |
+| 比赛奖杯未读红点、分页检测、详情已读、账号隔离与重启保存、请求失败／退出账号及删除比赛、双端点击与布局 | `test_tournament_unread.gd`，通过 `run_tournaments.py --unread-only` 运行；加 `--render` 保存双端截图 |
 | 探索幻想乡：双方固定 15／15／8／12 卡组、模式自机无原进场效果及说明、跨区域角色通配符、场上自机的拜访自机权重加成及离场恢复、四种发现牌的莉莉白颜色、梅莉／莲子／旅行包按实际颜色支付及减费模拟的余费保底（含道具、因幡帝黄绿成对支付、颜色盘与土豆，优先非 X，无符合条件非 X 时才保底 X；梅莉剩余 0 费时只按下回合预计费用保底，0 费单位仍保留普通抽选加成；梅莉剩余 6 费时保底 5／6 费各 1/2，剩余 7 费时保底 5／6／7 费分别为 1/6、1/2、1/3，先抽费用再抽卡，缺失费用按比例重分；莲子的探索剩余 7 费时也将可支付的 6 费牌纳入保底池）、俱乐部活动不保底、爆符／土符／小小军势／歌莉娅人形额外抽选权重 0.1 倍、雨夜怪谈 0.5 倍、宝永赤蛙／新幻想史 0.2 倍、其他限制级／终言维持原有权重、精确费用 4 倍与自机／高速／X 加成叠乘及三张同名去重、下回合总费／余费稀有权重、拒绝非法选择、存档恢复、人机全程让过及强制结算、试验 AI 隔离、桌面／安卓卡图点选及局域网双方同步／重开 | `test_gensokyo_exploration.gd`、`test_gensokyo_exploration_ui.gd`、`test_gensokyo_exploration_network.gd`（仅本机回环连接） |
 | 天火人进场／死亡／攻击／阻挡的目标丢失、离场返回、防伤与来源离场；响子全部与部分目标丢失、至多一个目标继续结算、牺牲／弃牌费用隔离 | `test_ability_target_validity.gd` |
 | 房主加入提醒：局域网申请与观战、云端入座及重复握手／换座去重，双端音量设置、试听、静音和重启保存 | `test_room_join_sound.gd` |
 | BO1 换备牌：赛前公开自机、最多换入三张、重复提交与重连防绕过、单局结算和重开；桌面／安卓编辑器及本机云端中转同步 | `test_bo1_sideboard.gd`、`test_bo1_sideboard_ui.gd`、`test_bo1_sideboard_cloud.gd`（云端测试先启动 `support/cloud_resume_relay.gd -- --test-resume --bind 127.0.0.1 --port 48035 --transport websocket`） |
 | 无目标牺牲、结晶、颜色盘选牌、伤害分配及给予防避的结算选择；响应中候选变化、费用区别、联机与观战同步 | `test_resolution_choices.gd`、`test_resolution_choices_ui.gd` |
+| 红薯支付：桌面／安卓、2D／3D 及两种桌垫的真实点击、边缘容差、手指抖动、手牌开关避让、相邻卡牌优先与确认后消费 | `test_potato_payment_ui.gd`（加 `-- --android` 验证安卓界面；有界面运行时保存截图） |
 | 青花结算：桌面／安卓仅从堆叠点选符卡，无其他符卡（含仅剩能力或符卡已离开）时显示反制自身按钮及实际结算 | `test_blue_flower.gd`、`test_blue_flower_ui.gd` |
 | 双端主菜单两列排序、设置内关于及返回、教程三分类筛选与分页、完成状态持久化与横屏安全区域 | `test_main_menu_tutorial.gd`、`test_android_menu.gd` |
 | 教程逐步目录、已读与未读跳转门控、跨重启组卡／战场／随机状态与场景恢复、历史回看、双端目录点击及布局、发行版与安卓编辑器屏蔽 | `test_tutorial_directory.gd` |
@@ -38,7 +54,7 @@
 | 双端组卡、人机及局域网／云端卡组按钮、套牌画廊检索、翻页、取消与选择回填 | `test_deck_picker.gd` |
 | 套牌广场登录、上传、异画、搜索、编辑器更新、所属玩家权限、下载；详情关注／取消关注、只看关注筛选及作者账号隐藏 | `test_deck_plaza.gd`、`test_deck_plaza_store.py` |
 | 玩家账号初始 Elo 1000、已有账号迁移及重启保留、登录／自动登录传递、仅本人账号页展示及无改分接口 | `test_account_store.py`、`test_account_ui.gd` |
-| 比赛入口、登录返回、描述预览与自主报名、主办方修改描述和删除、必填比赛时间、到点关闭报名自动签到；五种指定对局赛制、BO3 两胜才回填、固定娱乐卡组、取消进行中比赛、不影响排位；瑞士轮与四强、双方确认结果、后台定时任务和双端布局 | `test_tournament_store.py`、`test_tournament_competition.py`、`test_tournaments.gd`、`test_tournament_rounds.gd`、`test_tournament_game_formats.gd`、`run_tournaments.py`（仅回环地址与临时数据库；`--rounds-only` 验证赛程，`--formats-only` 验证真实指定赛制，`--render` 输出双端截图到 `work/tournament-tests/`） |
+| 比赛入口、登录返回、描述预览与自主报名、主办方修改描述和删除、必填比赛时间、到点关闭报名自动签到；五种指定对局赛制、BO3 两胜才回填、固定娱乐卡组、取消进行中比赛、不影响排位；瑞士轮与可选 2 / 4 / 8 / 16 强淘汰赛、种子编排、晋级与并列名次、双方确认结果、后台定时任务和双端布局 | `test_tournament_store.py`、`test_tournament_competition.py`、`test_tournaments.gd`、`test_tournament_rounds.gd`、`test_tournament_game_formats.gd`、`run_tournaments.py`（仅回环地址与临时数据库；`--rounds-only` 验证赛程，`--formats-only` 验证真实指定赛制，`--render` 输出双端截图到 `work/tournament-tests/`） |
 | 自助修改密码：双端旧／新／确认表单门控、旧密码验证、服务端确认、过期及重放、错误次数限制、并发重置保护、双平台凭据清理及 64 位转义密码修改后重新登录 | `test_account_store.py`、`test_account_ui.gd`、`run_password_change.py`（仅回环地址和临时数据库） |
 | 休闲／排位切换及保存、模式与队列人数隔离、无限制卡组登记／换备、双方重启恢复、观战结果、正常／断线结算与段位／星数／连胜／Elo 不变 | `test_match_queue.gd`、`test_ranked_relay.gd`、`test_match_store.py`、`test_matchmaking_ui.gd`、`run_cloud_matchmaking.py --casual-only`（运行 `test_casual_matchmaking.gd`） |
 | 娱乐大模式与子模式选择、设置迁移／保存、PC／安卓及云端／局域网房间选择、房主切换权限与双方准备清除；探索幻想乡全随机版四种对应卡池等概率抽取、无费用或颜色筛选／保底／加权、三张同名去重及卡池不足处理、真实选牌及存档恢复 | `test_entertainment_modes_ui.gd`、`test_gensokyo_exploration_random.gd` |
@@ -77,6 +93,7 @@
 | 安卓慧音大量牺牲与吞食的 2D／3D 表现恢复、独立堆叠、衍生物离场、展示顺序、隐藏牌及动画取消 | `test_keine_sacrifice_ui.gd` |
 | 二重结界整回合光环：双方后续使用／效果／衍生物／批量进场、控制权变化、指示物与加成、回合恢复及联机／观战同步 | `test_double_barrier.gd` |
 | 永久物范围、自机、时符与乐章，以及相关符卡的目标、清场、保护和离场触发 | `test_permanents.gd` |
+| 神ノ风、莱瓦汀、夜ノ蝶及神祭的己方道具支付／目标切换、支付已满时防误选、多目标与真实结算，桌面／安卓及 2D／3D | `test_item_payment_target_ui.gd` |
 | 先制伤害后的双方响应、堆叠结算与普通单位反击顺序 | `test_first_strike_response.gd` |
 | 连挡伤害全部手动分配、确认按钮门控、观察与重建保留、零伤害及双端提交 | `test_combat_damage_assignment_ui.gd` |
 | 双端展示／检索卡图网格、多选统一确认、同名与灵力合计限制、游戏外选牌、不足一行从左排列，以及梅莉／莲子收集歌曲必选现有每种各一张、三种去向可跳过和联机校验 | `test_card_art_selection_ui.gd`、`test_song_collection.gd` |
@@ -102,7 +119,7 @@
 | 摩多罗的牌库顶预览与自机牌颜色约束 | `test_okina_color_bypass.gd`、`test_okina_ui.gd` |
 | 奇迹展示、留在手牌的响应窗口、弃置／反制／使用限制、结算时选目标、联机／观战与双端界面 | `test_miracle.gd`、`test_miracle_ui.gd` |
 | 衍生物同时制造 | `test_token_creation.gd` |
-| 秋静叶：符卡／能力制造红黄单位衍生物、实际颜色与复制、逐个进场触发、可选展示及战场容量 | `test_autumn_entry.gd` |
+| 秋静叶：符卡／能力制造红黄单位衍生物、实际颜色与复制、逐个进场触发、可选展示及战场容量；手牌发动前私密选择、放弃不入堆叠或留下记录、双方／观战隐藏、存档恢复及同批选择 | `test_autumn_entry.gd` |
 | 蕾米速攻专用 AI | `test_remilia_aggro_ai.gd` |
 | AI 小蕾米回手、重新登场与死亡去向 | `test_remilia_return_ai.gd` |
 | 蕾米前期凭依保留展开、结晶大单位与保护直伤 | `test_remilia_resource_ai.gd` |
@@ -128,12 +145,14 @@
 | 阵雨与火的磨牌触发 | `test_rain_fire_mill.gd` |
 | 测谎仪抓牌、低费使用与非抓牌入手 | `test_lie_detector.gd` |
 | 响应与攻击快捷键 | `test_response_shortcut.gd`、`test_attack_shortcut.gd` |
+| 每次响应 240 秒、最后 30 秒倒计时、选牌／支付／设置不重置；人机超时自动让过，联机超时整场判负、保留真实局分、清理恢复记录并释放连接／观战监听／房间；云端房主二号位、自建 BO3、排位 Elo 结算及立即重新匹配 | `test_response_timeout.gd`、`test_network_response_timeout.gd`、`run_cloud_matchmaking.py --response-timeout-only`（运行 `test_cloud_response_timeout.gd`，仅本机回环连接、临时数据库与存档） |
 | 安卓触控、返回及桌面差异 | `test_android_controls.gd` |
 | 安卓原生返回键拦截退出、等同取消、顶层弹窗优先、组卡草稿保留、出牌／攻击预览取消及桌面隔离 | `test_android_system_back.gd` |
 | 安卓墓地与除外区悬浮图标及点击区扩大 1.5 倍、原生边缘点击、长按 1 秒圆环后拖动、手指抖动／鼠标回声／取消、安全区、设置保存、黑洞左移、除外区双方切换及桌面隔离；有界面运行时保存效果图 | `test_android_zone_shortcuts.gd` |
 | 安卓战斗选项空间、莉莉黑颜色选择与堆叠区避让底部操作 | `test_android_battle_choices.gd`、`test_android_battle_layout.gd` |
 | 安卓右下角两至三个能力选项免滚动、帕秋莉符卡展示移除后的使用／不使用、原生触摸及高密度联机提示与堆叠避让 | `test_android_ability_options.gd` |
 | 安卓战场／颜色盘移动视角、2D／3D 投影、手牌避让、敌方颜色盘查看、触摸切换、视角复原与桌面隔离；有界面运行时保存截图 | `test_android_camera_focus.gd` |
+| 安卓双方颜色盘与战场连续切换、动画中途复原、拥挤布局和临时一像素对焦区域的远距跳转回归，覆盖双方座位、2D／3D 与两种桌垫 | `test_android_camera_stability.gd` |
 | 安卓凭依、结晶及付费自动聚焦我方，贫乏、破坏颜色盘与墓地能力选择聚焦敌方，退出还原位置和缩放，手动视角默认关闭及设置保存；有界面运行时保存截图 | `test_android_automatic_focus.gd` |
 | 安卓皮丝、布都真实结算的敌方颜色盘选牌，五组分辨率／触摸密度下的 2D／3D 能力框避让、触摸确认、重选、隐藏／展开与视角还原；有界面运行时保存截图 | `test_android_palette_targets.gd` |
 | 安卓使用牌区域入口、五种区域切换、慧音吞食对方牌的使用与支付取消、三种视角及高密度 2D／3D 避让、桌面页签保留；有界面运行时保存截图 | `test_android_cast_zones.gd` |
@@ -167,3 +186,11 @@ ECS 公网更新链可手动运行 `test_pck_ecs_update.gd`。测试从自动更
 正式模板的卡组交付和人机界面检查使用 `tools/check-release-runtime.ps1 -ExePath <导出的EXE路径>`；它将 EXE 的原样副本与隔离验证入口放在 `work/release-deck-runtime/`，挂载未修改的游戏 PCK，执行 `test_release_deck_runtime.gd`，不读写玩家安装目录。
 
 仅检查语法与加载关系时，在命令中加入 `--check-only`。不要批量运行历史版本测试，也不要为通过测试而恢复过时预期。
+
+模组常驻、替代与外部卡包：`test_testmod.gd` 验证testmod卡、无前缀卡名与日文书名号／片假名ノ、参拜者多副本共存、融合炉选牌／即时免费使用／棒的进场与牌库除外触发／所有权和存档恢复、修正层和依赖；`test_mod_rooms.gd` 验证真实本机联机的配置一致性、观战和重连；`test_mod_settings_ui.gd` 验证桌面／安卓 ZIP 文件导入、新版自动替换与即时加载、同版与不规范包拒绝、删除确认／取消、房间内禁止修改、未应用勾选跨刷新保留、返回保存／放弃／取消与保存失败、设置选择、编辑器卡名、外部脚本加载及融合炉回收棒的多选交互。样例源在 `examples/testmod/`，导出时排除。
+
+模组 ZIP 安装及删除：`test_mod_importer.gd` 验证根目录和单层目录包、本地 mod 路径、停用导入、数字／预发布版本比较、新版替换与保留启用状态、旧文件清理、同版／旧版拒绝、脚本和卡牌即时刷新、删除／重新安装、旧外部目录升级迁移及仅移除登记、缺失目录登记清理、清单／脚本／卡牌／图片、路径越界与大小写冲突、CRC／大小／加密／符号链接及安装／更新／删除时配置写入失败回滚。
+
+安卓实测入口：独立测试应用的 Node 场景挂载 `support/mod_import_device.gd`，运行与 PC 相同的安装校验后打开安卓原生文件选择器；选择有效模组 ZIP，验证下载目录导入、应用本地 mod 安装及重复拒绝。测试包使用独立包名，避免改动正式游戏数据。
+
+本次牌文修正：`test_testmod.gd` 覆盖融合炉洗回0–2张棒与即时免费使用、两根棒先抓后移除、指定伤害、红绿3/3/2御柱；`test_byakuren_target_tax.gd` 验证圣白莲对符卡及能力的目标附加费用；`test_purple_cloud.gd` 覆盖紫云之兆先付费后按最终X选符卡、可选加倍、无匹配无效果与存档恢复。联机和设置UI专项改为验证融合炉的选择与断线恢复。

@@ -149,54 +149,70 @@ func phase_undo_cases():
  check(boundary.entries.size()==1 and not boundary.available(e,"round-b"),"starting a different game removes all previous-round undo targets")
 
 func ranked_undo_limit_cases():
- fresh();host.cloud_ranked=true;host.match_mode="ranked";host.series.state.undo_used=0
+ fresh();host.cloud_ranked=true;host.match_mode="ranked";host.series.state.undo_used=[0,0]
  await checkpoint();var before=host.Codec.capture(e);var target=host.sequence
  await passes()
  var end_before=host.Codec.capture(e)
- check(host.room.undo_limit==5 and host.room.undo_used==0 and guest.room.undo_limit==5,"ranked players share a five-request budget")
- for attempt in range(4):
-  var requester=host if attempt%2==0 else guest
-  var responder=guest if attempt%2==0 else host
+ check(host.room.undo_limit==5 and host.room.undo_used==[0,0] and guest.room.undo_limit==5,"each ranked player starts with five independent requests")
+ var expected_used=[0,0]
+ for attempt in range(8):
+  var requesting_seat=attempt%2
+  var requester=host if requesting_seat==0 else guest
+  var responder=guest if requesting_seat==0 else host
+  expected_used[requesting_seat]+=1
   requester.room_action({"name":"undo_request"})
-  check(await until(func():return not host.undo_request.is_empty() and guest.room.get("undo_used",0)==attempt+1 and watcher.room.get("undo_used",0)==attempt+1),"ranked request immediately spends one shared use for both players and spectator")
+  check(await until(func():return not host.undo_request.is_empty() and guest.room.get("undo_used",[])==expected_used and watcher.room.get("undo_used",[])==expected_used),"ranked request spends only its requester's use and synchronizes both counters")
   if host.undo_request.is_empty():return
+  var saved_request=host.Journal.load_from(host.storage+"/host.bin")
+  check(saved_request.series.undo_used==expected_used,"both counters are persisted before the opponent answers")
   var cancel=attempt==1
   var replying_session=requester if cancel else responder
   replying_session.room_action({"name":"undo_cancel" if cancel else "undo_decline","ticket":host.undo_request.id})
   check(await until(func():return host.undo_request.is_empty() and guest.room.get("undo_request",{}).is_empty() and host.can_act(true) and guest.can_act(true)),"rejected or cancelled ranked request unlocks play")
-  check(host.room.undo_used==attempt+1 and guest.room.undo_used==attempt+1 and host.Codec.capture(e)==end_before,"declines and cancellations retain the spent request without rewinding")
-  var saved=host.Journal.load_from(host.storage+"/host.bin")
-  check(saved.series.undo_used==attempt+1,"request count is persisted before the opponent answers")
+  check(host.room.undo_used==expected_used and guest.room.undo_used==expected_used and host.Codec.capture(e)==end_before,"declines and cancellations retain only the requester's spent use without rewinding")
  await undo_to(before,target,0)
- check(host.room.undo_used==5 and guest.room.undo_used==5,"the fifth request can still be accepted after spending the final use")
+ check(host.room.undo_used==[5,4] and guest.room.undo_used==[5,4],"host's fifth request can be accepted without spending the guest's final use")
  await passes()
- check(host.undo_history.available(e,host.series.state.game_id) and not host.room.undo_available and not guest.room.undo_available and not watcher.room.undo_available,"five requests disable further ranked undo despite an available checkpoint")
+ check(host.undo_history.available(e,host.series.state.game_id) and not host.room.undo_available and guest.room.undo_available and watcher.room.undo_available,"exhausting the host's budget leaves the guest's undo available")
+ var host_errors=[]
+ host.error_raised.connect(func(message):host_errors.append(message))
+ host.room_action({"name":"undo_request"})
+ check(await until(func():return not host.busy and not host_errors.is_empty()),"host's sixth ranked request is rejected by the authority")
+ check(host.undo_request.is_empty() and host.room.undo_used==[5,4] and host_errors.back().contains("次数已用完"),"host cannot spend the guest's remaining request")
+ await undo_to(before,target,1)
+ check(host.room.undo_used==[5,5] and guest.room.undo_used==[5,5],"guest can still use and approve its own fifth request")
+ await passes()
+ check(not host.room.undo_available and not guest.room.undo_available and not watcher.room.undo_available,"both players lose undo availability only after spending all five requests each")
  var errors=[]
  guest.error_raised.connect(func(message):errors.append(message))
  guest.room_action({"name":"undo_request"})
  check(await until(func():return not guest.busy and not errors.is_empty()),"a sixth ranked request is rejected by the authority")
- check(host.undo_request.is_empty() and host.room.undo_used==5 and errors.back().contains("次数已用完"),"rejected sixth request cannot open a ticket or spend another use")
+ check(host.undo_request.is_empty() and host.room.undo_used==[5,5] and errors.back().contains("次数已用完"),"guest's rejected sixth request cannot open a ticket or spend another use")
  var saved=host.Journal.load_from(host.storage+"/host.bin");var restored=Session.new()
  restored.series.state=saved.series;restored.rewind_events=saved.rewind_events;restored.cloud_ranked=true;restored.match_mode="ranked"
  restored.authority=Session.Duel.new();restored.Codec.restore(restored.authority,saved.engine);restored.undo_history.entries=saved.undo_entries
  restored.refresh_undo_status()
- check(restored.series.state.undo_used==5 and not restored.series.state.undo_available,"saved host recovery preserves declined, cancelled and accepted requests")
+ check(restored.series.state.undo_used==[5,5] and not restored.series.state.undo_available,"saved host recovery preserves both players' declined, cancelled and accepted requests")
  restored.series.state.erase("undo_used")
- restored.rewind_events=[{"game":saved.series.game_id},{"game":saved.series.game_id},{"game":"another-game"}]
+ restored.rewind_events=[{"game":saved.series.game_id,"from":0},{"game":saved.series.game_id,"from":1},{"game":"another-game","from":1}]
  restored.refresh_undo_status()
- check(restored.series.state.undo_used==2,"older saves retain accepted uses from the current game only")
+ check(restored.series.state.undo_used==[1,1],"older saves retain each requester's accepted uses from the current game only")
+ restored.series.state.undo_used=4
+ restored.series.state.undo_request={"game":saved.series.game_id,"from":1}
+ restored.refresh_undo_status()
+ check(restored.series.state.undo_used==[1,2] and restored.series.state.undo_request.is_empty(),"shared-counter saves migrate identifiable requests and charge a pending request before clearing it")
  restored.free()
  var next_round=Session.Series.new();next_round.state=host.series.state.duplicate(true)
  next_round.state.status="choosing";next_round.state.first_chosen=true
- check(next_round.start_game() and next_round.state.undo_used==0,"starting the next game resets the shared request count")
+ check(next_round.start_game() and next_round.state.undo_used==[0,0],"starting the next game resets both players' request counts")
  for mode in ["casual","exploration","exploration_random"]:
   host.match_mode=mode;host.refresh_undo_status()
   check(host.series.state.undo_limit==0 and host.series.state.undo_available,mode+" matchmaking has no ranked undo limit")
  var failed=FailingSaveSession.new();failed.is_host=true;failed.cloud_ranked=true;failed.match_mode="ranked";failed.sequence=host.sequence
- failed.series.state=host.series.state.duplicate(true);failed.series.state.undo_used=3;failed.undo_history.entries=host.undo_history.entries.duplicate(true)
+ failed.series.state=host.series.state.duplicate(true);failed.series.state.undo_used=[3,1];failed.undo_history.entries=host.undo_history.entries.duplicate(true)
  failed.authority=Session.Duel.new();failed.Codec.restore(failed.authority,host.Codec.capture(e));failed.notice="测试保存失败"
  failed.handle_undo_action(0,{"name":"undo_request","_expected":failed.sequence,"_game":failed.series.state.game_id})
- check(failed.undo_request.is_empty() and failed.series.state.undo_used==3 and failed.rejection==failed.notice,"failed persistence cannot spend a use or expose an unsaved request")
+ check(failed.undo_request.is_empty() and failed.series.state.undo_used==[3,1] and failed.rejection==failed.notice,"failed persistence restores both counters and cannot expose an unsaved request")
  failed.free()
  host.cloud_ranked=false;host.match_mode="ranked";host.refresh_undo_status();host.sequence+=1;host.publish([],false,true)
  check(await until(func():return guest.room.get("undo_limit",-1)==0 and watcher.room.get("undo_limit",-1)==0),"ordinary rooms retain unlimited undo")

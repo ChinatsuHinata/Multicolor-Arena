@@ -1,6 +1,6 @@
 extends RefCounted
 ## ETO / LOC / SPX: explicit contracts, independent of printed prose.
-const SPELLS=["n21:SPX-006","n21:SPX-004","n21:LOC-004","n21:LOC-003","n21:LOC-002","n21:ETO-006","n21:ETO-004","n21:ETO-011","n21:ETO-012","n21:ETO-009","n21:ETO-010","n21:ETO-008","n21:ETO-007","n21:ETO-005"]
+const SPELLS=["n21:SPX-006","n21:SPX-004","n21:LOC-006","n21:LOC-004","n21:LOC-003","n21:LOC-002","n21:ETO-006","n21:ETO-004","n21:ETO-011","n21:ETO-012","n21:ETO-009","n21:ETO-010","n21:ETO-008","n21:ETO-007","n21:ETO-005"]
 const SELF=["n21:ETO-001:self","n21:SPX-005:self","n21:SPX-003:self","n21:SPX-001:self","n21:LOC-001:self","n21:ETO-003:self","n21:ETO-002:self"]
 const ACTIVATIONS=["n21:SPX-005:self","n21:gourd_reset","n21:gourd_counter","n21:frog_tap","n21:frog_counter"]
 const CAPTIONS={"n21:frog_fire":"青蛙进场：对另一个目标单位造成等同于该青蛙攻击力的伤害。","n21:frog_search":"从牌库搜寻一张土著神「宝永四年ノ赤蛙」置于手牌，然后洗牌。","n21:suika_return":"未操控鬼衍生物：将以此法除外的萃香移回战场。","n21:drunk_bottom":"醉熏熏：将该单位置于拥有者牌库底。","n21:dream_copy":"复制使用的符卡两次，可以分别选择新的目标。","n21:event_without_recipient":"触发主要能力；没有原事件所涉及的对象或数值。"}
@@ -10,6 +10,9 @@ static func own(e,who,code):return e.players[who].field.filter(func(c):return ha
 static func enabled(e,c,code):return has(e,c,code) and (not code.ends_with(":self") or e.has_leader_ability(c))
 static func event(e,c,code,optional=false,data={}):e.Roster.event(e,c,"n21:"+code,optional,data)
 static func choose(e,t,code,options,data={}):e.Cat.choose(e,t,"n21:"+code,options,data)
+static func autumn_has_human(e,who):
+ var own_cards=e.players[who].field+e.leaders(who).filter(func(c):return c.zone=="leader")
+ return own_cards.any(func(c):return c.owner==who and c.zone in ["leader","field"] and e.Cat.race(e,c,"人类"))
 static func create(e,who,code,zone):
  var c=e.make_card(id(code),who,"outside");e.move_to(c,zone,false);return c
 static func start(e):
@@ -285,6 +288,7 @@ static func spell_options(e,card_id,who):
  var code=card_id.trim_prefix("new-").to_upper()
  if "n21:"+code not in SPELLS:return null
  match code:
+  "LOC-006":return e.Cat.refs(e,(e.units(0)+e.units(1)).filter(func(c):return e.Extra.cost_value(e,c)<=4))
   "ETO-004":return e.Pack.all_units(e)
   "LOC-002":return [{"player":1-who}]
   "ETO-011":
@@ -310,6 +314,8 @@ static func spell_resolve(e,t):
    p.n21_frog_fire=p.get("n21_frog_fire",[])+[{"turn":e.turn,"source":c.duplicate(true)}]
    e.delayed.append({"roster":true,"owner":who,"phase":"end","source":c.duplicate(true),"effect":"n21:frog_search"})
   "LOC-004":choose(e,t,"deer_name",C.name_options(e))
+  "LOC-006":
+   if C.unit(e,a) and e.Extra.cost_value(e,e.find_card(a.uid))<=4:e.move_to(e.find_card(a.uid),"hand")
   "LOC-002":
    e.damage_target(a,4)
    for u in e.units(a.player):e.tap_card(u);e.Roster.freeze_next(e,u)

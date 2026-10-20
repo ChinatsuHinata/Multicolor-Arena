@@ -110,13 +110,16 @@ func observer_exclusions(label: String):
  session.read_only=false;session.replay_mode=false
 
 func ranked_budget_menu(label: String):
- session.room.undo_limit=5;session.room.undo_used=4;session.room.undo_available=true
+ session.room.undo_limit=5;session.room.undo_used=[5,5];session.room.undo_used[session.seat]=4;session.room.undo_available=true
  var caption="请求悔棋" if view.is_android else "悔棋"
  var actions=view.responsive.tools_actions().filter(func(action):return str(action[0]).begins_with(caption))
- expect(actions.size()==1 and actions[0][0]==caption+"（剩余 1 次）" and not actions[0][2],label+" menu displays the final shared undo request")
- session.room.undo_used=5;session.room.undo_available=false
+ expect(actions.size()==1 and actions[0][0]==caption+"（剩余 1 次）" and not actions[0][2],label+" menu displays the player's final request even when the opponent has none")
+ session.room.undo_used[session.seat]=5;session.room.undo_available=false
  actions=view.responsive.tools_actions().filter(func(action):return str(action[0]).begins_with(caption))
  expect(actions.size()==1 and actions[0][0]==caption+"（剩余 0 次）" and actions[0][2],label+" menu disables undo when all five requests are spent")
+ session.room.undo_used[session.seat]=0;session.room.undo_available=true
+ actions=view.responsive.tools_actions().filter(func(action):return str(action[0]).begins_with(caption))
+ expect(actions.size()==1 and actions[0][0]==caption+"（剩余 5 次）" and not actions[0][2],label+" the opponent's requests do not reduce the player's displayed budget")
  session.room.erase("undo_limit");session.room.erase("undo_used");session.room.undo_available=true
 
 func run():

@@ -21,7 +21,8 @@ static func tokens(cost: Dictionary,stack_vertical: bool=false,variable_color: S
   elif expanded:
    for i in range(count):result.append({"colors":colors,"number":""})
   else:result.append({"colors":colors,"number":"" if count==1 else str(count)})
- for i in range(variable_count):result.append({"colors":Array(variable_color.split("/")),"number":"X"})
+ for part in variable_color.split("+"):
+  for i in range(variable_count):result.append({"colors":Array(part.split("/")),"number":"X"})
  if result.is_empty():result.append({"colors":["灰"],"number":"0"})
  return result
 

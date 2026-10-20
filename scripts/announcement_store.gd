@@ -6,11 +6,12 @@ var active_version=""
 var history: Array=[]
 var pushed_versions: Array=[]
 var read_versions: Array=[]
+var latest_ids: Array=[]
 var last_error=""
 
 func initialize(version: String,storage_path: String,catalogue_path: String=CATALOGUE_PATH):
  path=storage_path;active_version=version
- history=[];pushed_versions=[];read_versions=[];last_error=""
+ history=[];pushed_versions=[];read_versions=[];latest_ids=[];last_error=""
  if FileAccess.file_exists(path):
   var saved=JSON.parse_string(FileAccess.get_file_as_string(path))
   if saved is Dictionary and saved.get("schema")==1:
@@ -28,11 +29,14 @@ func initialize(version: String,storage_path: String,catalogue_path: String=CATA
  for i in range(history.size()-1,-1,-1):
   if entry_id(history[i]) in removed:history.remove_at(i);migrated=true
  for id in removed:
+  if id in pushed_versions or id in read_versions:migrated=true
   pushed_versions.erase(id);read_versions.erase(id)
  var latest_version=""
- var latest: Array=[]
+ var declared_ids: Array=[]
  for entry in catalogue.announcements:
-  if not valid_entry(entry) or entry_id(entry) in removed or compare_versions(entry.version,active_version)>0:continue
+  if not valid_entry(entry):continue
+  declared_ids.append(entry_id(entry))
+  if entry_id(entry) in removed or compare_versions(entry.version,active_version)>0:continue
   var archived=find_id(entry_id(entry))
   if archived.is_empty():history.append(entry.duplicate(true))
   elif not archived.has("image") and entry.get("image") is String:
@@ -40,17 +44,41 @@ func initialize(version: String,storage_path: String,catalogue_path: String=CATA
    archived.image=entry.image
    if entry.get("image_region") is Array:archived.image_region=entry.image_region.duplicate()
   if latest_version.is_empty() or compare_versions(entry.version,latest_version)>0:
-   latest_version=entry.version;latest=[]
-  if entry.version==latest_version:latest.append(entry)
- # Every effective update has its own receipt, even if its announcement is reused.
- if not latest.is_empty() and latest_version!=active_version:
-  for entry in latest:
-   var current=entry.duplicate(true);current.version=active_version;current.id=active_version+":"+entry_id(entry) if entry.has("id") else active_version
-   if find_id(entry_id(current)).is_empty():history.append(current)
+   latest_version=entry.version;latest_ids=[]
+  if entry.version==latest_version:latest_ids.append(entry_id(entry))
+ # Delivery belongs to the announcement, so a content-free patch adds no new ID.
+ if migrate_reused_entries(declared_ids,removed):migrated=true
  history.sort_custom(func(a,b):
   var compared=compare_versions(a.version,b.version)
   return compared>0 if compared!=0 else int(a.get("order",0))<int(b.get("order",0)))
  if migrated:save()
+
+func migrate_reused_entries(declared_ids: Array,removed: Array) -> bool:
+ var migrated=false
+ var originals=history.duplicate()
+ originals.sort_custom(func(a,b):return compare_versions(a.version,b.version)<0)
+ for entry in originals:
+  var id=entry_id(entry)
+  if id in declared_ids:continue
+  # Previous clients prefixed explicit IDs with the effective patch version.
+  var source_id=id.trim_prefix(entry.version+":")
+  if source_id==id:
+   if id!=entry.version:continue
+   # Older catalogues used the version as ID; their copies kept the same text.
+   for original in originals:
+    if original.has("id") or compare_versions(original.version,entry.version)>=0:continue
+    if original.title==entry.title and original.body==entry.body and original.get("date","")==entry.get("date",""):
+     source_id=entry_id(original);break
+  if source_id==id:continue
+  var source=find_id(source_id)
+  if source.is_empty() and source_id not in removed:continue
+  if not source.is_empty() and compare_versions(source.version,entry.version)>=0:continue
+  for receipts in [pushed_versions,read_versions]:
+   if id not in receipts:continue
+   receipts.erase(id)
+   if source_id not in removed and source_id not in receipts:receipts.append(source_id)
+  history.erase(entry);migrated=true
+ return migrated
 
 static func entry_id(entry: Dictionary) -> String:
  return str(entry.get("id",entry.version))
@@ -90,7 +118,7 @@ func find_version(version: String) -> Dictionary:
 func pending() -> Dictionary:
  for entry in history:
   var id=entry_id(entry)
-  if entry.version==active_version and id not in pushed_versions and id not in read_versions:return entry
+  if id in latest_ids and id not in pushed_versions and id not in read_versions:return entry
  return {}
 
 func unread_count() -> int:

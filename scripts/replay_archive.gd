@@ -35,6 +35,7 @@ func record(packet: Dictionary,perspective: int=0):
  elif metadata.get("hands","")=="both":metadata.hands="partial"
  copy.erase("rewinds");copy.room.erase("undo_request");copy.room.erase("undo_available")
  metadata.room=copy.room.duplicate(true);metadata.room.erase("own_deck")
+ metadata.mods=copy.projection.state.get("mod_manifest",[]).duplicate(true)
  copy.room.erase("own_deck");copy.erase("ack_id")
  var new_definitions={}
  for id in copy.projection.definitions:

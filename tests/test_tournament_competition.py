@@ -19,7 +19,7 @@ class CompetitionTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "players.sqlite3"
         self.conn = accounts.database(self.path)
         self.players = {}
-        for name in ("bigcake", *[f"player_{i}" for i in range(8)]):
+        for name in ("bigcake", *[f"player_{i}" for i in range(18)]):
             player_id = self.conn.execute("""INSERT INTO players(username,nickname,password_salt,password_hash,created_at)
                 VALUES(?,?,?,?,?)""", (name, name, b"", b"", 0)).lastrowid
             self.players[name] = {"ok": True, "username": name, "player_id": player_id}
@@ -115,6 +115,96 @@ class CompetitionTests(unittest.TestCase):
         final = self.call("start_round", expected_round=4)
         self.assertEqual(final["tournament"]["phase"], "complete")
         self.assertEqual(sorted(entry["placement"] for entry in final["standings"] if "placement" in entry), [1, 2, 3, 3])
+
+    def test_all_knockout_sizes_seed_advance_and_record_placements(self):
+        brackets = {
+            2: [(1, 2)],
+            4: [(1, 4), (2, 3)],
+            8: [(1, 8), (4, 5), (2, 7), (3, 6)],
+            16: [(1, 16), (8, 9), (4, 13), (5, 12), (2, 15), (7, 10), (3, 14), (6, 11)],
+        }
+        stages = {16: "round_of_16", 8: "quarterfinal", 4: "semifinal", 2: "final"}
+        for cut, bracket in brackets.items():
+            with self.subTest(cut=cut):
+                format_name = f"swiss_top{cut}"
+                created = self.call("create", title=f"前{cut}名淘汰赛", format=format_name, swiss_rounds=1, start_at=self.start_at)
+                self.assertTrue(created["ok"])
+                self.competition_id = created["tournament"]["id"]
+                self.roster(count=cut + 2, format_name=format_name, rounds=1)
+                self.assertTrue(self.call("start_round", expected_round=0)["ok"])
+                for pairing in self.pairs():
+                    self.agree(pairing)
+                swiss = competitions.standings_for(self.conn, self.competition_id)
+                seeds = [entry["player_id"] for entry in swiss[:cut]]
+                expected_pairs = [(seeds[a - 1], seeds[b - 1]) for a, b in bracket]
+                expected_placements = {}
+                self.conn.close()
+                self.conn = accounts.database(self.path)
+                self.assertEqual(self.call("detail")["tournament"]["format"], format_name)
+                self.assertFalse(self.call("configure", format="swiss", swiss_rounds=1)["ok"])
+                number, remaining = 1, cut
+                while remaining >= 2:
+                    answer = self.call("start_round", expected_round=number)
+                    self.assertTrue(answer["ok"], answer.get("message"))
+                    self.assertEqual(answer["tournament"]["round_stage"], stages[remaining])
+                    pairs = self.pairs()
+                    self.assertEqual([pair[1:3] for pair in pairs], expected_pairs)
+                    self.assertEqual(len(pairs), remaining // 2)
+                    self.assertFalse(self.call("start_round", expected_round=number + 1)["ok"])
+                    winners = []
+                    for index, pairing in enumerate(pairs):
+                        self.assertFalse(self.call("report_result", self.player_name(pairing[1]),
+                                                  pairing_id=pairing[0], result=-1, revision=pairing[4])["ok"])
+                        self.assertFalse(self.call("judge_result", pairing_id=pairing[0], result=-1, revision=pairing[4])["ok"])
+                        result = (number + index) % 2
+                        winners.append(pairing[1 + result])
+                        expected_placements[pairing[2 - result]] = remaining // 2 + 1
+                        self.agree(pairing, result)
+                    if remaining == 2:
+                        expected_placements[winners[0]] = 1
+                    standings = competitions.standings_for(self.conn, self.competition_id)
+                    self.assertEqual([{k: v for k, v in entry.items() if k != "placement"} for entry in standings], swiss)
+                    self.assertEqual({entry["player_id"]: entry["placement"] for entry in standings if "placement" in entry},
+                                     expected_placements)
+                    expected_pairs = list(zip(winners[::2], winners[1::2]))
+                    remaining //= 2
+                    number += 1
+                answer = self.call("start_round", expected_round=number)
+                self.assertTrue(answer["ok"])
+                self.assertEqual(answer["tournament"]["phase"], "complete")
+                self.assertEqual(len(expected_placements), cut)
+                self.assertFalse(self.call("start_round", expected_round=number)["ok"])
+
+    def test_each_knockout_size_requires_enough_checked_in_players(self):
+        for cut in (2, 4, 8, 16):
+            with self.subTest(cut=cut):
+                created = self.call("create", title="淘汰赛人数校验", start_at=self.start_at)
+                self.competition_id = created["tournament"]["id"]
+                self.roster(count=cut - 1, format_name=f"swiss_top{cut}", rounds=1)
+                answer = self.call("start_round", expected_round=0)
+                self.assertFalse(answer["ok"])
+                self.assertIn(str(cut), answer["message"])
+                self.assertEqual(self.call("detail")["tournament"]["round_number"], 0)
+                self.assertEqual(self.pairs(), [])
+        for invalid in ("swiss_top0", "swiss_top3", "swiss_top32"):
+            self.assertFalse(self.call("configure", format=invalid)["ok"])
+
+    def test_timer_advances_sixteen_player_knockout_until_complete(self):
+        self.roster(count=16, format_name="swiss_top16", rounds=1, interval=60)
+        self.assertTrue(self.call("start_round", expected_round=0)["ok"])
+        for number, stage in enumerate(("swiss", "round_of_16", "quarterfinal", "semifinal", "final"), 1):
+            current = self.call("detail")["tournament"]
+            self.assertEqual((current["round_number"], current["round_stage"]), (number, stage))
+            due = current["round_started_at"] + 60
+            competitions.tick(self.conn, due)
+            self.assertEqual(self.call("detail")["tournament"]["round_number"], number)
+            for pairing in self.pairs():
+                self.agree(pairing, 1)
+            competitions.tick(self.conn, due + 1)
+        self.assertEqual(self.call("detail")["tournament"]["phase"], "complete")
+        competitions.tick(self.conn, due + 120)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM tournament_rounds WHERE tournament_id=?",
+                                           (self.competition_id,)).fetchone()[0], 5)
 
     def test_disputed_results_need_consent_or_owner_judgment(self):
         self.roster(count=4, rounds=1)

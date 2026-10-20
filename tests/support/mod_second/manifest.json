@@ -1,0 +1,14 @@
+{
+  "id": "second.cards", "version": "1.0.0", "api": 1,
+  "abilities": {
+    "draw": {"script": "draw.gd", "kind": "spell", "role": "main", "zones": ["stack"], "text": "抓两张牌。"},
+    "leader_draw": {"script":"leader_draw.gd","kind":"activated","role":"leader","zones":["field"],"text":"横置：抓一张牌。"},
+    "hand_draw": {"script":"hand_draw.gd","kind":"activated","role":"main","zones":["hand"],"text":"红1：抓一张牌。"}
+  },
+  "cards": ["draw.json"],
+  "state": {
+    "turn_count": {"scope":"turn","visibility":"public"},
+    "source_cache": {"scope":"source","visibility":"owner"},
+    "secret": {"scope":"match","visibility":"authority"}
+  }
+}

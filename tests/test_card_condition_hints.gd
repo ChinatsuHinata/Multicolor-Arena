@@ -5,7 +5,63 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Observer=preload("res://net/observer_projection.gd")
 const Remote=preload("res://net/remote_duel.gd")
 var v
+func check_actionability():
+ fresh()
+ var hatate=put("character-fdf-105","hand")
+ e.players[0].leader=e.make_card("character-fdn-025",0,"leader",true)
+ expect(Hints.active(e,hatate) and not Hints.actionable(e,hatate,0),"a satisfied discount condition cannot mark an unaffordable card")
+ mana()
+ expect(Hints.actionable(e,hatate,0),"the discounted card becomes actionable when its actual cost can be paid")
+ for c in e.players[0].palette:c.tapped=true
+ expect(not Hints.actionable(e,hatate,0),"spent resources clear the red-frame eligibility")
+ for c in e.players[0].palette:c.tapped=false
+ for state in [{"phase":"prepare"},{"phase":"end"},{"phase":"mulligan"},{"active":1},{"priority":1},{"winner":0},{"pending":{"kind":"discard","owner":0}},{"entry_choices":[{}]}]:
+  var previous={}
+  for key in state:previous[key]=e.get(key);e.set(key,state[key])
+  expect(not Hints.actionable(e,hatate,0),"unavailable timing or an unfinished choice suppresses the red frame: "+str(state))
+  for key in previous:e.set(key,previous[key])
+ e.players[0].night_lock=e.turn
+ expect(not Hints.actionable(e,hatate,0),"a current-turn cast prohibition suppresses the red frame")
+ e.players[0].night_lock=-1
+ var duplicate=put(hatate.card_id)
+ expect(not Hints.actionable(e,hatate,0),"an existing same-title unit suppresses the red frame")
+ e.move_to(duplicate,"grave")
+ for i in range(6):put("53")
+ expect(not Hints.actionable(e,hatate,0),"a full battlefield suppresses the red frame")
+ e.players[0].field=[]
+ e.move_to(hatate,"exile")
+ expect(not Hints.actionable(e,hatate,0),"a public card without permission to cast from exile stays unmarked")
+ e.move_to(hatate,"hand")
+ var before=JSON.stringify([e.players,e.stack,e.pending,e.revision])
+ expect(Hints.actionable(e,hatate,0) and JSON.stringify([e.players,e.stack,e.pending,e.revision])==before,"checking red-frame eligibility leaves public game state unchanged")
+ expect(e.commit_cast(0,hatate.uid,{"none":true},e.payment(0,e.cast_cost(0,hatate)).plan).is_empty(),"the marked card can actually be cast")
+ expect(Hints.active(e,hatate) and not Hints.actionable(e,hatate,0),"a card on the stack keeps its condition caption without a usable-card red frame")
+ fresh();mana()
+ var ominous=put("spell-fdn-009","hand")
+ for i in range(4):put("53","grave")
+ expect(Hints.active(e,ominous) and not Hints.actionable(e,ominous,0),"a spell with no legal targets stays unmarked despite meeting its grave condition")
+ put("53","field",1)
+ expect(Hints.actionable(e,ominous,0),"a legal target restores the spell's red-frame eligibility")
+ fresh();mana()
+ var rain=put("spell-ucs-050","hand")
+ for i in range(10):put("53","grave")
+ expect(Hints.active(e,rain) and not Hints.actionable(e,rain,0),"a missing required character suppresses the red frame")
+ put("59")
+ e.phase="prepare";e.active=1
+ expect(Hints.actionable(e,rain,0),"a fast spell can be marked in a legal response window")
+ for seat in range(2):
+  var remote=Remote.new();remote.seat=seat;remote.apply_snapshot(SeatView.build(e,seat))
+  expect(Hints.actionable(remote,remote.find_card(rain.uid),seat)==(seat==0),"network red-frame eligibility follows authoritative actions and hand privacy for seat "+str(seat))
+ fresh();mana();put("spell-lof-006")
+ var leader=e.make_card("80",0,"leader",true);e.players[0].leader=leader
+ expect(not Hints.actionable(e,leader,0),"a free or affordable leader still needs its field color constraints")
+ put("166");put("167")
+ expect(Hints.actionable(e,leader,0),"satisfied field color constraints enable the leader's red frame")
+ leader.timer=1
+ expect(not Hints.actionable(e,leader,0),"a leader with remaining timer counters stays unmarked")
+
 func run():
+ check_actionability()
  fresh();v=View.new();v.engine=e
  var hatate=put("character-fdf-105","hand")
  expect(not Hints.active(e,hatate),"Hatate does not qualify with a three-cost deck leader")

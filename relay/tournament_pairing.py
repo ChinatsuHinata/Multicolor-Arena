@@ -1,5 +1,14 @@
-"""Deterministic Swiss matching with no rematches and no repeated allocated bye."""
+"""Deterministic Swiss matching and seeded single-elimination brackets."""
 from collections import deque
+
+
+def knockout_pairs(players):
+    """Place ranked entrants so the top two seeds can only meet in the final."""
+    order = [0, 1]
+    while len(order) < len(players):
+        size = len(order) * 2
+        order = [seed for first in order for seed in (first, size - 1 - first)]
+    return [(players[order[index]], players[order[index + 1]]) for index in range(0, len(order), 2)]
 
 
 def perfect_matching(graph):

@@ -5,7 +5,10 @@ func frames(count: int=4):
  for i in range(count):await process_frame
 
 func show_lobby(session,android: bool):
+ if is_instance_valid(app.lan_session) and app.lan_session.snapshot_ready.is_connected(app.network_snapshot_ready):
+  app.lan_session.snapshot_ready.disconnect(app.network_snapshot_ready)
  app.lan_session=session;app.is_android=android
+ session.snapshot_ready.connect(app.network_snapshot_ready)
  app.clear_page("menu")
  app.online();await frames()
 
@@ -92,6 +95,14 @@ func run():
    if session.room.ready[seat]:
     session.room_action({"name":"unready"});await until(synchronized)
   await start_game(fixtures if android else [fixtures[1],fixtures[0]])
+  await frames()
+  var library=preload("res://scripts/deck_library.gd").new();library.load_data()
+  expect(library.usage_count(fixtures[0].id)==1 and library.usage_count(fixtures[1].id)==(1 if android else 0),"starting a network game counts the local saved deck once")
+  app.network_game_open="";app.network_snapshot_ready();await frames();library.load_data()
+  expect(library.usage_count(fixtures[0].id)==1 and library.usage_count(fixtures[1].id)==(1 if android else 0),"restoring the same network game does not increment usage")
+  app.lan_session.read_only=true;app.network_game_open="";app.network_snapshot_ready();await frames();library.load_data()
+  expect(library.usage_count(fixtures[0].id)==1 and library.usage_count(fixtures[1].id)==(1 if android else 0),"observing a network game does not increment local deck usage")
+  app.lan_session.read_only=false
   if android:break
   expect(authority_session.submit({"name":"surrender","args":[]}).is_empty(),"host submits single-game surrender")
   expect(await until(func():return synchronized() and client_session.room.get("status","")=="complete"),"first match completes")

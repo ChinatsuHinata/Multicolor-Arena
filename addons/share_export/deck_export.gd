@@ -6,17 +6,16 @@ func _get_name() -> String:
 func _export_begin(_features: PackedStringArray,_is_debug: bool,_path: String,_flags: int):
  var store=load("res://scripts/deck_store.gd")
  # Tool execution initializes the database explicitly before validating saves.
+ store.Paths.root_override=""
+ # Local enabled packs are external content, outside the released core database.
+ store.Database.ModRegistry._shared=store.Database.ModRegistry.new()
  store.CARDS=store.Database.load_cards()
  var decks=store.load_decks(store.SAVE_PATH)
  if decks.has("error") or store.CARDS.is_empty():
   push_error("无法导出初始卡组："+decks.get("error",store.Database.last_error))
   return
- # The old collection remains the preset source; the current AI list lives in .mdeck.
- var portable=[]
- for source in store.scan_files("res://deck"):
-  var parsed=store.read_file(source)
-  if parsed.has("deck"):portable.append(parsed.deck)
- var release=Policy.select_decks(decks.decks,portable)
+ # Presets remain editable; the challenge list is embedded in the release policy.
+ var release=Policy.select_decks(decks.decks,[])
  if release.has("error"):
   push_error(release.error)
   return

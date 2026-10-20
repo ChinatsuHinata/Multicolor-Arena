@@ -124,11 +124,12 @@ static func cast_from(e,c: Dictionary,who: int) -> bool:
  return c.get("devour_owner",-1)==who and e.units(who).any(func(u): return has(e.cards[u.card_id],"keine_devour") and e.has_leader_ability(u))
 static func chromatic(e,c: Dictionary,who: int) -> bool:
  if c.get("devour_owner",-1)==who and cast_from(e,c,who): return true
- if "极彩" in e.cards[c.card_id].get("keywords",[]): return true
+ if e.Extra.keyword(e,c,"极彩"):return true
  return e.cards[c.card_id].kind=="符卡" and e.units(who).any(func(u): return has(e.cards[u.card_id],"patch_chromatic") and e.has_leader_ability(u))
 static func cost_options(e,c: Dictionary,who: int,base: Dictionary,target: Dictionary) -> Array:
  var result=base.duplicate(); var info=e.cards[c.card_id]
- if not info.get("variable_cost","").is_empty(): result[info.variable_cost]=result.get(info.variable_cost,0)+int(target.get("x",0))*int(info.get("variable_multiplier",1))
+ if not info.get("variable_cost","").is_empty():
+  for part in str(info.variable_cost).split("+"):result[part]=result.get(part,0)+int(target.get("x",0))*int(info.get("variable_multiplier",1))
  if has(info,"promise"):
   var leaders=e.units(who).filter(func(u): return e.cards[u.card_id].kind=="自机")
   if leaders.size()==2 and e.cards[leaders[0].card_id].name!=e.cards[leaders[1].card_id].name: result["黄"]=maxi(0,result.get("黄",0)-2)

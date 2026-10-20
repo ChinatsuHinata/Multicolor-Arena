@@ -6,8 +6,6 @@
       "68",
       "68",
       "68",
-      "new-spx-005",
-      "new-spx-005",
       "character-fdf-116",
       "character-fdf-116",
       "character-soi-006",
@@ -55,7 +53,7 @@
       "167"
     ],
     "name": "堇子",
-    "rule_set": "official_spx",
+    "rule_set": "unrestricted",
     "side": []
   },
   "format": "multicolor:arena/deck",

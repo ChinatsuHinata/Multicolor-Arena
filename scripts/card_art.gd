@@ -1,4 +1,17 @@
 extends RefCounted
+
+static func load_texture(path: String) -> Texture2D:
+ if path.is_empty():return null
+ if path.begins_with("res://") and ResourceLoader.exists(path,"Texture2D"):
+  return load(path) as Texture2D
+ if not FileAccess.file_exists(path):return null
+ var image=Image.new()
+ if image.load(path)!=OK or image.is_empty():return null
+ return ImageTexture.create_from_image(image)
+
+static func texture_exists(path: String) -> bool:
+ if path.begins_with("res://") and ResourceLoader.exists(path,"Texture2D"):return true
+ return load_texture(path)!=null
 ## Cosmetic IDs are scoped to a deck; card IDs and gameplay definitions never change.
 const MANIFEST="res://data/alternate_art.json"
 static var catalogue: Dictionary={}

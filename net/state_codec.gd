@@ -37,11 +37,14 @@ static func capture(engine) -> Dictionary:
  var graph=encode(state);graph.definitions=engine.cards.duplicate(true)
  graph.plain={"history":engine.history.duplicate(true),"log":engine.log.duplicate(true),"presentation_events":engine.presentation_events.duplicate(true)}
  return graph
-static func restore(engine,graph: Dictionary):
+static func restore(engine,graph: Dictionary) -> String:
  var state=decode(graph)
+ if state.get("mod_manifest",[]).is_empty():engine.configure_mods(false)
+ if state.get("mod_manifest",[])!=engine.mod_registry.manifest():return "存档的模组版本、内容哈希或接口版本与本机不一致"
  engine.cards=graph.definitions.duplicate(true)
  for key in graph.get("plain",{}):engine.set(key,graph.plain[key].duplicate(true))
  for k in state:
   if not str(k).begins_with("_rng_"):engine.set(k,state[k])
  engine.rng.seed=state._rng_seed;engine.rng.state=state._rng_state
  engine.payment_memo={};engine.payment_groups=[]
+ return ""

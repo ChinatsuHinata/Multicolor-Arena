@@ -1753,6 +1753,13 @@
       "SHA256": "842C741E36C959568F4B407F00B132B80027604F91B5462C6CF9CCA2D1F183B6"
     },
     {
+      "卡牌ID": "token-ucs-098",
+      "名称": "青蛙衍生物",
+      "数据": "res://cards/token-ucs-098.json",
+      "图片": "res://recourse/数据库/token-ucs-098.jpg",
+      "SHA256": "7B1DF4C922CA47F1EA6A1D5960493CF6983C76884F24F967E9B4FF5DB5A6774E"
+    },
+    {
       "卡牌ID": "token-ucs-099",
       "名称": "半灵",
       "数据": "res://cards/token-ucs-099.json",
@@ -3742,6 +3749,13 @@
       "数据": "res://cards/spell-fdf-124.json",
       "图片": "res://recourse/数据库/spell-fdf-124.png",
       "SHA256": "ED6CA48F22CF0FD6C45C74F868FB294EFB12C4FA4ED14C094DBE1DCFE0407C9A"
+    },
+    {
+      "卡牌ID": "new-loc-006",
+      "名称": "「幻想ノ秋司」",
+      "数据": "res://cards/new-loc-006.json",
+      "图片": "res://recourse/数据库/new-loc-006.png",
+      "SHA256": "C1E3F35935FAD39ADB5F4658549618CFCBE11716754F79A9B5C16B7927E7217A"
     }
   ]
 }

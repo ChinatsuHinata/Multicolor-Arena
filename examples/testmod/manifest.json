@@ -1,0 +1,384 @@
+{
+  "id": "testmod",
+  "version": "1.1.1",
+  "api": 5,
+  "name": "核热、魔法与绯红永夜 · testmod",
+  "abilities": {
+    "utsuho_enter": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "leader",
+      "zones": [
+        "field"
+      ],
+      "text": "可以移除牌库顶3张，然后可以将一张灵乌路空角色符卡从移除区放在牌库顶或底。",
+      "events": [
+        "self_enter"
+      ],
+      "optional": true,
+      "forced": "empty_event"
+    },
+    "utsuho_stats": {
+      "script": "abilities.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "疾行。该牌获得-X/-X/-X，X为牌库张数。"
+    },
+    "blade": {
+      "script": "abilities.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "对目标单位造成3点伤害；检视牌库顶4张，3张除外，其余牌库底。"
+    },
+    "ten_stars": {
+      "script": "abilities.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "检视顶10张：2张入手，2张横置进入颜色盘，其余除外。"
+    },
+    "furnace_trigger": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "exile"
+      ],
+      "text": "从牌库被移除游戏时，可以立即不支付颜色值使用该牌。",
+      "events": [
+        "self_exiled_from_deck"
+      ],
+      "optional": false,
+      "forced": "skip"
+    },
+    "fuel_trigger": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "exile"
+      ],
+      "text": "从牌库被移除游戏时，对目标单位造成3点伤害。",
+      "events": [
+        "self_exiled_from_deck"
+      ],
+      "forced": "skip",
+      "optional": false
+    },
+    "control_trigger": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "exile"
+      ],
+      "text": "从牌库被移除游戏时，创造一个红绿双色3/3/2的御柱衍生物。",
+      "events": [
+        "self_exiled_from_deck"
+      ],
+      "forced": "skip",
+      "optional": false
+    },
+    "double_x": {
+      "script": "abilities.gd",
+      "kind": "replacement",
+      "role": "leader",
+      "zones": [
+        "field"
+      ],
+      "text": "自己的回合使用第一张含X颜色值的牌时，可以将X值加倍。",
+      "changes": [
+        "cast_x"
+      ]
+    },
+    "byakuren_guard": {
+      "script": "abilities.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "英勇。对手以该单位为目标使用符卡或能力时，必须额外支付任意两点颜色值。"
+    },
+    "visitor": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "成为对手符卡或能力的目标时，可以抓一张牌并获得1点生命。",
+      "events": [
+        "targeted"
+      ],
+      "optional": true,
+      "forced": "skip"
+    },
+    "recitation": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "自己的结束阶段开始时，在目标己方单位上放置等同计时数量的三维指示物。",
+      "events": [
+        "phase"
+      ],
+      "optional": false,
+      "forced": "empty_event"
+    },
+    "sutra": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "使用含X费用的绿色牌时，重置X张颜色盘；每回合一次。",
+      "events": [
+        "cast"
+      ],
+      "once_per_turn": true,
+      "forced": "skip",
+      "optional": false
+    },
+    "resonance": {
+      "script": "abilities.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "每有一个计时指示物，己方单位获得+1/+1/+1。"
+    },
+    "ship": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "进场时，在至多4个目标单位上放置X个三维指示物。",
+      "events": [
+        "self_enter"
+      ],
+      "optional": false,
+      "forced": "empty_event"
+    },
+    "superhuman": {
+      "script": "abilities.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "支援。将自机区的圣白莲进场，然后在己方一个圣白莲上放置X个三维指示物；X大于10时，本回合获得疾行。"
+    },
+    "forbidden_game": {
+      "script": "scarlet_moon.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "吸血鬼与对手单位进行战斗判定，本回合可从墓地免费使用该牌。"
+    },
+    "forbidden_fruits": {
+      "script": "scarlet_moon.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "抓3张牌，然后令目标吸血鬼的可触发自机能力触发3次。"
+    },
+    "vlad_curse": {
+      "script": "scarlet_moon.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "计时3，复活墓地目标吸血鬼；此时符离场时牺牲该单位。"
+    },
+    "scarlet_meister": {
+      "script": "scarlet_moon.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "对任意目标造成6点伤害，按实际伤害创造蝙蝠，本回合己方单位获得疾行。"
+    },
+    "curse_permission": {
+      "script": "scarlet_moon.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "hand",
+        "grave",
+        "exile"
+      ],
+      "text": "套牌自机为蕾米莉亚且墓地有蕾米莉亚时，满足本牌的角色条件。"
+    },
+    "chanting_youka": {
+      "script": "scarlet_moon.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "目标其他黄绿单位放两个三维指示物，或移回手牌并抓两张。",
+      "optional": false,
+      "events": [
+        "self_enter"
+      ],
+      "forced": "empty_event"
+    },
+    "treasure_extra": {
+      "script": "scarlet_moon.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "你获得一个额外的准备阶段。"
+    },
+    "treasure_prepare": {
+      "script": "scarlet_moon.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "准备阶段开始时，发动月之神宝的效果。",
+      "optional": false,
+      "events": [
+        "phase"
+      ],
+      "forced": "empty_event"
+    },
+    "treasure_end": {
+      "script": "scarlet_moon.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "自己的结束阶段开始时，该道具对你造成3点伤害。",
+      "optional": false,
+      "events": [
+        "phase"
+      ],
+      "forced": "empty_event"
+    },
+    "hourai_search": {
+      "script": "scarlet_moon.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "准备阶段开始时，可以搜寻一张道具牌入手并洗牌。",
+      "optional": true,
+      "events": [
+        "phase"
+      ],
+      "forced": "empty_event"
+    },
+    "hourai_chromatic": {
+      "script": "scarlet_moon.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "你使用的道具牌具有极彩。"
+    },
+    "eternal_night": {
+      "script": "scarlet_moon.gd",
+      "kind": "spell",
+      "role": "main",
+      "zones": [
+        "stack"
+      ],
+      "text": "抓一张牌，获得5点生命，然后结束本回合。"
+    },
+    "night_timing": {
+      "script": "scarlet_moon.gd",
+      "kind": "static",
+      "role": "main",
+      "zones": [
+        "hand",
+        "grave",
+        "exile"
+      ],
+      "text": "支援。该牌只能于你的准备阶段中使用。"
+    },
+    "furnace_enter": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "进战场时，将至多两张自己拥有的移除区核燃料棒和／或御制棒洗回牌库。",
+      "events": [
+        "self_enter"
+      ],
+      "optional": false,
+      "forced": "empty_event"
+    },
+    "rod_enter": {
+      "script": "abilities.gd",
+      "kind": "triggered",
+      "role": "main",
+      "zones": [
+        "field"
+      ],
+      "text": "进战场时，先抓一张牌，再移除牌库顶两张牌。",
+      "events": [
+        "self_enter"
+      ],
+      "optional": false,
+      "forced": "empty_event"
+    }
+  },
+  "cards": [
+    "utsuho.json",
+    "blade.json",
+    "ten_stars.json",
+    "furnace.json",
+    "fuel.json",
+    "control.json",
+    "byakuren.json",
+    "visitor.json",
+    "recitation.json",
+    "sutra.json",
+    "resonance.json",
+    "ship.json",
+    "superhuman.json",
+    "forbidden_game.json",
+    "forbidden_fruits.json",
+    "vlad_curse.json",
+    "scarlet_meister.json",
+    "chanting_youka.json",
+    "hourai_branch.json",
+    "eternal_night.json",
+    "dragon_jewel.json",
+    "buddha_diamond.json",
+    "salamander_shield.json",
+    "life_spring.json",
+    "scarlet_bat.json",
+    "pillar.json"
+  ]
+}

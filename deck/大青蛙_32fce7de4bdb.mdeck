@@ -1,7 +1,7 @@
 {
   "deck": {
     "id": "1790470926.63_1897884895",
-    "leader": "new-spx-003",
+    "leader": "",
     "main": [
       "93",
       "93",
@@ -29,8 +29,6 @@
       "character-soi-018",
       "character-soi-018",
       "character-soi-018",
-      "new-spx-004",
-      "new-spx-004",
       "spell-fdn-066",
       "spell-fdn-066",
       "spell-fdn-029",
@@ -55,7 +53,7 @@
       "172"
     ],
     "name": "大青蛙",
-    "rule_set": "official_spx",
+    "rule_set": "unrestricted",
     "side": [
       "character-fdf-069",
       "character-fdf-069",

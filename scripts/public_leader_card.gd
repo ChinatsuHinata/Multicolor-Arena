@@ -21,7 +21,7 @@ func _ready():
  tooltip_text="长按 %s：查看详情" % CardPreviewHold.caption() if app.is_android else "右键：查看详情"
  add_theme_stylebox_override("panel",app.style(Color("#142737"),app.GOLD))
  picture=TextureRect.new();picture.name="OpponentLeaderArt";add_child(picture)
- picture.texture=load(Art.image_path(card_id,art_id,app.Store.CARDS))
+ picture.texture=Art.load_texture(Art.image_path(card_id,art_id,app.Store.CARDS))
  picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
  picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  picture.mouse_filter=Control.MOUSE_FILTER_IGNORE

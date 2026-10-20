@@ -5197,6 +5197,188 @@
     "僵尸"
    ]
   },
+  "exploration-club-activity": {
+   "arts": [],
+   "canonical": "exploration-club-activity",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "秘封俱乐部活动",
+   "search": [
+    "exploration-club-activity",
+    "秘封俱乐部活动",
+    "",
+    ""
+   ]
+  },
+  "exploration-club-travel-bag": {
+   "arts": [],
+   "canonical": "exploration-club-travel-bag",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "俱乐部的旅行包",
+   "search": [
+    "exploration-club-travel-bag",
+    "俱乐部的旅行包",
+    "",
+    ""
+   ]
+  },
+  "exploration-leader": {
+   "arts": [],
+   "canonical": "exploration-leader",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "探索的旅者「莲子」&「梅莉」",
+   "search": [
+    "exploration-leader",
+    "探索的旅者「莲子」&「梅莉」",
+    "莲子＆梅莉",
+    "探索的旅者"
+   ]
+  },
+  "exploration-merry-visit": {
+   "arts": [],
+   "canonical": "exploration-merry-visit",
+   "colors": [
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "梅莉的拜访",
+   "search": [
+    "exploration-merry-visit",
+    "梅莉的拜访",
+    "",
+    ""
+   ]
+  },
+  "exploration-random-club-activity": {
+   "arts": [],
+   "canonical": "exploration-random-club-activity",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "秘封俱乐部活动",
+   "search": [
+    "exploration-random-club-activity",
+    "秘封俱乐部活动",
+    "",
+    ""
+   ]
+  },
+  "exploration-random-club-travel-bag": {
+   "arts": [],
+   "canonical": "exploration-random-club-travel-bag",
+   "colors": [
+    "蓝"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "俱乐部的旅行包",
+   "search": [
+    "exploration-random-club-travel-bag",
+    "俱乐部的旅行包",
+    "",
+    ""
+   ]
+  },
+  "exploration-random-leader": {
+   "arts": [],
+   "canonical": "exploration-random-leader",
+   "colors": [
+    "红",
+    "蓝",
+    "绿",
+    "黄",
+    "黑"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": true,
+   "name": "探索的旅者「莲子」&「梅莉」",
+   "rule_sets": [
+    "unrestricted",
+    "test"
+   ],
+   "search": [
+    "exploration-random-leader",
+    "探索的旅者「莲子」&「梅莉」",
+    "莲子＆梅莉",
+    "探索的旅者"
+   ]
+  },
+  "exploration-random-merry-visit": {
+   "arts": [],
+   "canonical": "exploration-random-merry-visit",
+   "colors": [
+    "黄"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "梅莉的拜访",
+   "search": [
+    "exploration-random-merry-visit",
+    "梅莉的拜访",
+    "",
+    ""
+   ]
+  },
+  "exploration-random-renko-explore": {
+   "arts": [],
+   "canonical": "exploration-random-renko-explore",
+   "colors": [
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "莲子的探索",
+   "search": [
+    "exploration-random-renko-explore",
+    "莲子的探索",
+    "",
+    ""
+   ]
+  },
+  "exploration-renko-explore": {
+   "arts": [],
+   "canonical": "exploration-renko-explore",
+   "colors": [
+    "黑"
+   ],
+   "constructible": false,
+   "exclude_colors": true,
+   "leader": false,
+   "name": "莲子的探索",
+   "search": [
+    "exploration-renko-explore",
+    "莲子的探索",
+    "",
+    ""
+   ]
+  },
   "field-fdf-089": {
    "arts": [],
    "canonical": "field-fdf-089",
@@ -5915,6 +6097,24 @@
     ""
    ]
   },
+  "new-loc-006": {
+   "arts": [],
+   "canonical": "new-loc-006",
+   "colors": [
+    "红",
+    "黄"
+   ],
+   "constructible": true,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "「幻想ノ秋司」",
+   "search": [
+    "new-loc-006",
+    "「幻想ノ秋司」",
+    "",
+    ""
+   ]
+  },
   "new-spx-001": {
    "arts": [],
    "canonical": "new-spx-001",
@@ -5923,7 +6123,7 @@
     "绿",
     "黄"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": true,
    "name": "萃集梦乡「伊吹萃香」",
@@ -5943,7 +6143,7 @@
     "绿",
     "黄"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": false,
    "name": "「伊吹瓢」",
@@ -5961,7 +6161,7 @@
     "蓝",
     "绿"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": true,
    "name": "昨日的神明「洩矢诹访子」",
@@ -5979,7 +6179,7 @@
    "colors": [
     "绿"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": false,
    "name": "土著神「宝永四年ノ赤蛙」",
@@ -5997,7 +6197,7 @@
     "蓝",
     "黄"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": true,
    "name": "境界的妖怪「八云紫」",
@@ -6015,7 +6215,7 @@
     "蓝",
     "黄"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": false,
    "name": "废线「废弃车站下车ノ旅」",
@@ -6033,7 +6233,7 @@
     "蓝",
     "黄"
    ],
-   "constructible": true,
+   "constructible": false,
    "exclude_colors": false,
    "leader": false,
    "name": "「废弃列车车厢」",
@@ -9412,6 +9612,24 @@
     "token-ucs-093",
     "蓬莱之药",
     "",
+    ""
+   ]
+  },
+  "token-ucs-098": {
+   "arts": [],
+   "canonical": "token-ucs-098",
+   "colors": [
+    "蓝",
+    "绿"
+   ],
+   "constructible": false,
+   "exclude_colors": false,
+   "leader": false,
+   "name": "青蛙衍生物",
+   "search": [
+    "token-ucs-098",
+    "青蛙衍生物",
+    "青蛙",
     ""
    ]
   },

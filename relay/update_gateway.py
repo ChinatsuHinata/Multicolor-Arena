@@ -2,11 +2,13 @@
 """Serve signed game releases and pass existing WebSocket traffic to Godot."""
 
 import argparse
+import json
 import os
 import re
 import select
 import socket
 import socketserver
+import time
 from pathlib import Path
 
 MAX_HEADER = 16384
@@ -23,6 +25,7 @@ RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 class Gateway(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
+    request_queue_size = 128
 
     def __init__(self, address, handler, root, backend):
         self.release_root = Path(root).resolve()
@@ -128,20 +131,36 @@ class Handler(socketserver.BaseRequestHandler):
             pass
 
     def websocket(self, first_data):
+        started = time.monotonic()
+        record = {"client_ip": self.client_address[0], "client_port": self.client_address[1],
+                  "backend_port": 0, "up_bytes": 0, "down_bytes": 0}
+        operation = "connect_backend"
+        cause = "unknown"
         try:
             with socket.create_connection(self.server.backend, timeout=10) as backend:
+                record["backend_port"] = backend.getsockname()[1]
+                print("gateway_event " + json.dumps({"event": "websocket_open", "at": time.time(), **record}), flush=True)
                 backend.sendall(first_data)
                 self.request.settimeout(None)
                 backend.settimeout(None)
                 while True:
                     ready, _, _ = select.select((self.request, backend), (), ())
                     for source in ready:
+                        operation = "read_client" if source is self.request else "read_backend"
                         chunk = source.recv(65536)
                         if not chunk:
+                            cause = "client_eof" if source is self.request else "backend_eof"
                             return
+                        operation = "write_backend" if source is self.request else "write_client"
                         (backend if source is self.request else self.request).sendall(chunk)
-        except (OSError, ValueError):
-            pass
+                        record["up_bytes" if source is self.request else "down_bytes"] += len(chunk)
+        except (OSError, ValueError) as error:
+            cause = type(error).__name__
+            record["errno"] = getattr(error, "errno", None)
+        finally:
+            print("gateway_event " + json.dumps({"event": "websocket_closed", "at": time.time(),
+                  "duration_ms": round((time.monotonic()-started)*1000), "cause": cause,
+                  "operation": operation, **record}), flush=True)
 
     def reply(self, status, message):
         response = f"HTTP/1.1 {status} Error\r\nContent-Length: {len(message)}\r\nConnection: close\r\n\r\n".encode("ascii")

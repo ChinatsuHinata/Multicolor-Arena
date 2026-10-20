@@ -13,6 +13,7 @@ signal relay_match_settled(info: Dictionary)
 signal relay_room_closed(info: Dictionary)
 signal relay_rating(elo: int)
 signal relay_rank(rank: Dictionary)
+signal relay_link_status(info: Dictionary)
 const MAX_BYTES=16*1024*1024
 const CHUNK=12000
 var peer: MultiplayerPeer
@@ -31,6 +32,7 @@ var relay_options={}
 var relay_seat=0
 var relay_peer_roles={}
 var relay_peer_seats={}
+var last_server_seen=-1
 
 func relay_host(address: String,port: int,code: String,websocket: bool=false,token: String="",options: Dictionary={}) -> Error:
  return connect_relay(address,port,code,"host",websocket,token,options)
@@ -48,6 +50,7 @@ func relay_result(match_id: String,winner: int):
 
 func connect_relay(address: String,port: int,code: String,role: String,websocket: bool,token: String="",options: Dictionary={}) -> Error:
  close();relay_role=role;relay_code=code;relay_websocket=websocket;relay_token=token;relay_options=options.duplicate(true)
+ relay_options.net_protocol=1;last_server_seen=-1
  var err: Error
  if websocket:
   var websocket_peer=WebSocketMultiplayerPeer.new()
@@ -60,11 +63,12 @@ func connect_relay(address: String,port: int,code: String,role: String,websocket
  if err!=OK:peer=null;relay_role="";return err
  bind_signals();online=true;return OK
 
-func relay_control(kind: String):
+func relay_control(kind: String,extra: Dictionary={}):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
  var payload={"kind":kind,"room":relay_code,"token":relay_token}
  payload.merge(relay_options,true)
+ payload.merge(extra,true)
  peer.put_packet(("MCR1"+JSON.stringify(payload)).to_utf8_buffer())
 func relay_update(status: String,name: String,ready: Array=[false,false],round_number: int=0,format_value: int=0):
  if relay_role!="host" or peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
@@ -96,6 +100,7 @@ func bind_signals():
   if relay_role.is_empty():peers.erase(id);disconnected.emit(id))
 func close():
  if peer:peer.close()
+ last_server_seen=-1
  peer=null;online=false;chunks.clear();peers.clear();outbound.clear();relay_role="";relay_code="";relay_websocket=false;relay_token="";relay_options={};relay_seat=0;relay_peer_roles.clear();relay_peer_seats.clear()
 func drop(id: int):
  outbound=outbound.filter(func(packet):return packet.peer!=id)
@@ -145,7 +150,10 @@ func _process(_delta):
   if not relay_role.is_empty() and bytes.size()<=2048 and bytes.get_string_from_utf8().begins_with("MCR1"):
    var control=JSON.parse_string(bytes.get_string_from_utf8().substr(4))
    if control is Dictionary:
+    last_server_seen=Time.get_ticks_msec()
     match control.get("kind",""):
+     "link_probe":relay_control("link_pong",{"nonce":str(control.get("nonce",""))})
+     "link_status":relay_link_status.emit(control)
      "match_queued":relay_match_queued.emit(int(control.get("wait_seconds",0)),int(control.get("rank_gap",0)),int(control.get("queued",-1)))
      "matched":
       relay_role=str(control.get("role","guest"));relay_code=str(control.get("room",""))

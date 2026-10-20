@@ -16,14 +16,21 @@ func check(value: bool,description: String):
  else:failures.append(description);push_error(description)
 
 func run():
+ var fixture=ProjectSettings.globalize_path("user://pck-settings-ui")
+ preload("res://scripts/portable_paths.gd").root_override=fixture
+ var registry=preload("res://scripts/rules/mod_registry.gd")
+ registry._shared=registry.new()
  var app=load("res://main.tscn").instantiate()
+ app.settings_path=fixture.path_join("settings.json")
+ app.account_session_path=fixture.path_join("account.json")
+ app.tutorial_local_directory=fixture.path_join("tutorials")
  root.add_child(app)
  await process_frame
  app.settings()
- check(find_button(app.screen,"加载 PCK 补丁…")!=null,"desktop settings offers PCK import")
+ check(find_button(app.screen,"加载 PCK 补丁…")==null,"desktop settings hides manual PCK import")
  app.is_android=true
  app.settings()
- check(find_button(app.screen,"加载 PCK 补丁…")!=null,"Android settings offers PCK import")
+ check(find_button(app.screen,"加载 PCK 补丁…")==null,"Android settings hides manual PCK import")
  app.queue_free()
  await process_frame
  print("PCK_PATCH_UI: ","PASS" if failures.is_empty() else "FAIL")

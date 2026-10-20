@@ -54,6 +54,40 @@ func user_for_name(value: String) -> String:
   if fixture.logins[user].nickname==value:return user
  return ""
 
+func settings_choices(label: String):
+ var choices=["swiss","swiss_top2","swiss_top4","swiss_top8","swiss_top16"]
+ for index in range(choices.size()):
+  app.tournament_ui.show_settings()
+  var ui=app.tournament_ui
+  check(ui.format_input.item_count==5,label+" exposes all knockout sizes")
+  ui.format_input.select(index)
+  await press_node("TournamentSaveSettings")
+  check(ui.current.format==choices[index],label+" saves selected schedule: "+choices[index])
+  ui.show_settings()
+  check(ui.format_input.selected==index,label+" restores the saved knockout size")
+ var ui=app.tournament_ui
+ var scroll=ui.find_child("TournamentSettingsScroll",true,false)
+ for i in range(8):await process_frame
+ scroll.ensure_control_visible(ui.format_input)
+ for i in range(8):await process_frame
+ check(app.screen.get_global_rect().grow(2).encloses(ui.format_input.get_global_rect()),label+" schedule selector fits the screen")
+ check(ui.format_input.size.y>=app.ui_metrics.hit,label+" schedule selector has a full touch target")
+ await shot(label+"-knockout-settings")
+ ui.format_input.select(2)
+ await press_node("TournamentSaveSettings")
+
+func round_labels():
+ var ui=app.tournament_ui
+ var saved=ui.current.duplicate(true)
+ var cases=[["swiss_top2",1,"final"],["swiss_top4",2,"semifinal"],["swiss_top8",3,"quarterfinal"],["swiss_top16",4,"round_of_16"]]
+ for entry in cases:
+  ui.current={"phase":"running","format":entry[0],"total_swiss_rounds":1,"round_number":1,"pending_matches":0,"round_stage":entry[2]}
+  check(ui.advance_caption()=="开始下一轮","Swiss completion enters the selected knockout stage")
+  check(not ui.round_caption().begins_with(" ·"),"knockout opening stage has a readable caption")
+  ui.current.round_number=int(entry[1])+1
+  check(ui.advance_caption()=="结束比赛","competition ends after the selected number of knockout rounds")
+ ui.current=saved
+
 func run():
  var args=OS.get_cmdline_user_args()
  for i in range(args.size()-1):
@@ -75,6 +109,8 @@ func run():
  app.tutorial_local_directory=fixture.folder.path_join("round-tutorials");app.tournament_server_url=endpoint
  root.add_child(app);await process_frame
  await show_user("bigcake")
+ await settings_choices("desktop")
+ round_labels()
  await press_node("TournamentAdvanceRound");await confirm_dialog()
  var ui=app.tournament_ui
  check(ui.current.round_number==1 and ui.current.round_stage=="swiss" and ui.pairings.size()==2,"manual round starts and exposes all Swiss pairings")
@@ -88,6 +124,15 @@ func run():
  check(app.tournament_ui.my_pairing.result==null and app.tournament_ui.my_pairing.reports[0]==0,"a single player report does not award a win")
  app.is_android=true;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND;root.size=Vector2i(1280,720)
  app.layout_dpi_override=360;app.layout_safe_override=Rect2(40,12,1200,684)
+ await show_user("bigcake")
+ app.tournament_ui.show_settings()
+ check(app.tournament_ui.format_input.selected==2 and app.tournament_ui.format_input.disabled,"Android restores and locks the active four-player knockout schedule")
+ var android_settings=app.tournament_ui.find_child("TournamentSettingsScroll",true,false)
+ for i in range(8):await process_frame
+ android_settings.ensure_control_visible(app.tournament_ui.format_input)
+ for i in range(8):await process_frame
+ check(app.screen.get_global_rect().grow(2).encloses(app.tournament_ui.format_input.get_global_rect()),"Android knockout selector fits the safe area")
+ await shot("android-knockout-settings")
  await show_user(other_user);app.tournament_ui.detail_tab="pairings";app.tournament_ui.show_detail()
  await shot("android-result-confirmation")
  check(app.screen.get_global_rect().grow(2).encloses(app.tournament_ui.heading.get_global_rect()),"competition heading fits the Android safe area")

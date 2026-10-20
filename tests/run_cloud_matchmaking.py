@@ -13,6 +13,11 @@ godot = root / ".godot-toolchain/editor/Godot_v4.7.2-stable_win64_console.exe"
 scratch = root / "work/cloud-matchmaking"
 scratch.mkdir(parents=True, exist_ok=True)
 creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+client_pack = None
+if "--client-pack" in sys.argv:
+    client_pack = Path(sys.argv[sys.argv.index("--client-pack") + 1]).resolve()
+    if not client_pack.is_file():
+        raise SystemExit("Client package must exist.")
 
 def ready(port):
     try:
@@ -29,12 +34,13 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
     try:
         simulation = "--simulation-only" in sys.argv
         recovery = "--recovery-only" in sys.argv
+        attribution = "--attribution-only" in sys.argv
         restart = "--restart-only" in sys.argv
         casual = "--casual-only" in sys.argv
         exploration = "--exploration-only" in sys.argv
         if simulation and recovery:
             raise SystemExit("Choose either --simulation-only or --recovery-only.")
-        log_prefix = "exploration-random-" if exploration and "--random" in sys.argv else "exploration-" if exploration else "casual-" if casual else "restart-" if restart else "simulation-" if simulation else "recovery-" if recovery else "rooms-" if "--rooms-only" in sys.argv else ""
+        log_prefix = "response-timeout-" if "--response-timeout-only" in sys.argv else "exploration-random-" if exploration and "--random" in sys.argv else "exploration-" if exploration else "casual-" if casual else "restart-" if restart else "simulation-" if simulation else "recovery-" if recovery else "rooms-" if "--rooms-only" in sys.argv else ""
         database_path = Path(temp) / "players.sqlite3"
         if simulation:
             sys.path.insert(0, str(root / "relay"))
@@ -53,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
             import json
             manifest = Path(temp) / "clients.json"
             manifest.write_text(json.dumps({"endpoint": "ws://127.0.0.1:48045", "players": players}), encoding="utf-8")
-        elif recovery:
+        elif recovery or attribution:
             sys.path.insert(0, str(root / "relay"))
             import account_store
             import json
@@ -86,12 +92,20 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
             test_args = ["--script", "res://tests/test_cloud_rooms.gd", "--", "--server", "ws://127.0.0.1:48045"] if "--rooms-only" in sys.argv else ["--script", "res://tests/test_cloud_matchmaking.gd"]
             if simulation:test_args = ["--script", "res://tests/test_matchmaking_simulation.gd", "--", "--manifest", str(manifest)]
             if recovery:test_args = ["--script", "res://tests/test_match_recovery_network.gd", "--", str(manifest)]
+            if attribution:test_args = ["--script", "res://tests/test_connection_attribution_network.gd", "--", str(manifest)]
             if restart:test_args = ["--script", "res://tests/test_ranked_restart.gd"]
             if casual:test_args = ["--script", "res://tests/test_casual_matchmaking.gd"]
             if exploration:test_args = ["--script", "res://tests/test_exploration_matchmaking.gd", *(["--", "--random"] if "--random" in sys.argv else [])]
+            if "--response-timeout-only" in sys.argv:test_args = ["--script", "res://tests/test_cloud_response_timeout.gd"]
+            client_env = os.environ.copy()
+            client_env["MULTICOLOR_TEST_STORAGE"] = str(Path(temp) / "client-state")
+            if client_pack:
+                if test_args != ["--script", "res://tests/test_cloud_matchmaking.gd"]:
+                    raise SystemExit("--client-pack runs the full matchmaking suite.")
+                test_args = ["--main-pack", str(client_pack), "--script", str(root / "tests/test_cloud_matchmaking.gd")]
             result = subprocess.run([str(godot), "--headless", "--path", ".", "--log-file",
                 str(scratch / f"{log_prefix}test.log"), *test_args],
-                cwd=root, creationflags=creationflags, timeout=180, capture_output=True, encoding="utf-8", errors="replace")
+                cwd=root, env=client_env, creationflags=creationflags, timeout=240 if attribution else 180, capture_output=True, encoding="utf-8", errors="replace")
             print(result.stdout, end="", flush=True)
             print(result.stderr, end="", flush=True)
             if result.returncode:
@@ -99,6 +113,17 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as temp:
                     print("Match storage:", conn.execute("SELECT status,winner,elo_a,elo_b FROM rating_matches").fetchall(), flush=True)
                 conn.close()
                 raise SystemExit(result.returncode)
+            if attribution:
+                import json
+                with sqlite3.connect(database_path) as conn:
+                    rows = conn.execute("SELECT m.winner,m.player_a,m.player_b,r.detail FROM rating_matches m JOIN match_resolutions r USING(match_id) WHERE m.status='settled'").fetchall()
+                    assert len(rows) == 2, rows
+                    for winner, first, second, detail in rows:
+                        evidence = json.loads(detail)
+                        assert evidence["reason"] == "player_link_timeout", evidence
+                        assert evidence["evidence"][0]["player_id"] == (first, second)[1-winner], evidence
+                    print("PASS: both opposite-side disconnect decisions match durable player IDs and winners")
+                conn.close()
     finally:
         for service in reversed(services):
             service.terminate()

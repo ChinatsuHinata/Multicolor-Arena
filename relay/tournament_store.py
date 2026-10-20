@@ -1,15 +1,18 @@
-"""Persistent competition lifecycle, Swiss/top-four pairing and timed actions."""
+"""Persistent competition lifecycle, Swiss/knockout pairing and timed actions."""
 import math
 import secrets
 import time
-from tournament_pairing import swiss_pairs
+from tournament_pairing import knockout_pairs, swiss_pairs
 
-CREATOR_USERNAME = "bigcake"
+ORGANIZER_USERNAMES = frozenset(("bigcake", "heixingboshi"))
 PAGE_SIZE = 6
 MEMBER_PAGE_SIZE = 20
 SELECT = "id,owner_id,title,description,phase,created_at"
 CONFIG_COLUMNS = ("format", "swiss_rounds", "total_swiss_rounds", "round_number", "round_stage", "round_started_at", "round_interval", "timer_notice", "game_format", "start_at")
-FORMATS = ("swiss", "swiss_top4")
+TOP_CUTS = {"swiss_top2": 2, "swiss_top4": 4, "swiss_top8": 8, "swiss_top16": 16}
+FORMATS = ("swiss", *TOP_CUTS)
+KNOCKOUT_STAGES = {2: "final", 4: "semifinal", 8: "quarterfinal", 16: "round_of_16"}
+KNOCKOUT_PLACEMENTS = {stage: size // 2 + 1 for size, stage in KNOCKOUT_STAGES.items()}
 GAME_FORMATS = (1, 2, 3, 4, 5)  # BO1, BO1 sideboard, BO3, exploration, random exploration.
 PAIR_PAGE_SIZE = 12
 MAX_PLAYERS = 128
@@ -61,7 +64,7 @@ def config(conn, tournament_id):
 
 
 def can_create(account):
-    return account.get("ok") is True and account.get("username", "").casefold() == CREATOR_USERNAME
+    return account.get("ok") is True and account.get("username", "").casefold() in ORGANIZER_USERNAMES
 
 
 def error(message):
@@ -257,12 +260,12 @@ def standings_for(conn, tournament_id):
     # Keep Swiss seeding visible alongside the knockout placement.
     for a, b, result, stage in conn.execute("""SELECT p.player_a,p.player_b,p.result,r.stage FROM tournament_pairings p
         JOIN tournament_rounds r ON r.tournament_id=p.tournament_id AND r.number=p.round_number
-        WHERE p.tournament_id=? AND r.stage IN ('semifinal','final') AND p.result IN (0,1)""", (tournament_id,)):
+        WHERE p.tournament_id=? AND r.stage!='swiss' AND p.result IN (0,1)
+        ORDER BY r.number,p.table_number""", (tournament_id,)):
         winner, loser = (a, b) if result == 0 else (b, a)
+        players[loser]["placement"] = KNOCKOUT_PLACEMENTS[stage]
         if stage == "final":
-            players[winner]["placement"], players[loser]["placement"] = 1, 2
-        else:
-            players[loser]["placement"] = 3
+            players[winner]["placement"] = 1
     return ordered
 
 
@@ -285,7 +288,7 @@ def pairing_record(conn, pairing_id, account):
 def settings_input(data):
     format_name, rounds, interval = data.get("format", "swiss"), data.get("swiss_rounds", 0), data.get("round_interval", 0)
     if format_name not in FORMATS:
-        raise ValueError("赛制须为瑞士轮或瑞士轮加四强")
+        raise ValueError("赛程须为瑞士轮或瑞士轮加 2、4、8、16 强淘汰赛")
     if not integer(rounds) or rounds > 16:
         raise ValueError("瑞士轮轮数须为 0–16，0 表示按签到人数自动确定")
     if not integer(interval) or interval > 7 * 86400:
@@ -329,6 +332,7 @@ def start_round(conn, tournament_id, expected_round, now=None):
     row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", (tournament_id,)).fetchone()
     settings = config(conn, tournament_id)
     number = settings["round_number"]
+    cut = TOP_CUTS.get(settings["format"], 0)
     if number != expected_round:
         raise ValueError("轮次已变化，请刷新后重试")
     if row[4] not in ("locked", "running"):
@@ -338,7 +342,7 @@ def start_round(conn, tournament_id, expected_round, now=None):
         raise ValueError("本轮仍有未结束或待确认对局，请主办方裁定后推进")
     standings = standings_for(conn, tournament_id)
     if number == 0:
-        minimum = 4 if settings["format"] == "swiss_top4" else 2
+        minimum = max(2, cut)
         if not minimum <= len(standings) <= MAX_PLAYERS:
             raise ValueError(f"此赛制需要至少 {minimum} 名已签到选手")
         rounds = settings["swiss_rounds"] or math.ceil(math.log2(len(standings)))
@@ -354,14 +358,14 @@ def start_round(conn, tournament_id, expected_round, now=None):
         stage = "swiss"
         history = conn.execute("SELECT player_a,player_b FROM tournament_pairings WHERE tournament_id=?", (tournament_id,)).fetchall()
         pairs = swiss_pairs(standings, [(a, b) for a, b in history if b is not None], {a for a, b in history if b is None})
-    elif settings["format"] == "swiss_top4" and number == rounds:
-        stage = "semifinal"
-        top = [entry["player_id"] for entry in standings[:4]]
-        pairs = [(top[0], top[3]), (top[1], top[2])]
-    elif settings["format"] == "swiss_top4" and number == rounds + 1:
-        stage = "final"
-        pairs = [(tuple((a, b)[result] for a, b, result in conn.execute("""SELECT player_a,player_b,result
-            FROM tournament_pairings WHERE tournament_id=? AND round_number=? ORDER BY table_number""", (tournament_id, number))))]
+    elif cut and number < rounds + cut.bit_length() - 1:
+        stage = KNOCKOUT_STAGES[cut >> (number - rounds)]
+        if number == rounds:
+            pairs = knockout_pairs([entry["player_id"] for entry in standings[:cut]])
+        else:
+            winners = [(a, b)[result] for a, b, result in conn.execute("""SELECT player_a,player_b,result
+                FROM tournament_pairings WHERE tournament_id=? AND round_number=? ORDER BY table_number""", (tournament_id, number))]
+            pairs = list(zip(winners[::2], winners[1::2]))
     else:
         conn.execute("UPDATE tournaments SET phase='complete',timer_notice='' WHERE id=?", (tournament_id,))
         return "比赛已结束，最终成绩已确定"
@@ -559,7 +563,8 @@ def tick(conn, now=None):
                 if action == "start_round":
                     message = start_round(conn, tournament_id, expected, now)
                 else:
-                    account = {"ok": True, "username": CREATOR_USERNAME, "player_id": row[1]}
+                    owner = conn.execute("SELECT username FROM players WHERE id=?", (row[1],)).fetchone()
+                    account = {"ok": True, "username": owner[0] if owner else "", "player_id": row[1]}
                     answer = handle_group(conn, {"action": action, "id": tournament_id}, account)
                     if not answer["ok"]:
                         raise ValueError(answer["message"])
