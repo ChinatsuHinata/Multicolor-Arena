@@ -1,4 +1,5 @@
 extends "res://tests/support/ui_base.gd"
+const PagingChecks=preload("res://tests/support/battle_paging.gd")
 
 func frames(count: int=6):
  for i in range(count):await process_frame
@@ -49,7 +50,7 @@ func verify_palette_cameras(android: bool):
        var button=view.zone_pagers["palette"+str(who)].button
        var rect=button.get_global_rect();pager_rects.append(rect)
        expect(button.is_visible_in_tree() and app.ui_metrics.safe.encloses(rect),prefix+" palette%d stays visible inside the safe area" % who)
-       expect(not view.hand_scroll.visible or not view.hand_scroll.get_global_rect().intersects(rect),prefix+" palette%d leaves own hand clear" % who)
+       expect(PagingChecks.visible_hand_regions(view).all(func(region):return not region.intersects(rect)),prefix+" palette%d leaves actual own cards and scrollbars clear" % who)
        expect(view.enemy_nodes.values().all(func(tile):return not tile.is_visible_in_tree() or not tile.get_global_rect().intersects(rect)),prefix+" palette%d leaves enemy hand clear" % who)
       expect(not pager_rects[0].intersects(pager_rects[1]),prefix+" both palette arrows stay separate")
     view.table.camera_frame_scale=1.0;view.reset_camera_view()

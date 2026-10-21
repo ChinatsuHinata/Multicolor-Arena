@@ -15,6 +15,7 @@ var cloud_selected=false
 var cloud_home_view="match"
 var cloud_form_draft: Dictionary={}
 var cloud_directory
+var cloud_refresh_button: Button
 var cloud_title_input: LineEdit
 var cloud_password_input: LineEdit
 var cloud_host_slot: OptionButton
@@ -24,6 +25,7 @@ var queue_label: Label
 var match_deck_index=-1
 var cloud_room_columns=4
 const DEFAULT_RELAY_SERVER="ws://8.137.122.187:47862"
+var cloud_server_url=DEFAULT_RELAY_SERVER
 var port_input: SpinBox
 var format_input: OptionButton
 var entertainment_input: OptionButton
@@ -35,6 +37,7 @@ var rooms_list: VBoxContainer
 var signature=""
 var deck_index=0
 var last_error=""
+var mobile_room_layout
 
 func add_formats():
  format_input.name="MatchFormat"
@@ -148,8 +151,18 @@ func build(parent,net):
   body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   body.offset_top=185
  # Returning from battle recreates the lobby without pressing the cloud mode button.
- if cloud_selected and session.room_id.is_empty():cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token,session.fingerprint)
+ if cloud_selected:cloud_directory.start(cloud_server_url,app.account_token,session.fingerprint)
  refresh(true)
+func _unhandled_key_input(event: InputEvent):
+ if not app.is_android or app.page!="online" or not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_ESCAPE,KEY_BACK]:return
+ if app.deck_picker_open() or app.menu_popup_open() or app.get_children().any(func(child):return child is Window and child.visible):return
+ get_viewport().set_input_as_handled()
+ if session.room_id.is_empty():
+  if back_button.visible and not back_button.disabled:back_button.pressed.emit()
+  return
+ var leave=body.find_child("PreparationLeaveRoom",true,false) as Button
+ if leave!=null and not leave.disabled:leave.pressed.emit()
+
 func show_error(message: String):
  last_error=message;status_label.text=message
  app.alert(message,"无法进行联机操作")
@@ -158,14 +171,15 @@ func _process(_delta):
  if is_instance_valid(queue_label):queue_label.text=queue_caption(session.match_queued if session.matchmaking else cloud_directory.queued,session.matchmaking)
  if is_instance_valid(latency_label):latency_label.text="网络延迟 · "+session.latency_text()
  if session.disconnected_at>0 or session.ended():status_label.text=session.connection_status()
+ if is_instance_valid(cloud_refresh_button):cloud_refresh_button.text="刷新中…" if cloud_directory.loading else "刷新"
 func refresh(force: bool=false):
- back_button.visible=can_leave_room();back_button.disabled=not can_leave_room()
+ back_button.visible=can_leave_room() and (not app.is_android or session.room_id.is_empty());back_button.disabled=not can_leave_room()
  status_label.text=PlayerNameDisplay.in_text(last_error if not last_error.is_empty() else session.notice if not session.notice.is_empty() else session.discovery.error,session.room.get("names",[]))
  var next=JSON.stringify([session.room_id,session.room,session.applicant,session.connected,session.paused,session.busy,session.wait_choice_pending,session.wait_choice_confirmed,session.cloud_seats,session.cloud_slot,session.read_only,mode_selected,cloud_selected,cloud_home_view,session.cloud_mode,session.matchmaking,session.cloud_ranked,session.match_settled])
  if force or next!=signature:
   signature=next
   remember_cloud_form()
-  rooms_list=null;cloud_rooms_list=null;latency_label=null;matchmaking_label=null
+  rooms_list=null;cloud_rooms_list=null;cloud_refresh_button=null;latency_label=null;matchmaking_label=null
   for child in body.get_children():body.remove_child(child);child.queue_free()
   cloud_title_input=null;cloud_password_input=null;cloud_host_slot=null;format_input=null;rule_input=null;strict_input=null;entertainment_input=null
   if not app.is_android:
@@ -211,7 +225,7 @@ func set_cloud_mode(enabled: bool):
   app.alert("请先在主菜单的玩家账号中登录，再进入云端。","需要登录");refresh(true);return
  mode_selected=true;cloud_selected=enabled;last_error=""
  session.cloud_token=app.account_token;session.cloud_nickname=app.account_nickname
- if enabled:cloud_directory.start(DEFAULT_RELAY_SERVER,app.account_token,session.fingerprint)
+ if enabled:cloud_directory.start(cloud_server_url,app.account_token,session.fingerprint)
  else:cloud_directory.stop()
  refresh(true)
 
@@ -413,7 +427,7 @@ func build_cloud_directory(parent: Node,directory_width: float=0):
   directory_panel.size_flags_stretch_ratio=1.6
  var heading=HBoxContainer.new();directory.add_child(heading)
  mobile_text(heading,"所有云端房间",true).size_flags_horizontal=Control.SIZE_EXPAND_FILL
- mobile_action(heading,"刷新",func():cloud_directory.refresh())
+ cloud_refresh_button=mobile_action(heading,"刷新",refresh_cloud_directory);cloud_refresh_button.name="RefreshCloudRooms"
  mobile_text(directory,"选择空位加入；加密房间将在加入时询问密码。")
  cloud_rooms_list=VBoxContainer.new();directory.add_child(cloud_rooms_list)
  refresh_cloud_rooms()
@@ -516,13 +530,25 @@ func build_cloud_home():
  var create_button=mobile_action(create,"创建房间",create_relay,true);create_button.name="CreateCloudRoom";compact_cloud_control(create_button)
  if not app.is_android:build_cloud_directory(columns,directory_width if side_by_side else 0)
 
+func refresh_cloud_directory():
+ last_error=""
+ cloud_directory.match_mode=app.selected_match_mode()
+ if not cloud_directory.active or cloud_directory.url!=cloud_server_url or cloud_directory.token!=app.account_token or cloud_directory.version!=session.fingerprint:
+  cloud_directory.start(cloud_server_url,app.account_token,session.fingerprint)
+ else:cloud_directory.refresh()
+ refresh_cloud_rooms()
+
 func refresh_cloud_rooms():
  if not cloud_directory.rank.is_empty():app.account_rank=cloud_directory.rank.duplicate(true)
  refresh_rank_display()
  if not is_instance_valid(cloud_rooms_list) or not cloud_selected:return
  for child in cloud_rooms_list.get_children():cloud_rooms_list.remove_child(child);child.queue_free()
  if cloud_directory.rooms.is_empty():
-  mobile_text(cloud_rooms_list,"当前没有房间，可创建一个房间。")
+  var message="当前没有房间，可创建一个房间。"
+  if not cloud_directory.active:message="云端连接已断开，点击刷新重新连接。"
+  elif not cloud_directory.has_snapshot:message="正在连接云端，获取房间列表…"
+  elif cloud_directory.loading:message="正在刷新房间列表…"
+  mobile_text(cloud_rooms_list,message).name="CloudRoomsStatus"
   return
  for info in cloud_directory.rooms:
   if not info is Dictionary or not info.get("seats") is Array:continue
@@ -597,6 +623,10 @@ func cloud_seat_grid(parent: Node,columns: int) -> GridContainer:
   tile.tooltip_text="已准备的玩家不能换位" if slot<=2 and session.room.ready[slot-1] else "拖动名称可交换或移动座位" if session.can_move_cloud_seats() else ""
  return grid
 func build_cloud_room_lobby():
+ if app.is_android:
+  mobile_room_layout=preload("res://net/mobile_room_layout.gd").new()
+  mobile_room_layout.build(self,true)
+  return
  var room=session.room
  var root=mobile_scroll()
  var summary=mobile_panel(root)
@@ -745,6 +775,10 @@ func mobile_panel(parent: Node) -> VBoxContainer:
  return content
 
 func mobile_scroll() -> VBoxContainer:
+ mobile_room_layout=null
+ if app.is_android:
+  body.offset_top=185
+  status_label.show()
  var scroll=ScrollContainer.new();body.add_child(scroll)
  scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
@@ -806,6 +840,10 @@ func build_mobile_home():
  mobile_text(root,"跨网络连接需要可传递 UDP 的组网或内网穿透；广播列表为空时仍可手动输入地址。")
 
 func build_responsive_room():
+ if app.is_android:
+  mobile_room_layout=preload("res://net/mobile_room_layout.gd").new()
+  mobile_room_layout.build(self,false)
+  return
  var room=session.room
  if room.is_empty():return
  var root=mobile_scroll()

@@ -35,6 +35,7 @@ tests/*
 !tests/test_match_store.py
 !tests/test_rank_progression.py
 !tests/run_cloud_matchmaking.py
+!tests/run_cloud_directory_refresh.py
 !tests/test_match_preparation_sync.gd
 !tests/test_match_room_exit_ui.gd
 !tests/run_password_change.py

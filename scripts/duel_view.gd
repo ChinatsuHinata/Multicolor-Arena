@@ -1174,19 +1174,48 @@ func next_zone_page(who: int,group: String):
  table.next_zone_page(who,group)
  render()
 
+func palette_control_obstacles(control: Control,clip: Rect2=Rect2()) -> Array:
+ if not is_instance_valid(control) or not control.is_visible_in_tree() or control.is_queued_for_deletion() or control.modulate.a<=0.001:return []
+ var rect=control.get_global_rect()
+ if control is Label:
+  if control.text.strip_edges().is_empty():return []
+  var font=control.get_theme_font("font")
+  var wrap_width=rect.size.x if control.autowrap_mode!=TextServer.AUTOWRAP_OFF else -1.0
+  var drawn=font.get_multiline_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,wrap_width,control.get_theme_font_size("font_size"))
+  if control.clip_text or wrap_width>0:drawn.x=minf(drawn.x,rect.size.x)
+  drawn.y=minf(drawn.y,rect.size.y)
+  if control.horizontal_alignment==HORIZONTAL_ALIGNMENT_CENTER:rect.position.x+=(rect.size.x-drawn.x)*0.5
+  elif control.horizontal_alignment==HORIZONTAL_ALIGNMENT_RIGHT:rect.position.x+=rect.size.x-drawn.x
+  if control.vertical_alignment==VERTICAL_ALIGNMENT_CENTER:rect.position.y+=(rect.size.y-drawn.y)*0.5
+  elif control.vertical_alignment==VERTICAL_ALIGNMENT_BOTTOM:rect.position.y+=rect.size.y-drawn.y
+  rect.size=drawn
+ elif not (control is BaseButton or control is Range or control is Panel or control is PanelContainer or control is TextureRect or control is RichTextLabel or control is LineEdit or control is TextEdit):
+  # Layout containers and scroll viewports do not paint their empty space.
+  # Recurse into cards, controls and scrollbars, clipping them to the viewport.
+  var child_clip=clip
+  if control.clip_contents or control is ScrollContainer:
+   child_clip=rect.intersection(clip) if clip.has_area() else rect
+   if not child_clip.has_area():return []
+  var result=[]
+  for child in control.get_children():
+   if child is Control:result.append_array(palette_control_obstacles(child,child_clip))
+  return result
+ if clip.has_area():rect=rect.intersection(clip)
+ return [rect] if rect.has_area() else []
+
 func palette_pager_obstacles() -> Array:
  var blocked=[]
  for control in hud.get_children():
   if not control is Control or control==field_capacity_badge or control.name.begins_with("ZonePager"):continue
-  if control.is_visible_in_tree() and not control.is_queued_for_deletion():blocked.append(control.get_global_rect())
+  blocked.append_array(palette_control_obstacles(control))
  for control in [hand_scroll,stack_panel,stack_panel.toggle_button,android_back_button]:
-  if is_instance_valid(control) and control.is_visible_in_tree():blocked.append(control.get_global_rect())
+  if is_instance_valid(control):blocked.append_array(palette_control_obstacles(control))
  if opponent_layer.visible:
   for tile in enemy_nodes.values():
-   if is_instance_valid(tile) and tile.is_visible_in_tree():blocked.append(tile.get_global_rect())
+   if is_instance_valid(tile):blocked.append_array(palette_control_obstacles(tile))
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
   for button in android_zone_shortcuts.buttons.values():
-   if button.is_visible_in_tree():blocked.append(button.get_global_rect())
+   blocked.append_array(palette_control_obstacles(button))
  return blocked.map(func(rect):return rect.grow(host.ui_metrics.gap))
 
 func clear_palette_pager_position(preferred: Vector2,dimensions: Vector2,area: Rect2,blocked: Array) -> Vector2:
@@ -1225,7 +1254,7 @@ func update_zone_pager_positions():
  var card_rects=[]
  if not palette_pagers.is_empty():
   for descriptor in table.descriptors.values():
-   if descriptor.zone not in ["field","palette","leader"]:continue
+   if descriptor.zone not in ["field","palette","leader"] and not (descriptor.zone=="exile" and descriptor.has("castle_uid")):continue
    var node=table.visuals[descriptor.key]
    if node.is_visible_in_tree() and not table.camera.is_position_behind(node.global_position):card_rects.append(projected_card_rect(node).grow(host.ui_metrics.gap))
  for parts in unit_pagers+palette_pagers:
@@ -1235,13 +1264,24 @@ func update_zone_pager_positions():
   pager.position=bounds.end-pager.size-Vector2(4,4)
   var clear=responsive.camera_focus_rect() if is_android else STAGE
   if parts.group=="palette":
-   clear=responsive.camera_focus_rect()
+   # Anchor each arrow to its own projected row. The camera-focus rectangle can
+   # cover only the other player's palette, so clamping both arrows into that
+   # frame made them jump to unrelated places when panning or changing focus.
+   var safe=host.ui_metrics.safe.grow(-1)
    var obstacles=palette_blocked+occupied
-   var preferred=pager.position
-   var at=clear_palette_pager_position(preferred,pager.size,clear,obstacles+card_rects)
-   # When the focused row fills its frame, use free screen space around the HUD.
-   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,host.ui_metrics.safe,obstacles+card_rects)
-   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,host.ui_metrics.safe,obstacles)
+   var row=Rect2()
+   for descriptor in table.descriptors.values():
+    if descriptor.zone!="palette" or descriptor.owner!=parts.owner or descriptor.uid<=0:continue
+    var card=table.visuals[descriptor.key]
+    if not card.is_visible_in_tree() or table.camera.is_position_behind(card.global_position):continue
+    var rect=projected_card_rect(card)
+    row=row.merge(rect) if row.has_area() else rect
+   var preferred=Vector2(row.end.x+host.ui_metrics.gap,row.get_center().y-pager.size.y*0.5) if row.has_area() else Vector2(bounds.end.x-pager.size.x-4,bounds.get_center().y-pager.size.y*0.5)
+   var row_slack=host.ui_metrics.gap+pager.size.y*0.5
+   var row_band=Rect2(safe.position.x,clampf(preferred.y-row_slack,safe.position.y,safe.end.y-pager.size.y),safe.size.x,pager.size.y+row_slack*2).intersection(safe)
+   var at=clear_palette_pager_position(preferred,pager.size,row_band,obstacles+card_rects)
+   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,safe,obstacles+card_rects)
+   if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,safe,obstacles)
    pager.position=at if at.is_finite() else preferred.clamp(host.ui_metrics.safe.position,host.ui_metrics.safe.end-pager.size)
    pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
    continue
@@ -1274,22 +1314,31 @@ func zone_page_button_at(point: Vector2) -> String:
  return ""
 
 func touch_zone_pagers(event: InputEvent) -> bool:
- if not is_android or not (event is InputEventScreenTouch or event is InputEventScreenDrag):return false
- if event is InputEventScreenTouch and event.pressed:
-  if modal or history_open or revealing() or table.combat_animating or zone_page_touch_index>=0:return false
+ var touch=event is InputEventScreenTouch or event is InputEventScreenDrag
+ var mouse=event is InputEventMouseButton or event is InputEventMouseMotion
+ if not touch and not mouse:return false
+ if event is InputEventMouseButton and event.button_index!=MOUSE_BUTTON_LEFT:return false
+ var press=event is InputEventScreenTouch and event.pressed or event is InputEventMouseButton and event.pressed
+ var release=event is InputEventScreenTouch and not event.pressed or event is InputEventMouseButton and not event.pressed
+ var index=event.index if touch else -2
+ if press:
+  if modal or history_open or revealing() or table.combat_animating or not zone_page_touch_key.is_empty():return false
   zone_page_touch_key=zone_page_button_at(event.position)
   if zone_page_touch_key.is_empty():return false
-  zone_page_touch_index=event.index;zone_page_touch_start=event.position;zone_page_touch_dragged=false
- elif event.index!=zone_page_touch_index:return false
- elif event is InputEventScreenDrag:
+  zone_page_touch_index=index;zone_page_touch_start=event.position;zone_page_touch_dragged=false
+ elif zone_page_touch_key.is_empty() or index!=zone_page_touch_index:return false
+ if event is InputEventScreenDrag or event is InputEventMouseMotion:
   if event.position.distance_to(zone_page_touch_start)>TOUCH_DRAG_THRESHOLD:zone_page_touch_dragged=true
- else:
+ elif release:
   zone_page_touch_index=-1
-  if not event.canceled and not zone_page_touch_dragged and zone_page_button_at(event.position)==zone_page_touch_key:
+  var canceled=event.canceled if event is InputEventScreenTouch else false
+  if not canceled and not zone_page_touch_dragged and zone_page_button_at(event.position)==zone_page_touch_key:
    var parts=zone_pagers[zone_page_touch_key]
    next_zone_page(parts.owner,parts.group)
   zone_page_touch_key=""
- suppress_touch_mouse_until=Time.get_ticks_msec()+250;suppress_touch_mouse_point=event.position
+ if touch:
+  suppress_touch_mouse_until=Time.get_ticks_msec()+250
+  suppress_touch_mouse_point=event.position
  get_viewport().set_input_as_handled()
  return true
 

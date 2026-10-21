@@ -8,7 +8,7 @@ const SIZE_SCALE=1.5
 const DRAG_THRESHOLD=12.0
 const KEYS=["own_grave","enemy_grave","exile"]
 const TITLES=["我方墓地","敌方墓地","除外区"]
-const COLORS=[Color("#ef5350"),Color("#4b9df5"),Color.WHITE]
+const COLORS=[Color("#4b9df5"),Color("#ef5350"),Color.WHITE]
 var view
 var buttons={}
 var bounds=Rect2()

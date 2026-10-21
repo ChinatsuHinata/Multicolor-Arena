@@ -4,6 +4,7 @@ const ConditionShader=preload("res://assets/conditional_frame.gdshader")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
 const UnknownShader=preload("res://assets/unknown_card_art.gdshader")
 const DevourMarker=preload("res://scripts/devour_marker.gd")
+const CastleExileDisplay=preload("res://scripts/castle_exile_display.gd")
 var local_seat=0
 ## One persistent world per duel. Moving cards reuse their meshes and collision objects.
 signal object_selected(uid: int)
@@ -97,6 +98,8 @@ var last_collision_targets=[]
 var unit_order={0:[],1:[]}
 var zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
 var page_change_pending=false
+var page_focus_uids=[]
+var zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}}
 var hover_uid=0
 var unknown_material: ShaderMaterial
 
@@ -297,6 +300,7 @@ func description(c: Dictionary, at: Vector3, scale_value: float=1.0) -> Dictiona
  return {"key":"card_"+str(c.uid),"card_id":c.card_id,"art_id":c.get("art_id",""),"uid":c.uid,"owner":c.owner,"zone":c.get("zone","palette"),"at":at,"rotation":Vector3(0,PI/2 if tapping else 0,0),"scale":Vector3.ONE*scale_value,"kind":"object","tapped":tapping,"blue":c.uid in highlighted,"gold":c.uid in chosen or reserved.any(func(r): return r.uid==c.uid),"conditional":conditional,"unknown_noise":UnknownArt.active(duel,c)}
 
 func layout() -> Dictionary:
+ refresh_page_focus()
  var result={}
  for who in range(2):
   var p=duel.players[who]
@@ -318,7 +322,7 @@ func layout() -> Dictionary:
    var bundles=[];var keys={}
    for c in groups[group]:
     var signature=""
-    if c.uid not in chosen and c.uid not in stack_target_uids and c.uid not in tutorial_highlights and not reserved.any(func(r):return r.uid==c.uid):
+    if c.uid not in chosen and c.uid not in page_focus_uids and c.uid not in stack_target_uids and c.uid not in tutorial_highlights and not reserved.any(func(r):return r.uid==c.uid):
      signature=duel.stackable_signature(c)
     if not signature.is_empty() and keys.has(signature):bundles[keys[signature]].append(c)
     else:
@@ -353,6 +357,7 @@ func layout() -> Dictionary:
   if p.potato:
    var c={"uid":-100-who,"card_id":"potato","owner":who,"zone":"palette","tapped":false}
    var d=description(c,Vector3((-8.15 if wide_playmat else -7.95)*side,0.035,zone_position("palette",who).z),0.52);result[d.key]=d
+ CastleExileDisplay.apply(self,result)
  if external_stack: return result
  for i in range(duel.stack.size()):
   var entry=duel.stack[i]
@@ -372,12 +377,35 @@ func zone_page_count(who: int,group: String) -> int:
  var count=duel.players[who].palette.size() if group=="palette" else duel.players[who].field.filter(func(c):return duel.is_unit(c)).size()
  return maxi(1,ceili(float(count)/zone_page_size(group)))
 
+func refresh_page_focus():
+ # Selection already contains epoch-checked stack targets from duel_view. Combat
+ # is public engine state, so this also works for spectators and remote players.
+ page_focus_uids=chosen.duplicate()
+ var refs=[duel.combat.get("attacker",{}),duel.combat.get("target",{})]+duel.combat.get("blockers",[])
+ for ref in refs:
+  if not ref is Dictionary or not ref.has("uid"):continue
+  var card=duel.find_card(ref.uid)
+  if card.is_empty() or card.epoch!=ref.get("epoch",card.epoch):continue
+  if card.uid not in page_focus_uids:page_focus_uids.append(card.uid)
+
 func paged_zone_cards(who: int,group: String,cards: Array) -> Array:
  var page_size=zone_page_size(group)
  var pages=maxi(1,ceili(float(cards.size())/page_size))
+ var focused=cards.filter(func(card):return card.uid in page_focus_uids)
+ var focus_ids=focused.map(func(card):return "%d:%d" % [card.uid,card.epoch])
+ # Compare the set rather than its display order: dragging or auto-sorting units
+ # must not keep snapping the page back while a target remains on the stack.
+ # Epochs distinguish leave/re-enter or replay-seek snapshots with the same UID.
+ focus_ids.sort()
+ if zone_focus[who][group]!=focus_ids:
+  zone_focus[who][group]=focus_ids
+  if not focused.is_empty() and pages>1:
+   zone_pages[who][group]=0
+   page_change_pending=true
+ var ordered=focused+cards.filter(func(card):return card.uid not in page_focus_uids) if pages>1 else cards
  var page=clampi(zone_pages[who][group],0,pages-1)
  zone_pages[who][group]=page
- return cards.slice(page*page_size,(page+1)*page_size)
+ return ordered.slice(page*page_size,(page+1)*page_size)
 
 func next_zone_page(who: int,group: String):
  zone_pages[who][group]=(zone_pages[who][group]+1)%zone_page_count(who,group)
@@ -578,6 +606,7 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   var hit=node.get_node("Hit")
   hit.set_meta("kind",d.kind); hit.set_meta("uid",d.uid)
   hit.set_meta("card_id",d.card_id); hit.set_meta("stack_id",d.get("stack_id",-1))
+  hit.set_meta("caption",d.get("caption",""))
   if fresh or prev.get("at")!=d.at or prev.get("rotation")!=d.rotation or prev.get("scale")!=d.scale:
    move_card(key,node,d,animate and not presented_moves.has(d.uid))
   if old_cards.has(d.uid) and now.has(d.uid):
