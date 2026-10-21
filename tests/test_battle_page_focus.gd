@@ -1,5 +1,9 @@
 extends "res://tests/support/ui_base.gd"
 const PagingChecks=preload("res://tests/support/battle_paging.gd")
+const Codec=preload("res://net/state_codec.gd")
+const SeatProjection=preload("res://net/seat_projection.gd")
+const ObserverProjection=preload("res://net/observer_projection.gd")
+const Remote=preload("res://net/remote_duel.gd")
 
 class SpectatorSession:
  extends RefCounted
@@ -25,6 +29,10 @@ func sync_table():
 func verify_focus(android: bool,seat: int,spectator: bool):
  clean();view.local_seat=seat;view.table.local_seat=seat
  view.network_session=SpectatorSession.new() if spectator else null
+ var original_model=e.cards["53"]
+ var model=original_model.duplicate(true);model.health=20
+ model.abilities=[{"实现":"activated_damage","名称":"对目标造成1点伤害","参数":{"横置":false,"费用":{},"数值":1}}]
+ e.cards["53"]=model
  var units={0:[],1:[]};var palettes={0:[],1:[]}
  for who in range(2):
   for i in range(13):units[who].append(put("53","field",who))
@@ -34,43 +42,117 @@ func verify_focus(android: bool,seat: int,spectator: bool):
  var prefix=("Android" if android else "Desktop")+" seat"+str(seat)+(" spectator" if spectator else " player")
  expect(shown(0,"field")==[units[0][12].uid],prefix+" manual third page starts unchanged")
  var attacker=units[0][12];var blocker=units[1][11]
- e.combat={"attacker":e.ref_target(attacker),"blockers":[e.ref_target(blocker)],"target":e.ref_target(blocker),"owner":0,"step":"block_window","blocked":true,"strike_round":"normal"}
+ view.selection=[attacker.uid,palettes[0][22].uid]
+ view.local={"mode":"target","uid":attacker.uid,"target":e.ref_target(blocker)}
+ var preview=snapshot();sync_table()
+ expect(view.table.zone_pages[0].unit==2 and view.table.zone_pages[0].palette==2,prefix+" unconfirmed selection and target preview never promote cards")
+ expect(snapshot()==preview,prefix+" preview leaves the duel unchanged")
+ view.selection=[];view.local={};sync_table()
+ e.attack(1,blocker.uid)
+ expect(not e.commit_ability(0,attacker.uid,99,e.ref_target(blocker),[]).is_empty(),prefix+" invalid ability is rejected")
+ sync_table()
+ expect(view.table.zone_pages[0].unit==2 and view.table.zone_pages[1].unit==2,prefix+" rejected attack and ability never promote cards")
+ e.attack(0,attacker.uid)
+ expect(not e.combat.is_empty(),prefix+" attack is actually declared")
  var fighting=snapshot();sync_table()
- expect(view.table.zone_pages[0].unit==0 and shown(0,"field")[0]==attacker.uid,prefix+" off-page attacker moves to first page")
- expect(view.table.zone_pages[1].unit==0 and shown(1,"field")[0]==blocker.uid,prefix+" off-page defender moves to first page")
- expect(snapshot()==fighting,prefix+" combat presentation leaves real field order and engine state untouched")
+ expect(view.table.zone_pages[0].unit==0 and shown(0,"field")[0]==attacker.uid,prefix+" successful attack moves its source to the first page")
+ expect(view.table.zone_pages[1].unit==2,prefix+" an undeclared blocker stays on its current page")
+ expect(snapshot()==fighting,prefix+" combat rendering does not mutate engine state")
+ resolve()
+ expect(e.pending.get("kind","")=="block",prefix+" real combat reaches the blocker choice")
+ e.block([blocker.uid]);sync_table()
+ expect(view.table.zone_pages[1].unit==0 and shown(1,"field")[0]==blocker.uid,prefix+" confirmed block promotes its defender")
  if seat==0 and not spectator:
   view.render();await settle();view.update_badge_positions()
   await capture("battle-focus-combat-"+("android" if android else "desktop"))
- view.table.next_zone_page(0,"unit");sync_table()
- expect(view.table.zone_pages[0].unit==1,prefix+" unchanged combat permits manual browsing of another page")
- var second_blocker=units[1][12]
- e.combat.blockers.append(e.ref_target(second_blocker));sync_table()
- expect(view.table.zone_pages[1].unit==0 and shown(1,"field").slice(0,2)==[blocker.uid,second_blocker.uid],prefix+" new blocker returns its row to first page in stable order")
- e.combat={};sync_table()
- expect(shown(0,"field")==units[0].slice(6,12).map(func(c):return c.uid),prefix+" resolving combat restores normal UI order on current page")
- var target=palettes[1][22];var field_target=units[0][12]
- e.stack=[{"id":999,"kind":"ability","source":units[0][0].duplicate(true),"owner":0,"name":"目标展示测试","target":{"parts":[e.ref_target(target),{"picks":[[e.ref_target(field_target)]]}]}}]
- view.table.zone_pages[0].unit=2;view.table.zone_pages[1].palette=2
- var targeting=snapshot();sync_table()
- expect(view.table.zone_pages[1].palette==0 and shown(1,"palette")[0]==target.uid,prefix+" nested stack target moves off-page color card to first page")
- expect(view.table.zone_pages[0].unit==0 and shown(0,"field")[0]==field_target.uid,prefix+" nested stack target moves off-page unit to first page")
- expect(snapshot()==targeting,prefix+" target emphasis never mutates palette order or stack refs")
+ view.table.next_zone_page(0,"unit");view.table.next_zone_page(1,"unit");sync_table()
+ expect(view.table.zone_pages[0].unit==1 and view.table.zone_pages[1].unit==1,prefix+" committed combat permits manual paging")
+ for i in range(6):
+  if e.combat.is_empty():break
+  e.pass_priority(e.priority)
+ sync_table()
+ expect(e.combat.is_empty() and attacker.zone=="field" and blocker.zone=="field",prefix+" real combat finishes with both units remaining")
+ expect(view.table.zone_pages[0].unit==1 and view.table.zone_pages[1].unit==1,prefix+" ending combat preserves manual browsing")
+ view.table.zone_pages[0].unit=0;view.table.zone_pages[1].unit=0;sync_table()
+ expect(shown(0,"field")[0]==attacker.uid and shown(1,"field")[0]==blocker.uid,prefix+" resolved attack and block keep their first-page positions")
+ var source=units[0][11];var target=units[1][12]
+ var before_ability=Codec.capture(e)
+ view.table.zone_pages[0].unit=2;view.table.zone_pages[1].unit=2
+ view.selection=[source.uid];view.local={"mode":"target","uid":source.uid,"target":e.ref_target(target)};sync_table()
+ expect(view.table.zone_pages[0].unit==2 and view.table.zone_pages[1].unit==2,prefix+" choosing ability source and target waits for confirmation")
+ e.priority=0
+ expect(e.commit_ability(0,source.uid,0,e.ref_target(target),[]).is_empty(),prefix+" source ability is actually announced")
+ sync_table()
+ expect(view.table.zone_pages[0].unit==0 and shown(0,"field").slice(0,2)==[source.uid,attacker.uid],prefix+" newest successful ability source precedes earlier attacker")
+ expect(view.table.zone_pages[1].unit==0 and shown(1,"field").slice(0,2)==[target.uid,blocker.uid],prefix+" confirmed ability target precedes earlier blocker")
+ view.selection=[];view.local={};resolve();sync_table()
+ expect(e.stack.is_empty() and shown(0,"field")[0]==source.uid and shown(1,"field")[0]==target.uid,prefix+" resolved ability keeps source and target first after highlights clear")
+ var after_ability=Codec.capture(e)
+ view.table.next_zone_page(0,"unit");view.table.next_zone_page(1,"unit");sync_table()
+ expect(view.table.zone_pages[0].unit==1 and view.table.zone_pages[1].unit==1,prefix+" old confirmed ability does not trap manual paging")
+ e.priority=0
+ var invalid=e.ref_target(target);invalid.epoch+=1
+ expect(not e.commit_ability(0,source.uid,0,invalid,[]).is_empty(),prefix+" stale target rejects the ability")
+ sync_table()
+ expect(view.table.zone_pages[0].unit==1 and view.table.zone_pages[1].unit==1,prefix+" failed reactivation does not reset either page")
+ expect(e.commit_ability(0,source.uid,0,e.ref_target(target),[]).is_empty(),prefix+" same source can announce another real ability")
+ sync_table()
+ expect(view.table.zone_pages[0].unit==0 and view.table.zone_pages[1].unit==0,prefix+" a new action by the same permanent returns its rows to page one")
+ resolve();sync_table()
+ var palette_target=palettes[1][22];var own_palette_target=palettes[0][22]
+ view.table.zone_pages[0].palette=2;view.table.zone_pages[1].palette=2
+ var nested={"parts":[e.ref_target(palette_target),{"picks":[[e.ref_target(own_palette_target)]]}]}
+ e.Roster.New.on_target(e,nested);sync_table()
+ expect(view.table.zone_pages[1].palette==0 and shown(1,"palette")[0]==palette_target.uid,prefix+" accepted nested target event promotes the enemy color card")
+ expect(view.table.zone_pages[0].palette==0 and shown(0,"palette")[0]==own_palette_target.uid,prefix+" accepted nested target event promotes the own color card")
  view.table.next_zone_page(1,"palette");sync_table()
- expect(view.table.zone_pages[1].palette==1,prefix+" existing target does not trap manual palette paging")
- e.stack[0].target=e.ref_target(palettes[1][21]);sync_table()
- expect(view.table.zone_pages[1].palette==0 and shown(1,"palette")[0]==palettes[1][21].uid,prefix+" changed target returns palette to page one")
- view.table.next_zone_page(1,"palette");sync_table()
- palettes[1][21].epoch+=1;e.stack[0].target=e.ref_target(palettes[1][21]);sync_table()
- expect(view.table.zone_pages[1].palette==0 and shown(1,"palette")[0]==palettes[1][21].uid,prefix+" replay seek to a new epoch of the same UID returns palette to page one")
- e.stack[0].target.epoch+=1;sync_table()
- expect(shown(1,"palette").slice(0,10)==palettes[1].slice(0,10).map(func(c):return c.uid),prefix+" stale epoch target receives no presentation priority")
- e.stack=[];view.selection=[palettes[0][22].uid];sync_table()
- expect(view.table.zone_pages[0].palette==0 and shown(0,"palette")[0]==palettes[0][22].uid,prefix+" selecting an off-page color card immediately shows it first")
- view.selection=[];sync_table()
- expect(shown(0,"palette").slice(0,10)==palettes[0].slice(0,10).map(func(c):return c.uid),prefix+" clearing target restores original color-card order")
- expect(e.players[0].field.map(func(c):return c.uid)==units[0].map(func(c):return c.uid) and e.players[1].palette.map(func(c):return c.uid)==palettes[1].map(func(c):return c.uid),prefix+" real arrays retain their complete original order")
- view.network_session=null
+ expect(view.table.zone_pages[1].palette==1,prefix+" persistent target priority permits palette browsing")
+ var cost_pick=palettes[1][21]
+ e.Roster.New.on_target(e,{"picks":[[e.ref_target(cost_pick)],[e.ref_target(palette_target)]]},{"target_spec":{"selection":[{"cost":true},{}]}});sync_table()
+ expect(not cost_pick.has("page_priority") and shown(1,"palette")[0]==palette_target.uid,prefix+" cost choices do not become targets or displace actual targets")
+ var plus_cost=units[0][8];var color_cost=units[0][9]
+ plus_cost.plus_counters=1;color_cost.color_counters=["黄"]
+ var plus_ref=e.ref_target(plus_cost);plus_ref.counter="plus_counters"
+ var color_ref=e.ref_target(color_cost);color_ref.counter="color_counters";color_ref.counter_index=0
+ var copy_card=e.make_card("spell-fdf-053",0,"stack");copy_card.stack_copy=true
+ var copied_entry={"kind":"card","card":copy_card,"owner":0}
+ view.table.zone_pages[0].unit=1
+ e.Roster.New.on_target(e,{"picks":[[plus_ref,color_ref],[e.ref_target(palette_target)]]},copied_entry);sync_table()
+ expect(not plus_cost.has("page_priority") and not color_cost.has("page_priority") and view.table.zone_pages[0].unit==1,prefix+" copied counter-payment references remain costs without a target specification")
+ expect(shown(1,"palette")[0]==palette_target.uid,prefix+" copied spell still promotes its actual target when counter costs are excluded")
+ e.priority=0
+ var spell=put("101","hand");var mana=palettes[0][21]
+ expect(e.commit_cast(0,spell.uid,e.ref_target(units[0][10]),[{"uid":mana.uid,"color":"黄"}]).is_empty(),prefix+" real spell consumes an explicitly chosen off-page mana source")
+ sync_table()
+ expect(mana.tapped and shown(0,"palette")[0]==mana.uid,prefix+" a successfully used mana ability also promotes its color card")
+ resolve();sync_table()
+ expect(shown(0,"palette")[0]==mana.uid and shown(1,"palette")[0]==palette_target.uid,prefix+" completed actions leave palette priorities intact")
+ expect(e.players[0].field.map(func(c):return c.uid)==units[0].map(func(c):return c.uid) and e.players[1].palette.map(func(c):return c.uid)==palettes[1].map(func(c):return c.uid),prefix+" presentation priority never reorders real zone arrays")
+ var authority=e
+ for perspective in [0,1,-1]:
+  var projection=ObserverProjection.build(authority) if perspective==-1 else SeatProjection.build(authority,perspective)
+  var remote=Remote.new();remote.apply_snapshot(projection);view.table.duel=remote
+  view.table.zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}}
+  view.table.zone_pages={0:{"unit":2,"palette":2},1:{"unit":2,"palette":2}};sync_table()
+  expect(shown(0,"field")[0]==units[0][10].uid and shown(1,"field")[0]==target.uid,prefix+" cold-join perspective "+str(perspective)+" retains resolved field priority")
+  expect(shown(0,"palette")[0]==mana.uid and shown(1,"palette")[0]==palette_target.uid,prefix+" cold-join perspective "+str(perspective)+" retains resolved palette priority")
+ view.table.duel=authority
+ expect(Codec.restore(e,before_ability).is_empty(),prefix+" undo restores the earlier state graph")
+ view.table.zone_pages[0].unit=0;view.table.zone_pages[1].unit=0;sync_table()
+ expect(shown(0,"field")[0]==attacker.uid and shown(1,"field")[0]==blocker.uid,prefix+" undo removes later ability priorities while retaining declared combat")
+ expect(Codec.restore(e,after_ability).is_empty(),prefix+" replay restores the resolved ability state graph")
+ sync_table()
+ expect(shown(0,"field")[0]==source.uid and shown(1,"field")[0]==target.uid,prefix+" replay restores the resolved ability order")
+ var returning=e.find_card(source.uid)
+ e.move_to(returning,"grave");e.move_to(returning,"field");sync_table()
+ expect(not returning.has("page_priority") and shown(0,"field")[0]==attacker.uid,prefix+" leaving and returning to the same area clears the old instance priority")
+ var stale=e.find_card(target.uid);stale.epoch+=1;sync_table()
+ expect(shown(1,"field")[0]==blocker.uid,prefix+" stale metadata cannot prioritize a new epoch of the same UID")
+ var first_token=put("token-fdf-127","field");var second_token=put("token-fdf-127","field")
+ e.Roster.New.on_target(e,e.ref_target(first_token))
+ var token_members=e.stackable_members(first_token).map(func(card):return card.uid)
+ expect(first_token.has("page_priority") and not second_token.has("page_priority") and token_members.has(first_token.uid) and token_members.has(second_token.uid),prefix+" display priority never separates otherwise identical stackable permanents")
+ e.cards["53"]=original_model;view.network_session=null
 
 func verify_pagers():
  clean();view.local_seat=0;view.table.local_seat=0

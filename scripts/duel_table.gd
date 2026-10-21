@@ -98,6 +98,7 @@ var last_collision_targets=[]
 var unit_order={0:[],1:[]}
 var zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
 var page_change_pending=false
+const PageOrder=preload("res://scripts/battle_page_order.gd")
 var page_focus_uids=[]
 var zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}}
 var hover_uid=0
@@ -378,30 +379,35 @@ func zone_page_count(who: int,group: String) -> int:
  return maxi(1,ceili(float(count)/zone_page_size(group)))
 
 func refresh_page_focus():
- # Selection already contains epoch-checked stack targets from duel_view. Combat
- # is public engine state, so this also works for spectators and remote players.
- page_focus_uids=chosen.duplicate()
- var refs=[duel.combat.get("attacker",{}),duel.combat.get("target",{})]+duel.combat.get("blockers",[])
- for ref in refs:
-  if not ref is Dictionary or not ref.has("uid"):continue
-  var card=duel.find_card(ref.uid)
-  if card.is_empty() or card.epoch!=ref.get("epoch",card.epoch):continue
-  if card.uid not in page_focus_uids:page_focus_uids.append(card.uid)
+ # Preview and uncommitted choices never change the display order. The authority
+ # stamps successful actions, so resolved actions and newly joined views agree.
+ page_focus_uids=[]
+ for player in duel.players:
+  var units=player.field.filter(func(card):return duel.is_unit(card))
+  for group in ["unit","palette"]:
+   var cards=units if group=="unit" else player.palette
+   if cards.size()<=zone_page_size(group):continue
+   for card in cards:
+    if PageOrder.priority(card)>0:page_focus_uids.append(card.uid)
 
 func paged_zone_cards(who: int,group: String,cards: Array) -> Array:
  var page_size=zone_page_size(group)
  var pages=maxi(1,ceili(float(cards.size())/page_size))
  var focused=cards.filter(func(card):return card.uid in page_focus_uids)
- var focus_ids=focused.map(func(card):return "%d:%d" % [card.uid,card.epoch])
- # Compare the set rather than its display order: dragging or auto-sorting units
- # must not keep snapping the page back while a target remains on the stack.
- # Epochs distinguish leave/re-enter or replay-seek snapshots with the same UID.
+ var focus_ids=focused.map(func(card):return "%d:%d:%d" % [card.uid,card.epoch,PageOrder.priority(card)])
+ # Only a newly confirmed action resets paging. Manual browsing remains possible
+ # after that action, and snapshots restore the order when undoing or seeking.
  focus_ids.sort()
  if zone_focus[who][group]!=focus_ids:
   zone_focus[who][group]=focus_ids
   if not focused.is_empty() and pages>1:
    zone_pages[who][group]=0
    page_change_pending=true
+ var original_order={}
+ for index in range(cards.size()):original_order[cards[index].uid]=index
+ focused.sort_custom(func(a,b):
+  var a_priority=PageOrder.priority(a);var b_priority=PageOrder.priority(b)
+  return a_priority>b_priority if a_priority!=b_priority else original_order[a.uid]<original_order[b.uid])
  var ordered=focused+cards.filter(func(card):return card.uid not in page_focus_uids) if pages>1 else cards
  var page=clampi(zone_pages[who][group],0,pages-1)
  zone_pages[who][group]=page

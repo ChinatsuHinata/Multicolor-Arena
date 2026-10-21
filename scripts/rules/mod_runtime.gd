@@ -161,7 +161,7 @@ static func commit(e,who: int,c: Dictionary,key: String,target: Dictionary,plan:
  var entry={"id":e.next_stack,"kind":"ability","activation":true,"effect":key,"source":frame.source.duplicate(true),"owner":who,"target":target.duplicate(true),"name":e.cards[frame.source.card_id].name,"ability_text":d.text,"mod_frame":frame,"target_spec":selected_spec.duplicate(true)}
  if e.optional_single_target(options,target):entry.optional_single_target=true
  e.stack.append(entry);e.next_stack+=1;e.passes=0;e.priority=1-who
- e.Roster.on_ability_announced(e,entry);e.Roster.New.on_target(e,target);targeted(e,target,who)
+ e.Roster.on_ability_announced(e,entry);e.Roster.New.on_target(e,target,entry);targeted(e,target,who)
  e.note("发动 "+entry.name,e.history_art(frame.source));entry.history_index=e.history.size()-1
  e.record_declaration(who,target,frame.source);e.judge();e.pump_choices()
  return ""
@@ -219,7 +219,10 @@ static func broadcast(e,name: String,details: Dictionary):
 static func finish_cast(e,c: Dictionary,who: int,old_zone: String,heart: Dictionary,target: Dictionary):
  if not e.cards[c.card_id].get("variable_cost","").is_empty():e.mod_x_casts[str(who)]=int(e.mod_x_casts.get(str(who),0))+1
  e.Roster.on_cast(e,c,who,old_zone,heart)
- e.Pack.on_cast(e,c,who,target);e.Roster.New.on_target(e,target)
+ var declaration={}
+ for entry in e.stack:
+  if entry.get("kind","")=="card" and entry.get("card",{}).get("uid",-1)==c.uid and entry.card.get("epoch",-1)==c.epoch:declaration=entry;break
+ e.Pack.on_cast(e,c,who,target);e.Roster.New.on_target(e,target,declaration)
  broadcast(e,"cast",{"card":c.duplicate(true),"controller":who,"x":int(c.get("cast_x",0))})
  targeted(e,target,who)
  if e.cards[c.card_id].kind=="符卡":e.Effects.spell_used(e,who)

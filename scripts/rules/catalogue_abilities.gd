@@ -314,7 +314,9 @@ static func pay(e,who,plan):
  for r in plan:
   if r.uid<=-1000:e.players[who].mana=e.players[who].get("mana",[]).filter(func(m):return m.uid!=r.uid)
   elif r.uid<0:e.players[who].potato=false
-  else:e.tap_card(e.find_card(r.uid))
+  else:
+   var source=e.find_card(r.uid)
+   e.PageOrder.promote(e,[source]);e.tap_card(source)
 static func add_mana(e,who,colors):
  var pool=e.players[who].get("mana",[])
  for color in colors:

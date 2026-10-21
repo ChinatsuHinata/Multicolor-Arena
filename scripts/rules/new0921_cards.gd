@@ -52,7 +52,8 @@ static func on_cast(e,c,who,_old_zone):
   var entry=e.stack.filter(func(s):return s.kind=="card" and s.card.uid==c.uid)
   if not entry.is_empty():event(e,rule.source,"dream_copy",false,{"entry":entry[0].duplicate(true)})
  e.players[who].n21_copies=pending
-static func on_target(e,target):
+static func on_target(e,target,entry: Dictionary={}):
+ e.PageOrder.promote_targets(e,target,entry)
  var seen=[]
  for r in e.Pack.flatten(target):
   if not e.Cat.unit(e,r) or r.uid in seen:continue
@@ -272,7 +273,7 @@ static func resolve_trigger(e,t):
    c.merge(e.Cat.paid_cast(e,c,target,who),true)
    if target.has("sacrifice"):e.sacrifice(e.find_card(target.sacrifice.uid))
    var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":target,"name":e.cards[c.card_id].name,"copy":true}
-   e.next_stack+=1;e.stack.append(copy);on_target(e,copy.target);e.note("复制 · "+copy.name,e.history_art(c));e.priority=e.active;e.passes=0
+   e.next_stack+=1;e.stack.append(copy);on_target(e,copy.target,copy);e.note("复制 · "+copy.name,e.history_art(c));e.priority=e.active;e.passes=0
    if d.remaining>1:copy_choose(e,t,original,d.remaining-1)
   "deer_name":
    for c in C.field(e).duplicate():

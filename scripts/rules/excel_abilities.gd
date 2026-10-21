@@ -832,7 +832,10 @@ static func resolve_activation(e,entry: Dictionary):
   "hina_redirect":
    if same:
     for s in e.stack:
-     if s.id==t.stack_id:s.target=replace_target_once(s.target,t.redirect,e.ref_target(c),int(t.get("redirect_index",0)))
+     if s.id==t.stack_id:
+      var previous=s.target.duplicate(true)
+      s.target=replace_target_once(s.target,t.redirect,e.ref_target(c),int(t.get("redirect_index",0)))
+      if s.target!=previous:e.PageOrder.promote_targets(e,s.target,s)
   "clown_sweep":
    for u in e.units(0)+e.units(1):e.damage_target(e.ref_target(u),1)
   "satori_discard":continue_choice(e,entry,"satori_discard_choice",pick(e,e.Pack.zone(e,t.player,"hand"),mini(1,e.players[t.player].hand.size()),1,"选择弃置的手牌"))
@@ -935,6 +938,7 @@ static func on_coin(e,who: int):
 static func on_ability_announced(e,entry: Dictionary):
  if entry.get("tax_announced",false) or entry.kind!="ability" or entry.get("awaiting_target",false):return
  entry.tax_announced=true
+ e.PageOrder.promote(e,[entry.get("source",{})])
  var opponent=1-entry.owner
  if not e.Pack.declared_targets(entry).any(func(r):return r.get("player",-1)==opponent or unit(e,r) and e.find_card(r.uid).owner==opponent):return
  for c in e.players[opponent].field:

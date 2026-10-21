@@ -1764,8 +1764,8 @@ func refresh_stackable_badges():
   var d=table.descriptors[key]
   var c=engine.find_card(d.uid)
   if c.is_empty() or c.zone!="field" or not engine.cards[c.card_id].get("stackable",false):continue
-  var isolated=d.uid in table.chosen or d.uid in table.stack_target_uids or table.reserved.any(func(r):return r.uid==d.uid)
-  var count=1 if isolated else engine.stackable_members(c).filter(func(u):return u.uid not in table.chosen and u.uid not in table.stack_target_uids and not table.reserved.any(func(r):return r.uid==u.uid)).size()
+  var isolated=d.uid in table.chosen or d.uid in table.page_focus_uids or d.uid in table.stack_target_uids or table.reserved.any(func(r):return r.uid==d.uid)
+  var count=1 if isolated else engine.stackable_members(c).filter(func(u):return u.uid not in table.chosen and u.uid not in table.page_focus_uids and u.uid not in table.stack_target_uids and not table.reserved.any(func(r):return r.uid==u.uid)).size()
   parts.token_count.text="×%d" % count
   parts.token_count.size=parts.token_count.get_minimum_size()+Vector2(4,4)
   parts.token_count.visible=count>1

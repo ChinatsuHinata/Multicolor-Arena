@@ -306,7 +306,7 @@ static func resolve_trigger(e,t: Dictionary):
     e.note("奇迹 · "+e.cards[c.card_id].name)
     e.Roster.on_cast(e,c,who,"hand")
     e.Pack.on_cast(e,c,who,cast_target)
-    e.Roster.New.on_target(e,cast_target)
+    e.Roster.New.on_target(e,cast_target,e.stack.back())
     if e.cards[c.card_id].kind=="符卡":e.Effects.spell_used(e,who)
 
 static func spell_resolve(e,entry: Dictionary) -> bool:

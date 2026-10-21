@@ -452,13 +452,13 @@ static func resolve_complex_choice(e,t):
    C.damage(e,d.target,maxi(0,d.amount-list.size()*2))
   "cat:retarget":
    for s in e.stack:
-    if s.id==d.id:s.target=C.retarget_result(a);e.Roster.New.on_target(e,s.target)
+    if s.id==d.id:s.target=C.retarget_result(a);e.Roster.New.on_target(e,s.target,s)
   "cat:copy_x":
    if not a.get("copy_stop",false):C.copy_spell(e,d.entry,a.value,true)
   "cat:spell_copy":
    if a.get("copy_back",false) and d.has("copy_menu_entry"):
     copy_x_menu(e,d.copy_menu_entry);return true
-   var c=d.card;var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":C.retarget_result(a),"name":e.cards[c.card_id].name,"copy":true};e.next_stack+=1;e.stack.append(copy);e.Roster.New.on_target(e,copy.target);e.priority=e.active;e.passes=0
+   var c=d.card;var copy={"id":e.next_stack,"kind":"card","card":c,"owner":who,"target":C.retarget_result(a),"name":e.cards[c.card_id].name,"copy":true};e.next_stack+=1;e.stack.append(copy);e.Roster.New.on_target(e,copy.target,copy);e.priority=e.active;e.passes=0
    if d.get("rewritten_fairy",false):copy.rewritten_fairy=true
   "cat:copy_exile":
    C.copy_tokens(e,who,C.selected(e,a),"yukari")

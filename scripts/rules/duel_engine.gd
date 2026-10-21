@@ -1,5 +1,6 @@
 extends RefCounted
 const Roster=preload("res://scripts/rules/excel_abilities.gd")
+const PageOrder=preload("res://scripts/battle_page_order.gd")
 const Cat=Roster.Cat
 const Pack=preload("res://scripts/rules/precon_abilities.gd")
 const DB=preload("res://scripts/card_database.gd")
@@ -44,6 +45,7 @@ var first=0
 var passes=0
 var winner=-2
 var revision=0
+var page_priority_serial=0
 var log: Array=[]
 var history: Array=[]
 var recorded_life=[20,20]
@@ -215,7 +217,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  players.clear(); mulligan_choices.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); entry_choices.clear(); combat.clear(); log.clear(); history.clear()
  trigger_order_queue.clear()
  deck_art_overrides=[a.get("art_overrides",{}).duplicate(true),b.get("art_overrides",{}).duplicate(true)]
- next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
+ next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; page_priority_serial=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
  if seed_value==0: rng.randomize()
  else: rng.seed=seed_value
  for i in range(2):
@@ -255,7 +257,7 @@ func shift(c: Dictionary, location: String):
  for k in ["sanae_used","brave_attack_turn","locked_name","ran_discount_disabled","murder_dolls_skip_disabled","rank_target","imp_growth","reisen_illusion","catalogue_access","catalogue_castle","dream","madness","noncombat_damage_turn"]:c.erase(k)
  if old!="stack" or location!="field":
   for k in ["ichirin_paid","top_free_damage","haste_on_enter","exiled_hand","paid_dolls"]:c.erase(k)
- for key in ["wards","next_damage_prevention_turn","extra_keywords","color_counters","free_exile_owner","devour_owner","base_override","lock_sources","castle_exiles","medicine","skip_reset","tapped_turn"]: c.erase(key)
+ for key in ["page_priority","wards","next_damage_prevention_turn","extra_keywords","color_counters","free_exile_owner","devour_owner","base_override","lock_sources","castle_exiles","medicine","skip_reset","tapped_turn"]: c.erase(key)
  for k in ["history_spent","drunk_counters","n21_drunk_triggered","n21_suika_return","n21_spirit","courage","moods","minus_counters","scare","freeze_until","perfect_lock","control_return","died_turn","excel_access"]:c.erase(k)
  if old!="stack" or location!="field": c.erase("cast_x");c.erase("exile_on_grave")
  # Copies enter with their counters before entry abilities and observers run.
@@ -335,7 +337,7 @@ func find_card(uid: int) -> Dictionary:
 func stackable_signature(c: Dictionary) -> String:
  if c.is_empty() or c.get("zone","")!="field" or not cards.get(c.card_id,{}).get("stackable",false):return ""
  var state=c.duplicate(true)
- for field in ["uid","epoch","entered","entered_turns","mod_timestamp"]:state.erase(field)
+ for field in ["uid","epoch","entered","entered_turns","mod_timestamp","page_priority"]:state.erase(field)
  # A fresh permanent and one that passed through shift() can have the same
  # effective state even though shift() wrote explicit zero-valued fields.
  for field in ["leader_counters","plus_counters","poverty"]:
@@ -634,7 +636,7 @@ func accept_trigger(entry: Dictionary):
  if entry.get("announced",false):return
  entry.announced=true
  if entry.get("effect","")=="leader_death_damage" and not entry.get("no_legal_targets",false):use_once(entry.source.uid,"death_ping")
- if not entry.get("no_legal_targets",false):Roster.on_ability_announced(self,entry);Roster.New.on_target(self,entry.target);Mods.targeted(self,entry.target,entry.owner)
+ if not entry.get("no_legal_targets",false):Roster.on_ability_announced(self,entry);Roster.New.on_target(self,entry.target,entry);Mods.targeted(self,entry.target,entry.owner)
 func choose_trigger_order(index: Variant):
  if pending.get("kind","")!="trigger_order":return
  if index is Array:
@@ -711,6 +713,7 @@ func pump_choices():
   if not pending.is_empty(): return
  if combat.is_empty() and not combat_queue.is_empty():
   combat=combat_queue.pop_front()
+  PageOrder.promote(self,[combat.get("attacker",{})]+combat.get("blockers",[]))
   if combat.get("forced",false):combat.stack_base_size=stack.size()
   priority=active; passes=0
  if discard_cleanup_pending and pending.is_empty() and stack.is_empty() and combat.is_empty():
@@ -1173,6 +1176,7 @@ func attack(who: int,uid: int,target: Dictionary={},plan: Array=[]):
    combat.blockers=[target.duplicate(true)];combat.blocked=true
   else:
    combat.blockers=[target]; combat.blocked=true; combat.direct=true;c.skip_reset=true
+ PageOrder.promote(self,[c]+combat.blockers)
  Pack.on_attack_or_block(self,c,true);Roster.on_attack(self,c)
  priority=1-who; passes=0; note("宣言攻击："+cards[c.card_id].name,history_art(c)); pump_choices()
 func legal_blockers() -> Array:
@@ -1206,6 +1210,7 @@ func block(uids: Array):
   chosen.append(c)
  if chosen.size()==1 and not combat.has("target") and Extra.keyword(self,find_card(combat.attacker.uid),"威吓"): return
  if chosen.is_empty() and not valid.is_empty() and Cat.has(self,find_card(combat.attacker.uid),"character-fdf-090"):return
+ PageOrder.promote(self,chosen)
  RemiliaAI.observe_block(self,combat.owner,uids)
  for c in chosen:
   if not Cat.enabled(self,c,"character-ucs-061:self"):tap_card(c)
@@ -1667,7 +1672,7 @@ func commit_ability(who: int,uid: int,index: int,target: Dictionary,plan: Array)
   stack.back().ability_text=cards[member.card_id].abilities[index].get("名称","对目标造成%d点伤害。" % int(params["数值"]))
   activation_entries.append(stack.back())
   next_stack+=1
-  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target);Mods.targeted(self,stack.back().target,who)
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target,stack.back());Mods.targeted(self,stack.back().target,who)
  passes=0; priority=1-who
  note("发动 "+cards[members[0].card_id].name+"的异能"+(" ×%d" % count if count>1 else ""),history_art(members[0]))
  for entry in activation_entries:entry.history_index=history.size()-1
@@ -2105,7 +2110,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
   if key in Roster.ACTIVATIONS:stack.back().ability_text=Roster.text(cards[member.card_id],key)
   if key in Pack.ACTIVATIONS: stack.back().ability_text=Pack.text(cards[member.card_id],key)
   if key=="laser": stack.back().ability_text="支付黄并移去一个计时指示物："+clean_target.mode+"。"
-  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target);Mods.targeted(self,stack.back().target,who)
+  Roster.on_ability_announced(self,stack.back());Roster.New.on_target(self,stack.back().target,stack.back());Mods.targeted(self,stack.back().target,who)
   next_stack+=1
  passes=0; priority=1-who; note("发动 "+cards[c.card_id].name+(" ×%d" % count if count>1 else ""),history_art(c))
  for entry in activation_entries:entry.history_index=history.size()-1
