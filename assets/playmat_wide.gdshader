@@ -10,6 +10,9 @@ uniform float source_height;
 uniform float insert_height;
 uniform float top_cut;
 uniform float bottom_cut;
+// Sakura UI lifts the black mat toward dusk plum; the defaults leave it unchanged.
+uniform vec3 lift : source_color = vec3(0.0);
+uniform vec3 tint : source_color = vec3(1.0);
 
 // The original art occupies 16 of the 23 horizontal world units. At these
 // two quiet columns only the straight divider lines cross the image. Repeating
@@ -61,5 +64,6 @@ void fragment() {
    source_x = 0.84;
   }
  }
- ALBEDO = texture(playmat, vec2(source_x, source_y)).rgb;
+ vec3 col = texture(playmat, vec2(source_x, source_y)).rgb * tint;
+ ALBEDO = col + lift * (vec3(1.0) - col);
 }

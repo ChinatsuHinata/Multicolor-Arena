@@ -4,6 +4,7 @@ signal selected(entry: Dictionary)
 
 const SearchAliases = preload("res://scripts/card_search_aliases.gd")
 const CostDisplay = preload("res://scripts/card_cost_display.gd")
+const Palette = preload("res://scripts/ui_palette.gd")
 const GOLD = Color("#d9b775")
 const WHITE = Color("#e8edf0")
 const MUTED = Color("#91a5b7")
@@ -82,8 +83,8 @@ func _ready():
 
 func _style(color: Color, border: Color = Color("#3d5161")) -> StyleBoxFlat:
  var value = StyleBoxFlat.new()
- value.bg_color = color
- value.border_color = border
+ value.bg_color = Palette.tint(color)
+ value.border_color = Palette.tint(border)
  value.set_border_width_all(1)
  value.set_corner_radius_all(10)
  value.content_margin_left = 12
@@ -106,7 +107,7 @@ func _label(parent: Node, value: String, rect: Rect2, font_size: int = 18, color
  text.position = rect.position
  text.size = rect.size
  text.add_theme_font_size_override("font_size",font_size)
- text.add_theme_color_override("font_color",color)
+ text.add_theme_color_override("font_color",Palette.tint(color))
  text.mouse_filter = Control.MOUSE_FILTER_IGNORE
  parent.add_child(text)
  return text

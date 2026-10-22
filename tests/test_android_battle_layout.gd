@@ -33,6 +33,14 @@ func run():
  expect(first is VBoxContainer and second is VBoxContainer,"stack cards use the desktop face-above-caption presentation")
  expect(first.get_meta("stack_id")==103 and second.get_meta("stack_id")==102,"stack cards keep an unambiguous top-to-bottom resolution order")
  expect(view.stack_panel.tiles[103].tile.get_global_rect().size.x>=150,"Android stack faces are large enough to inspect")
+ var lead_style=view.stack_panel.tiles[103].tile.get_theme_stylebox("panel") as StyleBoxFlat
+ expect(lead_style!=null and lead_style.shadow_size>0 and lead_style.border_width_top>=3,"next stack entry glows to stand out")
+ expect(view.stack_panel.tiles[103].tile.has_node("StackFan1") and view.stack_panel.tiles[103].tile.has_node("StackFan2"),"entries beneath the lead fan out behind it")
+ expect(view.stack_panel.tiles[102].compact and view.stack_panel.tiles[102].tile.name=="StackRow","lower stack entries use compact rows")
+ var name_label=view.stack_panel.tiles[102].tile.get_node("StackName") as Label
+ expect(name_label!=null and view.stack_panel.tiles[102].tile.get_global_rect().encloses(name_label.get_global_rect()),"compact row names stay inside their row")
+ var hand_caption=view.hud.get_node_or_null("OpponentHandCount/OpponentHandCaption") as Label
+ if hand_caption!=null:expect(hand_caption.get_theme_font("font").get_string_size(hand_caption.text,HORIZONTAL_ALIGNMENT_LEFT,-1,hand_caption.get_theme_font_size("font_size")).x<=hand_caption.size.x+1,"opponent hand caption fits the narrowed rail")
  var stack_toggle=view.stack_panel.toggle_button
  expect(stack_toggle!=null and stack_toggle.name=="StackToggle" and stack_toggle.is_visible_in_tree(),"stack has a reachable collapse control")
  if stack_toggle!=null:

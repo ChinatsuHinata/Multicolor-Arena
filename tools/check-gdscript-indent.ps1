@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$excludedDirectories = '\\(?:\.git|\.godot|\.godot-toolchain|builds)\\'
+$excludedDirectories = '\\(?:\.git|\.godot|\.godot-toolchain|builds|work|tmp|output)\\'
 $errors = @()
 $checked = 0
 

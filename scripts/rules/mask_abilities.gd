@@ -217,23 +217,7 @@ static func resolve_activation(e,entry):
    if e.Roster.valid(e,t):
     var copy=e.Cat.copy_token(e,who,e.find_card(t.uid))
     if not copy.is_empty():e.delayed.append({"phase":"end","owner":-1,"ref":e.ref_target(copy),"zone":"field","effect":"token_sacrifice","origin_name":e.cards[entry.source.card_id].name})
-static func cost(e,c,who,base:Dictionary) -> Dictionary:
- if e.active!=who or e.cards[c.card_id].kind!="道具" or e.players[who].get("item_cast_turn",-1)==e.turn:return base
+static func cost_options(e,c,who,base:Dictionary) -> Array:
+ if e.active!=who or e.cards[c.card_id].kind!="道具" or e.players[who].get("item_cast_turn",-1)==e.turn:return [base]
  var n=2*e.units(who).filter(func(u):return enabled(e,u,"tokiko_discount")).size()
- if n==0:return base
- var candidates=[base]
- for i in range(n):
-  var next=[]
-  for cost in candidates:
-   var found=false
-   for color in cost:
-    if cost[color]<=0:continue
-    found=true;var copy=cost.duplicate();copy[color]-=1
-    if copy not in next:next.append(copy)
-   if not found and cost not in next:next.append(cost)
-  candidates=next
- var best=base;var score=1000000
- for cost in candidates:
-  var p=e.payment(who,cost)
-  if p.score<score:score=p.score;best=cost
- return best
+ return e.Cat.State.discount_options(base,n)

@@ -10,6 +10,10 @@
 
 | 功能 | 测试 |
 | --- | --- |
+| 双端樱花神社主题、经典主题切换与保存、安卓响应式设置保留、战斗背景及桌面紧凑堆叠 | `test_sakura_ui.gd`（有界面运行时保存截图） |
+| 莲子梅莉梦违任意两点减费、空与海三黄／混色支付、推荐资源替换、双座位联机扣费、无效方案及来源限制、八云蓝叠加与额外加费 | `test_dream_discount.gd`、`test_dream_discount_ui.gd` |
+| 朱鹭子首张道具任意减费、灵异珠改付蓝／黄／黑、双座位联机与支付界面、次数及来源条件、八云蓝／梦违叠加 | `test_tokiko_discount.gd`、`test_tokiko_discount_ui.gd` |
+| 有顶ノ天、姬海棠果、妹红、吞食牌数、姐妹／木符的移除区授权及模组授权任意减费，验证全部颜色分配、草案与真实使用 | `test_any_color_discount.gd` |
 | 魅力ノ四重结界搜寻四类牌、直接放入各类时符的计时、咲夜调整、杀人玩偶触发及其余牌入手 | `test_fourfold_barrier.gd` |
 | 当前四种构筑规则集、官限限二、卡组代码与房间登记、已移除规则的本地及压缩代码迁移 | `test_deck_rule_sets.gd`、`test_deck_plaza_store.py`、`test_cloud_deck_store.py` |
 | 幻想ノ秋司：官限构筑、卡图、红黄支付、自机区／额外自机与战场人类限制、颜色值不大于4的单位回拥有者手牌、目标失效、自机返回、响应／反制、联网查询与存档恢复、PC／安卓组卡预览 | `test_autumn_keeper.gd`、`test_autumn_keeper_ui.gd`（加 `-- --render` 保存截图） |
@@ -132,7 +136,7 @@
 | 本机试验 AI 开关、实战调用与安装版禁用 | `test_experimental_ai.gd`、`test_experimental_ai_ui.gd` |
 | 八云蓝减费开关 | `test_ran_discount.gd`、`test_ran_discount_ui.gd` |
 | 杀人玩偶空场自动跳过开关、独立状态及联机同步 | `test_murder_dolls_skip.gd`、`test_murder_dolls_skip_ui.gd`（加 `-- --android` 验证安卓界面） |
-| 颜色盘诅咒任意减费、废线支付与联机校验 | `test_curse_discount.gd`、`test_curse_discount_ui.gd` |
+| 颜色盘诅咒任意减费、四重结界混色支付、飞光虫之巢零费使用、界面与联机校验 | `test_curse_discount.gd`、`test_curse_discount_ui.gd` |
 | 椛的宣称与支付限制 | `test_momiji.gd`、`test_momiji_ui.gd` |
 | 符卡伤害预览 | `test_spell_damage_preview.gd`、`test_spell_damage_preview_ui.gd` |
 | 永琳天人系谱：伤害排除自身、其他同名符卡与本次送墓计数、双方使用、选择恢复及符卡复制 | `test_heaven_genealogy.gd` |
@@ -152,6 +156,7 @@
 | 安卓战斗选项空间、莉莉黑颜色选择与堆叠区避让底部操作 | `test_android_battle_choices.gd`、`test_android_battle_layout.gd` |
 | 安卓右下角两至三个能力选项免滚动、帕秋莉符卡展示移除后的使用／不使用、原生触摸及高密度联机提示与堆叠避让 | `test_android_ability_options.gd` |
 | 安卓战场／颜色盘移动视角、2D／3D 投影、手牌避让、敌方颜色盘查看、触摸切换、视角复原与桌面隔离；有界面运行时保存截图 | `test_android_camera_focus.gd` |
+| 安卓战场视角直接框住我方颜色盘：两种桌垫、2D／3D、五组分辨率下十张颜色盘不被手牌／状态条／临时提示遮挡且仍在取景框内、可点选，手牌 1／4／8 张变化，状态条与对局日志共用一行；有界面运行时保存截图 | `test_android_battlefield_palette.gd` |
 | 安卓双方颜色盘与战场连续切换、动画中途复原、拥挤布局和临时一像素对焦区域的远距跳转回归，覆盖双方座位、2D／3D 与两种桌垫 | `test_android_camera_stability.gd` |
 | 安卓凭依、结晶及付费自动聚焦我方，贫乏、破坏颜色盘与墓地能力选择聚焦敌方，退出还原位置和缩放，手动视角默认关闭及设置保存；有界面运行时保存截图 | `test_android_automatic_focus.gd` |
 | 安卓皮丝、布都真实结算的敌方颜色盘选牌，五组分辨率／触摸密度下的 2D／3D 能力框避让、触摸确认、重选、隐藏／展开与视角还原；有界面运行时保存截图 | `test_android_palette_targets.gd` |
