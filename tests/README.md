@@ -82,7 +82,7 @@
 | 安卓组卡大图详情在低分辨率／高 DPI／安全区域内完整显示、长说明原生滑动、加牌按钮可触摸、关闭／背景触摸／返回键及布局重建保留草稿 | `test_android_deck_details.gd`（`-- --render` 保存截图） |
 | PC 组卡器原有三栏布局、滚动卡库、横向颜色按钮、类型选项与搜索行为 | `test_desktop_ui_rollback.gd` |
 | 安卓右侧主卡组上下滑动、慢速和斜向手势、滚动边界及短列表误拖拽 | `test_android_deck_scroll.gd` |
-| 安卓所有牌长按 1 秒详情、触点圆环、轻触行动、滑动取消与记录排版 | `test_android_card_details.gd` |
+| 安卓所有牌默认长按 0.5 秒详情、可调时长、触点圆环、轻触行动、滑动取消与记录排版 | `test_android_card_details.gd`、`test_android_preview_hold_setting.gd` |
 | 安卓战斗中双方战场单位长按详情、普通／常驻／继承能力、2D／3D、先到的触摸模拟鼠标事件、单位边缘触摸容差、手指抖动、原生拖动排序及切换应用中止长按；有界面运行时保存截图 | `test_android_battle_unit_details.gd` |
 | 卡牌别名、完整说明和能力文字检索、双端组卡器及各处搜索选牌 | `test_card_search_aliases.gd`、`test_card_search_aliases_ui.gd` |
 | 对局规则 | `test_duel_rules.gd` |

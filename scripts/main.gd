@@ -682,7 +682,7 @@ func build_main_menu():
  main_actions.add_theme_constant_override("h_separation",int(ui_metrics.gap));main_actions.add_theme_constant_override("v_separation",int(ui_metrics.gap))
  for i in range(actions.size()):
   var item=actions[i]
-  var b=button(main_actions,item[0],Rect2(),item[1],i==1);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.size_flags_vertical=Control.SIZE_EXPAND_FILL;b.custom_minimum_size=Vector2.ZERO
+  var b=button(main_actions,item[0],Rect2(),item[1]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.size_flags_vertical=Control.SIZE_EXPAND_FILL;b.custom_minimum_size=Vector2.ZERO
   b.add_theme_font_size_override("font_size",mini(ui_metrics.body,32))
  var art=Control.new();row.add_child(art);art.size_flags_horizontal=Control.SIZE_EXPAND_FILL;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var a=card(art,"68",Rect2(0,0,255,356));var b=card(art,"70",Rect2(0,0,280,391))
@@ -2647,7 +2647,7 @@ func desktop_menu():
  var rows=[422,512,594,676]
  for i in range(actions.size()):
   var item=actions[i]
-  button(screen,item[0],Rect2(96+(i%2)*374,rows[int(i/2)],350,70 if i<2 else 64),item[1],i==1)
+  button(screen,item[0],Rect2(96+(i%2)*374,rows[int(i/2)],350,70 if i<2 else 64),item[1])
  card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
  card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
  add_mailbox_button()

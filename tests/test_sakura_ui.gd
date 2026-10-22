@@ -24,7 +24,7 @@ func run():
  expect(app.GOLD==Palette.SAKURA and app.style(Color("#192a38")).bg_color==Color("#43293a"),"classic colors are mapped to the sakura palette")
  expect(app.screen.find_child("MenuTitle",true,false)!=null,"desktop menu shows the sakura title")
  var battle_entry=find_button(app.screen,"人机对战")
- expect(battle_entry!=null and battle_entry.get_theme_stylebox("normal").border_color==Palette.LACQUER and battle_entry.get_theme_stylebox("normal").border_width_top==5,"accent buttons use the torii style")
+ expect(battle_entry!=null and battle_entry.get_theme_stylebox("normal").border_width_top==4,"the main-menu AI battle entry uses the ordinary shrine button style")
  var plain_entry=find_button(app.screen,"设置")
  expect(plain_entry!=null and plain_entry.get_theme_stylebox("normal").border_width_top==4 and plain_entry.get_theme_stylebox("disabled")!=null,"plain buttons use the lacquer style with a vermilion beam")
  await capture("sakura-menu")
@@ -96,5 +96,16 @@ func run():
  if toggle!=null:await click(toggle.get_global_rect().get_center());await frames()
  expect(Palette.enabled and saved_flag()==true and app.GOLD==Palette.SAKURA,"Android can restore and save the sakura theme")
  app.menu();await frames();await capture("sakura-android-menu")
+ for mobile in [false,true]:
+  app.is_android=mobile
+  for sakura in [false,true]:
+   app.sakura_ui=sakura;app.apply_ui_style()
+   for mode in ["standard","exploration","exploration_random"]:
+    app.battle_mode=mode;app.menu();await frames()
+    var ai_button=find_button(app.screen,"人机对战")
+    var settings_button=find_button(app.screen,"设置")
+    var ai_style=ai_button.get_theme_stylebox("normal") as StyleBoxFlat
+    var plain_style=settings_button.get_theme_stylebox("normal") as StyleBoxFlat
+    expect(ai_style.bg_color==plain_style.bg_color and ai_style.border_color==plain_style.border_color and ai_button.get_theme_color("font_color")==settings_button.get_theme_color("font_color"),"AI battle has no accent on %s with sakura=%s in %s" % ["Android" if mobile else "desktop",str(sakura),mode])
  print("SAKURA UI: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

@@ -202,7 +202,13 @@ func verify_sparse_hand_pagers(android: bool):
    expect(absf(rect.get_center().y-row.get_center().y)<=maxf(rect.size.y,row.size.y)*0.5+app.ui_metrics.gap,prefix+" remains alongside its own palette row")
    expect(PagingChecks.visible_hand_regions(view).all(func(region):return not rect.intersects(region)),prefix+" leaves actual corner cards and scrollbar clear")
   if hand_count==0:
-   expect(view.hand_scroll.get_global_rect().intersects(view.zone_pagers.palette0.button.get_global_rect()),("Android" if android else "Desktop")+" empty transparent hand viewport can host its palette arrow")
+   # The battlefield camera now keeps the palette above the hand. Verify the
+   # empty viewport remains usable without requiring the default arrow there.
+   var viewport=view.hand_scroll.get_global_rect().intersection(app.ui_metrics.safe)
+   var dimensions=view.zone_pagers.palette0.root.size
+   var preferred=viewport.get_center()-dimensions*0.5
+   var free=view.clear_palette_pager_position(preferred,dimensions,viewport,view.palette_pager_obstacles())
+   expect(free.is_finite() and viewport.encloses(Rect2(free,dimensions)),("Android" if android else "Desktop")+" empty transparent hand viewport can host its palette arrow")
   await capture("pager-sparse-hand-"+("android" if android else "desktop")+"-"+str(hand_count))
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/battle-page-focus-fixtures/"+str(Time.get_ticks_usec()))
