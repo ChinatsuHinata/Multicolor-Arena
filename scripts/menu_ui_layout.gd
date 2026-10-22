@@ -103,6 +103,7 @@ func build_settings(host):
   var auto_focus=check(switches,"自动跳转视角",app.auto_camera_focus,app.set_auto_camera_focus);auto_focus.name="AutoCameraFocus";toggles.append(auto_focus)
   var manual=check(switches,"允许手动拖动和缩放视角",app.android_manual_camera,app.set_android_manual_camera);manual.name="AndroidManualCamera";toggles.append(manual)
   var shortcuts=check(switches,"显示墓地与除外区悬浮按钮",app.android_zone_shortcuts,app.set_android_zone_shortcuts);shortcuts.name="AndroidZoneShortcutsSetting";toggles.append(shortcuts)
+  var sakura=check(switches,"新版界面（樱花神社）",app.sakura_ui,app.set_sakura_ui);sakura.name="SakuraUI";toggles.append(sakura)
   for toggle in toggles:
    toggle.size_flags_horizontal=Control.SIZE_EXPAND_FILL
    toggle.custom_minimum_size.y=maxf(56.0,metrics.hit*0.76)

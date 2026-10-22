@@ -96,26 +96,15 @@ static func stat(e,c,k):
   for m in c.get("n21_spirit",[]):n+=m.amount
  return n
 static func cost(e,c,who,base):
- if "梦违" not in e.cards[c.card_id].get("keywords",[]):return base
- var n=2*e.units(who).filter(func(u):return enabled(e,u,"ETO-003:self")).size()
- return reduce_cost(e,who,base,n)
-static func reduce_cost(e,who,base,n):
- var options=[base]
- for i in range(n):
-  var next=[]
-  for item in options:
-   var found=false
-   for color in item:
-    if item[color]<=0:continue
-    var candidate=item.duplicate();candidate[color]-=1;found=true
-    if candidate not in next:next.append(candidate)
-   if not found and item not in next:next.append(item)
-  options=next
  var best=base;var score=1000000
- for item in options:
+ for item in cost_options(e,c,who,base):
   var plan=e.payment(who,item)
   if plan.score<score:score=plan.score;best=item
  return best
+static func cost_options(e,c,who,base):
+ if "梦违" not in e.cards[c.card_id].get("keywords",[]):return [base]
+ var n=2*e.units(who).filter(func(u):return enabled(e,u,"ETO-003:self")).size()
+ return e.Cat.State.discount_options(base,n)
 static func trigger_options(e,t):
  if not t.effect.begins_with("n21:"):return null
  if t.get("continuation",false):return e.pending.get("options",[])

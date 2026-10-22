@@ -5,11 +5,12 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Remote=preload("res://net/remote_duel.gd")
 const Draft=preload("res://scripts/payment_draft.gd")
 
-func train_fixture(who: int=0):
+func barrier_fixture(who: int=0):
  fresh();e.active=who;e.priority=who
- e.players[who].leader=e.make_card("character-fdf-ex02",who,"leader")
- var spell=put("new-spx-006","hand",who)
+ var yukari=put("character-fdf-ex02","field",who);yukari.leader=true;e.players[who].leader=yukari
+ var spell=put("spell-fdn-011","hand",who)
  var curse=put("spell-fdf-014","palette",who)
+ for i in range(3):put("spell-fdf-014","palette",who).tapped=true
  var dual=put("114","palette",who)
  var blue=put("167","palette",who)
  var yellow=put("164","palette",who)
@@ -17,23 +18,23 @@ func train_fixture(who: int=0):
 
 func run():
  for colors in [["蓝","蓝"],["蓝","黄"],["黄","黄"]]:
-  var f=train_fixture()
+  var f=barrier_fixture()
   var plan=[{"uid":f.curse.uid,"color":colors[0]},{"uid":f.yellow.uid if colors[1]=="黄" else f.dual.uid,"color":colors[1]}]
-  expect(e.cast_error(0,f.spell.uid).is_empty(),"废线满足使用条件")
+  expect(e.cast_error(0,f.spell.uid).is_empty(),"四重结界满足使用条件")
   var error=e.commit_cast(0,f.spell.uid,{"none":true},plan)
-  expect(error.is_empty(),"单诅咒允许减费后支付 "+str(colors)+"："+error)
-  expect(e.stack.any(func(s):return s.get("card",{}).get("uid",0)==f.spell.uid),"合法方案实际将废线放上堆叠")
- var f=train_fixture()
+  expect(error.is_empty(),"四张诅咒允许减费后支付 "+str(colors)+"："+error)
+  expect(e.stack.any(func(s):return s.get("card",{}).get("uid",0)==f.spell.uid),"合法方案实际将四重结界放上堆叠")
+ var f=barrier_fixture()
  f.curse.tapped=true
  var plan=[{"uid":f.dual.uid,"color":"蓝"},{"uid":f.blue.uid,"color":"蓝"}]
  expect(e.commit_cast(0,f.spell.uid,{"none":true},plan).is_empty(),"横置的诅咒仍允许用蓝黑牌和单蓝牌各产一蓝支付")
  expect(f.dual.tapped and f.blue.tapped and not f.yellow.tapped,"只横置玩家选择的蓝色资源")
- f=train_fixture();put("24")
+ f=barrier_fixture();put("24")
  expect(e.commit_cast(0,f.spell.uid,{"none":true},[{"uid":f.blue.uid,"color":"蓝"}]).is_empty(),"诅咒与八云蓝叠加后允许支付单蓝")
- f=train_fixture();put("spell-fdf-014","palette")
- expect(e.commit_cast(0,f.spell.uid,{"none":true},[]).is_empty(),"两张诅咒将废线减至零费")
+ f=barrier_fixture();var nest=put("spell-soi-119","hand");var enemy=put("53","field",1)
+ expect(e.commit_cast(0,nest.uid,e.ref_target(enemy),[]).is_empty(),"诅咒可将飞光虫之巢减至零费")
  for invalid in ["black","short","duplicate","tapped","removed"]:
-  f=train_fixture()
+  f=barrier_fixture()
   plan=[{"uid":f.dual.uid,"color":"蓝"},{"uid":f.blue.uid,"color":"蓝"}]
   match invalid:
    "black":plan[0].color="黑"
@@ -44,17 +45,17 @@ func run():
   var before=JSON.stringify([e.players,e.stack])
   expect(not e.commit_cast(0,f.spell.uid,{"none":true},plan).is_empty(),"拒绝不合法方案："+invalid)
   expect(before==JSON.stringify([e.players,e.stack]),"失败支付不改变公开状态："+invalid)
- f=train_fixture();e.move_to(f.curse,"grave");put("spell-fdf-014","palette",1)
+ f=barrier_fixture();e.move_to(f.curse,"grave");put("spell-fdf-014","palette",1)
  expect(not e.commit_cast(0,f.spell.uid,{"none":true},[{"uid":f.dual.uid,"color":"蓝"},{"uid":f.blue.uid,"color":"蓝"}]).is_empty(),"对手颜色盘的诅咒不提供减费")
- f=train_fixture();var item=put("167","hand")
+ f=barrier_fixture();var item=put("167","hand")
  expect(not e.commit_cast(0,item.uid,{},[]).is_empty(),"诅咒不会给非八云紫角色符卡减费")
- f=train_fixture();put("spell-ucs-031","field",1)
+ f=barrier_fixture();put("spell-ucs-031","field",1)
  plan=[{"uid":f.dual.uid,"color":"蓝"},{"uid":f.blue.uid,"color":"蓝"}]
  expect(not e.commit_cast(0,f.spell.uid,{"none":true},plan).is_empty(),"诅咒不能抵消额外加费")
  plan.append({"uid":f.yellow.uid,"color":"黄"})
- expect(e.commit_cast(0,f.spell.uid,{"none":true},plan).is_empty(),"减去两黄并支付额外加费的方案合法")
+ expect(e.commit_cast(0,f.spell.uid,{"none":true},plan).is_empty(),"任意减费后支付两蓝和额外一黄的方案合法")
  for who in [0,1]:
-  f=train_fixture(who)
+  f=barrier_fixture(who)
   var remote=Remote.new();remote.seat=who;remote.apply_snapshot(SeatView.build(e,who))
   var remote_spell=remote.find_card(f.spell.uid)
   var costs=remote.cast_cost_options(who,remote_spell)

@@ -134,23 +134,30 @@ static func free_cast(e,c: Dictionary,who: int) -> bool:
  if mandatory_free_cast(e,c,who):return true
  if e.paid_cast_uid==c.uid:return false
  return (forced(e,c,who) and e.forced_cast.get("free",true)) or Cat.State.free_cast(e,c,who) or e.players[who].field.any(func(u):return has(e.cards[u.card_id],"free_anthem"))
-static func cost(e,c: Dictionary,who: int,base: Dictionary) -> Dictionary:
- if free_cast(e,c,who): return {}
+static func cost_options(e,c: Dictionary,who: int,base: Dictionary) -> Array:
+ if free_cast(e,c,who): return [{}]
  var result=base.duplicate()
- if has(e.cards[c.card_id],"end_turn") and e.active==who: return {"蓝":1}
+ if has(e.cards[c.card_id],"end_turn") and e.active==who: return [{"蓝":1}]
  if enabled(e,c,"miko_discount"):result["黄"]=maxi(0,int(result.get("黄",0))-(e.units(0).size()+e.units(1).size())/2)
  if int(result.get("蓝",0))>0:
   var discount=e.units(who).filter(func(u): return has(e.cards[u.card_id],"ran_discount") and not u.get("ran_discount_disabled",false)).size()
   result["蓝"]=maxi(0,int(result.get("蓝",0))-discount)
- result=New.cost(e,c,who,Batch.cost(e,c,who,result))
- var query_colors=e.COLORS+["红/蓝/绿/黄/黑"]
- for color in result:
-  if color not in query_colors:query_colors.append(color)
- for color in query_colors:
-  var prior=int(result.get(color,0));var q={"kind":"cost","card":c,"controller":who,"color":color}
-  var amount=maxi(0,int(e.Mods.Rules.query(e,q,e.Mods.Rules.query(e,q,prior,30),40)))
-  if amount!=prior or result.has(color):result[color]=amount
- return result
+ var allocations=[]
+ for batch_cost in Batch.cost_options(e,c,who,result):
+  for candidate in New.cost_options(e,c,who,batch_cost):
+   if candidate not in allocations:allocations.append(candidate)
+ var options=[]
+ # Keep every arbitrary discount allocation through modifiers and payment.
+ for candidate in allocations:
+  var query_colors=e.COLORS+["红/蓝/绿/黄/黑"]
+  for color in candidate:
+   if color not in query_colors:query_colors.append(color)
+  for color in query_colors:
+   var prior=int(candidate.get(color,0));var q={"kind":"cost","card":c,"controller":who,"color":color}
+   var amount=maxi(0,int(e.Mods.Rules.query(e,q,e.Mods.Rules.query(e,q,prior,30),40)))
+   if amount!=prior or candidate.has(color):candidate[color]=amount
+  if candidate not in options:options.append(candidate)
+ return options
 static func protected(e,t: Dictionary,who: int,spell: bool) -> bool:
  if e.Mods.Rules.query(e,{"kind":"target_protection","target":t,"controller":who,"spell":spell},false):return true
  if Cat.State.protected(e,t,who,spell):return true

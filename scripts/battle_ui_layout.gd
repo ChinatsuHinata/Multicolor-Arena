@@ -7,6 +7,7 @@ var enemy_life=Rect2()
 var own_life=Rect2()
 var toolbar_rect=Rect2()
 var log_rect=Rect2()
+var log_text_rect=Rect2()
 var action_rect=Rect2()
 var back_rect=Rect2()
 var palette_rect=Rect2()
@@ -41,11 +42,11 @@ func measure(owner_view):
   choice_rect=Rect2(1358,148,224,510)
   measure_hand_controls()
   return
- var life_width=maxf(180,metrics.body*6.5)
+ var life_width=maxf(160,metrics.body*5.5)
  var curse_count=0 if view.engine==null else clampi(maxi(view.ConditionHints.curse_count(view.engine,0),view.ConditionHints.curse_count(view.engine,1)),0,view.CurseWarning.MAX_VISIBLE)
  if curse_count>0:
   life_width+=curse_count*view.CurseWarning.ICON_SIZE.x+maxi(0,curse_count-1)*view.CurseWarning.GAP
- var action_width=maxf(244,metrics.body*9.5)
+ var action_width=maxf(220,metrics.body*8.0)
  var g=metrics.gap
  var hit=metrics.hit
  enemy_life=Rect2(safe.position,Vector2(life_width,view.battle_life_height(1-view.local_seat,hit)))
@@ -58,12 +59,18 @@ func measure(owner_view):
  var hand_height=242.0 if view.is_android else 228.0
  view.STAGE=Rect2(Vector2.ZERO,view.host.get_viewport_rect().size)
  view.HAND=Rect2(enemy_life.end.x+g,safe.end.y-hand_height,back_rect.position.x-enemy_life.end.x-g*2,hand_height)
- view.PROMPT=Rect2(view.HAND.position.x,view.HAND.position.y-metrics.body*1.7-g,view.HAND.size.x,metrics.body*1.7)
- view.NOTICE=Rect2(view.HAND.position.x,view.PROMPT.position.y-metrics.body*1.6,view.HAND.size.x,metrics.body*1.6)
+ # Status text shares the row under the toolbar with the duel log. Sitting just
+ # above the hand it covered the nearest palette row, which is why paying used
+ # to require a dedicated palette view.
+ var status_width=minf(log_rect.size.x*0.58,760.0)
+ view.PROMPT=Rect2(log_rect.position.x,log_rect.position.y,status_width,log_rect.size.y)
+ log_text_rect=Rect2(view.PROMPT.end.x+g,log_rect.position.y,maxf(0,log_rect.end.x-view.PROMPT.end.x-g),log_rect.size.y)
+ # Transient messages replace the log line in that same row.
+ view.NOTICE=log_text_rect
  view.INSPECTION=Rect2(safe.position.x,enemy_life.end.y+g,life_width,own_life.position.y-enemy_life.end.y-g*2)
  view.SIDEBAR=Rect2(back_rect.position.x,enemy_life.end.y+g,action_width,action_rect.position.y-enemy_life.end.y-g*2)
  view.OPPONENT_HAND_COUNT=Rect2(back_rect.position.x,enemy_life.end.y+g,action_width,maxf(hit,metrics.body*2.5))
- view.TOUCH_CAMERA_AREA=Rect2(view.HAND.position.x,log_rect.end.y+g,view.HAND.size.x,view.NOTICE.position.y-log_rect.end.y-g*2)
+ view.TOUCH_CAMERA_AREA=Rect2(view.HAND.position.x,log_rect.end.y+g,view.HAND.size.x,view.HAND.position.y-log_rect.end.y-g*2)
  choice_rect=Rect2(view.HAND.position.x,toolbar_rect.end.y+g,back_rect.position.x-view.HAND.position.x-g,maxf(220,safe.get_center().y-toolbar_rect.end.y-g*2))
  var palette_left=enemy_life.end.x+g
  var palette_width=minf(1320,back_rect.position.x-g-palette_left)
@@ -116,6 +123,11 @@ func render_hand_controls():
  var caption=view.txt("对方手牌",Rect2(inset,0,label_width,badge.size.y),metrics.body if view.is_android else 19,view.host.WHITE,badge)
  caption.name="OpponentHandCaption"
  caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ if view.is_android:
+  # The narrowed rail must still show the whole caption beside the count.
+  var font=caption.get_theme_font("font");var caption_size=metrics.body
+  while caption_size>14 and font.get_string_size(caption.text,HORIZONTAL_ALIGNMENT_LEFT,-1,caption_size).x>label_width:caption_size-=1
+  caption.add_theme_font_size_override("font_size",caption_size)
  var count=view.txt(count_text,Rect2(inset+label_width,0,count_width,badge.size.y),metrics.title+6 if view.is_android else 36,view.host.GOLD,badge)
  count.name="HandCountValue"
  count.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER

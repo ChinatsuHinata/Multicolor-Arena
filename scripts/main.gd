@@ -34,10 +34,13 @@ var tournament_ui
 var tournament_account_return=false
 var tournament_server_url=preload("res://scripts/account_client.gd").SERVER_URL
 var tournament_unread=preload("res://scripts/tournament_unread.gd").new()
-const GOLD = Color("#e8c77e")
-const INK = Color("#101c28")
-const MUTED = Color("#b2c2ce")
-const WHITE = Color("#e8edf0")
+const Palette=preload("res://scripts/ui_palette.gd")
+var GOLD = Palette.tint(Color("#e8c77e"))
+var INK = Palette.tint(Color("#101c28"))
+var MUTED = Palette.tint(Color("#b2c2ce"))
+var WHITE = Palette.tint(Color("#e8edf0"))
+var sakura_backdrop: Control
+var sakura_ui=true
 const UILayout=preload("res://scripts/ui_layout.gd")
 var ui_metrics=UILayout.new()
 var editor_ui
@@ -218,7 +221,7 @@ func _ready():
    auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
    android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
-   android_card_preview_seconds = CardPreviewHold.normalize(saved_settings.get("android_card_preview_seconds",CardPreviewHold.DEFAULT_SECONDS))
+   android_card_preview_seconds = CardPreviewHold.load_saved(saved_settings)
    room_join_volume=RoomJoinSound.normalize_volume(saved_settings.get("room_join_volume",RoomJoinSound.DEFAULT_VOLUME))
    match_room_public=saved_settings.get("match_room_public",true)==true
    match_mode=str(saved_settings.get("match_mode","ranked"))
@@ -229,10 +232,12 @@ func _ready():
    if saved_settings.get("android_zone_shortcut_positions") is Dictionary:
     android_zone_shortcut_positions = saved_settings.android_zone_shortcut_positions
    debug_drag_to_field = saved_settings.get("debug_drag_to_field", false) == true
+   sakura_ui = saved_settings.get("sakura_ui", true) == true
    replay_training_mode = is_test_build and not is_android and saved_settings.get("replay_training_mode", false) == true
    if saved_settings.get("completed_tutorials") is Dictionary:
     completed_tutorials = saved_settings.completed_tutorials.duplicate()
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+ apply_ui_style()
  CardPreviewHold.seconds=android_card_preview_seconds
  load_tutorial_catalog()
  tutorial_progress.directory=settings_path.get_base_dir().path_join("tutorial_progress")
@@ -317,7 +322,8 @@ func enable_android_popup_swipe(popup: PopupMenu):
    popup.set_input_as_handled())
 
 func _draw():
- if page=="battle": return
+ if is_instance_valid(sakura_backdrop):sakura_backdrop.visible=page!="battle"
+ if page=="battle" or Palette.enabled: return
  draw_rect(Rect2(Vector2.ZERO,size), Color("#09121d"))
  for i in range(22):
   draw_circle(Vector2(size.x*0.72,size.y*0.45),520-i*18,Color(0.13,0.28,0.35,0.018+float(i)*0.001))
@@ -330,6 +336,7 @@ func clear_page(next: String):
   remove_child(screen)
   screen.queue_free()
  page=next
+ if is_instance_valid(sakura_backdrop):sakura_backdrop.visible=page!="battle"
  refresh_ui_metrics()
  screen = Control.new()
  add_child(screen)
@@ -490,8 +497,8 @@ func box(parent: Node, rect: Rect2, color: Color = INK, border: Color = Color("#
 
 func style(color: Color, border: Color = Color("#3d5161")) -> StyleBoxFlat:
  var s = StyleBoxFlat.new()
- s.bg_color = color
- s.border_color = border
+ s.bg_color = Palette.tint(color)
+ s.border_color = Palette.tint(border)
  s.set_border_width_all(1)
  s.set_corner_radius_all(10)
  s.content_margin_left = 14
@@ -506,7 +513,7 @@ func label(parent: Node, text: String, rect: Rect2, font_size: int = 18, color: 
  l.position = rect.position
  l.size = rect.size
  l.add_theme_font_size_override("font_size",ui_metrics.font_size(font_size) if uses_responsive_layout() else font_size)
- l.add_theme_color_override("font_color",color)
+ l.add_theme_color_override("font_color",Palette.tint(color))
  l.clip_text = true
  l.mouse_filter = Control.MOUSE_FILTER_IGNORE
  parent.add_child(l)
@@ -517,11 +524,13 @@ func button(parent: Node, text: String, rect: Rect2, action: Callable, accent: b
  b.text = text
  b.position = rect.position
  b.size = rect.size
- b.add_theme_stylebox_override("normal",style(Color("#3b3325") if accent else Color("#192a38"),GOLD if accent else Color("#3d5161")))
- b.add_theme_stylebox_override("hover",style(Color("#4b4130") if accent else Color("#294354"),GOLD))
- b.add_theme_stylebox_override("pressed",style(Color("#615135"),GOLD))
- b.add_theme_stylebox_override("focus",style(Color(0,0,0,0),GOLD))
- b.add_theme_color_override("font_color",GOLD if accent else WHITE)
+ if Palette.enabled:Palette.dress_button(b,accent)
+ else:
+  b.add_theme_stylebox_override("normal",style(Color("#3b3325") if accent else Color("#192a38"),GOLD if accent else Color("#3d5161")))
+  b.add_theme_stylebox_override("hover",style(Color("#4b4130") if accent else Color("#294354"),GOLD))
+  b.add_theme_stylebox_override("pressed",style(Color("#615135"),GOLD))
+  b.add_theme_stylebox_override("focus",style(Color(0,0,0,0),GOLD))
+  b.add_theme_color_override("font_color",GOLD if accent else WHITE)
  b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
  b.pressed.connect(action)
  parent.add_child(b)
@@ -604,6 +613,7 @@ func header(title: String, back: Callable, actions_width: float=0.0) -> Button:
  label(screen,title,Rect2(42,68,1100,48),32)
  var back_button=button(screen,"返回",Rect2(screen.size.x-146,20,126,ui_metrics.hit) if is_android else Rect2(1430,32,126,46),back)
  box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
+ if Palette.enabled:box(screen,Rect2(42,124,132,4),Palette.VERMILION,Palette.VERMILION).mouse_filter=Control.MOUSE_FILTER_IGNORE
  return back_button
 
 func alert(message: String, title: String = "提示"):
@@ -1289,10 +1299,30 @@ func apply_pck_patch(path: String):
   OS.set_restart_on_exit(true)
   get_tree().quit()
 
+## Switches desktop and Android between the sakura shrine UI and classic navy UI.
+## Colors are read when pages are built, so callers rebuild the current page.
+func apply_ui_style():
+ Palette.configure(sakura_ui)
+ GOLD=Palette.tint(Color("#e8c77e"));INK=Palette.tint(Color("#101c28"))
+ MUTED=Palette.tint(Color("#b2c2ce"));WHITE=Palette.tint(Color("#e8edf0"))
+ refresh_ui_metrics()
+ if Palette.enabled and not is_instance_valid(sakura_backdrop):
+  sakura_backdrop=preload("res://scripts/sakura_backdrop.gd").new();sakura_backdrop.name="SakuraBackdrop"
+  add_child(sakura_backdrop);move_child(sakura_backdrop,0)
+ elif not Palette.enabled and is_instance_valid(sakura_backdrop):
+  sakura_backdrop.queue_free();sakura_backdrop=null
+ queue_redraw()
+
+func set_sakura_ui(value: bool):
+ sakura_ui=value
+ apply_ui_style()
+ save_settings()
+ call_deferred("settings")
+
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -2519,10 +2549,11 @@ func uses_responsive_layout() -> bool:
  return is_android and page in ["","menu","editor","sideboard","setup","settings","mods","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
 
 func refresh_ui_metrics():
- ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override)
+ ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override,page=="battle")
  if theme!=null:
   var next_theme=Theme.new();next_theme.default_font=theme.default_font;next_theme.default_font_size=18
   if uses_responsive_layout():ui_metrics.apply_theme(next_theme)
+  Palette.apply_theme(next_theme)
   theme=next_theme
 
 func queue_layout_refresh():
@@ -2608,6 +2639,11 @@ func desktop_menu():
  label(screen,"VERSION "+str(ProjectSettings.get_setting("application/config/version")),Rect2(92,74,900,42),18,GOLD)
  var actions=main_menu_entries()
  var badge=rank_display(screen,true);badge.position=Vector2(92,140);badge.size=Vector2(620,112)
+ if Palette.enabled:
+  var title=label(screen,"multicolor : arena",Rect2(92,286,700,64),46,Palette.SAKURA);title.name="MenuTitle"
+  title.add_theme_color_override("font_outline_color",Palette.NIGHT);title.add_theme_constant_override("outline_size",8)
+  label(screen,"桜 · 神社",Rect2(96,350,400,30),18,Palette.MIST).name="MenuSubtitle"
+  box(screen,Rect2(96,390,164,4),Palette.VERMILION,Palette.VERMILION).mouse_filter=Control.MOUSE_FILTER_IGNORE
  var rows=[422,512,594,676]
  for i in range(actions.size()):
   var item=actions[i]
@@ -2664,6 +2700,15 @@ func desktop_settings():
  drag_cb.button_pressed=debug_drag_to_field
  drag_cb.toggled.connect(set_debug_drag_to_field)
  screen.add_child(drag_cb)
+ var style_cb=CheckButton.new()
+ style_cb.name="SakuraUI"
+ style_cb.text="新版界面（樱花神社）"
+ style_cb.tooltip_text="关闭后恢复旧版深蓝金色界面"
+ style_cb.position=Vector2(420,770 if is_test_build else 690)
+ style_cb.size=Vector2(700,60)
+ style_cb.button_pressed=sakura_ui
+ style_cb.toggled.connect(set_sakura_ui)
+ screen.add_child(style_cb)
  if is_test_build:
   var training_cb=CheckButton.new()
   training_cb.text="回放训练模式：标注关键步骤与推荐招法"
@@ -2672,7 +2717,7 @@ func desktop_settings():
   training_cb.button_pressed=replay_training_mode
   training_cb.toggled.connect(set_replay_training_mode)
   screen.add_child(training_cb)
- label(screen,"当前版本："+patch_manager().active_version,Rect2(420,784,500,48),20,GOLD)
+ label(screen,"当前版本："+patch_manager().active_version,Rect2(420,846 if is_test_build else 784,500,48),20,GOLD)
 
 func desktop_editor(sideboarding: bool=false):
  if not sideboarding:reload_decks()

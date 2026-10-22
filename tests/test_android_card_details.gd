@@ -44,11 +44,13 @@ func run():
  var at=view.hand_nodes[hand.uid].get_global_rect().get_center()
  var before=snapshot()
  expect(not view.android_back_button.visible,"cancel stays hidden before selecting a card")
- await touch(at,true);await create_timer(0.55).timeout
- expect(not view.inspection.visible and is_instance_valid(view.android_card_touch.ring),"hand details stay closed before one second with visible hold feedback")
+ var hold_seconds=preload("res://scripts/card_preview_hold_settings.gd").seconds
+ expect(is_equal_approx(hold_seconds,0.5),"card details open after a half-second hold by default")
+ await touch(at,true);await create_timer(hold_seconds*0.5).timeout
+ expect(not view.inspection.visible and is_instance_valid(view.android_card_touch.ring),"hand details stay closed before the hold completes with visible hold feedback")
  expect(view.android_card_touch.ring.position.is_equal_approx(at),"hold ring appears at the touch point")
  await shot("android-card-hold-ring")
- await create_timer(0.57).timeout
+ await create_timer(hold_seconds*0.5+0.12).timeout
  expect(view.inspection.visible and view.inspect_id==hand.card_id,"native hand long press opens card rules before release")
  expect(snapshot()==before and view.local.is_empty(),"holding a hand card does not play or select it")
  var title=view.inspection.find_child("InspectionTitle",true,false)
@@ -100,7 +102,7 @@ func run():
  expect(view.attack_preview_uid==unit.uid,"unit tap retains the attack preview")
  view.android_back();reset_details()
  await hold(point(unit.uid))
- expect(view.inspect_uid==unit.uid and view.inspection.visible,"holding a battlefield unit for one second opens its rules")
+ expect(view.inspect_uid==unit.uid and view.inspection.visible,"long-pressing a battlefield unit opens its rules")
  await release(point(unit.uid));reset_details()
  await hold(point(enemy.uid))
  expect(view.inspect_uid==enemy.uid and view.inspection.visible,"holding an opponent unit opens its rules")

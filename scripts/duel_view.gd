@@ -179,6 +179,9 @@ var camera_touch_held=false
 var camera_touch_card_uid=0
 var android_camera_tween: Tween
 var android_camera_area=Rect2()
+# Bounds the current camera was framed for. Switching 2D/3D or the playmat
+# changes them without changing the HUD rect, so the frame must be redone.
+var android_camera_bounds=Rect2()
 var android_palette_auto_open=false
 var android_palette_was_possession=false
 var android_palette_panel: Panel
@@ -552,10 +555,16 @@ func android_focus_bounds() -> Rect2:
  var half=table.displayed_board_size()*0.5
  if android_palette_view:
   return table.zone_page_bounds(android_palette_focus_owner(),"palette").grow(0.1)
+ # The own palette is the nearest row of the mat. Keeping it inside the
+ # battlefield frame means paying never needs a separate palette view.
+ var own_palette=table.zone_page_bounds(local_seat,"palette")
+ # Half a card of breathing room keeps the nearest row off the frame edge, so
+ # the hand bar's top strip never clips it at the tightest aspect ratios.
+ var far=maxf(5.5 if table.wide_playmat else 4.3,own_palette.end.y+0.35)
  if not table.top_down_view:
   var enemy_top=table.zone_position("palette",1-local_seat).z-1.2
-  return Rect2(-half.x,enemy_top,half.x*2,(5.5 if table.wide_playmat else 4.3)-enemy_top)
- return Rect2(-half.x,-half.y,half.x*2,half.y+(5.5 if table.wide_playmat else 4.3))
+  return Rect2(-half.x,enemy_top,half.x*2,far-enemy_top)
+ return Rect2(-half.x,-half.y,half.x*2,far+half.y)
 
 func projected_android_focus(bounds: Rect2) -> Rect2:
  var rect=Rect2(project(Vector3(bounds.position.x,0.035,bounds.position.y)),Vector2.ZERO)
@@ -575,6 +584,7 @@ func focus_palette_camera(animate: bool):
  # palette into it would multiply the camera distance and pan far off the board.
  if not area.position.is_finite() or not area.size.is_finite() or area.size.x<responsive.metrics.hit*2 or area.size.y<responsive.metrics.hit:
   android_camera_area=Rect2()
+  android_camera_bounds=Rect2()
   return
  var start_offset: Vector3=table.camera_offset
  var start_scale: float=table.camera_frame_scale
@@ -585,6 +595,7 @@ func focus_palette_camera(animate: bool):
  table.set_camera()
  var bounds=android_focus_bounds()
  android_camera_area=area
+ android_camera_bounds=bounds
  # Palette focus clears both hand rows; battlefield focus uses the taller board area.
  for i in range(10):
   var projected=projected_android_focus(bounds)
@@ -1407,7 +1418,7 @@ func render():
   var notice=txt(message,NOTICE,18,Color("#f0cf93"))
   if is_android and android_palette_view:responsive.add_choice_notice(notice)
   else:notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- if not engine.log.is_empty(): txt(PlayerNameDisplay.battle_text(engine.log.back(),engine.player_names),responsive.log_rect,15,host.MUTED)
+ if not engine.log.is_empty(): txt(PlayerNameDisplay.battle_text(engine.log.back(),engine.player_names),responsive.log_text_rect if is_android else responsive.log_rect,15,host.MUTED)
  update_inspection()
  if last_phase!=engine.phase or last_turn!=engine.turn:
   show_phase_banner()
@@ -1435,8 +1446,8 @@ func render():
  raise_card_search_overlay()
  if is_android and inspection.visible:ui.move_child(inspection,-1)
  responsive.position_persistent()
- if android_camera_restored:android_camera_area=responsive.camera_focus_rect()
- elif is_android and (android_palette_view or not table.top_down_view) and responsive.camera_focus_rect()!=android_camera_area:focus_android_camera(false)
+ if android_camera_restored:android_camera_area=responsive.camera_focus_rect();android_camera_bounds=android_focus_bounds()
+ elif is_android and (responsive.camera_focus_rect()!=android_camera_area or android_focus_bounds()!=android_camera_bounds):focus_android_camera(false)
  elif not is_android and (android_auto_focus_owner>=0 or tutorial_camera_view in ["own_palette","enemy_palette"]) and responsive.camera_focus_rect()!=android_camera_area:focus_palette_camera(false)
  if is_instance_valid(android_back_button):ui.move_child(android_back_button,-1)
 
@@ -2101,6 +2112,7 @@ func render_prompt():
  response_prompt=prompt;response_prompt.name="ResponseCountdown";response_prompt_text=text
  update_response_countdown()
  if is_android and android_palette_view:responsive.add_choice_notice(prompt)
+ elif is_android:prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
  else:prompt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 
 func shortcut_attack() -> bool:

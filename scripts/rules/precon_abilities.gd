@@ -138,14 +138,14 @@ static func cost_options(e,c: Dictionary,who: int,base: Dictionary,target: Dicti
   if n>0: result["黄"]=maxi(0,result.get("黄",0)-2*n)
  if role(info):
   for discount in e.players[who].get("wine",[]): result[discount]=maxi(0,result.get(discount,0)-1)
- result=e.Roster.cost(e,c,who,result)
  var options=[];var any_color=chromatic(e,c,who)
- for candidate in e.Cat.State.cost_options(e,c,who,result,target):
-  if any_color:
-   var amount=0
-   for n in candidate.values():amount+=int(n)
-   candidate={"红/蓝/绿/黄/黑":amount}
-  if candidate not in options:options.append(candidate)
+ for roster_cost in e.Roster.cost_options(e,c,who,result):
+  for candidate in e.Cat.State.cost_options(e,c,who,roster_cost,target):
+   if any_color:
+    var amount=0
+    for n in candidate.values():amount+=int(n)
+    candidate={"红/蓝/绿/黄/黑":amount}
+   if candidate not in options:options.append(candidate)
  return options
 static func spell_options(e,id: String,who: int) -> Variant:
  var info=e.cards[id]; var k=key(info,SPELLS); var units=all_units(e)

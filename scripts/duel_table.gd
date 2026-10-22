@@ -3,6 +3,7 @@ const ConditionHints=preload("res://scripts/rules/card_condition_hints.gd")
 const ConditionShader=preload("res://assets/conditional_frame.gdshader")
 const UnknownArt=preload("res://scripts/unknown_card_art.gd")
 const UnknownShader=preload("res://assets/unknown_card_art.gdshader")
+const Palette=preload("res://scripts/ui_palette.gd")
 const DevourMarker=preload("res://scripts/devour_marker.gd")
 var local_seat=0
 ## One persistent world per duel. Moving cards reuse their meshes and collision objects.
@@ -142,7 +143,7 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
  duel=engine; texture_provider=provider
  var world=WorldEnvironment.new()
  var env=Environment.new(); env.background_mode=Environment.BG_COLOR
- env.background_color=Color("#0a0b21")
+ env.background_color=Palette.FIELD_SKY if Palette.enabled else Color("#0a0b21")
  env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
  env.ambient_light_color=Color.WHITE; env.ambient_light_energy=0.7
  world.environment=env; add_child(world)
@@ -165,6 +166,9 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
   wide_mat.set_shader_parameter("insert_height",FIELD_EXTENSION/WIDE_BOARD_SIZE.y)
   wide_mat.set_shader_parameter("top_cut",FIELD_TOP_CUT)
   wide_mat.set_shader_parameter("bottom_cut",FIELD_BOTTOM_CUT)
+  if Palette.enabled:
+   wide_mat.set_shader_parameter("lift",Palette.MAT_LIFT)
+   wide_mat.set_shader_parameter("tint",Palette.MAT_TINT)
   mat=wide_mat
  else:
   var plain_mat=StandardMaterial3D.new()
@@ -194,8 +198,8 @@ func guide_vertical(x: float,top: float,bottom: float,mat: Material):
  plane(self,Vector3(x,0.012,(top+bottom)*0.5),Vector2(0.025,bottom-top),mat)
 
 func add_wide_zone_guides():
- var field_guide=guide_material(Color(0.59,0.76,0.85,0.48))
- var palette_guide=guide_material(Color(0.72,0.66,0.83,0.48))
+ var field_guide=guide_material(Palette.FIELD_GUIDE if Palette.enabled else Color(0.59,0.76,0.85,0.48))
+ var palette_guide=guide_material(Palette.PALETTE_GUIDE if Palette.enabled else Color(0.72,0.66,0.83,0.48))
  for who in range(2):
   var side=1.0 if who==local_seat else -1.0
   guide_horizontal(-8.85,8.85,(2.15+FIELD_EXTENSION)*side,field_guide)
@@ -734,8 +738,11 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
  root.get_node("Top").visible=count>0
  root.get_node("Top").material_override=material(cards.back().card_id,cards.back().get("art_id","")) if face_up and count>0 else material("back")
  DevourMarker.apply_pile(root.get_node("Top"),cards.back() if "exile" in key and count>0 else {},local_seat)
+ # An empty pile still needs a tappable box. Capping it near the mat surface
+ # keeps the box from standing proud of flat cards and stealing their taps in
+ # the top-down view, where the grave sits beside the palette row.
  var hit=root.get_node("Hit"); hit.position.y=maxf(0.1,height)/2
- hit.get_child(0).shape.size.y=maxf(0.2,height)
+ hit.get_child(0).shape.size.y=maxf(0.04,height)
  hit.set_meta("card_id",cards.back().card_id if face_up and count>0 else "back")
  hit.set_meta("uid",cards.back().uid if face_up and count>0 else 0)
  hit.collision_layer=0 if "exile" in key and count==0 else 1

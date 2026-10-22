@@ -40,7 +40,7 @@ func run():
   expect(is_instance_valid(card.hold_ring) and is_equal_approx(card.hold_ring.duration,0.4),"deck card ring uses the same threshold")
   card.cancel_touch_hold()
  if grid!=null and footer!=null:
-  expect(grid.columns==2 and grid.get_child_count()==6,"landscape setting switches use two columns")
+  expect(grid.columns==2 and grid.get_child_count()==7,"landscape setting switches use two columns including the sakura theme")
   var scroll=app.screen.get_child(0).get_child(1) as ScrollContainer
   var content=scroll.get_child(0) as Control if scroll!=null else null
   expect(scroll!=null and content!=null and content.get_combined_minimum_size().y<=scroll.size.y+1,"Android setting contents fit one screen at 1280×720")
