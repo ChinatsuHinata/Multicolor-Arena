@@ -90,6 +90,10 @@ func run():
  expect(started.size()>=1,"casting a slot card runs the free spell effect")
  expect(not started.is_empty() and started[0].ctx.get("units") is Array,"spell context includes the unit snapshot")
  expect(not started.is_empty() and started[0].ctx.get("palette_character_spells") is int,"spell context includes the palette character spell count")
+ # 自机区里尚未出场的自机不是战场单位，不能成为角色符卡起点。
+ var waiting=e.players[0].leader
+ expect(waiting.get("zone","")=="leader","the test leader is still waiting in the leader zone")
+ expect(not started.is_empty() and started[0].ctx.units.all(func(u):return u.zone=="field" and u.uid!=waiting.get("uid",-1)),"the spell snapshot only lists battlefield units")
  var spell_layer=stage.get_node_or_null("FxLayer_spell")
  expect(spell_layer!=null and spell_layer.get_children().any(func(child):return str(child.name)=="Fx_probe_spell"),"spell effect lands on its own layer")
  for module in started:

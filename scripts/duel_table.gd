@@ -143,10 +143,8 @@ func show_spell_effect(uid: int) -> Array:
  var palette_character_spells=0
  for p in [0,1]:
   var player=duel.players[p]
-  var candidates: Array=[]
-  for c in player.field:
-   if duel.is_unit(c):candidates.append(c)
-  if not player.leader.is_empty() and player.leader.get("zone","")=="leader":candidates.append(player.leader)
+  # 只收战场上的单位；仍在自机区（未出场）的自机不能作为起点。
+  var candidates: Array=player.field.filter(func(c):return duel.is_unit(c))
   for c in candidates:
    var unit_info=duel.cards[c.card_id]
    units.append({"uid":int(c.uid),"card_id":str(c.card_id),"owner":p,"zone":str(c.zone),"deck_leader":bool(c.get("leader",false)) or int(c.uid)==int(player.leader.get("uid",-1)),"kind":unit_info.kind,"character":unit_info.get("character",""),"color_value":duel.Extra.cost_value(duel,c),"position":_spell_snapshot_position(c,p)})
