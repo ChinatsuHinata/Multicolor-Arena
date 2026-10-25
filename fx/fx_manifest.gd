@@ -6,7 +6,11 @@ extends RefCounted
 const ROOT="res://fx/definitions"
 const MODULE_ROOT="res://fx/modules/"
 const CATEGORIES=["entrance","foil","spell"]
-const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes"]
+## 入场时间点：before 在单位牌离开堆叠、正飞向战场时开播；after 在卡牌落场后开播。
+const TIMINGS=["before","after"]
+const ORIGINS=["none","character"]
+const DESTINATIONS=["none","spell_target"]
+const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes","cards","timing","character_spell","character","origin","destination"]
 
 static func load_all(root: String=ROOT) -> Dictionary:
  var effects: Dictionary={}
@@ -51,6 +55,20 @@ static func validate(data: Variant,path: String) -> String:
  if data.has("shop_product") and not data.shop_product is String:return "shop_product must be a string"
  if data.has("params") and not data.params is Dictionary:return "params must be an object"
  if data.has("asset_dir") and not str(data.asset_dir).begins_with("res://fx/assets/"):return "asset_dir must live under res://fx/assets/"
+ if data.has("cards"):
+  if not data.cards is Array or data.cards.is_empty():return "cards must be a non-empty array of card ids"
+  for card in data.cards:
+   if not card is String or str(card).strip_edges().is_empty():return "cards must hold card id strings"
+ if data.has("timing"):
+  if str(data.category)!="entrance":return "timing only applies to entrance effects"
+  if not data.timing is String or not TIMINGS.has(str(data.timing)):return "timing must be one of "+", ".join(TIMINGS)
+ for key in ["character_spell","character","origin","destination"]:
+  if data.has(key) and str(data.category)!="spell":return key+" only applies to spell effects"
+ if data.has("character_spell") and not data.character_spell is bool:return "character_spell must be a boolean"
+ if data.has("character") and not data.character is String:return "character must be a string"
+ if data.has("origin") and (not data.origin is String or not ORIGINS.has(data.origin)):return "origin must be one of none, character"
+ if data.has("destination") and (not data.destination is String or not DESTINATIONS.has(data.destination)):return "destination must be one of none, spell_target"
+ if data.get("origin","none")=="character" and data.get("character_spell",false)!=true:return "origin character requires character_spell"
  return ""
 
 static func valid_id(id: String) -> bool:

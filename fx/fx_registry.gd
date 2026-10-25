@@ -37,8 +37,10 @@ func by_category(category: String) -> Array:
 
 ## `products` is the frozen battle loadout: product id → product dictionary.
 ## A definition runs when it is free, when its own product is equipped, or when
-## an equipped product names it through `fx`.
-func enabled(category: String,products: Dictionary={}) -> Array:
+## an equipped product names it through `fx`. `card_id` narrows the list to
+## definitions whose `cards` names that card (no `cards` means every card);
+## an empty card_id, or allow_all previews, skip the card filter.
+func enabled(category: String,products: Dictionary={},card_id: String="") -> Array:
  reload()
  if allow_all:return by_category(category)
  var claimed={}
@@ -50,8 +52,17 @@ func enabled(category: String,products: Dictionary={}) -> Array:
   claimed[bound]=true
  var result: Array=[]
  for def in by_category(category):
+  if not matches_card(def,card_id):continue
   if def.get("free",false) or claimed.has(str(def.id)) or claimed.has(str(def.get("shop_product",""))):result.append(def)
  return result
+
+static func matches_card(def: Dictionary,card_id: String) -> bool:
+ if card_id.is_empty() or not def.get("cards") is Array:return true
+ return def.cards.has(card_id)
+
+## 入场时间点，缺省 after。
+static func timing(def: Dictionary) -> String:
+ return str(def.get("timing","after"))
 
 ## Returns a configured module, or null (with the reason in errors) if the
 ## manifest or its script is broken. Never throws.

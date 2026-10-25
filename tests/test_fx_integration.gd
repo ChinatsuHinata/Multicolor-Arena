@@ -32,6 +32,7 @@ func holder_ok(module) -> bool:
 func run():
  var folder="res://work/fx-integration/"+str(Time.get_ticks_usec())
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder))
+ Store.Paths.root_override=ProjectSettings.globalize_path(folder)
  settings_fixture=folder.path_join("settings.json")
  app=load("res://main.tscn").instantiate();app.settings_path=settings_fixture
  root.add_child(app);await frames()
@@ -46,7 +47,13 @@ func run():
  # 接线验收使用测试内存清单，不要求游戏内置任何测试特效。
  stage.stop_all()
  await process_frame
- stage.use_registry(Fixture.create())
+ var probes=Fixture.create()
+ # before 段探针：飞行开始即开播；other 探针只认一张不存在的卡，永远不该出现。
+ probes.definitions["probe_before"]=probes.definitions.probe_entrance.duplicate(true)
+ probes.definitions.probe_before.id="probe_before";probes.definitions.probe_before.timing="before"
+ probes.definitions["probe_other"]=probes.definitions.probe_entrance.duplicate(true)
+ probes.definitions.probe_other.id="probe_other";probes.definitions.probe_other.cards=["no-such-card"]
+ stage.use_registry(probes)
 
  clean()
  var unit=put("character-fdf-ex02","field",0)
@@ -54,11 +61,19 @@ func run():
  view.render();await frames()
  var node=view.table.visuals.get("card_"+str(unit.uid))
  expect(node!=null,"the unit has a battle visual")
+ expect(holder_ids(node).has("probe_before"),"a before-timing entrance starts while the card is still flying in")
+ expect(not holder_ids(node).has("probe_entrance"),"an after-timing entrance waits for the card to land")
+ var before=modules_with("entrance").filter(func(module):return str(module.id)=="probe_before" and holder_ok(module))
+ expect(not before.is_empty() and is_equal_approx(before[0].land_seconds(),view.table.animation_duration),"the before effect lands when the card flight ends")
+ stage.advance_all(view.table.animation_duration+0.02)
  var entrance=holder_ids(node)
+ expect(not entrance.has("probe_other"),"an entrance limited to other cards does not run on this unit")
  expect(entrance.has("probe_entrance"),"entering a unit runs the free entrance effect")
  expect(modules_with("entrance").any(func(module):return str(module.id)=="probe_entrance" and holder_ok(module)),"the entrance module has a live holder")
  view.render();await frames()
- expect(holder_ids(node).size()==entrance.size(),"re-rendering does not replay the entrance effect")
+ # before 探针此时可能已按预算播完，只要求不出现新的 holder。
+ var again=holder_ids(node)
+ expect(again.size()<=entrance.size() and again.all(func(id):return entrance.has(id)),"re-rendering does not replay the entrance effect")
 
  expect(holder_ids(node).has("probe_foil"),"the card face carries the free foil effect")
  var foil=modules_with("foil")
@@ -73,6 +88,8 @@ func run():
  view.render();await frames()
  var started=view.table.show_spell_effect(spell_card.uid)
  expect(started.size()>=1,"casting a slot card runs the free spell effect")
+ expect(not started.is_empty() and started[0].ctx.get("units") is Array,"spell context includes the unit snapshot")
+ expect(not started.is_empty() and started[0].ctx.get("palette_character_spells") is int,"spell context includes the palette character spell count")
  var spell_layer=stage.get_node_or_null("FxLayer_spell")
  expect(spell_layer!=null and spell_layer.get_children().any(func(child):return str(child.name)=="Fx_probe_spell"),"spell effect lands on its own layer")
  for module in started:
@@ -96,6 +113,16 @@ func run():
  for module in attached:
   expect(not holder_ok(module),"module does not outlive its card (%s)" % str(module.id))
 
+ # 同一单位离场后再次进场要重新演出：离场时 fx_seen 被清掉。
+ unit.zone="field";e.players[0].field.append(unit)
+ view.render();await frames()
+ stage.advance_all(view.table.animation_duration+0.02)
+ var back=view.table.visuals.get("card_"+str(removed_uid))
+ expect(holder_ids(back).has("probe_entrance"),"a unit re-entering the field replays its entrance effect")
+ var pinned=modules_with("entrance").filter(func(module):return int(module.ctx.get("uid",-1))==removed_uid and str(module.id)=="probe_entrance" and holder_ok(module))
+ expect(not pinned.is_empty() and pinned[0].ctx.get("landing") is Transform3D,"the entrance effect receives its landing transform")
+ expect(not pinned.is_empty() and pinned[0].land_seconds()==0.0,"an after-timing effect starts with the card already landed")
+
  # 付费特效未装备时不跑。
  var registry=stage.registry
  registry.allow_all=false
@@ -104,5 +131,6 @@ func run():
  finish()
 
 func finish():
+ Store.Paths.root_override=""
  print("FX INTEGRATION: ",checks," checks; ",len(failures)," failures")
  quit(0 if failures.is_empty() else 1)

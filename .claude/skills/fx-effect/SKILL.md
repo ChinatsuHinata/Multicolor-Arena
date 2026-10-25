@@ -22,7 +22,7 @@ description: 为 Multicolor-Arena 开发、修改或验收香霖堂特效（单�
 ## 固定流程
 
 1. **判品类**（选错全部返工）：
-   - `entrance`：单位进场，挂花牌视觉根，400–700 ms；
+   - `entrance`：单位进场，挂花牌视觉根，400–700 ms；清单 `timing` 选时间点：`before`（单位牌出堆叠、正飞向战场时开播，可放到 900–1100 ms）或 `after`（缺省，卡牌落场后开播）；
    - `foil`：卡面持续流光，挂花牌视觉根，常驻不自动收尾；
    - `spell`：符卡提交成功后在台面演出，挂 `FxLayer_spell`，700–1200 ms。
 2. **写清单** `fx/definitions/<id>.json`（目录不存在就建），定 `params` 初值。
@@ -46,6 +46,8 @@ description: 为 Multicolor-Arena 开发、修改或验收香霖堂特效（单�
   "priority": 10,
   "free": true,
   "asset_dir": "res://fx/assets/sakura_ring/",
+  "cards": ["70"],
+  "timing": "after",
   "params": { "petals": 14, "color": "#f9c9d8" }
 }
 ```
@@ -54,6 +56,9 @@ description: 为 Multicolor-Arena 开发、修改或验收香霖堂特效（单�
 - `id` = 文件名，2–40 位 `a-z0-9_`；`category` ∈ `entrance|foil|spell`；
 - `script` 必须在 `res://fx/modules/` 下且文件存在；`asset_dir` 必须在 `res://fx/assets/` 下；
 - `budget_ms` 50–5000，缺省 700（foil 不用）；`free` 为 bool；`params` 为对象；
+- `cards`（可选）：卡牌 id 字符串的非空数组，只让这些卡触发；省略 = 所有卡。由 `fx_registry.enabled(category, products, card_id)` 筛选，模块里不要自己比对 `ctx.card_id`；`allow_all` 预览忽略筛选；
+- `timing`（可选，仅 entrance）：`before` | `after`，缺省 `after`；
+- 角色符卡（仅 spell）：`"character_spell": true`、`"character": "<角色名>"`、`"origin": "character"|"none"`、`"destination": "spell_target"|"none"`；起点排序：套牌自机 > 自机单位 > 颜色值高 > 卡牌 id 小（再按 uid 小）；
 - **视觉参数只放 `params`**，调色/数量/半径改这里，不改脚本。
 - 收费：加 `shop_product: "<商品id>"`，或在 `data/shop.json` 商品上写 `"fx": "<特效id>"`。启用判定在 `fx_registry.enabled()`，只读 `battle_loadout()` 冻结快照。联机不校验特效商品（扩展 `MCA:fx:` 签名域属协议改动，不是特效任务）。
 
@@ -74,7 +79,7 @@ configure(def, ctx) → start() → [advance(delta) …] → stop()
 
 | 品类 | 基类 `extends` | 辅助 | 硬约束 |
 | --- | --- | --- | --- |
-| entrance | `res://fx/categories/fx_entrance_module.gd` | `envelope()` 0→1→0、`radial_plane(scale, y, mat)` | 只加子节点；不改 `Face`/`Halo`/`Outline`/`SummoningMist` 材质与 `Hit` 碰撞；建议 y 0~0.02 |
+| entrance | `res://fx/categories/fx_entrance_module.gd` | `envelope()` 0→1→0、`radial_plane(scale, y, mat)`、`land_seconds()`（落场时刻：before 为飞行时长 `ctx.travel`，after 为 0）；有 `ctx.landing` 时 holder 自动钉在落点 | 只加子节点；不改 `Face`/`Halo`/`Outline`/`SummoningMist` 材质与 `Hit` 碰撞；建议 y 0~0.02 |
 | foil | `res://fx/categories/fx_foil_module.gd` | `phase()` 0..1（周期 `params.cycle`，默认 2.4 s）、`foil_plane(scale, y, mat)` | 平面 y ∈ [0.019, 0.055]；不替换 `Face.material_override`、不读写卡图；透明度建议 ≤ 0.6 |
 | spell | `res://fx/categories/fx_spell_module.gd` | `burst()`、`center()`、`spell_plane(scale, y, mat)` | 挂 `FxLayer_spell`；位置取 `ctx.center` 并自己应用到 `holder`；不碰卡牌、堆叠、结算 |
 

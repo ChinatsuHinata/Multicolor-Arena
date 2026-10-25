@@ -57,6 +57,7 @@ func run() -> void:
  expect(paid.enabled("entrance",{"p_paid":{"fx":"paid_entrance"}}).size()==1,"a product binds the effect named by fx")
  var locked=Fixture.create()
  expect(locked.enabled("foil",{"p_other":{"fx":"missing_effect"}}).any(func(d):return str(d.id)=="probe_foil"),"a free foil still runs without a purchase")
+ check_card_filter()
  await check_stage()
  print("FX MODULES: ",checks," checks; ",failures," failures")
  quit(0 if failures==0 else 1)
@@ -101,6 +102,25 @@ func check_effect(registry,def: Dictionary) -> void:
  await process_frame
  if is_instance_valid(module):module.free()
 
+## 清单 cards / timing 的校验与按卡筛选。
+func check_card_filter() -> void:
+ var base={"id":"probe","category":"entrance","script":"res://fx/modules/reimu_yinyang_gather/effect.gd","cards":["70"],"timing":"before"}
+ var path="res://fx/definitions/probe.json"
+ expect(Manifest.validate(base,path).is_empty(),"cards and timing pass validation: "+Manifest.validate(base,path))
+ for bad in [{"cards":[]},{"cards":"70"},{"cards":[70]},{"cards":[""]},{"timing":"during"},{"timing":true}]:
+  var data=base.duplicate();data.merge(bad,true)
+  expect(not Manifest.validate(data,path).is_empty(),"manifest rejects "+str(bad))
+ var foil=base.duplicate();foil.category="foil"
+ expect(not Manifest.validate(foil,path).is_empty(),"timing is rejected outside entrance")
+ var filtered=Fixture.create()
+ filtered.definitions.probe_entrance.cards=["70"]
+ expect(filtered.enabled("entrance",{},"70").size()==1,"an effect runs on a card its cards list names")
+ expect(filtered.enabled("entrance",{},"71").is_empty(),"an effect skips cards its cards list does not name")
+ expect(filtered.enabled("entrance",{}).size()==1,"no card id skips the card filter")
+ expect(filtered.enabled("foil",{},"71").size()==1,"an effect without cards runs on every card")
+ filtered.allow_all=true
+ expect(filtered.enabled("entrance",{},"71").size()==1,"allow_all previews ignore the card filter")
+
 func check_foil_bounds(holder: Node,id: String) -> void:
  if not is_instance_valid(holder):return
  for child in holder.get_children():
@@ -131,5 +151,29 @@ func check_stage() -> void:
  stage.stop_all()
  await process_frame
  expect(stage.active.is_empty(),"stage drops finished modules")
+ # 时间点：after 等 ctx.travel 秒（卡牌落场）才生成，before 立即生成。
+ var timed=Fixture.create()
+ timed.definitions["probe_before"]=timed.definitions.probe_entrance.duplicate(true)
+ timed.definitions.probe_before.id="probe_before";timed.definitions.probe_before.timing="before"
+ stage.use_registry(timed)
+ var card=Node3D.new();host.add_child(card)
+ var now=stage.play("entrance",{"parent":card,"card_size":CARD_SIZE,"uid":4,"travel":0.4})
+ expect(now.size()==1 and str(now[0].id)=="probe_before","only the before effect starts during the flight")
+ expect(not now.is_empty() and is_equal_approx(now[0].land_seconds(),0.4),"before effect lands at ctx.travel")
+ expect(stage.pending.size()==1,"the after effect waits for the landing")
+ stage.advance_all(0.2)
+ expect(stage.pending.size()==1 and not card.has_node("Fx_probe_entrance"),"the after effect does not start mid-flight")
+ stage.advance_all(0.25)
+ expect(stage.pending.is_empty() and card.has_node("Fx_probe_entrance"),"the after effect starts once the card lands")
+ var landed=stage.active.filter(func(module):return is_instance_valid(module) and str(module.id)=="probe_entrance")
+ expect(not landed.is_empty() and landed[0].land_seconds()==0.0,"after effect starts already landed")
+ stage.stop_all()
+ var gone=Node3D.new();host.add_child(gone)
+ stage.play("entrance",{"parent":gone,"card_size":CARD_SIZE,"uid":5,"travel":0.4})
+ gone.free()
+ stage.advance_all(0.5)
+ expect(stage.pending.is_empty() and not stage.active.any(func(module):return is_instance_valid(module) and int(module.ctx.get("uid",-1))==5 and str(module.id)=="probe_entrance"),"a card that leaves before landing drops its after effect")
+ stage.stop_all()
+ await process_frame
  host.free()
  await process_frame

@@ -5,6 +5,7 @@ extends SceneTree
 ##   Godot --path . --script fx/fx_showcase.gd
 ##   Godot --path . --script fx/fx_showcase.gd -- --only=<id>
 ##   Godot --path . --script fx/fx_showcase.gd -- --only=<id> --png=work/fx/preview.png
+##   --count=<n> 设置模拟双方颜色盘中的角色符卡数，缺省 6。
 ## 无 --only 时轮流播放全部特效。--png 需要非 headless 的渲染后端。
 
 const Registry=preload("res://fx/fx_registry.gd")
@@ -19,6 +20,7 @@ var index=0
 var clock=0.0
 var capture_path=""
 var capture_at=-1.0
+var showcase_count=6
 var capturing=false
 var only=""
 var camera: Camera3D
@@ -28,13 +30,14 @@ func _initialize() -> void:
   if arg.begins_with("--only="):only=arg.trim_prefix("--only=")
   if arg.begins_with("--png="):capture_path=arg.trim_prefix("--png=")
   if arg.begins_with("--at="):capture_at=float(arg.trim_prefix("--at="))
+  if arg.begins_with("--count="):showcase_count=int(arg.trim_prefix("--count="))
  registry=Registry.new()
  registry.allow_all=true
  registry.reload(true)
  if not registry.errors.is_empty():
   for error in registry.errors:push_error("%s: %s" % [error.file,error.reason])
  build_scene()
- play_index(0)
+ call_deferred("play_index",0)
 
 func build_scene() -> void:
  var root_node=Node3D.new()
@@ -74,11 +77,13 @@ func build_scene() -> void:
 
  stage=Stage.new()
  stage.name="FxStage"
+ stage.auto_step=true
  stage.use_registry(registry)
  root_node.add_child(stage)
 
 func play_index(value: int) -> void:
  if stage==null:return
+ stage.set_process(false)
  stage.stop_all()
  modules.clear()
  clock=0.0
@@ -93,6 +98,17 @@ func play_index(value: int) -> void:
  index=value%all.size()
  var def=all[index]
  var ctx={"parent":null if str(def.category)=="spell" else card,"card_size":CARD_SIZE,"uid":1,"card_id":"showcase"}
+ card.position=Vector3(0.0,0.0,-1.4) if str(def.category)=="spell" else Vector3.ZERO
+ if str(def.category)=="spell":
+  ctx.merge({
+   "owner":0,"requires_character":str(def.get("character","")),
+   "center":Vector3(0.0,0.0,1.6),
+   "units":[
+    {"uid":11,"card_id":"showcase_leader","owner":0,"zone":"field","deck_leader":true,"kind":"自机","character":str(def.get("character","")),"color_value":3,"position":Vector3(-2.1,0.0,1.1)},
+    {"uid":12,"card_id":"showcase_unit","owner":0,"zone":"field","deck_leader":false,"kind":"单位","character":str(def.get("character","")),"color_value":5,"position":Vector3(2.1,0.0,1.1)},
+    {"uid":21,"card_id":"showcase_foe","owner":1,"zone":"field","deck_leader":false,"kind":"单位","character":"","color_value":2,"position":Vector3(0.0,0.0,-1.4)}],
+   "targets":[{"uid":21,"position":Vector3(0.0,0.0,-1.4)}],
+   "palette_character_spells":showcase_count},true)
  var started=stage.play(str(def.category),ctx)
  modules.append_array(started)
  for module in modules:
@@ -100,15 +116,17 @@ func play_index(value: int) -> void:
 
 func _process(delta: float) -> bool:
  if modules.is_empty():return true
+ if capturing:return false
  var longest=0.0
  for module in modules:
   if is_instance_valid(module):longest=maxf(longest,module.budget)
- clock+=delta
+ var peak=capture_at if capture_at>=0.0 else peak_seconds()
+ var step=minf(delta,maxf(peak-clock,0.0)) if not capture_path.is_empty() else delta
+ clock+=step
  for module in modules:
-  if is_instance_valid(module):module.advance(delta)
+  if is_instance_valid(module):module.advance(step)
  if not capture_path.is_empty():
   # 抓帧默认落在演出峰值：入场/符卡取预算的 35%，闪卡取周期的 25%。
-  var peak=capture_at if capture_at>=0.0 else peak_seconds()
   if clock>=peak:capture()
   return false
  if clock>longest+0.8:play_index(index+1)

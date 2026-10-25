@@ -128,9 +128,57 @@ func show_spell_effect(uid: int) -> Array:
  if fx==null:return []
  var card=duel.find_card(uid)
  if card.is_empty():return []
+ var stack_entry: Dictionary={}
+ for entry in duel.stack:
+  if entry.get("kind","")=="card" and int(entry.get("card",{}).get("uid",-1))==uid:
+   stack_entry=entry
+   break
+ var owner=int(stack_entry.get("owner",card.get("owner",local_seat)))
  var node=visuals.get("card_"+str(uid))
- var center=node.global_position if is_instance_valid(node) else zone_position("palette",card.get("owner",local_seat))
- return fx.spell_resolved(node,CARD_SIZE,{"uid":uid,"card_id":card.card_id,"center":center})
+ var center=node.global_position if is_instance_valid(node) else to_global(zone_position("palette",owner))
+ var info=duel.cards[card.card_id]
+ var requires_character=str(info.get("requires_character",""))
+ var units: Array[Dictionary]=[]
+ var matching_uids: Array[int]=[]
+ var palette_character_spells=0
+ for p in [0,1]:
+  var player=duel.players[p]
+  var candidates: Array=[]
+  for c in player.field:
+   if duel.is_unit(c):candidates.append(c)
+  if not player.leader.is_empty() and player.leader.get("zone","")=="leader":candidates.append(player.leader)
+  for c in candidates:
+   var unit_info=duel.cards[c.card_id]
+   units.append({"uid":int(c.uid),"card_id":str(c.card_id),"owner":p,"zone":str(c.zone),"deck_leader":bool(c.get("leader",false)) or int(c.uid)==int(player.leader.get("uid",-1)),"kind":unit_info.kind,"character":unit_info.get("character",""),"color_value":duel.Extra.cost_value(duel,c),"position":_spell_snapshot_position(c,p)})
+   if not requires_character.is_empty() and duel.character_matches(c,requires_character):matching_uids.append(int(c.uid))
+  for c in player.palette:
+   var palette_info=duel.cards[c.card_id]
+   if palette_info.kind=="符卡" and not str(palette_info.get("requires_character","")).is_empty():palette_character_spells+=1
+ var targets: Array[Dictionary]=[]
+ var target: Dictionary=stack_entry.get("target",{})
+ var refs: Array=[]
+ if target.has("uid"):refs.append(target)
+ for group in target.get("picks",[]):
+  for ref in group:
+   if ref is Dictionary and ref.has("uid"):refs.append(ref)
+ var seen={}
+ for ref in refs:
+  var target_uid=int(ref.uid)
+  if seen.has(target_uid):continue
+  seen[target_uid]=true
+  var target_card=duel.find_card(target_uid)
+  if target_card.is_empty():target_card=ref
+  targets.append({"uid":target_uid,"position":_spell_snapshot_position(target_card,int(target_card.get("owner",ref.get("player",owner))))})
+ if target.has("player") and not target.has("uid"):
+  var player=int(target.player)
+  targets.append({"uid":0,"player":player,"position":to_global(zone_position("leader",player))})
+ var extra={"uid":uid,"card_id":card.card_id,"center":center}
+ extra.merge({"owner":owner,"requires_character":requires_character,"spell_colors":info.get("colors",[]),"units":units,"matching_uids":matching_uids,"targets":targets,"palette_character_spells":palette_character_spells})
+ return fx.spell_resolved(node,CARD_SIZE,extra)
+
+func _spell_snapshot_position(card: Dictionary,owner: int) -> Vector3:
+ var node=visuals.get("card_"+str(card.get("uid",0)))
+ return node.global_position if is_instance_valid(node) else to_global(zone_position(str(card.get("zone","field")),owner))
 
 func set_hovered_card(uid: int):
  if hover_uid==uid:return
@@ -637,11 +685,16 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    visuals[key].rotation=d.rotation
   var node=visuals[key]
   node.show()
-  # 入场：单位第一次以 field 状态出现时触发一次；分页移出再回来、读档直接
-  # 落位都不重播（没有动画就没有入场）。
+  # 入场：单位每次进入 field 触发一次；分页移出再回来、读档直接落位都不重播
+  # （没有动画就没有入场）。离场后 fx_seen 被清掉，再次进场会重新演出。
+  # 此刻卡牌刚离开堆叠、开始飞向落点；travel 是飞行时长，舞台据此区分
+  # "进入前"（立即开播）与"进入后"（落场后开播）。
   if fx!=null and d.uid>0 and d.zone=="field" and d.get("group","")=="unit" and not fx_seen.has(d.uid):
    fx_seen[d.uid]=duel.revision
-   if fresh and animate:fx.unit_entered(node,CARD_SIZE,{"uid":d.uid,"card_id":d.card_id,"owner":d.owner})
+   if fresh and animate:
+    var landing=global_transform*Transform3D(Basis.from_euler(d.rotation).scaled(d.scale),d.at)
+    var travel=0.0 if presented_moves.has(d.uid) else animation_duration
+    fx.unit_entered(node,CARD_SIZE,{"uid":d.uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel})
   # 闪卡：卡面建立或换异画时挂一次，卡牌节点释放时随之消失。
   if fx!=null and d.uid>0:
    var face_key=str(d.card_id)+":"+str(d.get("art_id",""))
@@ -675,6 +728,9 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    move_card(key,node,d,animate and not presented_moves.has(d.uid))
   if old_cards.has(d.uid) and now.has(d.uid):
    if now[d.uid].damage>old_cards[d.uid].damage: pulse(node,Color("#f17b73"))
+ # 离开战场（含新一局 uid 重置回牌库）的单位不再算"已入场"，下次进场重播。
+ for uid in fx_seen.keys():
+  if now.get(uid,{}).get("zone","")!="field":fx_seen.erase(uid)
  for key in visuals.keys():
   if next.has(key): continue
   var node=visuals[key]

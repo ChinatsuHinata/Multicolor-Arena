@@ -7,6 +7,9 @@
 ## 加一个特效
 
 1. `fx/definitions/<id>.json` —— 按方法论中的清单示例填写 `id` / `category` / `script` / `params`，目录不存在时先创建。
+   - 只给部分卡用：加 `"cards": ["<卡牌id>", …]`，省略即所有卡。
+   - 入场时间点：`"timing": "before"`（单位牌出堆叠、飞向战场时开播）或 `"after"`（缺省，落场后开播）。
+   - 角色符卡（仅 `spell`）：`"character_spell": true`、`"character": "<角色名>"`、`"origin": "character"|"none"`、`"destination": "spell_target"|"none"`；起点排序：套牌自机 > 自机单位 > 颜色值高 > 卡牌 id 小（再按 uid 小）。
 2. `fx/modules/<id>/effect.gd` —— 继承对应品类基类，实现 `_build()` 与 `_frame(delta)`。
 3. `fx/assets/<id>/` —— 需要生图素材时放这里，模块用 `texture("ring.png")` 取。
 
