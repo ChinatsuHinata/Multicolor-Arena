@@ -16,7 +16,7 @@ func run():
  root.mode=Window.MODE_WINDOWED;root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.size=Vector2i(1600,900)
  app=load("res://main.tscn").instantiate();app.settings_path=OUTPUT.path_join("missing-settings.json");app.account_session_path=OUTPUT.path_join("missing-account.json")
  root.add_child(app);await frames()
- app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  expect(editor.find_child("TestCurrentTutorialStep",true,false)!=null,"current-node preview is available from the toolbar")
  for caption in ["撤销","重做","流程图","课程","校验","试玩","高级配置（完整 JSON）"]:
   expect(find_button(editor,caption)==null,"removed editor control: "+caption)
@@ -35,7 +35,7 @@ func run():
  for name in ["t1","t2","t3","t4"]:
   var path="res://data/tutorial/beginner/"+name+".json"
   var original=JSON.parse_string(FileAccess.get_file_as_string(path))
-  app.tutorial_editor(path);await frames();editor=app.screen.get_child(0)
+  open_tutorial_editor_for_test(path);await frames();editor=app.screen.get_child(0)
   expect(editor.model.data==original and not editor.model.dirty(),name+" node editor opens losslessly")
   var guide=editor.find_child("AuthoringGuideText",true,false)
   var expected=original.duplicate(true);expected.steps[editor.selected_step].guide.text+="\n节点编辑检查。"
@@ -43,7 +43,7 @@ func run():
   expect(editor.model.data==expected,name+" node text edit preserves other fields")
   var save_path=OUTPUT.path_join(name+"-node-edited.json")
   expect(editor.model.save_course(save_path).is_empty() and JSON.parse_string(FileAccess.get_file_as_string(save_path))==expected,name+" edited course saves unchanged extra fields")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  editor.change_scene("in_game");await frames()
  expect(editor.model.validate().ok and editor.model.data.steps.step_2.scenario=="scene_1","switching node surface preserves downstream battle tasks")
  editor.change_step_type("task");await frames()
@@ -54,7 +54,7 @@ func run():
  await shot("card-condition")
  await click(find_button(editor.dialog_layer,"应用条件").get_global_rect().get_center());await frames()
  expect(editor.model.data.steps[editor.selected_step].task.success==condition,"specified-card condition applies to node")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2";editor.refresh();await frames()
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2";editor.refresh();await frames()
  var original=editor.model.data.duplicate(true)
  editor.open_opponent_rules();await frames()
  var settings=editor.dialog_layer.find_child("TutorialTriggerList",true,false)
@@ -85,7 +85,7 @@ func run():
  expect(flow.reset_task() and flow.adapter.engine.players[1].life==20 and flow.current_step=="step_2","preview reset restores the selected task's own starting state")
  await click(editor.playtest.find_child("ReturnToAuthoring",true,false).get_global_rect().get_center());await frames()
  expect(editor.playtest==null and editor.selected_step=="step_2" and editor.model.data==document,"returning from preview preserves selected task and unsaved document")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.change_scene("in_game");await frames()
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.change_scene("in_game");await frames()
  editor.model.data.scenarios[editor.scene_id].deck.main=["53"]
  editor.model.data.steps.step_1={"type":"task","scenario":editor.scene_id,"guide":{"text":"加入卡牌","next_button":"hidden"},"task":{"timing":"action","action":{"id":"editor.add","args":{"card_id":"96","zone":"main"}},"success":{"type":"deck_count","zone":"main","card_id":"96","op":"eq","value":1}},"next":"step_2"}
  editor.model.data.steps.step_2={"type":"task","guide":{"text":"移出刚加入的卡牌","next_button":"hidden"},"task":{"timing":"action","action":{"id":"editor.remove","args":{"card_id":"96","zone":"main"}},"success":{"type":"deck_count","zone":"main","card_id":"96","op":"eq","value":0}},"next":"$complete"}
@@ -95,7 +95,7 @@ func run():
  editor.playtest.editor_host.selected="96";editor.playtest.editor_host.remove_card("96");flow.tick();await frames()
  expect(flow.finished and flow.last_error.is_empty(),"selected native removal task completes without replaying earlier instructions")
  editor.stop_test();await frames();expect(editor.model.data==document,"preparing later native task leaves authored starting deck unchanged")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2";editor.refresh()
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2";editor.refresh()
  editor.open_opponent_rules();await frames();settings=editor.dialog_layer.find_child("TutorialTriggerList",true,false)
  var automatic=settings.find_child("TutorialAutomaticResponse",true,false)
  expect(automatic!=null and automatic.button_pressed,"new editor tasks enable automatic response by default")
@@ -113,9 +113,9 @@ func run():
  editor.stop_test();await frames();expect(editor.model.data==document,"preview preserves automatic response configuration")
  var saved_path=OUTPUT.path_join("automatic-response.json")
  expect(editor.model.save_course(saved_path).is_empty(),"automatic response setting saves")
- app.tutorial_editor(saved_path);await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test(saved_path);await frames();editor=app.screen.get_child(0)
  expect(editor.model.data.scenarios.scene_1.opponent.auto_response==false,"automatic response setting survives closing and reopening the course")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  editor.model.data.scenarios.scene_1.opponent.erase("auto_response")
  document=editor.model.data.duplicate(true);editor.selected_step="step_2";editor.refresh();editor.test_course();await frames()
  expect(editor.playtest.runtime.opponent.config.auto_response,"preview enables automatic response for an older authored task")

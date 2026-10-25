@@ -31,9 +31,15 @@ tests/*
 !tests/run_cloud_decks.py
 !tests/test_tournament_store.py
 !tests/test_tournament_competition.py
+!tests/test_competition_extensions.py
+!tests/test_community_store.py
 !tests/run_tournaments.py
 !tests/test_match_store.py
 !tests/test_rank_progression.py
+!tests/test_tasks_store.py
+!tests/run_tasks.py
+!tests/test_shop_store.py
+!tests/run_shop.py
 !tests/run_cloud_matchmaking.py
 !tests/run_cloud_directory_refresh.py
 !tests/test_match_preparation_sync.gd
@@ -62,6 +68,7 @@ tests/*
 !tests/test_ran_discount.gd
 !tests/test_ran_discount_ui.gd
 !tests/test_sisters_support.gd
+!tests/test_auto_pay_keep_ui.gd
 
 # Installer packages and local packaging automation
 *-setup.exe

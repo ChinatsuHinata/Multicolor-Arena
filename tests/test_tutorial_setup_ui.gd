@@ -30,7 +30,7 @@ func open_board():
  await click(button.get_global_rect().get_center());await frames();view=editor.record_view;await quiet()
 
 func battle_setup():
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
  var scene=editor.model.data.scenarios.scene_1
  for who in range(2):
   for zone in ["deck_order","hand","field","palette","grave","exile"]:
@@ -132,7 +132,7 @@ func battle_setup():
  expect(app.decks==decks,"all node setup operations preserve player decks")
 
 func tenshi_readiness_setup():
- app.tutorial_editor("res://data/tutorial/beginner/t4.json");await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test("res://data/tutorial/beginner/t4.json");await frames();editor=app.screen.get_child(0)
  editor.selected_step="step_1";editor.refresh();await frames()
  var source=editor.model.data.scenarios[editor.scene_id]
  source.players[0].leader.state.entered=int(source.turn)
@@ -149,7 +149,7 @@ func tenshi_readiness_setup():
  expect(target!=original_scene and editor.model.dirty() and editor.model.data.scenarios[original_scene]==original.scenarios[original_scene],"readiness-only apply saves a private scene and leaves the shared source intact")
  var path=OUTPUT.path_join("tenshi-ready.json")
  expect(editor.model.save_course(path).is_empty(),"Tenshi readiness-only edit saves the course")
- app.tutorial_editor(path);await frames();editor=app.screen.get_child(0);editor.selected_step="step_1";editor.refresh();await frames()
+ open_tutorial_editor_for_test(path);await frames();editor=app.screen.get_child(0);editor.selected_step="step_1";editor.refresh();await frames()
  await open_board();tenshi=editor.recorder.adapter.entity(alias)
  expect(view.engine.can_attack(0,int(tenshi.uid)),"closing and reopening the saved course keeps Tenshi able to attack in setup")
  var saved=editor.model.data.duplicate(true);var undo_count=editor.model.undo_stack.size()
@@ -165,7 +165,7 @@ func tenshi_readiness_setup():
 
 func leader_zone_setup():
  for zone in ["grave","palette","exile"]:
-  app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+  open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
   editor.model.data.scenarios.scene_1.players[0].leader_on_field=true
   var before=editor.model.data.duplicate(true);editor.refresh();await frames();await open_board()
   for who in range(2):
@@ -190,7 +190,7 @@ func leader_zone_setup():
 
 func deck_setup():
  for kind in ["in_game","deck"]:
-  app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.change_scene(kind);await frames()
+  open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.change_scene(kind);await frames()
   var before=editor.model.data.duplicate(true);await open_board()
   if kind=="deck":
    editor.edit_record_deck();await frames()
@@ -204,14 +204,14 @@ func deck_setup():
   expect(editor.model.data.scenarios[before.steps.step_1.scenario]==before.scenarios[before.steps.step_1.scenario],kind+" setup preserves the previous scene")
 
 func recorded_and_mulligan_setup():
- app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  var step=editor.model.data.steps.step_1
  step.sequence={"actions":[{"type":"pass_priority","player":0}]}
  editor.refresh();await frames();await open_board()
  expect(not editor.record_loaded and editor.recorder.points.is_empty() and editor.recorder.actions.is_empty(),"initial scene editing skips existing recording playback")
  editor.recorder.set_setup_life(0,9);editor.apply_initial_board();await frames()
  expect(editor.model.data.steps.step_1.sequence==step.sequence,"applying a new initial scene preserves the existing recorded actions")
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
  var scene=editor.model.data.scenarios.scene_1;scene.phase="mulligan";scene.turn=0
  scene.players[0].state={"mulligan_done":false};scene.players[1].state={"mulligan_done":true}
  scene.players[0].hand=[{"card_id":"53","alias":"opening_hand"}]

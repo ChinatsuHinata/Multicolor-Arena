@@ -34,6 +34,11 @@ static func continue_choice(e,entry: Dictionary,k: String,options: Array,data: D
  if not t.has("source"):t.source=t.card.duplicate(true)
  if owner>=0: t.owner=owner
  e.pending={"kind":"effect_choice","owner":t.owner,"trigger":t,"options":options}; e.revision+=1
+static func continue_after_returns(e,entry: Dictionary,k: String,data: Dictionary={}):
+ # Resume this resolution after every leader has chosen its destination.
+ continue_choice(e,entry,k,e.Pack.none(),data)
+ if entry.has("id") and entry.has("kind"):e.pending.resolving_entry=entry.duplicate(true)
+ e.return_continuations.append(e.pending);e.pending={}
 static func pick(e,pool: Array,minimum: int,maximum: int,title: String,tag: String="",distinct: bool=false) -> Array:
  if "牺牲" in title:pool=pool.filter(func(r):return r.has("uid") and e.can_sacrifice(e.find_card(r.uid)))
  if distinct:
@@ -223,7 +228,7 @@ static func spell_options(e,id: String,who: int) -> Variant:
     for b in e.Pack.all_units(e,1-who):
      if e.cards[e.find_card(a.uid).card_id].kind==e.cards[e.find_card(b.uid).card_id].kind:options.append({"parts":[a,b]})
   "counter_ability":options=e.stack.filter(func(s):return s.kind=="ability").map(func(s):return {"stack_id":s.id})
-  "counter_targeting":options=e.stack.filter(func(s):return (s.kind=="ability" or e.cards[s.card.card_id].kind=="符卡") and e.Pack.flatten(s.target).any(func(t):return unit(e,t) and e.find_card(t.uid).owner==who)).map(func(s):return {"stack_id":s.id})
+  "counter_targeting":options=e.stack.filter(func(s):return (s.kind=="ability" or e.cards[s.card.card_id].kind=="符卡") and e.Pack.declared_targets(s).any(func(t):return unit(e,t) and e.find_card(t.uid).owner==who)).map(func(s):return {"stack_id":s.id})
   "lake_mill":
    for p in range(2):
     for u in units:options.append({"parts":[{"player":p},u]})
@@ -393,7 +398,8 @@ static func resolve_trigger(e,t: Dictionary):
   "backpack_pay":
    if not e.stack.any(func(s):return s.id==data.id):return
    var plan=[{"uid":aim.get("uid",-1),"color":aim.get("color","")}] if aim.has("color") else []
-   if not e.payment_valid(who,{"红/蓝/绿/黄/黑":1},plan):e.counter_entry(data.id)
+   # An explicit refusal remains unpaid even when debug payment is free.
+   if plan.is_empty() or not e.payment_valid(who,{"红/蓝/绿/黄/黑":1},plan):e.counter_entry(data.id)
    elif plan[0].uid<0:e.players[who].potato=false
    else:e.tap_card(e.find_card(plan[0].uid))
   "medicine_destroy":

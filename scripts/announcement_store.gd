@@ -8,10 +8,44 @@ var pushed_versions: Array=[]
 var read_versions: Array=[]
 var latest_ids: Array=[]
 var last_error=""
+var account=""
+var claimed_by_account: Dictionary={}
+
+func set_account(username: String):
+ account=username.to_lower()
+
+func is_read(entry: Dictionary) -> bool:
+ return entry_id(entry) in read_versions and (int(entry.get("coins",0))<=0 or is_claimed(entry_id(entry)))
+
+func is_claimed(id: String) -> bool:
+ return claimed_by_account.get(account,{}).get(id,false)==true
+
+func record_claimed(id: String):
+ if account.is_empty():return
+ if not claimed_by_account.has(account):claimed_by_account[account]={}
+ claimed_by_account[account][id]=true
+ save()
+
+func needs_attention(entry: Dictionary) -> bool:
+ return not is_read(entry)
+
+func attention_count() -> int:
+ return history.filter(needs_attention).size()
+
+func merge_online(entries: Array):
+ for entry in entries:
+  if not valid_entry(entry):continue
+  var old=find_id(entry_id(entry))
+  if not old.is_empty():history.erase(old)
+  var copy=entry.duplicate(true);copy.erase("claimed");history.push_front(copy)
+  if not account.is_empty() and entry.get("claimed",false)==true:
+   if not claimed_by_account.has(account):claimed_by_account[account]={}
+   claimed_by_account[account][entry_id(entry)]=true
+ save()
 
 func initialize(version: String,storage_path: String,catalogue_path: String=CATALOGUE_PATH):
  path=storage_path;active_version=version
- history=[];pushed_versions=[];read_versions=[];latest_ids=[];last_error=""
+ history=[];pushed_versions=[];read_versions=[];latest_ids=[];last_error="";claimed_by_account={}
  if FileAccess.file_exists(path):
   var saved=JSON.parse_string(FileAccess.get_file_as_string(path))
   if saved is Dictionary and saved.get("schema")==1:
@@ -19,6 +53,7 @@ func initialize(version: String,storage_path: String,catalogue_path: String=CATA
     if valid_entry(entry) and find_id(entry_id(entry)).is_empty():history.append(entry.duplicate(true))
    pushed_versions=string_array(saved.get("pushed_versions"))
    read_versions=string_array(saved.get("read_versions"))
+   if saved.get("claimed_by_account") is Dictionary:claimed_by_account=saved.claimed_by_account
   else:last_error="公告记录无法读取，将从随游戏提供的公告恢复。"
  if not FileAccess.file_exists(catalogue_path):return
  var catalogue=JSON.parse_string(FileAccess.get_file_as_string(catalogue_path))
@@ -39,10 +74,12 @@ func initialize(version: String,storage_path: String,catalogue_path: String=CATA
   if entry_id(entry) in removed or compare_versions(entry.version,active_version)>0:continue
   var archived=find_id(entry_id(entry))
   if archived.is_empty():history.append(entry.duplicate(true))
-  elif not archived.has("image") and entry.get("image") is String:
+  else:
    # Supplement old local snapshots without changing their delivery receipts.
-   archived.image=entry.image
-   if entry.get("image_region") is Array:archived.image_region=entry.image_region.duplicate()
+   if not archived.has("image") and entry.get("image") is String:
+    archived.image=entry.image
+    if entry.get("image_region") is Array:archived.image_region=entry.image_region.duplicate()
+   if entry.has("coins"):archived.coins=entry.coins
   if latest_version.is_empty() or compare_versions(entry.version,latest_version)>0:
    latest_version=entry.version;latest_ids=[]
   if entry.version==latest_version:latest_ids.append(entry_id(entry))
@@ -122,7 +159,7 @@ func pending() -> Dictionary:
  return {}
 
 func unread_count() -> int:
- return history.filter(func(entry):return entry_id(entry) not in read_versions).size()
+ return attention_count()
 
 func record_opened(id: String,pushed: bool=false) -> bool:
  if find_id(id).is_empty():return false
@@ -137,7 +174,7 @@ func save() -> bool:
   last_error="无法创建公告保存目录。";return false
  var file=FileAccess.open(destination+".tmp",FileAccess.WRITE)
  if file==null:last_error="无法保存公告记录。";return false
- file.store_string(JSON.stringify({"schema":1,"history":history,"pushed_versions":pushed_versions,"read_versions":read_versions}," "))
+ file.store_string(JSON.stringify({"schema":1,"history":history,"pushed_versions":pushed_versions,"read_versions":read_versions,"claimed_by_account":claimed_by_account}," "))
  file.flush();var error=file.get_error();file.close()
  if error!=OK or DirAccess.rename_absolute(destination+".tmp",destination)!=OK:
   last_error="无法写入公告记录。";return false

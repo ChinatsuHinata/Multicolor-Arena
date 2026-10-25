@@ -71,23 +71,45 @@ func run():
  for i in range(args.size()-1):
   if args[i]=="--fixture":fixture=JSON.parse_string(FileAccess.get_file_as_string(args[i+1]))
  if fixture.is_empty():quit(1);return
- for game_format in [1,2,3,4,5]:
+ for game_format in ([] if "--forfeit-only" in args else [1,2,3,4,5,6,7]):
   if not await create_round(game_format):finish();return
-  var games=2 if game_format==3 else 1
+  var games=3 if game_format==6 else 2 if game_format in [3,7] else 1
   for game in range(games):
    check(await choose_game(),"format %d starts game %d" % [game_format,game+1])
    if host.room.status!="playing":finish();return
-   check(guest.submit({"name":"surrender","args":[]}).is_empty(),"real game surrender is submitted")
+   var surrendering=host if game_format==7 and game==1 else guest
+   check(surrendering.submit({"name":"surrender","args":[]}).is_empty(),"real game surrender is submitted")
    check(await until(func():return host.room.status!="playing" and guest.room.status==host.room.status),"single game result synchronizes")
-   if game_format==3 and game==0:
+   if game<games-1:
     check(not host.match_settled and host.room.status=="between","BO3 remains active after its first game")
     var unfinished=await call_action("detail")
     check(unfinished.pairings[0].result==null,"BO3 does not fill the match result before two wins")
    sync_views()
   check(await until(func():return host.match_settled and guest.match_settled,15),"full match settles for format %d" % game_format)
   var result=await call_action("detail")
-  check(result.pairings[0].result==0 and result.pairings[0].source=="game","format %d automatically fills the competition result" % game_format)
+  check(result.pairings[0].result==(-1 if game_format==7 else 0) and result.pairings[0].source=="game","format %d automatically fills the competition result" % game_format)
+  check(int(result.pairings[0].scores[0])==(1 if game_format==7 else games) and int(result.pairings[0].scores[1])==(1 if game_format==7 else 0),"actual series score reaches the server: "+str(result.pairings[0].scores))
   host.leave(false);guest.leave(false)
+ # A BO2 forfeiture preserves played scores but settles the adjudicated 2:0.
+ if await create_round(7):
+  check(await choose_game(),"BO2 timeout fixture starts its first game")
+  guest.submit({"name":"surrender","args":[]})
+  check(await until(func():return host.room.status=="between" and guest.room.status=="between"),"BO2 timeout fixture records the first win")
+  sync_views();check(await choose_game(),"BO2 timeout fixture starts its second game")
+  var engine=host.authority
+  for player in engine.players:player.mulligan_done=true
+  engine.phase="prepare";engine.pending={};engine.entry_choices=[];engine.combat={};engine.stack=[];engine.active=1;engine.priority=0;engine.passes=0
+  host.publish()
+  check(await until(func():return host.can_act() and guest.can_act()),"BO2 response deadline reaches both players")
+  host.check_response_timeout(float(engine.response_clock.deadline))
+  var settled=await until(func():return host.match_settled and guest.match_settled,15)
+  check(settled,"BO2 forfeit settles both clients")
+  if not settled:finish();return
+  var judged=await call_action("detail")
+  check(int(judged.pairings[0].result)==1 and int(judged.pairings[0].scores[0])==0 and int(judged.pairings[0].scores[1])==2,"BO2 forfeit awards canonical 0:2 despite earlier win")
+  check(int(host.room.scores[0])==1 and int(host.room.scores[1])==0,"forfeit preserves actual game history")
+  host.leave(false);guest.leave(false)
+ if "--forfeit-only" in args:finish();return
  # Delete a playing competition and verify both live clients receive cancellation.
  if await create_round(1):
   check(await choose_game(),"deletion fixture starts a real game")

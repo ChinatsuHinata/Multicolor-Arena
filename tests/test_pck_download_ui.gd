@@ -19,6 +19,7 @@ func run() -> void:
  check(app.auto_patch_progress.value==1024*1024 and app.auto_patch_status.text.contains("25%"),"dialog shows aggregate byte progress")
  app.auto_patch_dialog.hide()
  check(app.auto_patch_reopen.visible,"hidden dialog leaves a progress shortcut")
+ app.account_name="TEST_ONLY_UPDATE_UI";app.account_nickname="更新测试";app.account_token="a".repeat(64)
  app.online()
  var lobby=app.screen.get_children().filter(func(child):return child.get_script()==load("res://net/lan_lobby.gd"))[0]
  lobby.set_cloud_mode(true)
@@ -29,7 +30,7 @@ func run() -> void:
  app.auto_patch_check_pending=false
  app.cloud_pck_patch_completed({"error":"simulated download failure"})
  check(not app.cloud_match_blocked() and not is_instance_valid(app.auto_patch_dialog),"failed update releases cloud entry and closes progress")
- app.cloud_pck_patch_completed({"installed":true,"version":"1.2.7.9"})
+ app.cloud_pck_patch_completed({"installed":true,"version":str(ProjectSettings.get_setting("application/config/version"))})
  check(app.cloud_match_blocked(),"installed update keeps cloud entry blocked until restart")
  app.queue_free()
  await process_frame

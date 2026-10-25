@@ -10,6 +10,13 @@ const ColorCost=preload("res://scripts/rules/color_cost.gd")
 const VariableChoice=preload("res://scripts/rules/variable_choice.gd")
 const RemiliaAI=preload("res://scripts/rules/remilia_aggro_ai.gd")
 const Exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
+const TaskProbes=preload("res://scripts/rules/task_probes.gd")
+const LeaderEmotes=preload("res://scripts/rules/leader_emotes.gd")
+var leader_emote_profiles: Array=[]
+var emote_ready_at: Array=[0.0,0.0]
+var emote_serial=0
+var task_stats: Array=[]
+var task_win_reason="normal"
 const Mods=preload("res://scripts/rules/mod_runtime.gd")
 var mod_registry=Mods.Registry.shared()
 var mod_manifest: Array=[]
@@ -24,6 +31,7 @@ var mod_timestamp=0
 var mod_prepares_remaining=0
 const PASSIVE_AI="passive"
 const COLORS=["红","蓝","绿","黄","黑"]
+const KEEP_COLOR_PENALTY=12
 var player_names=["你","人机"]
 var cards: Dictionary
 var players: Array=[]
@@ -32,6 +40,7 @@ var stack: Array=[]
 var triggers: Array=[]
 var trigger_order_queue: Array=[]
 var returns: Array=[]
+var return_continuations: Array=[]
 var pending: Dictionary={}
 var entry_choices: Array=[]
 var combat: Dictionary={}
@@ -203,6 +212,8 @@ func shuffle(cards_to_shuffle: Array):
   cards_to_shuffle[i]=cards_to_shuffle[j]
   cards_to_shuffle[j]=tmp
 func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
+ TaskProbes.start(self,[a,b])
+ leader_emote_profiles=[];emote_ready_at=[0.0,0.0];emote_serial=0
  response_clock={}
  mod_manifest=mod_registry.manifest();mod_state={};mod_resolution={};mod_changes=[];mod_x_casts={};mod_query_guard={};mod_change_serial=0;mod_change_processing=false;mod_timestamp=0;mod_prepares_remaining=0
  ai_profiles=[PASSIVE_AI if a.get("ai_passive",false) else RemiliaAI.profile(a),PASSIVE_AI if b.get("ai_passive",false) else RemiliaAI.profile(b)];ai_memory=[{},{}]
@@ -215,7 +226,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  next_damage_batch=1
  next_buff_order=0
  players.clear(); mulligan_choices.clear(); stack.clear(); triggers.clear(); returns.clear(); pending.clear(); entry_choices.clear(); combat.clear(); log.clear(); history.clear()
- trigger_order_queue.clear()
+ trigger_order_queue.clear();return_continuations.clear()
  deck_art_overrides=[a.get("art_overrides",{}).duplicate(true),b.get("art_overrides",{}).duplicate(true)]
  next_uid=1; next_stack=1; winner=-2; turn=0; revision=0; page_priority_serial=0; phase="mulligan"; first=first_player; active=first; priority=first; passes=0
  if seed_value==0: rng.randomize()
@@ -226,6 +237,7 @@ func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
   for id in deck.main: p.deck.append(make_card(id,i,"deck"))
   shuffle(p.deck)
   players.append(p)
+ for who in range(2):leader_emote_profiles.append(LeaderEmotes.make_profile(self,who))
  Roster.New.start(self)
  for i in range(2): draw(i,4)
  note("对局开始，双方起手 4 张")
@@ -233,6 +245,8 @@ func shift(c: Dictionary, location: String):
  Mods.reset_source(self,c.uid)
  mod_timestamp+=1;c.mod_timestamp=mod_timestamp
  var old=c.get("zone","")
+ TaskProbes.moved(self,c,old,location)
+ c.erase("task_damage_owner")
  if c.has("mod_access") and location not in ["stack",c.mod_access.zone]:c.erase("mod_access")
  c.erase("mod_linked")
  var copy_entry_counters=Cat.counter_snapshot(c) if c.has("copy_entry_counters") else {}
@@ -281,7 +295,7 @@ func draw_unreplaced(who: int,count: int=1) -> Array:
  for i in range(count):
   if players[who].deck.is_empty(): lose(who,"牌库不足，无法抓牌"); return drawn
   var c=players[who].deck[0]
-  move_to(c,"hand");drawn.append(c);Cat.State.on_draw(self,who)
+  move_to(c,"hand");drawn.append(c);task_probe(who,"cards_drawn");Cat.State.on_draw(self,who)
  return drawn
 func mulligan(who: int,uids: Array):
  if who not in [0,1] or phase!="mulligan" or players[who].mulligan_done or winner!=-2: return
@@ -354,7 +368,9 @@ func can_batch_stackable_sacrifice(c: Dictionary,key: String) -> bool:
  return (c.card_id in ["token-fdf-127","token-fdf-129"] and key==c.card_id) or (c.card_id=="token-fdf-128" and key=="wine_discount")
 func has_leader_ability(c: Dictionary) -> bool:
  if c.is_empty(): return false
- if Cat.State.grant_self(self,c) or c.get("leader",false) or c.get("leader_counters",0)>0: return true
+ # Deck identity only enables abilities while its owner controls the card.
+ if c.get("leader",false) and c.owner==c.get("original_owner",c.owner): return true
+ if Cat.State.grant_self(self,c) or c.get("leader_counters",0)>0: return true
  if c.get("zone","")!="field" or cards[c.card_id].kind!="自机": return false
  for permanent in players[c.owner].field:
   if DB.has_ability(cards[permanent.card_id],"grant_leader_abilities"): return true
@@ -375,20 +391,27 @@ func source_resources(who: int) -> Array:
  sources.append_array(players[who].get("mana",[]))
  if players[who].potato: sources.append({"uid":-100-who,"colors":COLORS,"weight":1000,"kind":"potato"})
  return sources
-func payment_search(sources: Array,index: int,needs: Array) -> Dictionary:
- var key=str(index)+":"+str(needs)
+func keep_penalty(source: Dictionary,keep: Array) -> int:
+ if keep.is_empty():return 0
+ var hits=0
+ for color in source.colors:
+  for part in str(color).split("/"):
+   if part in keep:hits+=1
+ return hits*KEEP_COLOR_PENALTY
+func payment_search(sources: Array,index: int,needs: Array,keep: Array=[]) -> Dictionary:
+ var key=str(index)+":"+str(needs)+":"+",".join(keep)
  if payment_memo.has(key): return payment_memo[key]
  if needs.all(func(n): return n==0): return {"ways":1,"score":0,"plan":[]}
  if index>=sources.size(): return {"ways":0,"score":999999,"plan":[]}
- var best=payment_search(sources,index+1,needs).duplicate(true)
+ var best=payment_search(sources,index+1,needs,keep).duplicate(true)
  for color in sources[index].colors:
   for ci in range(needs.size()):
    if needs[ci]<=0 or color not in payment_groups[ci]: continue
    var remaining=needs.duplicate(); remaining[ci]-=1
-   var tail=payment_search(sources,index+1,remaining)
+   var tail=payment_search(sources,index+1,remaining,keep)
    if tail.ways==0: continue
    var ways=mini(2,best.ways+tail.ways)
-   var score=tail.score+sources[index].weight
+   var score=tail.score+sources[index].weight+keep_penalty(sources[index],keep)
    if score<best.score:
     best={"ways":ways,"score":score,"plan":[{"uid":sources[index].uid,"color":color}]+tail.plan}
    else: best.ways=ways
@@ -400,21 +423,21 @@ func payment_search(sources: Array,index: int,needs: Array) -> Dictionary:
    for second_group in range(needs.size()):
     if first_needs[second_group]<=0 or pair[1] not in payment_groups[second_group]:continue
     var remaining=first_needs.duplicate();remaining[second_group]-=1
-    var tail=payment_search(sources,index+1,remaining)
+    var tail=payment_search(sources,index+1,remaining,keep)
     if tail.ways==0:continue
     var ways=mini(2,best.ways+tail.ways)
-    var score=tail.score+sources[index].weight
+    var score=tail.score+sources[index].weight+keep_penalty(sources[index],keep)
     if score<best.score:best={"ways":ways,"score":score,"plan":[{"uid":sources[index].uid,"color":"黄/绿"}]+tail.plan}
     else:best.ways=ways
  payment_memo[key]=best
  return best
-func payment(who: int, cost: Dictionary, excluded: Array=[]) -> Dictionary:
+func payment(who: int, cost: Dictionary, excluded: Array=[], keep: Array=[]) -> Dictionary:
  if debug_enabled and debug_free_payment:return {"ways":1,"score":0,"plan":[]}
  payment_memo.clear()
  var needs=[]; payment_groups=[]
  for color in cost:
   needs.append(int(cost[color])); payment_groups.append(color.split("/"))
- return payment_search(source_resources(who).filter(func(r): return r.uid not in excluded),0,needs)
+ return payment_search(source_resources(who).filter(func(r): return r.uid not in excluded),0,needs,keep)
 func payment_valid(who: int,cost: Dictionary,plan: Array) -> bool:
  if debug_enabled and debug_free_payment and plan.is_empty():return true
  var used=[]; var resources=source_resources(who)
@@ -563,6 +586,7 @@ func commit_cast(who: int,uid: int,target: Dictionary,plan: Array) -> String:
  if not revealed_cards.is_empty():stack.back().revealed_cards=revealed_cards
  if not target_spec.is_empty():stack.back().target_spec=target_spec
  next_stack+=1; passes=0; priority=1-who
+ TaskProbes.cast(self,who,c)
  note(player_names[who]+"使用 "+info.name,history_art(c))
  stack.back().history_index=history.size()-1
  if not revealed_cards.is_empty():history.back().revealed_cards=public_reveal_snapshots(revealed_cards)
@@ -671,7 +695,13 @@ func pump_choices():
  if not timer_changes.is_empty():
   var change=timer_changes.pop_front()
   pending={"kind":"timer","owner":change.owner,"change":change}; return
- if not returns.is_empty(): pending={"kind":"leader_return","owner":returns[0].owner,"card":returns.pop_front()}; return
+ if not returns.is_empty():
+  pending={"kind":"leader_return","owner":returns[0].owner,"card":returns.pop_front()}
+  if not return_continuations.is_empty() and return_continuations[0].has("resolving_entry"):pending.resolving_entry=return_continuations[0].resolving_entry.duplicate(true)
+  return
+ if not return_continuations.is_empty():
+  pending=return_continuations.pop_front()
+  choose_effect({"none":true});return
  while not zone_replacements.is_empty():
   var request=zone_replacements.pop_front()
   var c=find_card(request.target.uid)
@@ -808,6 +838,7 @@ func to_grave(c: Dictionary):
 func counter_entry(id: int):
  for e in stack:
   if e.id==id:
+   TaskProbes.counter(self,e,damage_context.get("source",{}))
    stack.erase(e)
    if e.kind=="card": to_grave(e.card)
    else:failed_delayed_return(e)
@@ -825,6 +856,7 @@ func tap_card(c: Dictionary):
  c.tapped=true; Pack.on_tap(self,c);Roster.New.on_tap(self,c)
 func gain_life(who: int,amount: int):
  if amount<=0 or not Cat.with_key(self,-1,"spell-fdn-002").is_empty(): return
+ task_probe(who,"life_recovered",amount)
  players[who].life+=amount; Pack.on_gain_life(self,who,amount);Cat.State.on_gain(self,who,amount)
 func add_coin(who: int,amount: int=1):
  if amount<=0:return
@@ -864,6 +896,7 @@ func damage_target(target: Dictionary,amount: int) -> int:
   else:c.damage+=amount
   record_history(cards[c.card_id].name+"受到%d点伤害" % amount,history_art(c))
   c.spell_damage=resolving_spell
+ TaskProbes.damage(self,target,amount)
  Mods.record_damage(self,target,amount)
  Pack.on_damage(self,target,amount)
  Roster.on_damage(self,target,amount);Cat.State.on_damage(self,target,amount,remaining)
@@ -981,6 +1014,9 @@ func judge():
   death_observers=(units(0)+units(1)).duplicate(true)
   for c in dying:
    if resolving_spell:c.spell_damage=true
+   var destroyer=int(damage_context.get("source",{}).get("owner",-1))
+   if destroyer<0 and stat(c,"health")>0 and c.damage>=stat(c,"health"):destroyer=int(c.get("task_damage_owner",-1))
+   TaskProbes.destroyed(self,c,destroyer)
    to_grave(c);note(cards[c.card_id].name+"离开战场")
  death_observers=[]
  var dead=[]
@@ -997,8 +1033,16 @@ func settle_match(result: int,message: String):
 func lose(who: int,reason: String,forced: bool=false):
  if winner!=-2: return
  if not forced and reason!="投降" and cannot_lose(who): return
+ task_win_reason="mill" if reason=="牌库不足，无法抓牌" else "coin" if reason=="具有三个或更多铜钱指示物" else "gate" if reason=="最后ノ理想国" else "surrender" if reason=="投降" else "normal"
  settle_match(1-who,player_names[who]+reason)
-func surrender(who: int): lose(who,"投降")
+func send_emote(who: int,kind: String) -> String:
+ return LeaderEmotes.send(self,who,kind)
+func emote_remaining(who: int,now: float=-1.0) -> float:
+ return LeaderEmotes.remaining(self,who,now)
+func surrender(who: int):
+ if winner!=-2 or who not in [0,1]:return
+ LeaderEmotes.emit_event(self,who,"surrender")
+ lose(who,"投降")
 func pass_priority(who: int):
  if winner!=-2 or not pending.is_empty() or not entry_choices.is_empty() or phase=="mulligan" or priority!=who: return
  if tutorial_turn_end_blocked and phase=="main" and stack.is_empty() and combat.is_empty():return
@@ -1026,13 +1070,16 @@ func pass_priority(who: int):
      if target_valid(e.target,true): find_card(e.target.uid).tapped=false
     else: damage_target(e.target,e.amount)
     note(e.name+"结算",history_art(source))
-  elif e.get("rewritten_fairy",false):Roster.Batch.rewritten_resolve(self,e);note(e.name+"改写效果结算",history_art(e.card))
+  elif e.get("rewritten_fairy",false):
+   task_probe(e.owner,"spells_resolved");Roster.Batch.rewritten_resolve(self,e);note(e.name+"改写效果结算",history_art(e.card))
   elif e.card.card_id=="spell-fdn-066":
+   task_probe(e.owner,"spells_resolved")
    var options=Roster.Batch.spells(self)
    if options.is_empty():
     to_grave(e.card);note(e.name+"结算时没有其他符卡可选",history_art(e.card))
    else:pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"fairy_rewrite_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
   elif e.card.card_id=="spell-fdn-069":
+   task_probe(e.owner,"spells_resolved")
    var options=Roster.Batch.spells(self)
    options.append({"mode":"青ノ花自身","self":true})
    pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"blue_flower_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
@@ -1042,6 +1089,7 @@ func pass_priority(who: int):
     to_grave(e.card);note(e.name+"结算时没有可反制的牌",history_art(e.card))
    else:pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"counter_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
   elif cards[e.card.card_id].kind=="符卡" and not spell_target_valid(e.card.card_id,e.target):
+   task_probe(e.owner,"spells_fizzled")
    to_grave(e.card); note("目标失效，"+e.name+"不结算")
   else: Effects.resolved(self,e); note(e.name+"结算",history_art(e.card))
   retain_resolving_entry(e)
@@ -1148,7 +1196,7 @@ func finish_turn():
   p.wards=p.get("wards",[]).filter(func(w):return int(w.get("turn",turn))==-1); p.wine=[];p.mana=[]
   for c in p.field:
    c.erase("next_damage_prevention_turn")
-   c.damage=0; c.modifiers=[]; c.spell_damage=false; c.wards=c.get("wards",[]).filter(func(w):return w.turn==-1); c.base_override={}; c.medicine=[]
+   c.damage=0; c.erase("task_damage_owner"); c.modifiers=[]; c.spell_damage=false; c.wards=c.get("wards",[]).filter(func(w):return w.turn==-1); c.base_override={}; c.medicine=[]
  start_turn(extra_turns.pop_front() if not extra_turns.is_empty() else 1-active)
 func can_attack(who: int,uid: int) -> bool:
  var mod_card=find_card(uid)
@@ -1167,6 +1215,7 @@ func attack(who: int,uid: int,target: Dictionary={},plan: Array=[]):
  Cat.pay(self,who,plan)
  if DB.has_ability(cards[c.card_id],"brave") or Extra.keyword(self,c,"英勇"):c.brave_attack_turn=turn
  tap_card(c); c.attacked=true
+ task_probe(who,"attacks")
  if target.is_empty():players[who].attacked_player_turn=turn
  combat={"attacker":ref_target(c),"owner":who,"blockers":[],"blocked":false,"step":"attack_window"}
  if not target.is_empty():
@@ -1213,6 +1262,7 @@ func block(uids: Array):
  PageOrder.promote(self,chosen)
  RemiliaAI.observe_block(self,combat.owner,uids)
  for c in chosen:
+  task_probe(c.owner,"blocks")
   if not Cat.enabled(self,c,"character-ucs-061:self"):tap_card(c)
   combat.blockers.append(ref_target(c));Pack.on_attack_or_block(self,c,false);Cat.Units.on_block(self,c)
  if not chosen.is_empty():Cat.Units.on_blocked(self,find_card(combat.attacker.uid))
@@ -1667,6 +1717,7 @@ func commit_ability(who: int,uid: int,index: int,target: Dictionary,plan: Array)
  var activation_entries=[]
  for member in members:
   if params.get("横置",false):tap_card(member)
+  task_probe(who,"abilities_used")
   stack.append({"id":next_stack,"kind":"ability","source":member.duplicate(true),"owner":who,"amount":int(params["数值"]),"target":clean_target.duplicate(true),"name":cards[member.card_id].name+" · 启动异能"})
   stack.back().generic_activation=true
   stack.back().ability_text=cards[member.card_id].abilities[index].get("名称","对目标造成%d点伤害。" % int(params["数值"]))
@@ -1824,6 +1875,7 @@ func choose_grave_replacement(to_field: bool):
  revision+=1; pump_choices()
 func destroy(c: Dictionary):
  if c.is_empty() or Extra.keyword(self,c,"不会被消灭"): return
+ TaskProbes.destroyed(self,c)
  if resolving_spell: c.spell_damage=true
  move_to(c,"grave")
 func can_possess(c: Dictionary) -> bool:
@@ -1906,6 +1958,7 @@ func apply_effect_choice(target: Dictionary):
   pending={}
   if t.entry.card.card_id=="spell-fdf-053":t.entry.target.merge(target,true)
   else:t.entry.target=target.duplicate(true)
+  damage_context={"source":t.entry.card,"combat":false,"single":Pack.single_damage_target(t.entry)}
   Effects.resolved(self,t.entry)
   retain_resolving_entry(t.entry)
   note(t.entry.name+"结算",history_art(t.entry.card))
@@ -2093,6 +2146,7 @@ func commit_extension(who: int,uid: int,target: Dictionary,plan: Array,key: Stri
  var activation_entries=[]
  for member in members:
   record_declaration(who,clean_target,member)
+  task_probe(who,"abilities_used")
   catalogue_serial+=1
   var source=member.duplicate(true)
   if key in Roster.ACTIVATIONS:Roster.pay_activation(self,member,key,clean_target)
@@ -2240,10 +2294,17 @@ func can_sacrifice(c: Dictionary) -> bool:
  return not (phase=="end" and c.get("token",false) and Cat.character(self,c,"半灵") and not Cat.with_key(self,c.owner,"spell-fdn-012").is_empty())
 func sacrifice(c: Dictionary):
  if not can_sacrifice(c):return
+ task_probe(c.owner,"sacrifices")
  var before=c.duplicate(true);move_to(c,"grave");Cat.Units.on_sacrifice_or_exile(self,before)
  if is_unit(before):
   for u in players[before.owner].grave:
    if Cat.has(self,u,"spell-fdf-047") and units(before.owner).any(func(v):return Cat.character(self,v,"西行寺幽幽子")):Cat.events(self,u,"cat:sacrifice_recover",true)
+
+func task_probe(who: int,event: String,amount: int=1):
+ TaskProbes.count(self,who,event,amount)
+
+func task_evidence() -> Dictionary:
+ return TaskProbes.evidence(self)
 
 func attack_cost(who: int) -> Dictionary:
  if debug_enabled and debug_free_payment:return {}

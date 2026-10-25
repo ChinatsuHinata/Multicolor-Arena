@@ -109,6 +109,10 @@ func restore_previous(engine,game: String="") -> Dictionary:
  var checkpoint=entries[index]
  var graph=checkpoint_graph(checkpoint)
  if graph.is_empty():return {}
+ var emote_deadlines=engine.emote_ready_at.duplicate();var emote_serial=engine.emote_serial
  Codec.restore(engine,graph);engine.presentation_events=[];engine.paid_cast_uid=-1
+ # Undoing gameplay must not rewind chat cooldowns or duplicate event IDs.
+ for who in range(2):engine.emote_ready_at[who]=maxf(float(engine.emote_ready_at[who]),float(emote_deadlines[who]))
+ engine.emote_serial=maxi(engine.emote_serial,emote_serial)
  entries.resize(index+1)
  return {"game":checkpoint.game,"sequence":checkpoint.sequence}

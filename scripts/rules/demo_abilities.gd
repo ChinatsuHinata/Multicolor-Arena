@@ -6,6 +6,7 @@ static func resolved(engine, entry: Dictionary):
  if card.kind!="符卡":
   engine.enter_field(entry.card,entry.owner)
   return
+ engine.task_probe(entry.owner,"spells_resolved")
  if engine.Mods.spell_resolve(engine,entry):return
  if engine.Exploration.spell_resolve(engine,entry):return
  if engine.Extra.spell_resolve(engine,entry): return

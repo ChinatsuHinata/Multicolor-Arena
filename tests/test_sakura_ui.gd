@@ -22,7 +22,7 @@ func run():
 
  expect(Palette.enabled and is_instance_valid(app.sakura_backdrop) and app.sakura_backdrop.visible,"PC starts with the sakura UI and its backdrop")
  expect(app.GOLD==Palette.SAKURA and app.style(Color("#192a38")).bg_color==Color("#43293a"),"classic colors are mapped to the sakura palette")
- expect(app.screen.find_child("MenuTitle",true,false)!=null,"desktop menu shows the sakura title")
+ expect(app.screen.find_child("MenuTitle",true,false)==null and app.screen.find_child("MenuSubtitle",true,false)==null,"desktop sakura menu has no title or shrine subtitle")
  var battle_entry=find_button(app.screen,"人机对战")
  expect(battle_entry!=null and battle_entry.get_theme_stylebox("normal").border_width_top==4,"the main-menu AI battle entry uses the ordinary shrine button style")
  var plain_entry=find_button(app.screen,"设置")
@@ -40,7 +40,7 @@ func run():
  expect(toggle!=null and not toggle.button_pressed,"settings page is rebuilt with the switch off")
  await capture("classic-settings")
  app.menu();await frames()
- expect(app.screen.find_child("MenuTitle",true,false)==null,"classic menu has no sakura title")
+ expect(app.screen.find_child("MenuTitle",true,false)==null and app.screen.find_child("MenuSubtitle",true,false)==null,"classic menu has no title or shrine subtitle")
  var classic_entry=find_button(app.screen,"设置")
  expect(classic_entry!=null and classic_entry.get_theme_stylebox("normal").bg_color==Color("#192a38") and classic_entry.get_theme_stylebox("normal").border_width_top==1,"classic buttons keep the original style")
 
@@ -95,7 +95,9 @@ func run():
  toggle=style_toggle()
  if toggle!=null:await click(toggle.get_global_rect().get_center());await frames()
  expect(Palette.enabled and saved_flag()==true and app.GOLD==Palette.SAKURA,"Android can restore and save the sakura theme")
- app.menu();await frames();await capture("sakura-android-menu")
+ app.menu();await frames()
+ expect(app.screen.find_child("MenuTitle",true,false)==null and app.screen.find_child("MenuSubtitle",true,false)==null,"Android sakura menu has no title or shrine subtitle")
+ await capture("sakura-android-menu")
  for mobile in [false,true]:
   app.is_android=mobile
   for sakura in [false,true]:

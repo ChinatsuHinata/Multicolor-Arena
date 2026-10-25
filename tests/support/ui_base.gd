@@ -5,6 +5,16 @@ var view
 var e
 var checks=0
 var failures=[]
+func authorize_tutorial_editor_for_test():
+ app.tournament_server_url="ws://127.0.0.1:1"
+ app.account_token="TEST_ONLY_tutorial_editor"
+ var community=app.online_community()
+ community.permission_token=app.account_token;community.permissions={"tutorial_editor":true}
+
+func open_tutorial_editor_for_test(path: String=""):
+ authorize_tutorial_editor_for_test()
+ app.tutorial_editor(path)
+
 func _initialize(): call_deferred("run")
 func expect(ok: bool,title: String):
  checks+=1

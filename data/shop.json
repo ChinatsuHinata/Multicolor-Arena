@@ -1,0 +1,16 @@
+{
+ "sale": {"all_products":true,"starts_at":1792857600,"ends_at":1793548800},
+ "products": [
+  {"id":"emotes_reimu","category":"emotes","name":"博丽灵梦 · 自机对话","description":"【大结界的巫女】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"character-rei-001","image":"res://recourse/数据库/character-rei-001.jpg","portrait_region":[140,170,290,290],"accent":"e98a9e"},
+  {"id":"emotes_marisa","category":"emotes","name":"雾雨魔理沙 · 自机对话","description":"【胆大心细的魔法使】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"character-mar-ex","image":"res://recourse/数据库/character-mar-ex.jpg","portrait_region":[380,160,350,350],"accent":"eac66e"},
+  {"id":"emotes_flandre","category":"emotes","name":"芙兰朵露 · 自机对话","description":"【恶魔之妹】专属六类对话；面对蕾米莉亚时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"character-fdf-ex01","image":"res://recourse/数据库/character-fdf-ex01.jpg","portrait_region":[315,130,370,370],"accent":"e78786"},
+  {"id":"emotes_yukari","category":"emotes","name":"八云紫 · 自机对话","description":"【神隐的主犯】专属六类对话；面对西行寺幽幽子时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"character-fdf-ex02","image":"res://recourse/数据库/character-fdf-ex02.jpg","portrait_region":[340,155,310,310],"accent":"be9ee8"},
+  {"id":"emotes_tenshi","category":"emotes","name":"比那名居天子 · 自机对话","description":"【大地的守护神】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"character-fdf-ex04","image":"res://recourse/数据库/character-fdf-ex04.jpg","portrait_region":[235,135,365,365],"accent":"82bdec"},
+  {"id":"emotes_satori_koishi","category":"emotes","name":"古明地觉&古明地恋 · 自机对话","description":"【意识之底】专属六类对话，含觉与恋的双句对话。","price":10,"battle_effect":"leader_emotes","leader_id":"character-fdn-026","image":"res://recourse/数据库/character-fdn-026.jpg","portrait_region":[110,170,500,500],"accent":"d694bd"},
+  {"id":"emotes_yuyuko","category":"emotes","name":"西行寺幽幽子 · 自机对话","description":"【华胥的亡灵】专属六类对话；面对八云紫时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"71","image":"res://recourse/数据库/71.png","portrait_region":[210,170,390,390],"accent":"e5a3cc"},
+  {"id":"emotes_aya","category":"emotes","name":"射命丸文 · 自机对话","description":"【飞散的红叶天狗】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"79","image":"res://recourse/数据库/79.png","portrait_region":[220,150,390,390],"accent":"d89080"},
+  {"id":"emotes_satori","category":"emotes","name":"古明地觉 · 自机对话","description":"【第三只眼】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"76","image":"res://recourse/数据库/76.png","portrait_region":[220,160,390,390],"accent":"c29ade"},
+  {"id":"emotes_remilia","category":"emotes","name":"蕾米莉亚 · 自机对话","description":"【永远的鲜红幼月】专属六类对话；面对芙兰朵露时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"74","image":"res://recourse/数据库/74.png","portrait_region":[235,160,365,365],"accent":"d28fae"},
+  {"id":"emotes_sakuya","category":"emotes","name":"十六夜咲夜 · 自机对话","description":"【红魔馆的女仆】专属六类对话；面对蕾米莉亚时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"75","image":"res://recourse/数据库/75.png","portrait_region":[140,170,390,390],"accent":"93b8d5"}
+ ]
+}

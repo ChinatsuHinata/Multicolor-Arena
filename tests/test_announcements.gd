@@ -138,7 +138,7 @@ func run():
  var shipped=AnnouncementStore.new();shipped.initialize(version,fixture.path_join("shipped.json"))
  BODY=str(shipped.pending().get("body",""))
  current_entries=shipped.history.filter(func(entry):return shipped.entry_id(entry) in shipped.latest_ids).duplicate(true)
- shipped_history_count=shipped.history.size();earlier_unread=shipped_history_count-current_entries.size()
+ shipped_history_count=shipped.history.size();earlier_unread=shipped_history_count-current_entries.filter(func(entry):return int(entry.get("coins",0))<=0).size()
  second_body=str(current_entries[1].body) if current_entries.size()>1 else ""
  expect(not current_entries.is_empty() and current_entries.all(func(entry):return AnnouncementStore.compare_versions(entry.version,version)<=0),"current release delivers its latest announcements and retains earlier versions")
  if current_entries.size()>1:expect(shipped.entry_id(current_entries[0])!=shipped.entry_id(current_entries[1]),"announcements in one release have independent receipt IDs")
@@ -156,6 +156,7 @@ func run():
  app=load("res://main.tscn").instantiate()
  app.settings_path=fixture.path_join("settings.json");app.account_session_path=fixture.path_join("account.json")
  app.tutorial_local_directory=fixture.path_join("tutorials")
+ app.tournament_server_url="ws://127.0.0.1:1"
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(app.tutorial_local_directory))
  app.announcement_push_in_editor=true;root.add_child(app);await frames(20)
  expect(app.menu_popup_open() and app.menu_popup is AnnouncementPopup,"first startup opens the production announcement popup")
@@ -230,7 +231,7 @@ func run():
  expect(safe.encloses(app.mailbox_button.get_global_rect()) and app.mailbox_button.size.x>=app.ui_metrics.hit,"Android envelope fits the safe area at the native touch size")
  expect(app.mailbox_button.get_global_rect().position.x>app.ui_metrics.safe.get_center().x,"envelope stays in the upper-right corner")
  await activate(app.mailbox_button)
- expect(app.menu_popup.entries.find_children("Announcement_*","Button",true,false).size()==shipped_history_count+1,"Android archive keeps earlier announcements and the following release")
+ expect(app.menu_popup.entries.find_children("Announcement_*","Button",true,false).size()==app.announcement_store.unread_count(),"Android unread archive filters out read announcements while retaining unclaimed rewards")
  await shot("android-archive")
  var scroll=app.menu_popup.scroll
  await swipe_up(scroll.get_global_rect().get_center())

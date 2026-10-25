@@ -41,6 +41,10 @@ const PRESSURE_MSEC=350
 const PRESSURE_WIDTH=4
 const PRESSURE_DEPTH=3
 const THINK_LIMIT_MSEC=30000
+const MOBILE_THINK_LIMIT_MSEC=1000
+const EXACT_BLOCKERS=6
+const BLOCK_GROUP_LIMIT=96
+const REMILIA_BLOCKER_HOLD=4
 
 static func profile(deck: Dictionary) -> String:
  if deck.get("leader","")!=REMILIA:return ""
@@ -50,14 +54,20 @@ static func profile(deck: Dictionary) -> String:
  return PROFILE if [LILY,WINGS,FAIRY,BIG_REMILIA,NIGHT,AURORA].all(func(id):return id in main) else ""
 
 static func step(e,who: int) -> bool:
- var memory=e.ai_memory[who]
- var previous_deadline=memory.get("_think_deadline",-1)
- var new_deadline=Time.get_ticks_msec()+THINK_LIMIT_MSEC
- memory._think_deadline=mini(int(previous_deadline),new_deadline) if previous_deadline>=0 else new_deadline
+ var limit=MOBILE_THINK_LIMIT_MSEC if OS.has_feature("android") or OS.has_feature("ios") else THINK_LIMIT_MSEC
+ var previous_deadline=push_think_deadline(e,who,Time.get_ticks_msec()+limit)
  var handled=step_decision(e,who)
- if previous_deadline<0:memory.erase("_think_deadline")
- else:memory._think_deadline=previous_deadline
+ restore_think_deadline(e,who,previous_deadline)
  return handled
+
+static func push_think_deadline(e,who: int,deadline: int) -> int:
+ var previous=int(e.ai_memory[who].get("_think_deadline",-1))
+ e.ai_memory[who]._think_deadline=think_deadline(e,who,deadline)
+ return previous
+
+static func restore_think_deadline(e,who: int,previous: int):
+ if previous<0:e.ai_memory[who].erase("_think_deadline")
+ else:e.ai_memory[who]._think_deadline=previous
 
 static func think_deadline(e,who: int,deadline: int=-1) -> int:
  var limit=int(e.ai_memory[who].get("_think_deadline",-1))
@@ -68,7 +78,26 @@ static func think_expired(e,who: int) -> bool:
  var deadline=think_deadline(e,who)
  return deadline>=0 and Time.get_ticks_msec()>=deadline
 
+static func combat_expired(e) -> bool:
+ # Simulations may evaluate either seat's blockers under the caller's budget.
+ return think_expired(e,0) or think_expired(e,1)
+
+static func sorted_by(e,values: Array,key: Callable,descending: bool=false) -> Array:
+ # Expensive rule queries belong in a cancellable pass, never in a comparator.
+ if combat_expired(e):return []
+ if values.size()<2:return values.duplicate()
+ var ranked=[]
+ for value in values:
+  if combat_expired(e):return []
+  ranked.append({"value":value,"key":key.call(value)})
+ if combat_expired(e):return []
+ ranked.sort_custom(func(a,b):return a.key>b.key if descending else a.key<b.key)
+ return ranked.map(func(entry):return entry.value)
+
 static func step_decision(e,who: int) -> bool:
+ if think_expired(e,who) and e.pending.is_empty():
+  if e.priority==who:e.pass_priority(who)
+  return true
  if e.ai_memory[who].get("decision_mode","")!="public_round":Counterplay.record(e,who)
  if e.phase=="mulligan":
   e.mulligan(who,mulligan_uids(e,who))
@@ -136,10 +165,10 @@ static func step_decision(e,who: int) -> bool:
  if who!=e.first and e.players[who].potato:
   for c in choices:
    if c.uid==e.players[who].leader.uid and cast(e,who,c,{"none":true}):return true
- choices.sort_custom(func(a,b):return card_priority(e,who,a)>card_priority(e,who,b))
+ choices=sorted_by(e,choices,func(c):return card_priority(e,who,c),true)
  # Silence reserved responses/death triggers before removal when a useful
  # Night opening is the best pressure route. Other routes keep core removal.
- if night_priority(e,who)>0 and choices.any(func(c):return c.card_id==NIGHT):
+ if choices.any(func(c):return c.card_id==NIGHT) and night_priority(e,who)>0:
   action=pressure_action(e,who)
   if not action.is_empty():
    if action.get("card_id","")==NIGHT and pressure_execute(e,who,action):return true
@@ -602,7 +631,7 @@ static func strength(e,c: Dictionary) -> int:
 
 static func weakest(e,who: int) -> Dictionary:
  var units=e.units(who).filter(func(c):return e.can_sacrifice(c))
- units.sort_custom(func(a,b):return strength(e,a)<strength(e,b))
+ units=sorted_by(e,units,func(c):return strength(e,c))
  return units[0] if not units.is_empty() else {}
 
 static func draw_target(e,who: int,c: Dictionary) -> Dictionary:
@@ -667,7 +696,7 @@ static func reimu_opening(e,who: int,choices: Array) -> bool:
  if not Counterplay.reimu_scope(e,who):return false
  var reimu=Counterplay.reimu_units(e,who)
  if reimu.is_empty():return false
- reimu.sort_custom(func(a,b):return gungnir_value(e,a)>gungnir_value(e,b))
+ reimu=sorted_by(e,reimu,func(c):return gungnir_value(e,c),true)
  # RED is a finisher, not a compulsory Reimu opener. Let lethal search and
  # small lifesteal attacks run before spending it on this core.
  for id in [GUNGNIR,MIST,AUTUMN]:
@@ -689,7 +718,7 @@ static func reimu_probe_choice(e,who: int) -> Dictionary:
  if large.is_empty():return {}
  var small=e.units(who).filter(func(c):return e.can_attack(who,c.uid) and e.stat(c,"power")>0 and e.Extra.cost_value(e,c)<=3 and not e.Roster.character_matches(e.cards[c.card_id].character,"蕾米莉亚") and attack_allowed(e,c))
  small=small.filter(func(c):return e.blockers_for(c).any(func(b):return large.any(func(r):return r.uid==b.uid)))
- small.sort_custom(func(a,b):return strength(e,a)<strength(e,b))
+ small=sorted_by(e,small,func(c):return strength(e,c))
  return small[0] if not small.is_empty() else {}
 
 static func gungnir_target_allowed(e,who: int,enemy: Dictionary) -> bool:
@@ -782,7 +811,7 @@ static func red_setup_choice(e,who: int) -> Dictionary:
  if memory.get("red_setup_key","")==key:return e.find_card(memory.get("red_setup_uid",-1))
  memory.red_setup_key=key;memory.red_setup_uid=-1
  var small=e.units(who).filter(func(c):return e.can_attack(who,c.uid) and e.Roster.lifesteal(e,c)>0 and e.Extra.cost_value(e,c)<=3 and not e.Roster.character_matches(e.cards[c.card_id].character,"蕾米莉亚") and attack_allowed(e,c))
- small.sort_custom(func(a,b):return strength(e,a)<strength(e,b))
+ small=sorted_by(e,small,func(c):return strength(e,c))
  if small.is_empty():return {}
  var sim=simulation(e,who);var before=capture_sim(sim);var gained=red_damage(e,who)
  for c in small:
@@ -887,9 +916,11 @@ static func threat_score(e,c: Dictionary) -> int:
 
 static func removal_enemies(e,who: int) -> Array:
  var dangers=dangerous_blockers(e,who)
- var enemies=e.units(1-who).filter(func(c):return high_value_enemy(e,c) or dangers.any(func(b):return b.uid==c.uid))
- enemies.sort_custom(func(a,b):return threat_score(e,a)>threat_score(e,b))
- return enemies
+ var enemies=[]
+ for c in e.units(1-who):
+  if combat_expired(e):return []
+  if dangers.any(func(b):return b.uid==c.uid) or high_value_enemy(e,c):enemies.append(c)
+ return sorted_by(e,enemies,func(c):return threat_score(e,c),true)
 
 static func aurora_sacrifice_target(e,who: int,choices: Array=[]) -> Dictionary:
  if e.players[1-who].life<=3:return {}
@@ -915,16 +946,66 @@ static func aurora_pressure_target(e,who: int) -> Dictionary:
   return {"player":1-who,"mode":"失去生命"}
  return {}
 
-static func groups(e,attacker: Dictionary) -> Array:
+static func block_options(e,attacker: Dictionary) -> Array:
  var mandatory=e.combat.has("target") and e.combat.get("attacker",{}).get("uid",-1)==attacker.uid
- var available=e.legal_blockers() if mandatory else e.blockers_for(attacker)
+ return e.legal_blockers() if mandatory else e.blockers_for(attacker)
+
+static func hold_small_remilia(e,c: Dictionary) -> bool:
+ return c.card_id==REMILIA and not night_empowered(e,c) and block_options(e,c).size()>=REMILIA_BLOCKER_HOLD
+
+static func block_search_complete(e,attacker: Dictionary) -> bool:
+ if combat_expired(e):return false
+ return block_options(e,attacker).size()<=EXACT_BLOCKERS and not combat_expired(e)
+
+static func fatal_block_possible(e,attacker: Dictionary) -> bool:
+ # A sampled or interrupted search cannot prove that the aura will survive.
+ if not block_search_complete(e,attacker):return true
+ for group in groups(e,attacker):
+  if combat_expired(e) or fight(e,attacker,group).attacker_dead:return true
+ return combat_expired(e)
+
+static func add_block_group(result: Array,group: Array,minimum: int):
+ if group.size()>=minimum and result.size()<BLOCK_GROUP_LIMIT and group not in result:result.append(group)
+
+static func groups(e,attacker: Dictionary) -> Array:
+ if combat_expired(e):return []
+ var available=block_options(e,attacker)
+ var mandatory=e.combat.has("target") and e.combat.get("attacker",{}).get("uid",-1)==attacker.uid
  var result=[]
  var minimum=2 if e.Extra.keyword(e,attacker,"威吓") and not mandatory else 1
- for mask in range(1,1<<available.size()):
-  var group=[]
-  for i in range(available.size()):
-   if mask&(1<<i):group.append(available[i])
-  if group.size()>=minimum:result.append(group)
+ if available.size()<=EXACT_BLOCKERS:
+  for mask in range(1,1<<available.size()):
+   if combat_expired(e):break
+   var group=[]
+   for i in range(available.size()):
+    if mask&(1<<i):group.append(available[i])
+   add_block_group(result,group,minimum)
+  return result
+ # Never materialize 2^N subsets (or shift by an unbounded unit count).
+ # Keep the full retaliation, cheap sacrifices and strong/first-strike groups.
+ add_block_group(result,available.duplicate(),minimum)
+ var ranked=[]
+ for c in available:
+  if combat_expired(e):return result
+  ranked.append({"card":c,"value":strength(e,c),"power":e.stat(c,"power"),"first":e.Extra.keyword(e,c,"先制")})
+ ranked.sort_custom(func(a,b):return a.value<b.value)
+ var pool=[]
+ for entry in ranked.slice(0,4):pool.append(entry.card)
+ ranked.sort_custom(func(a,b):return a.power>b.power)
+ for entry in ranked.slice(0,4):
+  if entry.card not in pool:pool.append(entry.card)
+ for entry in ranked:
+  if entry.first and entry.card not in pool:pool.append(entry.card)
+  if pool.size()>=12:break
+ for i in range(pool.size()):
+  if combat_expired(e):return result
+  add_block_group(result,[pool[i]],minimum)
+  add_block_group(result,pool.slice(0,i+1),minimum)
+  add_block_group(result,pool.slice(i),minimum)
+ for i in range(pool.size()):
+  for j in range(i+1,pool.size()):
+   if combat_expired(e) or result.size()>=BLOCK_GROUP_LIMIT:return result
+   add_block_group(result,[pool[i],pool[j]],minimum)
  return result
 
 static func preview_damage(e,source: Dictionary,target: Dictionary,amount: int,combat: bool) -> int:
@@ -953,42 +1034,50 @@ static func fight(e,attacker: Dictionary,blockers: Array) -> Dictionary:
   var target=e.find_card(e.combat.target.uid)
   if not remaining.any(func(c):return c.uid==target.uid):remaining.push_front(target.duplicate(true))
  var dead=[];var attacker_dead=false
+ var interrupted={"attacker_dead":true,"dead":[],"alive":[],"complete":false}
+ if combat_expired(e):return interrupted
  var first=e.Extra.keyword(e,a,"先制") or remaining.any(func(b):return e.Extra.keyword(e,b,"先制"))
  for stage in (["first","second"] if first else ["normal"]):
+  if combat_expired(e):return interrupted
   if attacker_dead or remaining.is_empty():break
   var strikes=func(c):return stage=="normal" or e.Extra.keyword(e,c,"先制")== (stage=="first")
   var power=e.stat(a,"power") if strikes.call(a) else 0
   var allocation=damage_allocation(e,a,remaining,power)
   var retaliation={}
-  for b in remaining:retaliation[b.uid]=e.stat(b,"power") if strikes.call(b) else 0
+  for b in remaining:
+   if combat_expired(e):return interrupted
+   retaliation[b.uid]=e.stat(b,"power") if strikes.call(b) else 0
   # Damage is simultaneous within each round, including retaliation by dying bodies.
   for b in remaining:
+   if combat_expired(e):return interrupted
    preview_hit(e,a,b,int(allocation.get(str(b.uid),0)))
    preview_hit(e,b,a,retaliation[b.uid])
   attacker_dead=dies_to(e,a,0)
   for b in remaining.duplicate():
+   if combat_expired(e):return interrupted
    if dies_to(e,b,0):dead.append(b.uid);remaining.erase(b)
- return {"attacker_dead":attacker_dead,"dead":dead,"alive":remaining.map(func(b):return b.uid)}
+ return {"attacker_dead":attacker_dead,"dead":dead,"alive":remaining.map(func(b):return b.uid),"complete":not combat_expired(e)}
 
 static func ward_amount(e,c: Dictionary) -> int:
  if e.unpreventable_turn==e.turn:return 0
  return c.get("wards",[]).filter(func(w):return w.get("turn",e.turn) in [-1,e.turn]).reduce(func(n,w):return n+int(w.amount),0)
 
 static func damage_allocation(e,attacker: Dictionary,blockers: Array,total: int) -> Dictionary:
- var allocation={};var left=total;var ordered=blockers.duplicate()
+ var allocation={};var left=total;var ordered=[]
  var needed=func(b):return maxi(0,e.stat(b,"health")-b.damage)+ward_amount(e,b)
  var prevented=func(b):return e.unpreventable_turn!=e.turn and e.Pack.has_next_damage_prevention(e,b) or e.Extra.keyword(e,b,"防止伤害")
+ var night=night_empowered(e,attacker)
+ for b in blockers:
+  var amount=needed.call(b);var prevent=prevented.call(b);var immortal=e.Extra.keyword(e,b,"不会被消灭")
+  ordered.append({"uid":b.uid,"needed":amount,"prevented":prevent,"immortal":immortal,"core":night and night_core(e,b) and amount<=total and not prevent and not immortal})
  ordered.sort_custom(func(a,b):
-  if prevented.call(a)!=prevented.call(b):return not prevented.call(a)
-  if night_empowered(e,attacker):
-   var a_core=night_core(e,a) and needed.call(a)<=total and not prevented.call(a) and not e.Extra.keyword(e,a,"不会被消灭")
-   var b_core=night_core(e,b) and needed.call(b)<=total and not prevented.call(b) and not e.Extra.keyword(e,b,"不会被消灭")
-   if a_core!=b_core:return a_core
-  return needed.call(a)<needed.call(b))
- for b in ordered:
-  var amount=mini(left,needed.call(b))
-  if prevented.call(b) or e.Extra.keyword(e,b,"不会被消灭"):amount=0
-  allocation[str(b.uid)]=amount;left-=amount
+  if a.prevented!=b.prevented:return not a.prevented
+  if a.core!=b.core:return a.core
+  return a.needed<b.needed)
+ for entry in ordered:
+  var amount=mini(left,entry.needed)
+  if entry.prevented or entry.immortal:amount=0
+  allocation[str(entry.uid)]=amount;left-=amount
  if left>0 and not ordered.is_empty():allocation[str(ordered[0].uid)]+=left
  return allocation
 
@@ -1009,14 +1098,20 @@ static func dangerous_blockers(e,who: int,attackers: Array=[]) -> Array:
  if attackers.is_empty():attackers=ready_units(e,who)
  var result=[]
  for a in attackers:
+  if combat_expired(e):break
+  if hold_small_remilia(e,a):continue
   if night_trade_allowed(e,a):continue
+  if not block_search_complete(e,a):
+   for b in block_options(e,a):
+    if not result.any(func(c):return c.uid==b.uid):result.append(b)
+   continue
   for group in groups(e,a):
+   if combat_expired(e):break
    var outcome=fight(e,a,group)
    if outcome.attacker_dead and (outcome.dead.is_empty() or e.Roster.character_matches(e.cards[a.card_id].character,"蕾米莉亚")):
     for b in group:
      if not result.any(func(c):return c.uid==b.uid):result.append(b)
- result.sort_custom(func(a,b):return strength(e,a)>strength(e,b))
- return result
+ return sorted_by(e,result,func(c):return strength(e,c),true)
 
 static func ready_units(e,who: int) -> Array:
  return e.units(who).filter(func(c):return not c.tapped and (not e.summoning_sick(c) or e.has_haste(c)) and e.Cat.State.can_combat(e,c))
@@ -1025,7 +1120,9 @@ static func defensive_blocks(e) -> Array:
  var attacker=e.find_card(e.combat.attacker.uid)
  var best=[];var score=2147483647
  for group in groups(e,attacker):
+  if combat_expired(e):break
   var outcome=fight(e,attacker,group)
+  if not outcome.complete:break
   if not outcome.attacker_dead or not outcome.dead.is_empty():continue
   var value=group.reduce(func(n,c):return n+strength(e,c),0)
   if value<score:score=value;best=group.map(func(c):return c.uid)
@@ -1035,18 +1132,28 @@ static func defensive_blocks(e) -> Array:
  var coins=hit>0 and e.Roster.enabled(e,attacker,"komachi_coins") and int(e.players[1-attacker.owner].get("coins",0))>=2
  if best.is_empty() and (hit>=e.players[1-attacker.owner].life or coins):
   best=survival_blocks(e,attacker)
+  if best.is_empty() and combat_expired(e):return fallback_blocks(e,attacker)
  # Some opponents impose a mandatory block; use the cheapest legal group then.
  if best.is_empty() and e.Cat.has(e,attacker,"character-fdf-090"):
   for group in groups(e,attacker):
+   if combat_expired(e):break
    var value=group.reduce(func(n,c):return n+strength(e,c),0)
    if value<score:score=value;best=group.map(func(c):return c.uid)
- return best
+ return fallback_blocks(e,attacker) if best.is_empty() and combat_expired(e) else best
+
+static func fallback_blocks(e,attacker: Dictionary) -> Array:
+ # Finish a required choice even after the search budget is exhausted.
+ var available=block_options(e,attacker)
+ var mandatory=e.combat.has("target")
+ var minimum=2 if e.Extra.keyword(e,attacker,"威吓") and not mandatory else 1
+ return available.slice(0,minimum).map(func(c):return c.uid)
 
 static func survival_blocks(e,attacker: Dictionary) -> Array:
- if e.pending.get("kind","")!="block":return []
+ if e.pending.get("kind","")!="block" or combat_expired(e):return []
  var who=1-attacker.owner;var sim=simulation(e,who);var start=capture_sim(sim)
  var candidates=groups(e,attacker);var best=[];var best_score=-INF
  for group in candidates:
+  if combat_expired(e):break
   restore_sim(sim,start)
   var uids=group.map(func(c):return c.uid)
   sim.block(uids)
@@ -1100,10 +1207,12 @@ static func removal_collateral_safe(e,who: int,c: Dictionary,t: Dictionary) -> b
  return losses[who]<=losses[1-who]
 
 static func remove_blocker(e,who: int,choices: Array,last: bool=false) -> bool:
+ if combat_expired(e) or not choices.any(func(c):return c.card_id in [GUNGNIR,MIST,AUTUMN,RED]):return false
  var enemies=removal_enemies(e,who)
  if enemies.is_empty():return false
- if choices.any(func(c):return c.card_id==GUNGNIR):enemies.sort_custom(func(a,b):return gungnir_value(e,a)>gungnir_value(e,b))
+ if choices.any(func(c):return c.card_id==GUNGNIR):enemies=sorted_by(e,enemies,func(c):return gungnir_value(e,c),true)
  for enemy in enemies:
+  if combat_expired(e):return false
   for id in [GUNGNIR,MIST,AUTUMN,RED]:
    if last and id not in [GUNGNIR,RED]:continue
    # Reimu's matchup bonus does not promote RED ahead of attacks/expansion.
@@ -1122,7 +1231,7 @@ static func establish_gungnir(e,who: int,choices: Array) -> bool:
  var leader=e.players[who].leader
  if not choices.any(func(c):return c.uid==leader.uid):return false
  var enemies=removal_enemies(e,who).filter(func(c):return gungnir_engine(e,c))
- enemies.sort_custom(func(a,b):return gungnir_value(e,a)>gungnir_value(e,b))
+ enemies=sorted_by(e,enemies,func(c):return gungnir_value(e,c),true)
  for gun in e.players[who].hand:
   if gun.card_id!=GUNGNIR:continue
   for enemy in enemies:
@@ -1151,6 +1260,7 @@ static func fast_removal(e,who: int) -> bool:
  return remove_blocker(e,who,e.legal_casts(who,true).filter(func(c):return c.card_id==GUNGNIR))
 
 static func attack_choice(e,who: int) -> Dictionary:
+ if combat_expired(e):return {}
  var queen_bat=queen_bat_attacker(e,who)
  if not queen_bat.is_empty():return queen_bat
  var setup=red_setup_choice(e,who)
@@ -1158,9 +1268,11 @@ static func attack_choice(e,who: int) -> Dictionary:
  var probe=reimu_probe_choice(e,who)
  if not probe.is_empty():return probe
  var available=e.units(who).filter(func(c):return e.can_attack(who,c.uid))
- available.sort_custom(func(a,b):return strength(e,a)<strength(e,b))
+ available=sorted_by(e,available,func(c):return strength(e,c))
  var eligible=available.filter(func(c):return attack_allowed(e,c))
+ if eligible.is_empty():return {}
  var dangers=dangerous_blockers(e,who,available)
+ if combat_expired(e):return {}
  if dangers.is_empty():return eligible[0] if not eligible.is_empty() else {}
  var memory=e.ai_memory[who]
  if available.size()>=dangers.size()+2:memory.swarm_turn=e.turn
@@ -1172,16 +1284,21 @@ static func attack_choice(e,who: int) -> Dictionary:
 static func attack_allowed(e,c: Dictionary) -> bool:
  # Protect the aura unless a real Night King exchange removes an enemy core.
  if c.is_empty():return false
+ if combat_expired(e):return false
+ if hold_small_remilia(e,c):return false
  if c.get("queen_midnight_bat",false):return true
  # These finishers keep attacking through fatal blocks for lifesteal or triggers.
  # Small Remilia's persistent aura still requires survival.
  if c.card_id in BIG_UNITS:return true
  if e.Roster.character_matches(e.cards[c.card_id].character,"蕾米莉亚"):
-  if groups(e,c).any(func(group):return fight(e,c,group).attacker_dead):return night_trade_allowed(e,c)
+  if fatal_block_possible(e,c):return night_trade_allowed(e,c)
+  if combat_expired(e):return false
   return not response_can_kill(e,c)
  # Do not trade a costly pressure unit for one cheap member of a multi-block.
  if e.Extra.cost_value(e,c)>=4:
+  if not block_search_complete(e,c):return false
   for group in groups(e,c):
+   if combat_expired(e):return false
    var outcome=fight(e,c,group)
    if outcome.attacker_dead and group.filter(func(b):return b.uid in outcome.dead).reduce(func(n,b):return n+threat_score(e,b),0)<threat_score(e,c):return false
  return true
@@ -1194,14 +1311,16 @@ static func night_core(e,c: Dictionary) -> bool:
 
 static func night_trade_allowed(e,c: Dictionary) -> bool:
  if not night_empowered(e,c) or not e.Roster.character_matches(e.cards[c.card_id].character,"蕾米莉亚"):return false
+ if not block_search_complete(e,c):return false
  var trades=false
  for group in groups(e,c):
+  if combat_expired(e):return false
   var outcome=fight(e,c,group)
   if not outcome.attacker_dead:continue
   trades=true
   # Every block that kills Remilia must actually lose an opposing core.
   if not group.any(func(b):return b.uid in outcome.dead and night_core(e,b)):return false
- return trades
+ return trades and not combat_expired(e)
 
 static func protect_remilia(e,who: int) -> bool:
  var leader=e.players[who].leader
@@ -1479,6 +1598,7 @@ static func commit_response(e,who: int,action: Dictionary) -> bool:
 static func settle_response(e,stop_stack: int=-1) -> bool:
  # Stop before continuing combat or resolving the friendly card under a response.
  for i in range(100):
+  if combat_expired(e):return false
   if e.winner!=-2:return true
   e.pump_choices()
   if not e.pending.is_empty():
@@ -1498,6 +1618,7 @@ static func settle_response(e,stop_stack: int=-1) -> bool:
 
 static func response_can_kill(e,c: Dictionary) -> bool:
  var who=c.owner
+ if combat_expired(e):return true
  if e.players[1-who].hand.is_empty() and not e.units(1-who).any(func(u):return u.card_id=="character-fdf-069"):return false
  var key=position_key(e,who)+str(c.uid)
  var memory=e.ai_memory[who]
@@ -1511,9 +1632,10 @@ static func response_can_kill(e,c: Dictionary) -> bool:
  return risk
 
 static func response_kill_search(e,who: int,uid: int,ctx: Dictionary,depth: int) -> bool:
+ if combat_expired(e):return true
  var attacker=e.find_card(uid)
  if attacker.is_empty() or attacker.zone!="field" or attacker.owner!=who:return true
- if dies_to(e,attacker,0) or groups(e,attacker).any(func(group):return fight(e,attacker,group).attacker_dead):return true
+ if dies_to(e,attacker,0) or fatal_block_possible(e,attacker):return true
  if kyouko_block_kills(e,who,attacker):return true
  var key=position_key(e,who)+str(e.players[1-who].hand)
  if ctx.seen.has(key):return false
@@ -1524,6 +1646,7 @@ static func response_kill_search(e,who: int,uid: int,ctx: Dictionary,depth: int)
  if depth>=7 or ctx.nodes>=RESPONSE_NODES:return true
  var before=capture_sim(e)
  for action in actions:
+  if combat_expired(e):return true
   restore_sim(e,before);e.priority=1-who
   if not commit_response(e,who,action) or not settle_response(e):continue
   if response_kill_search(e,who,uid,ctx,depth+1):return true
@@ -1531,10 +1654,14 @@ static func response_kill_search(e,who: int,uid: int,ctx: Dictionary,depth: int)
 
 static func kyouko_block_kills(e,who: int,attacker: Dictionary) -> bool:
  # Combat preview alone misses Kyouko dying and then damaging the survivor.
- var candidates=groups(e,attacker).filter(func(group):return group.any(func(c):return c.card_id=="character-fdf-069" and c.uid in fight(e,attacker,group).dead))
+ var candidates=[]
+ for group in groups(e,attacker):
+  if combat_expired(e):return true
+  if group.any(func(c):return c.card_id=="character-fdf-069") and group.any(func(c):return c.card_id=="character-fdf-069" and c.uid in fight(e,attacker,group).dead):candidates.append(group)
  if candidates.is_empty():return false
  var before=capture_sim(e);var trial=e.get_script().new(e.cards)
  for group in candidates:
+  if combat_expired(e):return true
   restore_sim(trial,before)
   for i in range(8):
    trial.pump_choices()
@@ -1558,11 +1685,12 @@ static func response_value(e,who: int,attacker_uid: int,stack_id: int) -> int:
  if attacker_uid>=0:
   var attacker=e.find_card(attacker_uid)
   if attacker.is_empty() or attacker.zone!="field":score+=20000
-  elif groups(e,attacker).any(func(group):return fight(e,attacker,group).attacker_dead):score+=10000
+  elif fatal_block_possible(e,attacker):score+=10000
   elif not groups(e,attacker).is_empty():score+=maxi(0,e.stat(attacker,"spirit"))*100
  return score
 
 static func opposing_response(e,who: int) -> bool:
+ if combat_expired(e):return false
  if e.priority!=1-who:return false
  var attacker=e.find_card(e.combat.get("attacker",{}).get("uid",-1))
  var stack_id=-1
@@ -1573,6 +1701,7 @@ static func opposing_response(e,who: int) -> bool:
  var value=response_value(e,who,attacker_uid,stack_id);var best={}
  var trial=e.get_script().new(e.cards);var before=capture_sim(e)
  for action in actions:
+  if combat_expired(e):break
   restore_sim(trial,before)
   if not commit_response(trial,who,action) or not settle_response(trial,stack_id):continue
   var score=response_value(trial,who,attacker_uid,stack_id)
@@ -1735,10 +1864,10 @@ static func lethal_action(e,who: int) -> Dictionary:
  return memory.lethal_plan.pop_front()
 
 static func lethal_route(e,who: int,deadline: int=-1) -> Array:
- if e.players[1-who].life>lethal_threshold(e,who):return []
  if deadline<0:deadline=Time.get_ticks_msec()+int(SEARCH_MSEC*1.5)
  deadline=think_deadline(e,who,deadline)
  if Time.get_ticks_msec()>=deadline:return []
+ if e.players[1-who].life>lethal_threshold(e,who):return []
  var sim=simulation(e,who)
  # Above the ordinary gate, reach the burst line directly before enumerating
  # every cast/attack permutation. Verify the entire line as a current win;
@@ -1809,6 +1938,7 @@ static func search(e,who: int,ctx: Dictionary,route: Array,used_night: bool) -> 
  var actions=search_actions(e,who)
  var before=capture_sim(e)
  for action in actions:
+  if Time.get_ticks_msec()>=ctx.deadline or think_expired(e,who):break
   restore_sim(e,before)
   var night=used_night or action.get("card_id","")==NIGHT
   action.expected=position_key(e,who)
@@ -1912,10 +2042,13 @@ static func simulated_blocks(e,who: int) -> Array:
   return e.stat(a,"spirit")>e.stat(b,"spirit"))
  var reserved=[]
  for a in attackers:
+  if combat_expired(e):return fallback_blocks(e,current)
   var best=[];var score=-2147483647
   for group in groups(e,a):
+   if combat_expired(e):return fallback_blocks(e,current)
    if group.any(func(b):return b.uid in reserved):continue
    var outcome=fight(e,a,group)
+   if not outcome.complete:return fallback_blocks(e,current)
    var annihilate=e.Extra.keyword(e,a,"歼灭") and not outcome.dead.is_empty()
    var value=(0 if annihilate else e.stat(a,"spirit")*10000)+ (1000 if outcome.attacker_dead else 0)-group.reduce(func(n,b):return n+(strength(e,b) if b.uid in outcome.dead else 1),0)
    if value>score:score=value;best=group.map(func(b):return b.uid)
@@ -1925,6 +2058,7 @@ static func simulated_blocks(e,who: int) -> Array:
 
 static func settle_sim(e,who: int) -> bool:
  for i in range(180):
+  if combat_expired(e):return false
   if e.winner!=-2:return true
   e.pump_choices()
   if not e.pending.is_empty():

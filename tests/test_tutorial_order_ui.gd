@@ -37,7 +37,7 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(OUTPUT.path_join("fixtures-"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1600,900);root.content_scale_size=root.size;root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  app=load("res://main.tscn").instantiate();app.settings_path=OUTPUT.path_join("missing-settings.json");app.account_session_path=OUTPUT.path_join("missing-account.json")
- root.add_child(app);await frames();app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ root.add_child(app);await frames();open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  expect(editor.move_up.disabled and not editor.move_down.disabled,"first selected node can only move down")
  expect(find_button(editor,"设为起点")==null,"course start follows the list")
  var initial=editor.model.data.duplicate(true)
@@ -83,9 +83,9 @@ func run():
  editor.search.clear();editor.search.text_changed.emit("");await frames();await shot("tutorial-order")
  var path=OUTPUT.path_join("ui-reordered.json")
  expect(editor.model.save_course(path).is_empty(),"UI reordered course saves")
- app.tutorial_editor(path);await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test(path);await frames();editor=app.screen.get_child(0)
  expect(node_ids()==["step_1",added,"step_2"] and not editor.model.dirty(),"saved UI order reopens cleanly")
- app.tutorial_editor("res://data/tutorial/beginner/t4.json");await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test("res://data/tutorial/beginner/t4.json");await frames();editor=app.screen.get_child(0)
  before=editor.model.data.duplicate(true);from=await hold(editor.selected_step)
  var rect=editor.nodes_scroll.get_global_rect();to=Vector2(rect.get_center().x,rect.end.y-6)
  await motion(from,to);await create_timer(0.6).timeout

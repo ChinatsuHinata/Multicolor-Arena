@@ -45,6 +45,7 @@ var cloud_mode=false
 var relay_code=""
 var relay_websocket=false
 var cloud_token=""
+var shop_inventory
 var cloud_nickname=""
 var cloud_account=""
 var cloud_ranked=false
@@ -362,7 +363,7 @@ func start_matchmaking(server_address: String,deck: Dictionary={},public_room: b
  if cloud_token.is_empty():return "请先登录玩家账号，再进入自动匹配"
  if mode not in MATCH_MODES:return "匹配模式无效"
  if not competition.is_empty():
-  if game_format not in [Series.BO1,Series.BO1_SIDEBOARD,Series.BO3,Series.EXPLORATION,Series.EXPLORATION_RANDOM]:return "比赛对局赛制无效"
+  if game_format not in [Series.BO1,Series.BO1_SIDEBOARD,Series.BO3,Series.EXPLORATION,Series.EXPLORATION_RANDOM,Series.BO5,Series.BO2]:return "比赛对局赛制无效"
   var expected_mode="exploration_random" if game_format==Series.EXPLORATION_RANDOM else "exploration" if game_format==Series.EXPLORATION else "casual"
   if mode!=expected_mode:return "比赛对局模式与指定赛制不一致"
  if mode in Series.Exploration.MODES:deck=Series.Exploration.deck(mode=="exploration_random")
@@ -395,6 +396,7 @@ func register_match_deck(actor: int,deck: Dictionary) -> String:
  if not deck.get("id") is String:return "匹配卡组缺少标识"
  var hashes=series.state.get("deck_hashes",[])
  if hashes.size()!=2 or JSON.stringify(Series.Store.clean_deck(deck)).sha256_text()!=str(hashes[actor]):return "匹配卡组与入队登记不一致，请重新匹配"
+ if actor==local_actor():set_emote_products(actor,shop_loadout())
  if match_mode in Series.Exploration.MODES:return series.ready(actor)
  var error=series.set_deck(actor,deck)
  if not error.is_empty():return error
@@ -434,7 +436,9 @@ func on_match_settled(info: Dictionary):
  if not cloud_ranked or str(info.get("match_id",""))!=cloud_match_id:return
  match_settled=true
  var winner=int(info.get("winner",-2))
- if winner in [0,1]:
+ if winner==-1:
+  room.status="complete";room.winner=-1;notice="比赛平局 · 不影响段位和 Elo"
+ elif winner in [0,1]:
   if room.get("status","")!="complete":
    if is_host:
     series.forfeit(1-winner);room=series.public_state(seat);persist()
@@ -489,7 +493,7 @@ func network_diagnostic(cause: String):
 
 func on_observed_room_closed(info: Dictionary):
  if not read_only:return
- room.status="complete" if int(info.get("winner",-2)) in [0,1] else "aborted"
+ room.status="complete" if int(info.get("winner",-2)) in [-1,0,1] else "aborted"
  room.winner=int(info.get("winner",-2));room.end_reason=str(info.get("message","匹配对战已结束，房间已关闭"))
  if not latest_snapshot.is_empty():latest_snapshot.room=room.duplicate(true)
  connected=false;paused=true;joining=false;rejected=true;notice=room.end_reason
@@ -671,7 +675,7 @@ func on_connect(id: int):
  remote_peer=1
  if read_only:
   transport.send_to(1,{"type":"watch","version":fingerprint,"mods":mod_config});return
- transport.send_to(1,{"type":"hello","mods":mod_config,"match_deck":match_deck if cloud_ranked else {},"version":fingerprint,"installation":identity.installation,"name":cloud_nickname if cloud_mode else identity.nickname,"resume":identity.get("resume",{}) if resume_requested else {},"last_sequence":maxi(view_sequence,int(identity.get("resume",{}).get("sequence",0))) if resume_requested else 0})
+ transport.send_to(1,{"type":"hello","shop_loadout":shop_loadout(),"mods":mod_config,"match_deck":match_deck if cloud_ranked else {},"version":fingerprint,"installation":identity.installation,"name":cloud_nickname if cloud_mode else identity.nickname,"resume":identity.get("resume",{}) if resume_requested else {},"last_sequence":maxi(view_sequence,int(identity.get("resume",{}).get("sequence",0))) if resume_requested else 0})
 func accept_applicant(accept: bool):
  if applicant.is_empty():return
  var id=int(applicant.peer)
@@ -739,6 +743,7 @@ func receive(id: int,m: Dictionary):
     reject_join(id,"房主恢复记录早于已确认的操作，无法安全继续本局");return
    welcome(id,actor)
   elif cloud_mode:
+   set_emote_products(actor,m.get("shop_loadout",{}))
    if cloud_ranked and series.state.status=="lobby":
     var error=register_match_deck(actor,m.get("match_deck",{}))
     if not error.is_empty():reject_join(id,error);return
@@ -967,10 +972,11 @@ func handle_command(actor: int,m: Dictionary):
  var error=Gateway.apply(authority,actor,m.command)
  if not error.is_empty():Codec.restore(authority,before);reject(actor,error);return
  sequence+=1;command_results[id]=sequence;var old_receipt=receipts[actor];receipts[actor]=id
- if authority.winner!=-2 and authority.pending.get("kind","")!="reveal_review":series.record_result(authority.winner)
+ if authority.winner!=-2 and authority.pending.get("kind","")!="reveal_review":
+  if series.record_result(authority.winner):series.record_task_evidence(authority.task_evidence())
  var events=authority.presentation_events.duplicate(true);authority.presentation_events.clear()
  # Passing priority alone is not a completed operation to undo.
- if not (m.command.name=="pass_priority" and authority.stack.is_empty() and authority.passes==1):undo_history.remember(authority,series.state.game_id,sequence)
+ if m.command.name!="send_emote" and not (m.command.name=="pass_priority" and authority.stack.is_empty() and authority.passes==1):undo_history.remember(authority,series.state.game_id,sequence)
  refresh_undo_status()
  if not persist():
   undo_history.entries=previous_undo
@@ -982,8 +988,16 @@ func reject(actor: int,message: String):
   send_actor(actor,{"type":"error","message":message,"ack_id":replying[actor]})
   if authority!=null and series.state.status!="choosing":send_actor(actor,make_snapshot(actor,[],true))
   else:send_actor(actor,{"type":"room","room":series.public_state(actor),"sequence":sequence,"ack_id":replying[actor]})
+func shop_loadout() -> Dictionary:
+ return shop_inventory.network_loadout() if shop_inventory!=null else {}
+
+func set_emote_products(actor: int,loadout: Variant):
+ if not series.state.has("emote_products"):series.state.emote_products=[[],[]]
+ series.state.emote_products[actor]=preload("res://net/shop_entitlements.gd").verify(loadout)
+
 func room_action(action: Dictionary):
  if not can_act():error_raised.emit("等待双方连接完成");return
+ if action.get("name")=="ready":action["shop_loadout"]=shop_loadout()
  busy=true;action["_request_id"]=Identity.token();inflight={"id":action._request_id}
  action["_expected"]=view_sequence;action["_game"]=room.get("game_id","")
  if is_host:handle_room_action(local_actor(),action)
@@ -1005,7 +1019,9 @@ func handle_room_action(actor: int,action: Dictionary):
   "deck":
    if not action.get("deck") is Dictionary:return
    error="匹配卡组已在入队前锁定" if cloud_ranked and series.state.status=="lobby" else series.set_deck(actor,action.deck)
-  "ready":error=series.ready(actor)
+  "ready":
+   error=series.ready(actor)
+   if error.is_empty():set_emote_products(actor,action.get("shop_loadout",{}))
   "unready":
    if series.state.status in ["lobby","sideboarding","between"]:series.state.ready[actor]=false
    else:error="当前不能取消准备"
@@ -1024,6 +1040,7 @@ func handle_room_action(actor: int,action: Dictionary):
  if series.start_game():
   undo_history.entries.clear();undo_request={}
   authority=Duel.new();authority.configure_mods(Series.uses_mods(series.state));authority.player_names=series.state.names.duplicate();authority.start(series.state.decks[0],series.state.decks[1],series.state.first)
+  for who in range(2):Duel.LeaderEmotes.equip(authority,who,series.state.get("emote_products",[[],[]])[who])
   authority.show_result(series.opening_text())
   authority.presentation_events.push_front(authority.presentation_events.pop_back())
  sequence+=1
@@ -1222,7 +1239,11 @@ func report_match_result(force: bool=false):
  if not cloud_ranked or match_settled or transport==null or not transport.online or room.get("status","")!="complete":return
  var now=Time.get_ticks_msec()
  if not force and now-last_result_report<1000:return
- last_result_report=now;transport.relay_result(cloud_match_id,int(room.get("winner",-2)))
+ var scores=room.get("scores",[])
+ if not competition_match_id.is_empty() and room.has("forfeit"):
+  var target=3 if competition_format==Series.BO5 else 2 if competition_format in [Series.BO3,Series.BO2] else 1
+  scores=[target,0] if int(room.get("winner",-2))==0 else [0,target]
+ last_result_report=now;transport.relay_result(cloud_match_id,int(room.get("winner",-2)),room.get("task_evidence",{}),scores)
 
 func check_response_timeout(now: float=-1.0):
  if not is_host or authority==null or not connected or paused or not undo_request.is_empty() or series.state.status!="playing" or ended():return
@@ -1230,10 +1251,10 @@ func check_response_timeout(now: float=-1.0):
  if not ResponseClock.expired(authority,now):return
  var before=Codec.capture(authority);var previous_series=series.state.duplicate(true)
  var loser=authority.priority
- series.forfeit(loser)
+ authority.lose(loser,"响应超过 240 秒",true)
+ series.forfeit(loser,false,authority.task_evidence())
  series.state.end_cause="response_timeout"
  series.state.end_reason=series.state.names[loser]+"响应超过 240 秒，整场判负；连接和房间已释放"
- authority.lose(loser,"响应超过 240 秒",true)
  authority.entry_choices=[];authority.paid_cast_uid=-1;authority.response_clock={}
  sequence+=1
  if not persist():

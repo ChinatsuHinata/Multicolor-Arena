@@ -26,7 +26,7 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(OUTPUT.path_join("fixtures-"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1600,900);root.content_scale_size=root.size;root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  app=load("res://main.tscn").instantiate();app.settings_path=OUTPUT.path_join("missing-settings.json");app.account_session_path=OUTPUT.path_join("missing-account.json")
- root.add_child(app);await frames();app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ root.add_child(app);await frames();open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  var original=editor.model.data.duplicate(true);var history=editor.model.undo_stack.size()
  await click(find_button(editor,"重命名节点").get_global_rect().get_center());await frames()
  expect(name_input().text=="step_1" and name_input().has_focus() and name_input().get_selected_text()=="step_1","rename button opens focused field with entire current name selected")
@@ -64,7 +64,7 @@ func run():
  await shot("renamed-node")
  var saved=editor.model.data.duplicate(true);var path=OUTPUT.path_join("ui-renamed.json")
  expect(editor.model.save_course(path).is_empty(),"UI renamed course saves")
- app.tutorial_editor(path);await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test(path);await frames();editor=app.screen.get_child(0)
  expect(editor.model.data==JSON.parse_string(JSON.stringify(saved)) and editor.nodes_list.get_node_or_null("Node_完成任务")!=null and not editor.model.dirty(),"saved names reopen in node list")
  app.free();await frames()
  print("TUTORIAL NODE RENAME UI: %d checks; %d failures" % [checks,failures.size()])

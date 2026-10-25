@@ -9,13 +9,15 @@ var protocol_prefix=PREFIX
 var service_name="套牌广场"
 var content_limit_message="上传内容过长，请缩短描述或卡组代码"
 var response_limit=65536
+var frame_limit=MAX_FRAME
+var allow_anonymous=false
 var peer: WebSocketMultiplayerPeer
 var packet=PackedByteArray()
 var sent=false
 var started_at=0
 
 func request(payload: Dictionary,token: String):
- if token.is_empty():finished.emit({"ok":false,"auth_required":true,"message":"请先登录玩家账号"});return
+ if token.is_empty() and not allow_anonymous:finished.emit({"ok":false,"auth_required":true,"message":"请先登录玩家账号"});return
  var key=CryptoKey.new()
  if key.load_from_string(FileAccess.get_file_as_string(Account.PUBLIC_KEY_PATH),true)!=OK:
   fail("客户端缺少有效账号服务公钥");return
@@ -25,8 +27,10 @@ func request(payload: Dictionary,token: String):
  var encrypted=Crypto.new().encrypt(key,JSON.stringify(auth).to_utf8_buffer())
  if encrypted.size()!=256:fail("无法加密登录凭据");return
  packet=protocol_prefix.to_utf8_buffer()+encrypted+body
- if packet.size()>MAX_FRAME:fail(content_limit_message);return
+ if packet.size()>frame_limit:fail(content_limit_message);return
  peer=WebSocketMultiplayerPeer.new()
+ if frame_limit>MAX_FRAME:
+  peer.inbound_buffer_size=16*1024*1024;peer.outbound_buffer_size=16*1024*1024
  if peer.create_client(server_url)!=OK:peer=null;fail("无法连接"+service_name);return
  started_at=Time.get_ticks_msec();sent=false;set_process(true)
 

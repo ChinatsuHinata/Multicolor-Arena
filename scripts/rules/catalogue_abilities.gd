@@ -366,6 +366,7 @@ static func enqueue(e,t):
   var instances=info.get("abilities",[]).filter(func(a):return a.get("实现","")==family and a.get("参数",{}).get("效果","")==effect).size()
   if family=="extension" and effect=="crystal":instances=info.get("keywords",[]).count("结晶")
   count*=maxi(1,instances)
+ if e.catalogue_death_depth>0:e.task_probe(who,"death_triggers",count)
  for i in range(count):e.triggers.append(t.duplicate(true))
 static func field_limit(e,who):return 6+3*with_key(e,who,"character-ucs-053").size()
 static func extra_cast_options(e,id,who):
@@ -430,6 +431,7 @@ static func target_tax(e,who,target):
 static func may_peek(e,who):return not with_key(e,who,"character-ucs-068").is_empty() or not with_key(e,who,"character-fdn-071").is_empty()
 
 static func milled(e,who,amount):
+ e.task_probe(who,"cards_milled",amount)
  for u in field(e):
   if has(e,u,"spell-fdf-123"):events(e,u,"spell-fdf-123",true,{"amount":amount,"milled_owner":who})
 

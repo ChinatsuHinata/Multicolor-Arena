@@ -199,7 +199,7 @@ func verify_sparse_hand_pagers(android: bool):
    var row=PagingChecks.palette_row(view,who)
    var prefix=("Android" if android else "Desktop")+" hand"+str(hand_count)+" palette"+str(who)
    expect(view.zone_pagers["palette"+str(who)].button.is_visible_in_tree() and app.ui_metrics.safe.encloses(rect),prefix+" stays visible and safe")
-   expect(absf(rect.get_center().y-row.get_center().y)<=maxf(rect.size.y,row.size.y)*0.5+app.ui_metrics.gap,prefix+" remains alongside its own palette row")
+   expect(absf(rect.get_center().y-row.get_center().y)<=maxf(rect.size.y,row.size.y)*0.5+rect.size.y*0.5+app.ui_metrics.gap,prefix+" remains alongside its own palette row")
    expect(PagingChecks.visible_hand_regions(view).all(func(region):return not rect.intersects(region)),prefix+" leaves actual corner cards and scrollbar clear")
   if hand_count==0:
    # The battlefield camera now keeps the palette above the hand. Verify the

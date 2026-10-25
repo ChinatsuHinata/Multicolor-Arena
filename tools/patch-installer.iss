@@ -13,11 +13,11 @@
 
 [Setup]
 AppId=MulticolorArena.Game
-AppName=multicolor:arena
+AppName=极彩：对决
 AppVersion={#ToVersion}
-AppVerName=multicolor:arena {#ToVersion} 修复补丁
+AppVerName=极彩：对决 {#ToVersion} 修复补丁
 DefaultDirName={localappdata}\Programs\MulticolorArena
-DefaultGroupName=Multicolor Arena
+DefaultGroupName=极彩：对决
 UsePreviousAppDir=yes
 DisableDirPage=yes
 PrivilegesRequired=lowest
@@ -69,7 +69,7 @@ begin
   Result := CheckVersion(HKEY_CURRENT_USER_64, Found) and
     CheckVersion(HKEY_CURRENT_USER_32, Found) and Found;
   if not Result and not WizardSilent then
-    MsgBox('此修复补丁仅适用于已安装的 multicolor:arena {#FromVersion}。请先安装对应的完整版本。', mbError, MB_OK);
+    MsgBox('此修复补丁仅适用于已安装的 极彩：对决 {#FromVersion}。请先安装对应的完整版本。', mbError, MB_OK);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

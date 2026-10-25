@@ -43,9 +43,6 @@ static func on_leave(e,before,c):
  var destination=c.get("return_destination",c.zone)
  if e.is_unit(before) and destination in ["grave","exile"]:
   for u in C.with_key(e,1-who,"spell-fdn-005"):C.events(e,u,"spell-fdn-005")
- if C.has(e,before,"field-rei-013"):
-  for r in before.get("catalogue_castle",[]):
-   if C.valid(e,r):var u=e.find_card(r.uid);e.Roster.field_many(e,[u],u.owner)
 static func on_sacrifice_or_exile(e,c):
  if not e.Roster.permanent(e,c):return
  for u in e.units(c.owner)+([c] if not e.units(c.owner).any(func(u):return u.uid==c.uid) else []):

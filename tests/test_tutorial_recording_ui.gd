@@ -23,11 +23,14 @@ func deck_recording(mobile: bool):
  app.is_android=mobile;app.layout_dpi_override=240 if mobile else 0
  app.layout_safe_override=Rect2(32,12,1216,696) if mobile else Rect2()
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND if mobile else Window.CONTENT_SCALE_ASPECT_KEEP
- app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  editor.change_scene("in_game");await frames()
  var before=editor.model.data.duplicate(true);var player_deck=app.draft.duplicate(true)
  editor.open_recording();await frames()
  expect(native().draft.main==["53"],"private native deck opens for function recording")
+ var saved_decks=app.decks.duplicate(true);var followups=[]
+ native().save_deck();native().save_deck(func():followups.append(true))
+ expect(followups.is_empty() and app.decks==saved_decks and native().draft.main==["53"] and editor.recorder.actions.is_empty(),"tutorial save accepts the parent callback interface while keeping saves and follow-up navigation blocked")
  native().selected="35";native().add_to("main");await frames()
  expect(editor.recorder.actions.is_empty(),"setup card additions are not recorded")
  editor.begin_recording();await frames()
@@ -91,12 +94,14 @@ func deck_recording(mobile: bool):
 
 func readonly_deck():
  app.is_android=false;app.layout_dpi_override=0;app.layout_safe_override=Rect2();root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.change_scene("deck");await frames()
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.change_scene("deck");await frames()
  editor.open_recording();await frames()
  editor.edit_record_deck();await frames()
  var setup=editor.dialog_layer.get_children().filter(func(node):return node.get_script()==preload("res://scripts/tutorial/authoring_deck.gd"))[0]
- setup.selected="35";setup.add_to("main");await frames();setup.on_apply.call(setup.draft);await frames()
+ var saved_decks=app.decks.duplicate(true);var followups=[]
+ setup.selected="35";setup.add_to("main");await frames();setup.save_deck(func():followups.append(true));await frames()
  expect(native().draft.main==["53","35"] and editor.recorder.actions.is_empty(),"read-only deck can be prepared in private native builder before recording")
+ expect(followups.is_empty() and app.decks==saved_decks and editor.dialog_layer==null,"authoring save applies the teaching deck without saving player decks or running external follow-ups")
  editor.begin_recording();await frames()
  var overview=native().deck_overview
  var card=overview.card_frames.filter(func(item):return item.source_zone=="main")[0]
@@ -117,7 +122,7 @@ func delete_key(options: Dictionary={}):
  event=event.duplicate();event.pressed=false;root.push_input(event,true);await frames(2)
 
 func setup_hand_deletion():
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
  var scene=editor.model.data.scenarios.scene_1
  scene.players[0].hand=[{"card_id":"53","alias":"remove"},{"card_id":"53","alias":"keep"}]
  scene.players[1].hand=[{"card_id":"96","alias":"enemy"},{"card_id":"96","alias":"enemy_copy"}]
@@ -167,7 +172,7 @@ func setup_hand_deletion():
  editor.close_recording();await frames()
 
 func battle_recording():
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
  var scene=editor.model.data.scenarios.scene_1
  scene.players[0].field=[{"card_id":"53","alias":"a"}];scene.players[1].field=[{"card_id":"53","alias":"b"}]
  for who in range(2):scene.players[who].deck_order=[{"card_id":"53"},{"card_id":"35"}]

@@ -1,7 +1,9 @@
 extends CanvasLayer
 ## Menus own a separate canvas and consume background input until closed.
 signal closed
-const TOP_LAYER=1024
+# Godot draws embedded Windows (dialogs and dropdowns) on layer 1024.
+# Keep menus above gameplay canvases, but strictly below those windows.
+const TOP_LAYER=1023
 var host
 var backdrop: ColorRect
 var panel: PanelContainer

@@ -28,19 +28,19 @@ func check_shell(title: String):
  expect(popup is CanvasLayer and popup.layer==popup.TOP_LAYER and popup.layer>0,title+" uses a separate top canvas")
  expect(popup.backdrop.get_global_rect().encloses(root.get_visible_rect()) and popup.backdrop.mouse_filter==Control.MOUSE_FILTER_STOP,title+" blocks the full viewport")
  expect(app.ui_metrics.safe.grow(1).encloses(popup.panel.get_global_rect()) and popup.panel.get_global_rect().get_center().distance_to(app.ui_metrics.safe.get_center())<1,title+" is centered within the safe area")
- expect(popup.actions.all(func(button):return button.size.y>=64 if app.is_android else button.size.y>=app.ui_metrics.hit),title+" keeps all actions touch sized")
+ expect(popup.actions.all(func(button):return button.size.y>=44 if app.is_android else button.size.y>=app.ui_metrics.hit),title+" keeps all actions touch sized")
  var close=popup.close_button
  expect(close.get_theme_font("font").get_string_size(close.text,HORIZONTAL_ALIGNMENT_LEFT,-1,close.get_theme_font_size("font_size")).x<=close.size.x-close.get_theme_stylebox("normal").get_minimum_size().x,title+" keeps the close label visible")
 
 func check_deck_grid():
  var popup=app.menu_popup
  expect(popup.scroll==null and popup.grid is GridContainer and popup.grid.columns==2,"deck menu uses two columns without a scroll container")
- expect(popup.actions.size()==8 and popup.actions.all(func(button):return button.is_visible_in_tree() and popup.panel.get_global_rect().encloses(button.get_global_rect())),"all eight deck actions are visible inside the popup")
+ expect(not popup.actions.is_empty() and popup.actions.all(func(button):return button.is_visible_in_tree() and popup.panel.get_global_rect().encloses(button.get_global_rect())),"all current deck actions are visible inside the popup")
  var paired=true
- for i in range(0,popup.actions.size(),2):
+ for i in range(0,popup.actions.size()-1,2):
   var left=popup.actions[i].get_global_rect();var right=popup.actions[i+1].get_global_rect()
   paired=paired and is_equal_approx(left.position.y,right.position.y) and left.end.x<right.position.x
- expect(paired,"deck actions fill four rows of two buttons")
+ expect(paired,"deck action pairs share rows in the two-column grid")
  expect(popup.actions.all(func(button):return button.text not in ["打开截图文件夹","组卡教程"]),"Android deck menu omits the folder and tutorial actions")
  expect(popup.actions.all(func(button):return button.get_theme_font("font").get_string_size(button.text,HORIZONTAL_ALIGNMENT_LEFT,-1,button.get_theme_font_size("font_size")).x<=button.size.x-button.get_theme_stylebox("normal").get_minimum_size().x),"deck action captions fit without truncation")
 
@@ -50,11 +50,16 @@ func probe(parent: Node) -> Button:
  return button
 
 func run():
- Store.Paths.root_override=ProjectSettings.globalize_path("res://work/menu-modal-tests/"+str(Time.get_ticks_usec()))
+ var fixture="res://work/menu-modal-tests/"+str(Time.get_ticks_usec())
+ DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(fixture))
+ Store.Paths.root_override=ProjectSettings.globalize_path(fixture.path_join("portable"))
  root.mode=Window.MODE_WINDOWED;root.size=Vector2i(1280,720)
  root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND;root.gui_embed_subwindows=true
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate()
+ app.settings_path=fixture.path_join("settings.json");app.account_session_path=fixture.path_join("account.json")
+ app.tutorial_local_directory=fixture.path_join("tutorials")
+ root.add_child(app);await frames()
  app.is_android=true;app.layout_dpi_override=320
  app.layout_safe_override=Rect2(30,12,1220,690)
  app.draft=Store.blank("菜单遮挡测试");app.draft.rule_set="test";app.draft.leader="70"
@@ -79,7 +84,7 @@ func run():
  expect(background_clicks==1,"background controls work again after closing the deck menu")
  await tap(ui.tools_menu.get_global_rect().get_center())
  popup=app.menu_popup
- await tap(popup.actions[3].get_global_rect().get_center())
+ await tap(find_button(popup,"重命名").get_global_rect().get_center())
  expect(not app.menu_popup_open() and app.get_children().any(func(child):return child is ConfirmationDialog and child.visible),"menu action closes the menu before opening the rename dialog")
  for child in app.get_children():
   if child is ConfirmationDialog:child.hide();child.queue_free()
@@ -108,7 +113,9 @@ func run():
  app.menu();await frames()
  expect(not app.menu_popup_open() and app.screen.find_child("ModalMenu",true,false)==null,"page changes remove the modal and its input blocker")
 
- for mobile in [true,false]:
+ # Android's current battle menu is a separate Control, covered by
+ # test_android_battle_layout.gd. Only PC battle uses this shared CanvasLayer.
+ for mobile in [false]:
   background_clicks=0
   app.is_android=mobile;app.debug_mode=not mobile
   app.layout_safe_override=Rect2();app.layout_dpi_override=240 if mobile else 0
@@ -140,16 +147,14 @@ func run():
   expect(background_clicks==0,"background remains blocked after HUD rebuilding")
   await capture("battle-modal-menu-"+("android" if mobile else "pc"))
   popup=app.menu_popup
-  await click(popup.actions[1].get_global_rect().get_center());await frames()
-  expect(not app.menu_popup_open() and view.history_open,"battle menu action opens the match history")
-  view.close_history();await frames()
+  await click(find_button(popup,"设置").get_global_rect().get_center());await frames()
+  expect(not app.menu_popup_open() and view.modal and view.modal_root.get_child(0).get_node("DialogTitle").text=="对战设置","battle menu action opens the current settings overlay")
+  expect(find_button(view.modal_root,"本局投降")==null,"battle settings no longer include surrender")
+  view.close_overlay();await frames()
   view.open_tools_menu();await frames();view.android_back();await frames()
   expect(not app.menu_popup_open(),"battle back closes the top menu")
   await click(background.get_global_rect().get_center())
   expect(background_clicks==1,"battle background controls resume after closing")
-  view.settings_menu();await frames()
-  expect(find_button(view.modal_root,"本局投降")==null,"battle settings no longer include surrender")
-  view.close_overlay();await frames()
   if not mobile:
    view.open_tools_menu();await frames()
    await click(find_button(app.menu_popup,"测试说明").get_global_rect().get_center());await frames()

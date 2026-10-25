@@ -1,4 +1,5 @@
 extends Control
+const Palette=preload("res://scripts/ui_palette.gd")
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const RevealReview=preload("res://scripts/duel_reveal_review.gd")
 const History=preload("res://scripts/duel_history.gd")
@@ -29,6 +30,7 @@ var trigger_order_draft_key=""
 var x_input_draft_key=""
 var x_input_draft=""
 var STAGE=Rect2(0,0,1600,900)
+var battle_backdrop: Control
 var TOUCH_CAMERA_AREA=Rect2(250,100,1110,560)
 const TOUCH_PAN_HOLD_MS=450
 const TOUCH_DRAG_THRESHOLD=12.0
@@ -44,7 +46,7 @@ var NOTICE=Rect2(307,568,995,28)
 var PROMPT=Rect2(310,598,1000,28)
 var OPPONENT_HAND_COUNT=Rect2(1366,76,218,62)
 var SIDEBAR=Rect2(1366,100,218,660)
-var INSPECTION=Rect2(16,100,218,660)
+var INSPECTION=Rect2(16,156,218,604)
 var ANDROID_ACTION_X=1366.0
 var ANDROID_ACTION_WIDTH=218.0
 var ANDROID_ACTION_CONFIRM_Y=769.0
@@ -169,6 +171,10 @@ var android_back_swipe_start=Vector2.ZERO
 var android_back_swipe_active=false
 var android_palette_owner=-1
 var android_palette_view=false
+const KEEP_TITLE_TEXT="自动支付时优先剩下这些颜色"
+var keep_popup_open=false
+var keep_popup: Panel=null
+var keep_dismiss: Control=null
 var android_focus_owner=-1
 var android_auto_focus_owner=-1
 var android_manual_focus_override=-1
@@ -194,6 +200,7 @@ var android_palette_touch_last=Vector2.ZERO
 var android_palette_touch_dragged=false
 var android_palette_scroll_x=0
 var zone_pagers={}
+const PAGER_Z=103
 var field_capacity_badge: Panel
 var zone_page_touch_index=-1
 var zone_page_touch_key=""
@@ -244,6 +251,8 @@ var camera_touch_started_ms=0
 var camera_pinch_distance=0.0
 var building_prompt=false
 var effects: Control
+var emotes: Control
+var battle_products: Dictionary={}
 var damage_values={}
 var damage_controls={}
 var damage_signature=""
@@ -274,11 +283,18 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
   session.error_raised.connect(network_error)
  else:
   debug_mode=host.debug_mode and not is_android;engine=Duel.new();engine.debug_enabled=debug_mode;engine.debug_free_payment=debug_mode and host.debug_free_payment;engine.start(a,b,first,seed_value)
+ configure_shop_products()
  viewport=SubViewport.new(); viewport.own_world_3d=true
  viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS
  viewport.render_target_clear_mode=SubViewport.CLEAR_MODE_ALWAYS
+ viewport.transparent_bg=Palette.enabled
  viewport.msaa_3d=Viewport.MSAA_4X; add_child(viewport)
  resize_world()
+ if Palette.enabled:
+  battle_backdrop=preload("res://scripts/battle_backdrop.gd").new()
+  battle_backdrop.name="BattleBackdrop"
+  add_child(battle_backdrop)
+  move_child(battle_backdrop,0)
  stage=TextureRect.new(); stage.position=STAGE.position; stage.size=STAGE.size
  stage.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; stage.texture=viewport.get_texture()
  stage.stretch_mode=TextureRect.STRETCH_SCALE; add_child(stage)
@@ -288,6 +304,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  table.external_stack=true;table.local_seat=local_seat
  table.condition_hint_provider=conditional_hint
  table.build(engine,host.texture,host.battlefield_background)
+ table.attach_fx(battle_products)
  table.set_top_down_view(host.top_down_view)
  table.object_selected.connect(object_clicked)
  table.avatar_selected.connect(leader_zone_clicked)
@@ -359,6 +376,7 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
    host.debug_free_payment=value
    render())
   debug_controls.add_child(debug_free_checkbox)
+ emotes=preload("res://scripts/duel_emotes.gd").new();ui.add_child(emotes);emotes.build(self)
  responsive.position_persistent()
  get_viewport().size_changed.connect(resize_world)
  if session!=null:
@@ -964,6 +982,7 @@ func mulligan_selection_for_snapshot(packet: Dictionary) -> Array:
  return selection.duplicate()
 func _process(delta):
  if engine==null: return
+ if is_instance_valid(emotes):emotes.refresh()
  if network_session!=null:
   if not network_session.snapshots.is_empty() and not revealing() and not table.combat_animating:
    selection=mulligan_selection_for_snapshot(network_session.snapshots[0])
@@ -981,7 +1000,7 @@ func _process(delta):
  if network_session==null and not debug_mode and engine.pending.get("kind","")=="reveal_review" and engine.pending.owner==1:
   engine.ai_step(1);render();return
  update_badge_positions()
- if host.menu_popup_open() or table.combat_animating or history_open or debug_drag_uid!=0 or observing or modal or action_menu_open or not local.is_empty() or drag_uid!=0 or engine.winner!=-2: return
+ if host.menu_popup_open() or table.combat_animating or history_open or debug_drag_uid!=0 or observing or modal or action_menu_open or not local.is_empty() or drag_uid!=0 or engine.winner!=-2 or is_instance_valid(emotes) and is_instance_valid(emotes.wheel): return
  if Time.get_ticks_msec()<undo_auto_pause_until:return
  if not fast_mode and (table.is_animating() or Time.get_ticks_msec()<banner_until): return
  clock_time+=delta
@@ -1037,6 +1056,17 @@ func btn(text: String,rect: Rect2,action: Callable,accent: bool=false,parent: No
  if network_locked() and not inspection_action:button.disabled=true
  if building_prompt and parent==null: button.set_meta("choice_widget",true)
  return button
+
+func configure_shop_products():
+ battle_products={}
+ # Network equipment is verified and frozen by the room authority.
+ if tutorial_runtime!=null or network_session!=null:return
+ var inventory=host.get("shop_inventory")
+ if inventory==null:return
+ battle_products=inventory.battle_loadout()
+ engine.LeaderEmotes.equip(engine,local_seat,battle_products.keys())
+ # 台面可能已建好（重开一局），商品快照要同步过去；未建时 attach_fx 会用同一份。
+ if is_instance_valid(table):table.set_fx_products(battle_products)
 
 func battle_button(text: String,desktop_rect: Rect2,_android_y: float,action: Callable,accent: bool=false) -> Button:
  var result=btn(text,desktop_rect,func():
@@ -1121,6 +1151,138 @@ func android_choice_on_top():
 func toggle_android_palette(who: int):
  set_android_camera_focus(-1 if android_palette_view and android_palette_focus_owner()==who else who)
 
+func keep_button_rect() -> Rect2:
+ if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.enemy_life.size.x,host.ui_metrics.hit)
+ return Rect2(INSPECTION.position.x,100,INSPECTION.size.x,44)
+
+func keep_popup_rect() -> Rect2:
+ var gap=host.ui_metrics.gap
+ if is_android:
+  var sw=keep_swatch_size()
+  var pad=16.0
+  var rect=Rect2(Vector2(keep_button_rect().end.x+gap,keep_button_rect().position.y),Vector2(pad*2+sw*5+8*4,pad*2+keep_title_height()+8+sw))
+  rect.position.x=minf(rect.position.x,host.ui_metrics.safe.end.x-rect.size.x)
+  rect.position.y=minf(rect.position.y,host.ui_metrics.safe.end.y-rect.size.y)
+  return rect
+ # The left column below y=156 is the inspection panel, so the desktop popup
+ # opens to the right of the button instead of over the card art.
+ return Rect2(INSPECTION.end.x+host.ui_metrics.gap,keep_button_rect().position.y,324,106)
+
+func keep_swatch_size() -> float:
+ return minf(host.ui_metrics.hit,75.0) if is_android else 52.0
+
+func keep_title_room() -> float:
+ return keep_swatch_size()*5+(8.0 if is_android else 10.0)*4
+
+## ui_metrics.font_size() raises anything at or above 26 up to title size, so a
+## high-DPI Android title overflowed its box; shrink against the real width.
+func keep_title_font() -> int:
+ var font=host.get_theme_default_font()
+ var size=host.ui_metrics.small if is_android else 15
+ var floor_size=14 if is_android else 12
+ var room=keep_title_room()
+ while size>floor_size and font.get_string_size(KEEP_TITLE_TEXT,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>room:size-=1
+ return size
+
+func keep_title_height() -> float:
+ return ceilf(host.get_theme_default_font().get_height(keep_title_font()))
+
+func keep_caption() -> String:
+ var colors=host.auto_pay_keep_colors
+ return ("保留色：" if is_android else "自动支付保留：")+("无" if colors.is_empty() else "".join(colors))
+
+func render_keep_color():
+ keep_popup=null;keep_dismiss=null
+ var rect=keep_button_rect()
+ # The dismiss layer must be added before the button: sibling Controls paint in
+ # tree order, so a later full-rect layer would swallow the button itself.
+ if keep_popup_open:
+  keep_dismiss=Control.new();keep_dismiss.name="AutoPayKeepDismiss"
+  # Floating Android zone shortcuts draw at 110; the open popup owns input above them.
+  keep_dismiss.z_index=111
+  keep_dismiss.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+  keep_dismiss.mouse_filter=Control.MOUSE_FILTER_STOP
+  keep_dismiss.gui_input.connect(func(event):
+   if event is InputEventMouseButton and event.pressed or event is InputEventScreenTouch and event.pressed:
+    keep_popup_open=false;render())
+  hud.add_child(keep_dismiss)
+ var button=host.button(hud,keep_caption(),rect,func(): keep_popup_open=not keep_popup_open;render(),not host.auto_pay_keep_colors.is_empty())
+ button.name="AutoPayKeepButton"
+ button.z_index=111 if keep_popup_open else 0
+ if is_android:host.ui_metrics.button(button)
+ button.tooltip_text="自动支付时优先留下所选颜色；再点一次色块取消"
+ var font=button.get_theme_font("font")
+ var size=host.ui_metrics.button_font if is_android else 16
+ var floor_size=14 if is_android else 12
+ var room=rect.size.x-button.get_theme_stylebox("normal").get_minimum_size().x
+ while size>floor_size and font.get_string_size(button.text,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>room:size-=1
+ button.add_theme_font_size_override("font_size",size)
+ button.custom_minimum_size=rect.size;button.size=rect.size
+ if not keep_popup_open:return
+ var popup_rect=keep_popup_rect()
+ keep_popup=host.box(hud,popup_rect,Color("#101e2b"),host.GOLD)
+ keep_popup.name="AutoPayKeepPopup"
+ keep_popup.z_index=111
+ var frame=host.style(Color("#101e2b"),host.GOLD)
+ frame.set_border_width_all(2)
+ frame.shadow_color=Color(0.05,0.02,0.05,0.55);frame.shadow_size=10
+ keep_popup.add_theme_stylebox_override("panel",frame)
+ var pad=16.0 if is_android else 12.0
+ var title_font=keep_title_font()
+ var title_height=keep_title_height() if is_android else 20.0
+ var title=txt(KEEP_TITLE_TEXT,Rect2(pad,pad,popup_rect.size.x-pad*2,title_height),title_font,host.GOLD,keep_popup)
+ title.name="AutoPayKeepTitle"
+ # host.label() routes through ui_metrics.font_size(), which would push a large
+ # size back up to title; the shrink-to-fit result has to be applied last.
+ title.add_theme_font_size_override("font_size",title_font)
+ var sw=keep_swatch_size()
+ var gap=8.0 if is_android else 10.0
+ var top=pad+title_height+gap
+ for i in range(engine.COLORS.size()):
+  var color=engine.COLORS[i]
+  var cell=host.button(keep_popup,color,Rect2(pad+i*(sw+gap),top,sw,sw),func(): toggle_keep_color(color),false)
+  cell.name="AutoPayKeep"+color
+  cell.add_theme_font_size_override("font_size",host.ui_metrics.body if is_android else 22)
+  cell.add_theme_color_override("font_color",Color("#172027") if color=="黄" else Color.WHITE)
+  cell.add_theme_color_override("font_hover_color",Color("#172027") if color=="黄" else Color.WHITE)
+  cell.add_theme_color_override("font_pressed_color",Color("#172027") if color=="黄" else Color.WHITE)
+  var paper=StyleBoxFlat.new()
+  paper.bg_color=HexCost.INK[color]
+  paper.set_corner_radius_all(6)
+  paper.border_color=host.GOLD if color in host.auto_pay_keep_colors else Color("#d3d9dd")
+  paper.set_border_width_all(3 if color in host.auto_pay_keep_colors else 1)
+  cell.add_theme_stylebox_override("normal",paper)
+  var hot=paper.duplicate();hot.border_color=Color("#fbf2f0");hot.set_border_width_all(2)
+  cell.add_theme_stylebox_override("hover",hot)
+  cell.add_theme_stylebox_override("pressed",hot)
+  cell.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+  if is_android:host.ui_metrics.button(cell)
+  cell.custom_minimum_size=Vector2(sw,sw);cell.size=Vector2(sw,sw)
+
+func toggle_keep_color(color: String):
+ var colors=host.auto_pay_keep_colors.duplicate()
+ if color in colors:colors.erase(color)
+ else:colors.append(color)
+ host.set_auto_pay_keep_colors(colors)
+
+func keep_popup_input(event: InputEvent) -> bool:
+ if not keep_popup_open or not (event is InputEventScreenTouch or event is InputEventMouseButton):return false
+ # Zone shortcuts have their own pointer router and a later GUI tree position.
+ # Route popup presses here so neither path can steal a swatch or outside tap.
+ get_viewport().set_input_as_handled()
+ if event is InputEventMouseButton and Time.get_ticks_msec()<suppress_touch_mouse_until and event.position.distance_to(suppress_touch_mouse_point)<28:return true
+ if event is InputEventScreenTouch:
+  suppress_touch_mouse_until=Time.get_ticks_msec()+250;suppress_touch_mouse_point=event.position
+ if not event.pressed:return true
+ if is_instance_valid(keep_popup) and keep_popup.get_global_rect().has_point(event.position):
+  if event is InputEventMouseButton and event.button_index!=MOUSE_BUTTON_LEFT:return true
+  for cell in keep_popup.get_children():
+   if cell is Button and cell.get_global_rect().has_point(event.position):
+    cell.pressed.emit();break
+ else:
+  keep_popup_open=false;render()
+ return true
+
 func render_android_palette(_available: Array):
  android_palette_owner=-1
  android_palette_panel=null;android_palette_scroll=null;android_palette_tiles={}
@@ -1136,6 +1298,7 @@ func render_zone_pagers():
    if pages<=1:continue
    var key=group+str(who)
    var pager=Control.new();pager.name="ZonePager"+key
+   pager.z_index=PAGER_Z
    pager.size=Vector2(hit*1.5 if group=="palette" else hit,hit);pager.mouse_filter=Control.MOUSE_FILTER_IGNORE
    hud.add_child(pager)
    var caption="%d/%d\n▶" % [table.zone_pages[who][group]+1,pages]
@@ -1154,30 +1317,59 @@ func render_zone_pagers():
 func render_field_capacity():
  var used=engine.field_slots(local_seat)
  var limit=engine.Cat.field_limit(engine,local_seat)
- var font_size=host.ui_metrics.body if is_android else 20
+ var enemy_used=engine.field_slots(1-local_seat)
+ var enemy_limit=engine.Cat.field_limit(engine,1-local_seat)
  var caption="%d/%d" % [used,limit]
+ var enemy_caption="敌 %d/%d" % [enemy_used,enemy_limit]
+ var font_size=host.ui_metrics.body if is_android else 20
  var font=host.get_theme_font("font")
- var dimensions=Vector2(maxf(64,font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+20),maxf(32,font.get_height(font_size)+8))
+ # Lay the two counts out by their own minimum widths. Splitting the panel in half
+ # let a longer enemy count overflow its half, because Label snaps back to its
+ # minimum size whenever the assigned width is smaller.
+ var gutter=font.get_string_size(" · ",HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+ var own_width=font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+ var enemy_width=font.get_string_size(enemy_caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+ var dimensions=Vector2(maxf(96,own_width+enemy_width+gutter+16),maxf(32,font.get_height(font_size)+8))
  field_capacity_badge=host.box(hud,Rect2(Vector2.ZERO,dimensions),Color("#101e2b"),host.GOLD)
  field_capacity_badge.name="FieldCapacity"
  field_capacity_badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var left=maxf(4,(dimensions.x-(own_width+enemy_width+gutter))*0.5)
  var value=board_badge_label(caption,font_size,host.GOLD,field_capacity_badge)
- value.size=dimensions
+ value.size=Vector2(own_width+2,dimensions.y)
+ value.position=Vector2(left,0)
  value.name="FieldCapacityValue"
- value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
- field_capacity_badge.tooltip_text="我方单位战场格：已用 %d / 上限 %d，剩余 %d 格；不占战场格的单位不计入" % [used,limit,maxi(0,limit-used)]
+ value.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ var enemy_value=board_badge_label(enemy_caption,font_size,Color("#ef5350"),field_capacity_badge)
+ enemy_value.name="FieldCapacityEnemyValue"
+ enemy_value.position=Vector2(left+own_width+gutter,0);enemy_value.size=Vector2(enemy_width+2,dimensions.y)
+ enemy_value.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;enemy_value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ field_capacity_badge.tooltip_text="我方战场格：已用 %d / 上限 %d；敌方战场格：已用 %d / 上限 %d。不占战场格的单位不计入。" % [used,limit,enemy_used,enemy_limit]
 
 func update_field_capacity_position():
  if not is_instance_valid(field_capacity_badge):return
- var bounds=projected_android_focus(table.zone_page_bounds(local_seat,"unit"))
- var clear=host.ui_metrics.safe if is_android else STAGE
- var x=minf(bounds.end.x+8,SIDEBAR.position.x-field_capacity_badge.size.x-8)
- field_capacity_badge.position=Vector2(clampf(x,clear.position.x,clear.end.x-field_capacity_badge.size.x),clampf(bounds.get_center().y-field_capacity_badge.size.y*0.5,clear.position.y,clear.end.y-field_capacity_badge.size.y))
- for i in range(zone_pagers.size()+1):
-  for parts in zone_pagers.values():
-   if not is_instance_valid(parts.root) or not parts.root.visible:continue
-   var pager_rect=parts.root.get_global_rect().grow(8)
-   if field_capacity_badge.get_global_rect().intersects(pager_rect):field_capacity_badge.position.y=pager_rect.position.y-field_capacity_badge.size.y
+ var size=field_capacity_badge.size
+ var safe=host.ui_metrics.safe
+ var row=pager_row(local_seat,"unit")
+ var anchor=row.end if row.has_area() else projected_android_focus(table.zone_page_bounds(local_seat,"unit")).end
+ var gap=host.ui_metrics.gap
+ var blocked=palette_pager_obstacles()
+ for parts in zone_pagers.values():
+  if is_instance_valid(parts.root) and parts.root.visible:blocked.append(parts.root.get_global_rect().grow(gap))
+ if is_instance_valid(hand_scroll) and hand_scroll.is_visible_in_tree():blocked.append(hand_scroll.get_global_rect().grow(gap))
+ var candidates=[
+  Vector2(minf(anchor.x+gap,SIDEBAR.position.x-size.x-gap),anchor.y-size.y*0.5),
+  Vector2(anchor.x-size.x-gap,anchor.y-size.y*0.5),
+  Vector2(anchor.x+gap,anchor.y-size.y-gap),
+  Vector2(anchor.x+gap,anchor.y+gap)]
+ var chosen=Vector2.INF
+ for at in candidates:
+  var rect=Rect2(at,size)
+  if safe.encloses(rect) and not blocked.any(func(other):return rect.intersects(other)):chosen=at;break
+ if not chosen.is_finite():
+  var solved=clear_palette_pager_position(candidates[0],size,safe,blocked)
+  chosen=solved if solved.is_finite() else candidates[0].clamp(safe.position,safe.end-size)
+ field_capacity_badge.position=chosen
+ field_capacity_badge.z_index=PAGER_Z-1
  field_capacity_badge.visible=not (is_android and android_palette_view)
 
 func next_zone_page(who: int,group: String):
@@ -1214,12 +1406,27 @@ func palette_control_obstacles(control: Control,clip: Rect2=Rect2()) -> Array:
  if clip.has_area():rect=rect.intersection(clip)
  return [rect] if rect.has_area() else []
 
+func pager_row(who: int,group: String) -> Rect2:
+ var row=Rect2()
+ for descriptor in table.descriptors.values():
+  if descriptor.owner!=who or descriptor.uid<=0:continue
+  if group=="palette":
+   if descriptor.zone!="palette":continue
+  else:
+   if descriptor.zone!="field" or descriptor.get("group","")!="unit":continue
+  var node=table.visuals[descriptor.key]
+  if not is_instance_valid(node):continue
+  if not node.is_visible_in_tree() or table.camera.is_position_behind(node.global_position):continue
+  var rect=projected_card_rect(node)
+  row=row.merge(rect) if row.has_area() else rect
+ return row
+
 func palette_pager_obstacles() -> Array:
  var blocked=[]
  for control in hud.get_children():
   if not control is Control or control==field_capacity_badge or control.name.begins_with("ZonePager"):continue
   blocked.append_array(palette_control_obstacles(control))
- for control in [hand_scroll,stack_panel,stack_panel.toggle_button,android_back_button]:
+ for control in [hand_scroll,stack_panel,stack_panel.toggle_button,android_back_button,android_choice_panel,android_choice_restore]:
   if is_instance_valid(control):blocked.append_array(palette_control_obstacles(control))
  if opponent_layer.visible:
   for tile in enemy_nodes.values():
@@ -1227,18 +1434,20 @@ func palette_pager_obstacles() -> Array:
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
   for button in android_zone_shortcuts.buttons.values():
    blocked.append_array(palette_control_obstacles(button))
+ for descriptor in table.descriptors.values():
+  if descriptor.zone not in ["field","palette","leader"] and not (descriptor.zone=="exile" and descriptor.has("castle_uid")):continue
+  var node=table.visuals[descriptor.key]
+  if is_instance_valid(node) and node.is_visible_in_tree() and not table.camera.is_position_behind(node.global_position):blocked.append(projected_card_rect(node))
  return blocked.map(func(rect):return rect.grow(host.ui_metrics.gap))
 
 func clear_palette_pager_position(preferred: Vector2,dimensions: Vector2,area: Rect2,blocked: Array) -> Vector2:
- # At each obstacle edge, find the nearest free vertical interval for the button.
+ # Uses only fixed columns (preferred, left edge, right edge) so the result
+ # does not shift when obstacle edges move with the camera.
  var last=area.end-dimensions
  if last.x<area.position.x or last.y<area.position.y:return Vector2.INF
  blocked=blocked.filter(func(rect):return rect.has_area() and area.intersects(rect))
  preferred=preferred.clamp(area.position,last)
  var columns=[preferred.x,area.position.x,last.x]
- for rect in blocked:
-  columns.append(clampf(rect.position.x-dimensions.x,area.position.x,last.x))
-  columns.append(clampf(rect.end.x,area.position.x,last.x))
  var best=Vector2.INF;var distance=INF
  for x in columns:
   var intervals=[Vector2(area.position.y,last.y)]
@@ -1273,49 +1482,50 @@ func update_zone_pager_positions():
   if not is_instance_valid(pager) or pager.is_queued_for_deletion():continue
   var bounds=projected_android_focus(table.zone_page_bounds(parts.owner,parts.group))
   pager.position=bounds.end-pager.size-Vector2(4,4)
-  var clear=responsive.camera_focus_rect() if is_android else STAGE
+  pager.z_index=PAGER_Z
   if parts.group=="palette":
-   # Anchor each arrow to its own projected row. The camera-focus rectangle can
-   # cover only the other player's palette, so clamping both arrows into that
-   # frame made them jump to unrelated places when panning or changing focus.
    var safe=host.ui_metrics.safe.grow(-1)
    var obstacles=palette_blocked+occupied
-   var row=Rect2()
-   for descriptor in table.descriptors.values():
-    if descriptor.zone!="palette" or descriptor.owner!=parts.owner or descriptor.uid<=0:continue
-    var card=table.visuals[descriptor.key]
-    if not card.is_visible_in_tree() or table.camera.is_position_behind(card.global_position):continue
-    var rect=projected_card_rect(card)
-    row=row.merge(rect) if row.has_area() else rect
+   var row=pager_row(parts.owner,"palette")
+   # Try the two same-height neighbours first (row right, row left), then fall
+   # back to the band search. This stops the band-edge-column drift that made
+   # the arrow jump 300px on every camera pan while still allowing any clear spot.
    var preferred=Vector2(row.end.x+host.ui_metrics.gap,row.get_center().y-pager.size.y*0.5) if row.has_area() else Vector2(bounds.end.x-pager.size.x-4,bounds.get_center().y-pager.size.y*0.5)
-   var row_slack=host.ui_metrics.gap+pager.size.y*0.5
-   var row_band=Rect2(safe.position.x,clampf(preferred.y-row_slack,safe.position.y,safe.end.y-pager.size.y),safe.size.x,pager.size.y+row_slack*2).intersection(safe)
-   var at=clear_palette_pager_position(preferred,pager.size,row_band,obstacles+card_rects)
+   var at=Vector2.INF
+   if row.has_area():
+    var gap=host.ui_metrics.gap
+    for candidate in [preferred,Vector2(row.position.x-gap-pager.size.x,preferred.y)]:
+     var clamped=candidate.clamp(safe.position,safe.end-pager.size)
+     if not (obstacles+card_rects).any(func(r):return Rect2(clamped,pager.size).intersects(r)):at=clamped;break
+   if not at.is_finite():
+    var row_slack=host.ui_metrics.gap+pager.size.y*0.5
+    var row_band=Rect2(safe.position.x,clampf(preferred.y-row_slack,safe.position.y,maxf(safe.position.y,safe.end.y-pager.size.y)),safe.size.x,pager.size.y+row_slack*2).intersection(safe)
+    at=clear_palette_pager_position(preferred,pager.size,row_band,obstacles+card_rects)
    if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,safe,obstacles+card_rects)
    if not at.is_finite():at=clear_palette_pager_position(preferred,pager.size,safe,obstacles)
-   pager.position=at if at.is_finite() else preferred.clamp(host.ui_metrics.safe.position,host.ui_metrics.safe.end-pager.size)
+   pager.position=at if at.is_finite() else preferred.clamp(safe.position,safe.end-pager.size)
    pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
    continue
-  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
-   for shortcut in android_zone_shortcuts.buttons.values():
-    var shortcut_rect=shortcut.get_global_rect().grow(host.ui_metrics.gap)
-    if not Rect2(pager.position,pager.size).intersects(shortcut_rect):continue
-    var left=Vector2(shortcut_rect.position.x-pager.size.x,pager.position.y)
-    var above=Vector2(pager.position.x,shortcut_rect.position.y-pager.size.y)
-    pager.position=left if clear.encloses(Rect2(left,pager.size)) else above
-  for other_rect in occupied:
-   if not Rect2(pager.position,pager.size).intersects(other_rect):continue
-   var right=Vector2(other_rect.end.x+host.ui_metrics.gap,pager.position.y)
-   var left=Vector2(other_rect.position.x-pager.size.x-host.ui_metrics.gap,pager.position.y)
-   var above=Vector2(pager.position.x,other_rect.position.y-pager.size.y-host.ui_metrics.gap)
-   pager.position=right if clear.encloses(Rect2(right,pager.size)) else left if clear.encloses(Rect2(left,pager.size)) else above
-  pager.visible=clear.encloses(Rect2(pager.position,pager.size))
-  if is_android and android_palette_view:pager.hide()
-  if pager.visible and hand_scroll.visible and hand_scroll.get_global_rect().intersects(pager.get_global_rect()):pager.hide()
-  if pager.visible and opponent_layer.visible:
-   for tile in enemy_nodes.values():
-    if is_instance_valid(tile) and tile.is_visible_in_tree() and tile.get_global_rect().intersects(pager.get_global_rect()):pager.hide();break
-  if pager.visible:occupied.append(pager.get_global_rect())
+  if is_android and android_palette_view:pager.hide();continue
+  var unit_safe=host.ui_metrics.safe.grow(-1) if is_android else host.ui_metrics.safe
+  var unit_row=pager_row(parts.owner,"unit")
+  var unit_preferred=Vector2(unit_row.end.x+host.ui_metrics.gap,unit_row.get_center().y-pager.size.y*0.5) if unit_row.has_area() else Vector2(bounds.end.x-pager.size.x-4,bounds.get_center().y-pager.size.y*0.5)
+  var unit_at=Vector2.INF
+  if unit_row.has_area():
+   var gap=host.ui_metrics.gap
+   for candidate in [unit_preferred,Vector2(unit_row.position.x-gap-pager.size.x,unit_preferred.y)]:
+    var clamped=candidate.clamp(unit_safe.position,unit_safe.end-pager.size)
+    if not (palette_blocked+occupied+card_rects).any(func(r):return Rect2(clamped,pager.size).intersects(r)):unit_at=clamped;break
+  if not unit_at.is_finite():
+   var unit_slack=host.ui_metrics.gap+pager.size.y*0.5
+   var unit_band=Rect2(unit_safe.position.x,clampf(unit_preferred.y-unit_slack,unit_safe.position.y,unit_safe.end.y-pager.size.y),unit_safe.size.x,pager.size.y+unit_slack*2).intersection(unit_safe)
+   var unit_blocked=palette_blocked+occupied+card_rects
+   unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_band,unit_blocked)
+  if not unit_at.is_finite():
+   var unit_blocked=palette_blocked+occupied+card_rects
+   unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_safe,unit_blocked)
+  pager.position=unit_at if unit_at.is_finite() else unit_preferred.clamp(unit_safe.position,unit_safe.end-pager.size)
+  pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
  update_field_capacity_position()
 
 func zone_page_button_at(point: Vector2) -> String:
@@ -1400,7 +1610,8 @@ func render():
   table.sync();return
  if is_instance_valid(reveal_player):
   if not engine.presentation_events.is_empty():
-   reveal_player.enqueue(engine.presentation_events);engine.presentation_events.clear()
+   var presentations=emotes.consume(engine.presentation_events) if is_instance_valid(emotes) else engine.presentation_events
+   reveal_player.enqueue(presentations);engine.presentation_events.clear()
   if revealing():
    refresh_stackable_badges()
    update_badge_positions()
@@ -1410,6 +1621,7 @@ func render():
  close_overlay(true)
  if is_instance_valid(android_palette_scroll):android_palette_scroll_x=android_palette_scroll.scroll_horizontal
  clear_children(hud)
+ keep_popup=null;keep_dismiss=null
  response_prompt=null
  android_choice_panel=null
  android_choice_restore=null
@@ -1458,6 +1670,7 @@ func render():
    if is_android:host.ui_metrics.button(button)
    else:button.add_theme_font_size_override("font_size",14)
  responsive.render_hand_controls()
+ render_keep_color()
  building_prompt=true
  if not table.combat_animating: render_prompt()
  building_prompt=false
@@ -1499,6 +1712,8 @@ func render():
  elif is_android and (responsive.camera_focus_rect()!=android_camera_area or android_focus_bounds()!=android_camera_bounds):focus_android_camera(false)
  elif not is_android and (android_auto_focus_owner>=0 or tutorial_camera_view in ["own_palette","enemy_palette"]) and responsive.camera_focus_rect()!=android_camera_area:focus_palette_camera(false)
  if is_instance_valid(android_back_button):ui.move_child(android_back_button,-1)
+
+ if is_instance_valid(emotes):emotes.refresh()
 
 func render_hands(available: Array):
  hand_scroll.visible=hand_display_enabled
@@ -1868,6 +2083,9 @@ func card_tile(parent: Node,c: Dictionary,rect: Rect2,clickable: Callable=Callab
  return tile
 func inspect_card(id: String,uid: int=0,caption: String="",art_id: String=""):
  if is_android and not android_inspection_allowed:return
+ keep_popup_open=false
+ if is_instance_valid(keep_popup):keep_popup.hide()
+ if is_instance_valid(keep_dismiss):keep_dismiss.hide()
  inspect_art_id=art_id
  inspect_id=id; inspect_uid=uid; inspect_caption=caption; update_inspection()
  if is_android and is_instance_valid(inspection):ui.move_child(inspection,-1)
@@ -1992,8 +2210,8 @@ func update_inspection():
   var cost_icons=HexCost.new();cost_icons.position=Vector2(10,239 if landscape else 372)
   bg.add_child(cost_icons);cost_icons.configure(CostDisplay.for_card(info),false,198,31,info.get("variable_cost",""),info.get("variable_multiplier",1))
  inspection_text=RichTextLabel.new(); inspection_text.position=Vector2(10,378); inspection_text.size=Vector2(198,270)
- if landscape:inspection_text.position.y=278;inspection_text.size.y=370
- else:inspection_text.position.y=411;inspection_text.size.y=237
+ inspection_text.position.y=278 if landscape else 411
+ inspection_text.size.y=maxf(120,INSPECTION.size.y-inspection_text.position.y-6)
  inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.WHITE)
  inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
@@ -2130,11 +2348,8 @@ func render_prompt():
     render_inline_picker(confirm_trigger,true)
     optional_trigger_prompt()
    "leader_return":
-    text="将自机放回自机区？"
-    battle_button("返回自机区",Rect2(1330,740,237,49),695,confirm_leader_return,true)
-    var destination=engine.pending.card.get("return_destination","grave")
-    var label={"grave":"送入墓地","exile":"移除游戏","hand":"移回手牌","deck":"放入牌库","palette":"放入颜色盘"}.get(destination,"继续移动")
-    battle_button(label,Rect2(1330,810,237,43),ANDROID_ACTION_CONFIRM_Y,func(): engine.choose_return(false); render())
+    text="选择自机去向"
+    render_leader_return()
    "discard":
     text="弃置 %d 张手牌" % engine.pending.count
     var b=battle_button("确认弃牌",Rect2(1330,770,237,55),ANDROID_ACTION_CONFIRM_Y,func(): engine.discard(selection); selection=[]; render(),true)
@@ -2176,6 +2391,7 @@ func shortcut_attack() -> bool:
  return true
 
 func _unhandled_key_input(event: InputEvent):
+ if is_instance_valid(emotes) and is_instance_valid(emotes.wheel):return
  if tutorial_runtime!=null and not tutorial_controls_enabled:return
  if is_instance_valid(android_battle_menu_root):return
  if host.menu_popup_open():return
@@ -2305,6 +2521,7 @@ func tutorial_blocker_input(event: InputEvent,point: Vector2):
   tutorial_blocker_finger=-1;android_card_touch.cancel_ring()
 
 func _input(event: InputEvent):
+ if is_instance_valid(emotes) and emotes.handle(event):return
  if is_android and event is InputEventScreenTouch:
   if event.index==android_inspection_dismiss_finger:
    if not event.pressed:android_inspection_dismiss_finger=-1
@@ -2360,6 +2577,8 @@ func _input(event: InputEvent):
   var point=make_input_local(event).position
   if not camera_touches.is_empty() or STAGE.has_point(point) and android_card_touch.surface_at(ui,event.position)==null:
    get_viewport().set_input_as_handled();return
+ if keep_popup_input(event):return
+ if keep_popup_open and (event is InputEventScreenDrag or event is InputEventMouse):return
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.handle(event):return
  if is_instance_valid(trigger_order_list) and trigger_order_list.handle(event):return
  if is_android and android_card_touch.handle(event,self):return
@@ -2890,15 +3109,20 @@ func payment_excluded() -> Array:
 func refresh_payment_plan():
  if local.is_empty() or local.mode not in ["target","payment"]:return
  if local.mode=="target":local.target=picker.option() if picker.ready() else {}
- var costs=local_cost_options();var excluded=payment_excluded()
- var signature=JSON.stringify([costs,excluded,engine.source_resources(acting_player())])
+ var costs=local_cost_options();var excluded=payment_excluded();var keep=host.auto_pay_keep_colors
+ var signature=JSON.stringify([costs,excluded,engine.source_resources(acting_player()),keep])
  if local.get("payment_signature","")!=signature:
   local.payment_signature=signature
-  local.plan=PaymentDraft.solve_costs(engine,acting_player(),costs,[],excluded).plan
+  local.plan=PaymentDraft.solve_costs(engine,acting_player(),costs,[],excluded,keep).plan
  var key=signature+JSON.stringify(local.plan)
  if local.get("options_signature","")!=key:
-  local.options_signature=key
-  local.payment_options=PaymentDraft.options_for_costs(engine,acting_player(),costs,local.plan,excluded)
+  var selected=local.plan.map(func(p):return p.uid)
+  var solution=PaymentDraft.solve_selected_costs(engine,acting_player(),costs,local.plan,excluded,keep)
+  if solution.ways>0:
+   # Reassign colors without automatically selecting the sources that fill the gap.
+   local.plan=solution.plan.filter(func(p):return p.uid in selected)
+  local.options_signature=signature+JSON.stringify(local.plan)
+  local.payment_options=PaymentDraft.options_for_costs(engine,acting_player(),costs,local.plan,excluded,keep)
 func payment_ready() -> bool:
  return not local.is_empty() and local_cost_options().any(func(cost):return engine.payment_valid(acting_player(),cost,local.get("plan",[])))
 func payment_sources() -> Array:
@@ -2974,8 +3198,12 @@ func commit_local():
   local={};engine.choose_effect(paid_target);engine.paid_cast_uid=-1;picker.reset();selection=[];render();return
  if local.get("action","") in ["attack","direct_attack"]:
   engine.attack(acting_player(),local.uid,local.target,local.plan); local={}; selection=[]; picker.reset(); render(); return
+ var cast_uid=local.uid if local.get("action","")=="" or local.get("action","")=="cast" else -1
  var error=engine.commit_extension(acting_player(),local.uid,activation_target(),local.plan,local.get("key","")) if local.get("action","")=="extension" else engine.commit_ability(acting_player(),local.uid,local.index,activation_target(),local.plan) if local.get("action","")=="ability" else engine.commit_cast(acting_player(),local.uid,local.target,local.plan)
- if error.is_empty(): engine.paid_cast_uid=-1;local={}; selection=[]; picker.reset(); message=""; close_debug()
+ if error.is_empty():
+  engine.paid_cast_uid=-1;local={}; selection=[]; picker.reset(); message=""; close_debug()
+  # 符卡使用特效：提交成功后才有演出，失败或反制不触发。
+  if cast_uid>0 and engine.cards.get(engine.find_card(cast_uid).card_id,{}).kind=="符卡":table.show_spell_effect(cast_uid)
  else: message=error
  modal=false; render()
 func cancel_cast():
@@ -3116,19 +3344,49 @@ func close_android_battle_menu():
   observe_button.z_index=0
   refresh_observation()
 
-func confirm_leader_return():
+func render_leader_return():
+ var card=engine.pending.card
+ var destination=card.get("return_destination","grave")
+ var key="leader_return:%d:%d:%d:%s" % [engine.pending.owner,card.uid,card.epoch,destination]
+ var panel=android_choice_box("选择自机去向",key,true)
+ if panel==null:return
+ panel.set_meta("choice_key",key)
+ var hit=host.ui_metrics.hit;var gap=host.ui_metrics.gap
+ var caption="「%s」将移至%s，请选择去向。" % [engine.cards[card.card_id].name,ZONE_NAMES.get(destination,destination)]
+ var notice_height=responsive.wrapped_height(caption,panel.size.x-36,host.ui_metrics.body)+8
+ var scroll=responsive.floating_scroll(panel,notice_height+gap+hit)
+ if is_android:battle_choice_scroll=scroll
+ var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content)
+ content.add_theme_constant_override("separation",int(gap))
+ var notice=txt(caption,Rect2(),host.ui_metrics.body,host.GOLD,content)
+ notice.name="LeaderReturnPrompt";notice.custom_minimum_size.y=notice_height
+ notice.add_theme_font_size_override("font_size",host.ui_metrics.body)
+ notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;notice.clip_text=false
+ var choices=HBoxContainer.new();choices.name="LeaderReturnChoices";content.add_child(choices)
+ choices.add_theme_constant_override("separation",int(gap))
+ var uid=card.uid;var epoch=card.epoch
+ responsive.choice_footer_button(choices,"返回自机区",func():confirm_leader_return(uid,epoch),true)
+ var label={"grave":"送入墓地","exile":"移除游戏","hand":"移回手牌","deck":"放入牌库","palette":"放入颜色盘"}.get(destination,"继续移动")
+ responsive.choice_footer_button(choices,label,func():choose_leader_return(false,uid,epoch))
+
+func choose_leader_return(home: bool,uid: int,epoch: int):
+ if tutorial_runtime!=null and not tutorial_controls_enabled:return
+ if network_locked() or engine.pending.get("kind","")!="leader_return" or engine.pending.owner!=acting_player():return
+ if engine.pending.card.uid!=uid or engine.pending.card.epoch!=epoch:return
+ engine.choose_return(home);render()
+
+func confirm_leader_return(uid: int,epoch: int):
+ if tutorial_runtime!=null and not tutorial_controls_enabled:return
  if network_locked() or engine.pending.get("kind","")!="leader_return" or engine.pending.owner!=acting_player():return
  var card=engine.pending.card
+ if card.uid!=uid or card.epoch!=epoch:return
  if card.get("return_snapshot",{}).get("zone","")=="field" and card.get("return_destination","grave")=="grave":
-  engine.choose_return(true);render();return
- var current_engine=engine;var uid=card.uid;var epoch=card.epoch;var view_ref=weakref(self)
+  choose_leader_return(true,card.uid,card.epoch);return
+ var current_engine=engine;var view_ref=weakref(self)
  host.confirm_action("确认将「%s」放回自机区？" % engine.cards[card.card_id].name,func():
   var current_view=view_ref.get_ref()
   if current_view==null or current_view.engine!=current_engine or current_view.network_locked():return
-  var pending=current_engine.pending
-  if pending.get("kind","")!="leader_return" or pending.owner!=current_view.acting_player():return
-  if pending.card.uid!=uid or pending.card.epoch!=epoch:return
-  current_engine.choose_return(true);current_view.render())
+  current_view.choose_leader_return(true,uid,epoch))
 
 func confirm_surrender():
  if tutorial_runtime!=null or network_locked() or engine.winner!=-2:return

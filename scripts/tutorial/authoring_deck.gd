@@ -17,7 +17,7 @@ func tidy_controls(node: Node=self):
 func menu():
  on_apply.call(draft.duplicate(true))
 
-func save_deck():
+func save_deck(_after_saved: Callable=Callable()):
  menu()
 
 func guard(action: Callable):

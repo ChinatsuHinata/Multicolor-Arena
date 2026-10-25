@@ -16,6 +16,9 @@ from pathlib import Path
 import deck_plaza_store
 import cloud_deck_store
 import tournament_store
+import task_store
+import shop_store
+import community_store
 
 USERNAME = re.compile(r"[A-Za-z0-9_]{3,24}\Z", re.ASCII)
 DEVICE = re.compile(r"[a-f0-9]{32}\Z", re.ASCII)
@@ -34,7 +37,8 @@ password_changes = {}
 
 def database(path):
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(path.parent, 0o700)
+    if os.name != "nt":
+        os.chmod(path.parent, 0o700)
     conn = sqlite3.connect(path)
     if os.name != "nt":
         os.chmod(path, 0o600)
@@ -91,6 +95,8 @@ def database(path):
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS sessions_remember_hash ON sessions(remember_hash)")
     deck_plaza_store.initialize(conn)
     tournament_store.initialize(conn)
+    task_store.initialize(conn)
+    community_store.initialize(conn)
     conn.execute("""CREATE TABLE IF NOT EXISTS rating_matches (
         match_id TEXT PRIMARY KEY, player_a INTEGER NOT NULL, player_b INTEGER NOT NULL,
         created_at INTEGER NOT NULL, started_at INTEGER, status TEXT NOT NULL DEFAULT 'pending',
@@ -107,7 +113,16 @@ def database(path):
         status TEXT NOT NULL, winner INTEGER, detail TEXT NOT NULL,
         FOREIGN KEY(match_id) REFERENCES rating_matches(match_id))""")
     conn.commit()
+    task_store.tick(conn)
     return conn
+
+
+def account_tasks(conn, account):
+    snapshot = task_store.snapshot(conn, account["player_id"])
+    # The relay signs individual cosmetic grants. No account or device metadata
+    # is included in the proof shared with a match peer.
+    snapshot["shop_grants"] = {product: "" for product in snapshot["purchased_product_ids"]}
+    return snapshot
 
 
 def advance_rank(step, stars, streak, won):
@@ -249,6 +264,7 @@ def handle_password_change(conn, data):
 
 
 def handle(conn, data):
+    task_store.tick(conn)
     if not isinstance(data, dict):
         return response(False, "请求格式无效")
     action = data.get("action")
@@ -274,7 +290,7 @@ def handle(conn, data):
                 WHERE player_id=? AND platform=?""", (hashlib.sha256(token.encode("ascii")).digest(), now,
                     hashlib.sha256(remember_token.encode("ascii")).digest(), now, row[0], row[5]))
         return response(True, "已自动登录", row[1], row[2] or row[1], token, remember_token, row[5], elo=row[6], rank=player_rank(conn, row[0]))
-    if action in ("verify", "nickname", "logout"):
+    if action in ("verify", "nickname", "logout", "tasks", "task_claim", "task_reroll", "shop_buy"):
         account = verify(conn, data.get("token"))
         if action == "logout" and not account["ok"]:
             row = remembered_session(conn, data.get("remember_token"), data.get("device"))
@@ -286,6 +302,15 @@ def handle(conn, data):
             return account
         if action == "verify":
             return account
+        if action == "tasks":
+            return {"ok": True, "message": "任务已同步", "tasks": account_tasks(conn, account)}
+        if action in ("task_claim", "task_reroll", "shop_buy"):
+            try:
+                message = (shop_store.purchase(conn, account["player_id"], data.get("product_id"), data.get("expected_price")) if action == "shop_buy"
+                           else task_store.mutate(conn, account["player_id"], action, data))
+                return {"ok": True, "message": message, "tasks": account_tasks(conn, account)}
+            except ValueError as exc:
+                return {"ok": False, "message": str(exc), "tasks": account_tasks(conn, account)}
         if action == "logout":
             with conn:
                 conn.execute("DELETE FROM sessions WHERE player_id=? AND platform=?",
@@ -355,6 +380,7 @@ def handle(conn, data):
 
 def handle_match(conn, data):
     """Trusted loopback relay lifecycle. Never dispatched by the public account API."""
+    task_store.tick(conn)
     if not isinstance(data, dict):
         return {"ok": False, "message": "请求格式无效"}
     match_id = data.get("match_id")
@@ -388,7 +414,8 @@ def handle_match(conn, data):
             conn.execute("UPDATE rating_matches SET status='cancelled' WHERE match_id=?", (match_id,))
         elif action == "settle":
             winner = data.get("winner")
-            if type(winner) is not int or winner not in (0, 1):
+            competition = conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone()
+            if type(winner) is not int or winner not in ((-1, 0, 1) if competition else (0, 1)):
                 return {"ok": False, "message": "胜负无效"}
             if row[2] == "settled":
                 if winner != row[3]:
@@ -413,9 +440,11 @@ def handle_match(conn, data):
                 conn.execute("""UPDATE rating_matches SET status='settled',winner=?,elo_a=?,elo_b=?,delta_a=?,delta_b=?
                     WHERE match_id=?""", (winner, *next_ratings, delta, -delta, match_id))
                 if conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
-                    settled = tournament_store.handle_game(conn, {"action": "settle", "match_id": match_id, "winner": winner})
+                    settled = tournament_store.handle_game(conn, {"action": "settle", "match_id": match_id, "winner": winner, **({"scores": data["scores"]} if "scores" in data else {})})
                     if not settled["ok"]:
                         raise ValueError(settled["message"])
+                else:
+                    task_store.record_match(conn, row[:2], winner, mode=row[8], evidence=data.get("evidence"), match_id=match_id)
         elif action not in ("create", "start", "cancel"):
             return {"ok": False, "message": "未知匹配操作"}
         row = conn.execute("SELECT status,winner,elo_a,elo_b,delta_a,delta_b,rank_a,rank_b,mode FROM rating_matches WHERE match_id=?",
@@ -441,19 +470,25 @@ class Handler(BaseHTTPRequestHandler):
     timeout = 10  # An incomplete loopback request must not block every account.
 
     def do_POST(self):
-        if self.path not in ("/account", "/session", "/deck-plaza", "/cloud-decks", "/tournaments", "/tournament-game", "/match") or self.client_address[0] != "127.0.0.1":
+        if self.path not in ("/account", "/session", "/deck-plaza", "/cloud-decks", "/tournaments", "/tournament-game", "/match", "/community") or self.client_address[0] != "127.0.0.1":
             self.send_error(404)
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             length = 0
-        if not 0 < length <= (16384 if self.path in ("/deck-plaza", "/cloud-decks", "/tournaments") else 2048):
+        # Match results carry both players' aggregate probes and final-game
+        # facts. Keep the larger envelope exclusive to the loopback match API.
+        limit = 8 * 1024 * 1024 if self.path == "/community" else 65536 if self.path == "/match" else 16384 if self.path in ("/deck-plaza", "/cloud-decks", "/tournaments") else 2048
+        if not 0 < length <= limit:
             self.send_error(413)
             return
         try:
             data = json.loads(self.rfile.read(length))
-            if self.path == "/match":
+            if self.path == "/community":
+                account = verify(self.conn, data.get("token")) if isinstance(data, dict) else response(False, "请求格式无效")
+                result = community_store.handle(self.conn, data, account)
+            elif self.path == "/match":
                 result = handle_match(self.conn, data)
             elif self.path == "/tournament-game":
                 result = tournament_store.handle_game(self.conn, data)
@@ -480,6 +515,7 @@ class AccountHTTPServer(HTTPServer):
     request_queue_size = 128
 
     def service_actions(self):
+        task_store.tick(self.RequestHandlerClass.conn)
         tournament_store.tick(self.RequestHandlerClass.conn)
 
 

@@ -93,7 +93,7 @@ static func fixed_deck(d: Dictionary,random: bool=false) -> bool:
 static func wildcard(e,c: Dictionary,required: String) -> bool:
  if c.is_empty() or required.is_empty() or not e.cards.get(c.card_id,{}).get("abilities",[]).any(func(a):return a.get("参数",{}).get("效果","")==ANY_SELF):return false
  var p=e.players[c.owner]
- var enabled=c.get("leader",false) or c.get("leader_counters",0)>0 or c.get("inherited_self",false)
+ var enabled=(c.get("leader",false) and c.owner==c.get("original_owner",c.owner)) or c.get("leader_counters",0)>0 or c.get("inherited_self",false)
  if c.zone in ["field","leader"] and p.get("all_self_turn",-1)==e.turn:enabled=true
  if c.zone=="field" and p.field.any(func(u):return e.DB.has_ability(e.cards[u.card_id],"grant_leader_abilities")):enabled=true
  if not enabled:return false

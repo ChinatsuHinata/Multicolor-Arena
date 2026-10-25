@@ -18,9 +18,11 @@ const NIGHT=Color("#2a1828")
 const PLUM_INK=Color("#33202f")
 ## Battlefield: dusk sky behind the table, and how far the black playmat is lifted.
 const FIELD_SKY=Color("#5a3550")
-const MAT_LIFT=Color(0.34,0.22,0.29)
+const MAT_LIFT=Color(0.22,0.13,0.19)
 const MAT_TINT=Color(1.0,0.96,0.97)
 const FIELD_GUIDE=Color(0.98,0.78,0.85,0.55)
+const MAT_VIGNETTE=0.72
+const MAT_EDGE=Color("#2b1526")
 const PALETTE_GUIDE=Color(0.93,0.74,0.52,0.55)
 
 const MAP={

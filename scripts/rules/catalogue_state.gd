@@ -30,7 +30,7 @@ static func grant_self(e,c):
  if c.get("inherited_self",false):return true
  if e.players[who].get("all_self_turn",-1)==e.turn and (c.zone=="leader" or c.zone=="field" and e.cards[c.card_id].kind=="自机"):return true
  if c.zone=="field" and e.cards[c.card_id].kind=="自机" and (C.character(e,c,"古明地觉") or C.character(e,c,"古明地恋")):
-  return e.units(who).any(func(u):return u.uid!=c.uid and C.has(e,u,"character-fdn-026:self") and (u.get("leader",false) or u.get("leader_counters",0)>0 or e.players[who].field.any(func(f):return e.DB.has_ability(e.cards[f.card_id],"grant_leader_abilities"))))
+  return e.units(who).any(func(u):return u.uid!=c.uid and C.has(e,u,"character-fdn-026:self") and ((u.get("leader",false) and u.owner==u.get("original_owner",u.owner)) or u.get("leader_counters",0)>0 or e.players[who].field.any(func(f):return e.DB.has_ability(e.cards[f.card_id],"grant_leader_abilities"))))
  return false
 static func permission(e,c,who):
  var C=e.Cat;var p=e.players[who]

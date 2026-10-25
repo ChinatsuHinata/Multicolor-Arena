@@ -197,9 +197,14 @@ static func on_enter(e,c: Dictionary):
 static func on_leave(e,c: Dictionary):
  for permanent in e.players[0].field+e.players[1].field:
   permanent.lock_sources=permanent.get("lock_sources",[]).filter(func(r): return r.uid!=c.uid or r.epoch!=c.epoch)
- for r in c.get("castle_exiles",[]):
+ return_castle_exiles(e,c.get("castle_exiles",[])+c.get("catalogue_castle",[]))
+static func return_castle_exiles(e,references: Array):
+ var returning=[[],[]]
+ for r in references:
   var u=e.find_card(r.uid)
-  if not u.is_empty() and u.zone=="exile" and u.epoch==r.epoch and e.field_error(u,u.owner).is_empty(): e.detach(u); e.enter_field(u,u.owner)
+  if u.is_empty() or u.zone!="exile" or u.epoch!=r.epoch:continue
+  if not returning[u.owner].any(func(c):return c.uid==u.uid):returning[u.owner].append(u)
+ for who in [0,1]:e.Roster.field_many(e,returning[who],who)
 static func on_death(e,c: Dictionary,before: Dictionary):
  if has(e.cards[before.card_id],"larva_draw"): event(e,before,"larva_draw")
  for medicine in before.get("medicine",[]):

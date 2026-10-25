@@ -8,10 +8,14 @@ case "$staging_dir" in "$relay_dir"/incoming-tournaments-*) ;; *) exit 2 ;; esac
 backup_dir="$relay_dir/backups/tournaments-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$backup_dir"
 chmod 700 "$backup_dir"
-programs=(server.gd account_store.py tournament_store.py tournament_pairing.py)
+programs=(server.gd account_store.py task_store.py shop_store.py tournament_store.py tournament_pairing.py tournament_rules.py community_store.py)
 services=(multicolor-account-user.service multicolor-relay-user.service multicolor-relay-ws-user.service)
 if [ "$install_mode" = store-only ]; then
-    programs=(tournament_store.py)
+    if ! grep -q 'import community_store' "$relay_dir/account_store.py" || ! grep -q 'COMMUNITY_PREFIX' "$relay_dir/server.gd"; then
+        echo 'The community/competition upgrade requires a full deployment first.' >&2
+        exit 1
+    fi
+    programs=(tournament_store.py tournament_rules.py community_store.py)
     services=(multicolor-account-user.service)
     # Validate against the actual deployed account and relay programs.
     for file in server.gd account_store.py tournament_pairing.py; do
@@ -19,16 +23,17 @@ if [ "$install_mode" = store-only ]; then
     done
 fi
 # Use the server's existing dependencies and card catalogue for migration checks.
-for file in project.godot match_queue.gd match_character_log.gd deck_plaza_store.py deck_plaza_catalogue.json; do
+for file in project.godot match_queue.gd match_character_log.gd deck_plaza_store.py cloud_deck_store.py deck_plaza_catalogue.json; do
     cp "$relay_dir/$file" "$staging_dir/$file"
 done
-python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py"
+python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/task_store.py" "$staging_dir/shop_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py" "$staging_dir/tournament_rules.py" "$staging_dir/community_store.py"
 "$HOME/.local/bin/godot" --headless --path "$staging_dir" --script server.gd --check-only > "$staging_dir/parse.log" 2>&1
 cat "$staging_dir/parse.log"
 if grep -Eq 'SCRIPT ERROR|Parse Error|Failed to load script' "$staging_dir/parse.log"; then exit 1; fi
 for file in "${programs[@]}"; do
     if [ -f "$relay_dir/$file" ]; then cp "$relay_dir/$file" "$backup_dir/$file"; fi
 done
+if [ -f "$relay_dir/data/shop.json" ]; then cp "$relay_dir/data/shop.json" "$backup_dir/shop.json"; fi
 python3 - "$relay_dir/data/players.sqlite3" "$backup_dir/players.sqlite3" "$staging_dir" "$install_mode" <<'PY'
 import sqlite3
 import sys
@@ -74,6 +79,7 @@ rollback() {
     for file in "${programs[@]}"; do
         if [ -f "$backup_dir/$file" ]; then cp "$backup_dir/$file" "$relay_dir/$file"; else rm -f -- "$relay_dir/$file"; fi
     done
+    if [ -f "$backup_dir/shop.json" ]; then cp "$backup_dir/shop.json" "$relay_dir/data/shop.json"; else rm -f -- "$relay_dir/data/shop.json"; fi
     systemctl --user restart "${services[@]}" || true
 }
 trap rollback ERR
@@ -81,6 +87,10 @@ for file in "${programs[@]}"; do
     install -m 600 "$staging_dir/$file" "$relay_dir/$file.next"
     mv "$relay_dir/$file.next" "$relay_dir/$file"
 done
+mkdir -p "$relay_dir/data/tutorial"
+cp -R "$staging_dir/data/tutorial/." "$relay_dir/data/tutorial/"
+cp "$staging_dir/data/announcements.json" "$relay_dir/data/announcements.json"
+if [ "$install_mode" != store-only ]; then cp "$staging_dir/data/shop.json" "$relay_dir/data/shop.json"; fi
 systemctl --user restart "${services[@]}"
 sleep 2
 systemctl --user is-active multicolor-account-user.service multicolor-relay-user.service multicolor-relay-ws-user.service multicolor-update-gateway-user.service

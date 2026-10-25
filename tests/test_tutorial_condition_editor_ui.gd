@@ -16,7 +16,7 @@ func fresh(mobile: bool=false):
  app.is_android=mobile;app.layout_dpi_override=240 if mobile else 0
  app.layout_safe_override=Rect2(32,12,1216,696) if mobile else Rect2()
  root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND if mobile else Window.CONTENT_SCALE_ASPECT_KEEP
- app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
+ open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.selected_step="step_2"
  var scene=editor.model.data.scenarios.scene_1
  scene.players[0].field=[{"card_id":"53","alias":"a","state":{"entered":0,"entered_turns":0}}]
  scene.players[1].field=[{"card_id":"53","alias":"b","state":{"entered":0,"entered_turns":0}}]

@@ -84,7 +84,7 @@ func run():
  expect(ui.submit_button.disabled,"empty competition name cannot be submitted")
  ui.title_input.text="群组与签到测试";ui.title_input.text_changed.emit(ui.title_input.text)
  ui.description_input.text="请在主办方开启签到后完成赛前签到。"
- expect(ui.game_format_input.item_count==5,"creation exposes all existing game formats")
+ expect(ui.game_format_input.item_count==7,"creation exposes all game formats including BO5 and BO2")
  expect(ui.format_input.item_count==5,"creation offers Swiss and 2/4/8/16-player knockout cuts")
  for index in range(5):
   ui.format_input.select(index)

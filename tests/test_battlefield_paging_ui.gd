@@ -10,6 +10,9 @@ func shown_units(who: int=0) -> Array:
 func capacity() -> String:
  return view.hud.get_node("FieldCapacity/FieldCapacityValue").text
 
+func enemy_capacity() -> String:
+ return view.hud.get_node("FieldCapacity/FieldCapacityEnemyValue").text
+
 func next_page(who: int=0,group: String="unit"):
  var button=view.zone_pagers[group+str(who)].button
  expect(button.is_visible_in_tree(),"page arrow is visible for "+group+str(who))
@@ -94,6 +97,8 @@ func verify_board(android: bool):
  view.render();await frames()
  expect(shown_units()==units.slice(0,6).map(func(c):return c.uid),"first page displays units one through six")
  expect(capacity()=="6/6","six extra units that do not occupy slots keep the count at 6/6")
+ expect(enemy_capacity()=="敌 7/6","enemy slot count is shown beside the local count")
+ expect(view.field_capacity_badge.get_global_rect().grow(0.1).encloses(view.hud.get_node("FieldCapacity/FieldCapacityValue").get_global_rect()) and view.field_capacity_badge.get_global_rect().grow(0.1).encloses(view.hud.get_node("FieldCapacity/FieldCapacityEnemyValue").get_global_rect()),"both slot counts stay inside their panel")
  expect(view.zone_pagers.unit0.button.text.begins_with("1/2") and view.zone_pagers.unit1.button.text.begins_with("1/2"),"both unit rows paginate after six units")
  expect(view.table.descriptors.values().filter(func(d):return d.zone=="palette" and d.owner==0 and d.uid>0).size()==10,"color palette still displays ten cards per page")
  await settle();view.update_badge_positions();view.banner.hide()

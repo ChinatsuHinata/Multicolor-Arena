@@ -17,6 +17,7 @@ var remember_token=""
 var nickname=""
 var elo=1000
 var rank: Dictionary={}
+var tasks_snapshot: Dictionary={}
 var password_change_stage=""
 var password_next=""
 var password_confirmation=""
@@ -123,7 +124,7 @@ func _process(_delta):
     sent=true;packet.clear()
    while peer.get_available_packet_count()>0:
     var bytes=peer.get_packet()
-    if bytes.size()>2048 or bytes.size()<4 or bytes.slice(0,4).get_string_from_ascii()!=PREFIX:
+    if bytes.size()>16384 or bytes.size()<4 or bytes.slice(0,4).get_string_from_ascii()!=PREFIX:
      fail("账号服务器响应无效");return
     var answer=JSON.parse_string(bytes.slice(4).get_string_from_utf8())
     if not answer is Dictionary:fail("账号服务器响应无效");return
@@ -151,6 +152,7 @@ func _process(_delta):
     nickname=str(answer.get("nickname",name)) if ok else ""
     elo=int(answer.get("elo",1000)) if ok else 1000
     rank=answer.get("rank",{}) if ok else {}
+    tasks_snapshot=answer.get("tasks",{}) if answer.get("tasks",{}) is Dictionary else {}
     finished.emit(ok,message,name)
     return
   MultiplayerPeer.CONNECTION_DISCONNECTED:

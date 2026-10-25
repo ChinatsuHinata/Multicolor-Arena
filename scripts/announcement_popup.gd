@@ -7,8 +7,17 @@ var automatic=false
 var archive_button: Button
 var reader_row: HBoxContainer
 var announcement_image: TextureRect
+var archive_row: HBoxContainer
+var read_tabs: Array[Button]=[]
+var showing_read=false
+var claim_busy=false
+var claim_button: Button
+var claim_notice: Label
+var claim_message=""
+var claim_message_id=""
 
 func build_announcements(app,entry: Dictionary={},push: bool=false):
+ app.announcement_store.set_account(app.account_name if not app.account_token.is_empty() else "")
  super.build(app,"公告邮箱",[])
  name="AnnouncementPopup";panel.name="AnnouncementPanel";scroll.name="AnnouncementScroll"
  entries=scroll.get_child(0)
@@ -21,12 +30,26 @@ func build_announcements(app,entry: Dictionary={},push: bool=false):
  if entry.is_empty():show_archive()
  else:show_entry(entry)
  relayout()
+ host.online_community().request({"action":"announcements"},func(answer):
+  if not is_instance_valid(self) or not answer.get("ok",false):return
+  var incoming=answer.get("announcements",[])
+  host.announcement_store.merge_online(incoming);host.refresh_mailbox_badge()
+  refresh_announcements())
+
+func refresh_announcements():
+ if selected_id.is_empty():show_archive()
+ else:update_claim_controls()
 
 func clear_entries():
+ claim_button=null;claim_notice=null
  if is_instance_valid(reader_row):
   scroll.reparent(body)
   body.remove_child(reader_row);reader_row.queue_free();reader_row=null
  announcement_image=null
+ if is_instance_valid(archive_row):
+  scroll.reparent(body)
+  body.remove_child(archive_row);archive_row.queue_free();archive_row=null
+ read_tabs.clear()
  for child in entries.get_children():entries.remove_child(child);child.queue_free()
  scroll.scroll_vertical=0
 
@@ -44,19 +67,36 @@ func show_archive():
  clear_entries();selected_version="";selected_id="";heading.text="公告邮箱";close_button.text="关闭"
  archive_button.hide();host.ui_metrics.button(close_button)
  var store=host.announcement_store
- text("共 %d 条公告 · %d 条未读" % [store.history.size(),store.unread_count()],host.ui_metrics.small,host.MUTED)
- if store.history.is_empty():text("暂无公告",host.ui_metrics.body,host.WHITE)
- for entry in store.history:
+ archive_row=HBoxContainer.new();archive_row.name="MailboxPanes";body.add_child(archive_row)
+ archive_row.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var sidebar=VBoxContainer.new();sidebar.name="MailboxTabs";archive_row.add_child(sidebar)
+ for index in range(2):
+  var count=store.history.size()-store.unread_count() if index==1 else store.unread_count()
+  var tab=host.button(sidebar,("已读" if index==1 else "未读")+"（%d）" % count,Rect2(),select_read_tab.bind(index==1))
+  tab.name="ReadAnnouncements" if index==1 else "UnreadAnnouncements"
+  tab.toggle_mode=true;tab.button_pressed=showing_read==(index==1)
+  host.ui_metrics.button(tab);read_tabs.append(tab)
+ scroll.reparent(archive_row);scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var visible_entries=store.history.filter(func(entry):return store.is_read(entry)==showing_read)
+ text("共 %d 条%s公告" % [visible_entries.size(),"已读" if showing_read else "未读"],host.ui_metrics.small,host.MUTED)
+ if visible_entries.is_empty():text("暂无已读公告" if showing_read else "暂无未读公告",host.ui_metrics.body,host.WHITE)
+ for entry in visible_entries:
   var id=store.entry_id(entry)
-  var caption=("未读 · " if id not in store.read_versions else "")+str(entry.title)
+  var caption=str(entry.title)
   var action=host.button(entries,caption,Rect2(),func():automatic=false;show_entry(entry))
   action.name="Announcement_"+id.replace(".","_").replace(":","_")
   action.set_meta("announcement_version",entry.version)
   action.set_meta("announcement_id",id)
   host.ui_metrics.button(action);action.custom_minimum_size.x=0
   action.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  if store.needs_attention(entry):
+   action.set_meta("has_red_dot",true)
+   action.draw.connect(func():action.draw_circle(Vector2(action.size.x-12,12),5,Color("#f16d69"),true,-1,true))
   text("%s · 版本 %s" % [entry.get("date",""),entry.version],host.ui_metrics.small,host.MUTED)
  relayout();connect_focus();close_button.grab_focus()
+
+func select_read_tab(read: bool):
+ showing_read=read;show_archive()
 
 func show_entry(entry: Dictionary):
  clear_entries();selected_version=entry.version;selected_id=host.announcement_store.entry_id(entry);heading.text="更新公告"
@@ -65,10 +105,38 @@ func show_entry(entry: Dictionary):
  text(entry.title,maxi(24,host.ui_metrics.title),host.GOLD,"AnnouncementTitle")
  text("%s · 版本 %s" % [entry.get("date",""),entry.version],host.ui_metrics.small,host.MUTED,"AnnouncementVersion")
  text(entry.body,maxi(24,host.ui_metrics.body),host.WHITE,"AnnouncementBody")
+ var coins=int(entry.get("coins",0))
+ if coins>0:
+  claim_notice=text("",host.ui_metrics.small,host.GOLD,"AnnouncementClaimStatus")
+  claim_notice.custom_minimum_size.y=host.ui_metrics.small*1.5
+  claim_button=host.button(entries,"",Rect2(),func():claim_coins(selected_id))
+  claim_button.name="ClaimAnnouncementCoins";host.ui_metrics.button(claim_button)
+  update_claim_controls()
  show_image(entry)
  if not host.announcement_store.record_opened(selected_id,automatic):push_warning(host.announcement_store.last_error)
  host.refresh_mailbox_badge()
  relayout();connect_focus();close_button.grab_focus()
+
+func claim_coins(id: String):
+ if claim_busy or host.announcement_store.is_claimed(id):return
+ claim_message_id=id
+ if host.account_token.is_empty():
+  claim_message="请先登录玩家账号，再回来领取公告铜钱。";update_claim_controls();return
+ claim_busy=true;claim_message="正在领取…";update_claim_controls()
+ host.claim_announcement_coins(id,func(answer):
+  if not is_instance_valid(self):return
+  claim_busy=false
+  claim_message_id=id;claim_message=str(answer.get("message","领取失败"))
+  update_claim_controls())
+
+func update_claim_controls():
+ if not is_instance_valid(claim_button):return
+ var coins=int(host.announcement_store.find_id(selected_id).get("coins",0))
+ var claimed=host.announcement_store.is_claimed(selected_id)
+ claim_button.text="已领取 %d 铜钱" % coins if claimed else "领取 %d 铜钱" % coins
+ claim_button.disabled=claimed or claim_busy
+ # Keep reward feedback beside the claim button without interrupting reading.
+ claim_notice.text=claim_message if claim_message_id==selected_id else ""
 
 func show_image(entry: Dictionary):
  var path=entry.get("image","")
@@ -111,6 +179,7 @@ func show_image(entry: Dictionary):
 func connect_focus():
  var buttons: Array[Button]=[close_button]
  if archive_button.visible:buttons.append(archive_button)
+ buttons.append_array(read_tabs)
  for child in entries.get_children():
   if child is Button:buttons.append(child)
  for i in range(buttons.size()):

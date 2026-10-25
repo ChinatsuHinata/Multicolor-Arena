@@ -7,9 +7,13 @@ const BO1_SIDEBOARD=2
 const BO3=3
 const EXPLORATION=4
 const EXPLORATION_RANDOM=5
+const BO5=6
+const BO2=7
 const Exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
 const SIDEBOARD_LIMIT=3
 static func format_label(format_value: int) -> String:
+ if format_value==BO5:return "BO5"
+ if format_value==BO2:return "BO2"
  if is_entertainment(format_value):return "娱乐模式 · "+entertainment_name(format_value)
  return "BO1 换备牌" if format_value==BO1_SIDEBOARD else "BO%d" % format_value
 static func is_entertainment(format_value: int) -> bool:
@@ -22,7 +26,7 @@ static func sideboard_limit(room: Dictionary) -> int:
  return SIDEBOARD_LIMIT if int(room.get("format",BO3))==BO1_SIDEBOARD else -1
 var state={"match_id":"","game_id":"","format":3,"strict":true,"rule_set":RuleSet.UNRESTRICTED,"names":["房主","客机"],"scores":[0,0],"round":0,"status":"lobby","ready":[false,false],"registered":[{},{}],"decks":[{},{}],"first":0,"chooser":-1,"first_chosen":false,"choice_reason":"","roll":{},"roll_history":[],"choice_history":[],"last_winner":-2,"counted":[],"winner":-2}
 func setup(format_value: int,strict: bool,rule_set: String=RuleSet.UNRESTRICTED):
- state.match_id=Identity.token();state.format=format_value if format_value in [BO1,BO1_SIDEBOARD,BO3,EXPLORATION,EXPLORATION_RANDOM] else BO1;state.strict=strict;state.rule_set=rule_set
+ state.match_id=Identity.token();state.format=format_value if format_value in [BO1,BO1_SIDEBOARD,BO3,EXPLORATION,EXPLORATION_RANDOM,BO5,BO2] else BO1;state.strict=strict;state.rule_set=rule_set
  if is_entertainment(state.format):
   state.strict=true;state.rule_set=RuleSet.UNRESTRICTED;state.decks=[entertainment_deck(state.format),entertainment_deck(state.format)]
  state.mods=Store.Database.ModRegistry.shared().manifest() if uses_mods(state) else []
@@ -73,10 +77,12 @@ func abort():
  if state.status in ["aborted","complete"]:return
  state.status="aborted";state.winner=-2;state.ready=[false,false]
  state.end_reason="连接中断，对局结束"
-func forfeit(disconnected_seat: int,local_record: bool=false):
+func forfeit(disconnected_seat: int,local_record: bool=false,evidence: Dictionary={}):
  if state.status in ["complete","aborted"]:return
  state.status="complete";state.winner=1-disconnected_seat;state.ready=[false,false]
  state.forfeit=disconnected_seat;state.local_record=local_record
+ if evidence.is_empty():state.erase("task_evidence")
+ else:record_task_evidence(evidence)
  state.end_reason=state.names[disconnected_seat]+"掉线超时，整场判负"+("（本地记录）" if local_record else "")
 func ready(seat: int) -> String:
  if not uses_mods(state) and deck_has_mods(state.decks[seat]):return "模组卡牌只能用于模组规则集"
@@ -136,10 +142,31 @@ func record_result(winner: int) -> bool:
  state.counted.append(state.game_id)
  state.last_winner=winner
  if winner>=0:state.scores[winner]+=1
- if state.scores.any(func(n):return n>= (2 if state.format==3 else 1)):
+ if state.format==BO2:
+  if state.counted.size()>=2:
+   state.status="complete";state.winner=-1 if state.scores[0]==state.scores[1] else 0 if state.scores[0]>state.scores[1] else 1
+  else:state.status="between"
+ elif state.scores.any(func(n):return n>= (3 if state.format==BO5 else 2 if state.format==BO3 else 1)):
   state.status="complete";state.winner=winner
  else:state.status="between"
  return true
+func record_task_evidence(current: Dictionary):
+ # Drawn games may precede a decisive game even in BO1. Accumulate public
+ # counters, but keep victory conditions scoped to the final game only.
+ if current.get("version")!=1 or not current.get("players") is Array or current.players.size()!=2:return
+ var combined=current.duplicate(true)
+ var previous=state.get("task_evidence",{}).get("players",[])
+ for actor in range(2):
+  var stats=combined.players[actor]
+  stats.final_game=current.players[actor].duplicate(true)
+  if previous.size()!=2:continue
+  for key in stats.keys():
+   if key in ["final_life","enemy_final_life","overkill"]:continue
+   if stats[key] is int:stats[key]+=int(previous[actor].get(key,0))
+  for card in previous[actor].get("cast_cards",{}):
+   if not stats.has("cast_cards"):stats.cast_cards={}
+   stats.cast_cards[card]=int(stats.cast_cards.get(card,0))+int(previous[actor].cast_cards[card])
+ state.task_evidence=combined
 func public_state(seat: int) -> Dictionary:
  var result=state.duplicate(true);result.erase("registered");result.erase("decks")
  result.erase("deck_hashes")

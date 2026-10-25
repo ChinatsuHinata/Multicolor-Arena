@@ -2,6 +2,9 @@
 import math
 import secrets
 import time
+import json
+import community_store
+import tournament_rules
 from tournament_pairing import knockout_pairs, swiss_pairs
 
 ORGANIZER_USERNAMES = frozenset(("bigcake", "heixingboshi"))
@@ -13,7 +16,7 @@ TOP_CUTS = {"swiss_top2": 2, "swiss_top4": 4, "swiss_top8": 8, "swiss_top16": 16
 FORMATS = ("swiss", *TOP_CUTS)
 KNOCKOUT_STAGES = {2: "final", 4: "semifinal", 8: "quarterfinal", 16: "round_of_16"}
 KNOCKOUT_PLACEMENTS = {stage: size // 2 + 1 for size, stage in KNOCKOUT_STAGES.items()}
-GAME_FORMATS = (1, 2, 3, 4, 5)  # BO1, BO1 sideboard, BO3, exploration, random exploration.
+GAME_FORMATS = tournament_rules.GAME_FORMATS
 PAIR_PAGE_SIZE = 12
 MAX_PLAYERS = 128
 
@@ -56,6 +59,7 @@ def initialize(conn):
         due_at INTEGER NOT NULL, expected_round INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled',
         message TEXT NOT NULL DEFAULT '')""")
     conn.execute("CREATE INDEX IF NOT EXISTS tournament_schedules_due ON tournament_schedules(status,due_at)")
+    tournament_rules.initialize(conn)
 
 
 def config(conn, tournament_id):
@@ -63,8 +67,12 @@ def config(conn, tournament_id):
                                                 (tournament_id,)).fetchone()))
 
 
-def can_create(account):
-    return account.get("ok") is True and account.get("username", "").casefold() in ORGANIZER_USERNAMES
+def can_create(account, conn=None):
+    return community_store.has_role(conn, account, "tournament_admin") if conn is not None else community_store.is_super(account)
+
+
+def can_manage(conn, account, owner):
+    return community_store.is_super(account) or can_create(account, conn) and owner == account["player_id"]
 
 
 def error(message):
@@ -84,9 +92,10 @@ def record(conn, row, account):
     settings = config(conn, tournament_id)
     pending = conn.execute("SELECT COUNT(*) FROM tournament_pairings WHERE tournament_id=? AND round_number=? AND result IS NULL",
                            (tournament_id, settings["round_number"])).fetchone()[0]
-    return {"id": tournament_id, "title": title, "description": description, "phase": phase, **settings,
+    return {"id": tournament_id, "title": title, "description": description, "phase": phase, **settings, **tournament_rules.config(conn, tournament_id),
+            "super_admin": community_store.is_super(account),
             "pending_matches": pending,
-            "created_at": created, "owned": can_create(account) and owner == account["player_id"],
+            "created_at": created, "owned": can_manage(conn, account, owner),
             "joined": member is not None, "checked_in": member is not None and member[0] is not None,
             "in_roster": member is not None and bool(member[1]),
             "member_count": counts[0], "checkin_count": counts[1], "roster_count": counts[2]}
@@ -139,7 +148,7 @@ def handle_group(conn, data, account):
     if action not in ("list", "create", "detail", "join", "leave", "checkin", "open_checkin", "close_checkin"):
         return error("比赛操作无效")
     if action == "create":
-        if not can_create(account):
+        if not can_create(account, conn):
             return error("当前仅主办方可以创建比赛")
         title, description = data.get("title"), data.get("description", "")
         if not isinstance(title, str) or not 1 <= len(title.strip()) <= 40:
@@ -160,7 +169,8 @@ def handle_group(conn, data, account):
         page = min(int(page), pages - 1)
         rows = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE phase!='deleted' ORDER BY id DESC LIMIT ? OFFSET ?",
                             (PAGE_SIZE, page * PAGE_SIZE)).fetchall()
-        return {"ok": True, "message": "", "can_create": can_create(account),
+        return {"ok": True, "message": "", "can_create": can_create(account, conn),
+                "super_admin": community_store.is_super(account),
                 "tournaments": [record(conn, row, account) for row in rows], "page": page, "pages": pages, "total": count}
     tournament_id = data.get("id")
     if not integer(tournament_id, 1):
@@ -178,7 +188,7 @@ def handle_group(conn, data, account):
     member = conn.execute("SELECT checked_in_at FROM tournament_members WHERE tournament_id=? AND player_id=?",
                           (tournament_id, player_id)).fetchone()
     if action in ("open_checkin", "close_checkin"):
-        if not can_create(account) or row[1] != player_id:
+        if not can_manage(conn, account, row[1]):
             return error("仅主办方可以管理赛前签到")
         if action == "open_checkin":
             start_at = config(conn, tournament_id)["start_at"]
@@ -231,6 +241,10 @@ def handle_group(conn, data, account):
 
 
 def standings_for(conn, tournament_id):
+    if tournament_rules.config(conn, tournament_id)["stages"]:
+        if conn.execute("SELECT phase FROM tournaments WHERE id=?", (tournament_id,)).fetchone()[0] == "complete":
+            return tournament_rules.final_standings(conn, tournament_id)
+        return tournament_rules.standings(conn, tournament_id)
     rows = conn.execute("""SELECT m.player_id,p.nickname,m.seed FROM tournament_members m
         JOIN players p ON p.id=m.player_id WHERE m.tournament_id=? AND m.in_roster=1 ORDER BY m.seed,m.player_id""",
         (tournament_id,)).fetchall()
@@ -280,7 +294,9 @@ def pairing_record(conn, pairing_id, account):
         else:
             name, seed = conn.execute("SELECT p.nickname,m.seed FROM players p JOIN tournament_members m ON m.player_id=p.id WHERE p.id=? AND m.tournament_id=?", (player, row[11])).fetchone()
             names.append(name or f"选手{seed:02d}")
+    scores = conn.execute("SELECT score_a,score_b,report_score_a,report_score_b FROM tournament_pairings WHERE id=?", (pairing_id,)).fetchone()
     return {"id": row[0], "table": row[1], "names": names, "actor": actor, "bye": row[3] is None,
+            "scores": list(scores[:2]), "report_scores": [json.loads(v) if v else None for v in scores[2:]],
             "result": row[4], "reports": list(row[5:7]), "revision": row[7], "source": row[8],
             "match_id": row[9] if actor >= 0 else "", "game_active": bool(row[10])}
 
@@ -328,6 +344,8 @@ def seed_roster(conn, tournament_id):
 
 
 def start_round(conn, tournament_id, expected_round, now=None):
+    if tournament_rules.config(conn, tournament_id)["stages"]:
+        return tournament_rules.advance_round(conn, tournament_id, expected_round, now)
     now = int(time.time()) if now is None else now
     row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", (tournament_id,)).fetchone()
     settings = config(conn, tournament_id)
@@ -368,6 +386,7 @@ def start_round(conn, tournament_id, expected_round, now=None):
             pairs = list(zip(winners[::2], winners[1::2]))
     else:
         conn.execute("UPDATE tournaments SET phase='complete',timer_notice='' WHERE id=?", (tournament_id,))
+        tournament_rules.award_rewards(conn, tournament_id, standings)
         return "比赛已结束，最终成绩已确定"
     conn.execute("INSERT INTO tournament_rounds(tournament_id,number,stage,started_at) VALUES(?,?,?,?)", (tournament_id, number + 1, stage, now))
     conn.executemany("""INSERT INTO tournament_pairings(tournament_id,round_number,table_number,player_a,player_b,result,source,match_id)
@@ -391,13 +410,18 @@ def handle_result(conn, data, account, row):
         return error("只能登记当前轮次的结果")
     if int(revision) != pairing[5]:
         return error("结果表已变化，请刷新后重新确认")
-    if result == -1 and settings["round_stage"] != "swiss":
+    if result == -1 and settings["round_stage"] not in ("swiss", "round_robin"):
         return error("淘汰赛必须确定获胜选手")
-    owned = can_create(account) and row[1] == account["player_id"]
+    owned = can_manage(conn, account, row[1])
+    try:
+        scores = tournament_rules.score_for_result(conn, row[0], data, int(result))
+    except ValueError as exc:
+        return error(str(exc))
     if data["action"] == "judge_result":
         if not owned:
             return error("仅主办方可以裁定结果")
         conn.execute("UPDATE tournament_pairings SET result=?,source='organizer',revision=revision+1 WHERE id=?", (int(result), int(pairing_id)))
+        conn.execute("UPDATE tournament_pairings SET score_a=?,score_b=? WHERE id=?", (*scores, int(pairing_id)))
         return {"ok": True, "message": "主办方裁定已登记"}
     actor = 0 if pairing[0] == account["player_id"] else 1 if pairing[1] == account["player_id"] else -1
     if actor < 0:
@@ -406,12 +430,17 @@ def handle_result(conn, data, account, row):
         return error("本桌结果已确定")
     if pairing[7]:
         return error("游戏对局进行中，结果将自动回填；争议请联系主办方裁定")
-    if data["action"] == "confirm_result" and pairing[4 - actor] != int(result):
+    other_score = conn.execute("SELECT report_score_b,report_score_a FROM tournament_pairings WHERE id=?", (pairing_id,)).fetchone()[actor]
+    matches = pairing[4 - actor] == int(result) and other_score is not None and json.loads(other_score) == scores
+    if data["action"] == "confirm_result" and not matches:
         return error("对手的结果表已变化，请刷新后重新确认")
     column = "report_a" if actor == 0 else "report_b"
     conn.execute(f"UPDATE tournament_pairings SET {column}=?,revision=revision+1 WHERE id=?", (int(result), int(pairing_id)))
-    if pairing[4 - actor] == int(result):
+    score_column = "report_score_a" if actor == 0 else "report_score_b"
+    conn.execute(f"UPDATE tournament_pairings SET {score_column}=? WHERE id=?", (json.dumps(scores), pairing_id))
+    if matches:
         conn.execute("UPDATE tournament_pairings SET result=?,source='agreement' WHERE id=?", (int(result), int(pairing_id)))
+        conn.execute("UPDATE tournament_pairings SET score_a=?,score_b=? WHERE id=?", (*scores, pairing_id))
         return {"ok": True, "message": "双方已确认结果，成绩已登记"}
     return {"ok": True, "message": "结果表已提交，等待对手确认"}
 
@@ -426,6 +455,12 @@ def handle(conn, data, account):
             format_name, rounds, interval = settings_input(data)
             game_format = game_format_input(data)
             start_at = start_time_input(data.get("start_at"))
+            stages = tournament_rules.stages_input(data["stages"]) if "stages" in data else []
+            if not stages and game_format == 7 and format_name != "swiss":
+                raise ValueError("BO2 淘汰阶段需决胜局制，请使用自定义阶段为淘汰赛指定 BO1/BO3/BO5")
+            rewards = tournament_rules.rewards_input(data.get("rewards", tournament_rules.DEFAULT_REWARDS))
+            if rewards != tournament_rules.DEFAULT_REWARDS and not community_store.is_super(account):
+                raise ValueError("仅 bigcake 可修改赛事铜钱奖励")
         except ValueError as exc:
             return error(str(exc))
         with conn:
@@ -434,6 +469,7 @@ def handle(conn, data, account):
                 return answer
             tournament_id = answer["tournament"]["id"]
             conn.execute("UPDATE tournaments SET format=?,swiss_rounds=?,round_interval=?,game_format=?,start_at=? WHERE id=?", (format_name, rounds, interval, game_format, start_at, tournament_id))
+            conn.execute("UPDATE tournaments SET stages_json=?,rewards_json=?,game_format=? WHERE id=?", (json.dumps(stages), json.dumps(rewards), stages[0]["game_format"] if stages else game_format, tournament_id))
         row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", (tournament_id,)).fetchone()
         return detail(conn, row, account, message=answer["message"])
     if action in ("list", "join", "leave", "checkin", "open_checkin", "close_checkin"):
@@ -455,7 +491,7 @@ def handle(conn, data, account):
         if any(not integer(value) for value in values) or type(data.get("roster_only", False)) is not bool:
             return error("页码或成员筛选无效")
         return detail(conn, row, account, int(values[0]), data.get("roster_only", False), pairing_page=int(values[1]), standing_page=int(values[2]))
-    owned = can_create(account) and row[1] == account["player_id"]
+    owned = can_manage(conn, account, row[1])
     if action in ("report_result", "confirm_result", "judge_result"):
         with conn:
             answer = handle_result(conn, data, account, row)
@@ -471,7 +507,7 @@ def handle(conn, data, account):
         with conn:
             conn.execute("""UPDATE rating_matches SET status='cancelled' WHERE status IN ('pending','playing')
                 AND match_id IN (SELECT match_id FROM tournament_pairings WHERE tournament_id=?)""", (row[0],))
-            for table in ("tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members"):
+            for table in ("tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members", "tournament_stage_members"):
                 conn.execute(f"DELETE FROM {table} WHERE tournament_id=?", (row[0],))
             # Keep an ID tombstone so stale clients cannot act on a newly created competition with the same ID.
             conn.execute("UPDATE tournaments SET phase='deleted',title='',description='',timer_notice='',round_interval=0 WHERE id=?", (row[0],))
@@ -483,7 +519,18 @@ def handle(conn, data, account):
             if action == "configure":
                 format_name, rounds, interval = settings_input(data)
                 settings = config(conn, row[0])
+                advanced = tournament_rules.config(conn, row[0])
+                stages = tournament_rules.stages_input(data["stages"]) if "stages" in data else advanced["stages"]
+                if settings["round_number"] > 0 and stages != advanced["stages"]:
+                    # Future stages and advancement thresholds may be repaired, but played rules are immutable.
+                    index = advanced["stage_index"]
+                    if len(stages) <= index or stages[:index] != advanced["stages"][:index] or any(stages[index][key] != advanced["stages"][index][key] for key in ("kind", "game_format", "points", "rounds")):
+                        raise ValueError("已开赛阶段的赛制、局制、轮数和计分不可改；可调整晋级条件和后续阶段")
                 game_format = game_format_input(data, settings["game_format"])
+                if stages:
+                    game_format = stages[advanced["stage_index"]]["game_format"]
+                elif game_format == 7 and format_name != "swiss":
+                    raise ValueError("BO2 不适用于淘汰阶段，请为淘汰阶段指定 BO1/BO3/BO5")
                 start_at = settings["start_at"]
                 if "start_at" in data and data["start_at"] != start_at:
                     if row[4] != "registration":
@@ -496,12 +543,26 @@ def handle(conn, data, account):
                 if row[4] == "complete":
                     raise ValueError("比赛已结束")
                 conn.execute("UPDATE tournaments SET format=?,swiss_rounds=?,round_interval=?,game_format=?,start_at=?,timer_notice='' WHERE id=?", (format_name, rounds, interval, game_format, start_at, row[0]))
+                conn.execute("UPDATE tournaments SET stages_json=? WHERE id=?", (json.dumps(stages), row[0]))
                 message = "比赛设置已保存"
+            elif action == "update_rewards":
+                if not community_store.is_super(account):
+                    raise ValueError("仅 bigcake 可修改赛事铜钱奖励")
+                if tournament_rules.config(conn, row[0])["rewards_paid"]:
+                    raise ValueError("赛事奖励已发放，不能追溯修改已入账铜钱")
+                rewards = tournament_rules.rewards_input(data.get("rewards"))
+                conn.execute("UPDATE tournaments SET rewards_json=? WHERE id=?", (json.dumps(rewards), row[0]))
+                message = "赛事铜钱奖励已保存"
             elif action == "update_description":
                 description = data.get("description")
                 if not isinstance(description, str) or len(description) > 2000:
                     raise ValueError("比赛描述最多 2000 个字符")
                 conn.execute("UPDATE tournaments SET description=? WHERE id=?", (description.strip(), row[0]))
+                if "title" in data:
+                    title = data["title"]
+                    if not isinstance(title, str) or not 1 <= len(title.strip()) <= 40:
+                        raise ValueError("比赛名称须为 1–40 个字符")
+                    conn.execute("UPDATE tournaments SET title=? WHERE id=?", (title.strip(), row[0]))
                 message = "比赛描述已保存"
             elif action == "start_round":
                 expected = data.get("expected_round")
@@ -617,8 +678,10 @@ def handle_game(conn, data):
                 conn.execute("UPDATE tournament_pairings SET game_claimed=1,game_heartbeat=?,report_a=NULL,report_b=NULL,revision=revision+1 WHERE id=? AND game_claimed=0",
                              (int(time.time()), row[0]))
         game_format = config(conn, row[1])["game_format"]
+        stage = tournament_rules.active_stage(conn, row[1])
         return {"ok": True, "players": list(row[3:5]), "name": row[9], "round_number": row[2],
-                "game_format": game_format, "mode": game_mode(game_format)}
+                "game_format": game_format, "mode": game_mode(game_format),
+                "requires_scores": game_format in (6, 7) or bool(stage and stage["points"]["scores"])}
     if action == "cancel":
         if row[5] is None:
             with conn:
@@ -626,11 +689,19 @@ def handle_game(conn, data):
         return {"ok": True}
     if action == "settle":
         winner = data.get("winner")
-        if type(winner) is not int or winner not in (0, 1):
+        if type(winner) is not int or winner not in (-1, 0, 1):
             return error("比赛对局结果无效")
+        stage = tournament_rules.active_stage(conn, row[1])
+        if winner == -1 and (stage["kind"] if stage else config(conn, row[1])["round_stage"]) not in ("swiss", "round_robin"):
+            return error("此阶段不允许平局")
+        try:
+            scores = tournament_rules.score_for_result(conn, row[1], data, winner)
+        except ValueError as exc:
+            return error(str(exc))
         if row[5] is None:
             if not active or not row[6]:
                 return error("比赛对局尚未登记或轮次已结束")
             conn.execute("UPDATE tournament_pairings SET result=?,source='game',revision=revision+1,game_claimed=0 WHERE id=?", (winner, row[0]))
+            conn.execute("UPDATE tournament_pairings SET score_a=?,score_b=? WHERE id=?", (*scores, row[0]))
         return {"ok": True, "result": row[5] if row[5] is not None else winner}
     return error("比赛对局操作无效")

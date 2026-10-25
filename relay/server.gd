@@ -2,10 +2,12 @@ extends SceneTree
 ## Cloud room directory and packet switch. Rules and private state stay on the host.
 const DEFAULT_PORT=47862
 const MAX_FRAME=13024
+const MAX_TASK_FRAME=40000
 const MAX_ROOMS=512
 const ACCOUNT_PREFIX="MCA1"
 const PLAZA_PREFIX="MCP1"
 const TOURNAMENT_PREFIX="MCT1"
+const COMMUNITY_PREFIX="MCE1"
 const CLOUD_DECK_PREFIX="MCK1"
 const MAX_PLAZA_FRAME=16384
 const MatchQueue=preload("match_queue.gd")
@@ -60,6 +62,7 @@ func start():
  var err: Error
  if websocket:
   var websocket_peer=WebSocketMultiplayerPeer.new()
+  websocket_peer.inbound_buffer_size=16*1024*1024;websocket_peer.outbound_buffer_size=16*1024*1024
   err=websocket_peer.create_server(port,bind_address)
   peer=websocket_peer
  else:
@@ -413,9 +416,11 @@ func join_tournament_match(id: int,msg: Dictionary):
   var answer=JSON.parse_string(body.get_string_from_utf8())
   if result!=HTTPRequest.RESULT_SUCCESS or status!=200 or not answer is Dictionary:reject(id,"比赛服务暂不可用");return
   if not answer.get("ok",false):reject(id,str(answer.get("message","无法进入比赛")));return
+  clients[id].series_scores=msg.get("series_scores",false)==true
+  if answer.get("requires_scores",false) and not clients[id].series_scores:reject(id,"此赛事使用新局制或大比分计分，请更新游戏后进入");return
   var game_format=int(answer.get("game_format",2))
   var expected_mode="exploration_random" if game_format==5 else "exploration" if game_format==4 else "casual"
-  if game_format not in [1,2,3,4,5] or str(msg.get("mode",""))!=expected_mode:reject(id,"比赛对局模式与指定赛制不一致，请刷新比赛页面");return
+  if game_format not in [1,2,3,4,5,6,7] or str(msg.get("mode",""))!=expected_mode:reject(id,"比赛对局模式与指定赛制不一致，请刷新比赛页面");return
   var players=answer.get("players",[])
   if not players is Array or players.size()!=2:reject(id,"比赛对阵无效");return
   players=[int(players[0]),int(players[1])]
@@ -491,6 +496,7 @@ func pair_match(first: int,second: int,competition: String="",title: String="",c
  if not competition.is_empty():
   rooms[code].tournament=true;rooms[code].name=title;rooms[code].tournament_checked_at=0;rooms[code].tournament_check_busy=false
   rooms[code].format=competition_format;rooms[code].rule_set="unrestricted"
+  rooms[code].series_scores=clients[first].get("series_scores",false) and clients[second].get("series_scores",false)
  for actor in range(2):
   var id=slots[actor]
   clients[id].role="host" if actor==0 else "guest";clients[id].room=code;clients[id].seat=actor+1
@@ -553,14 +559,40 @@ func report_match(id: int,msg: Dictionary):
  if not room.get("ranked",false) or room.settled or room.cancel or not room.started:return
  var winner=msg.get("winner",-2)
  if str(msg.get("match_id",""))!=room.match_id or not (winner is int or winner is float):return
- if int(winner) not in [0,1] or float(winner)!=float(int(winner)):return
+ if int(winner) not in ([-1,0,1] if room.get("tournament",false) and room.format==7 else [0,1]) or float(winner)!=float(int(winner)):return
  var actor=room.players.find(clients[id].player_id)
  if actor<0 or room.slots[actor]!=id:return
+ if room.get("tournament",false) and room.get("series_scores",true):
+  var scores=msg.get("scores",[])
+  if not scores is Array or scores.size()!=2 or scores.any(func(n):return not (n is int or n is float) or n<0 or n>3 or n!=floor(n)):return
+  if not room.has("score_reports"):room.score_reports={}
+  if room.score_reports.has(actor) and room.score_reports[actor]!=scores:room.cancel=true;return
+  room.score_reports[actor]=scores.duplicate()
  if room.reports.has(actor) and room.reports[actor]!=int(winner):room.cancel=true;return
+ # Progress is accepted only when both original players confirm the same bounded
+ # public battle summary. Missing/conflicting telemetry never invents progress.
+ var evidence=msg.get("evidence",{})
+ if not valid_task_evidence(evidence):evidence={}
+ if not room.has("task_reports"):room.task_reports={}
+ if room.task_reports.has(actor):
+  if room.task_reports[actor]!=evidence:room.task_reports[actor]={}
+ else:room.task_reports[actor]=evidence.duplicate(true)
  room.reports[actor]=int(winner)
  if room.reports.size()==2:
+  if room.get("tournament",false) and room.get("series_scores",true) and room.score_reports[0]!=room.score_reports[1]:room.cancel=true;return
   if room.reports[0]==room.reports[1]:room.outcome=room.reports[0]
   else:room.cancel=true
+
+func valid_task_evidence(evidence: Variant) -> bool:
+ if not evidence is Dictionary or evidence.get("version")!=1:return false
+ var players=evidence.get("players")
+ return players is Array and players.size()==2 and players[0] is Dictionary and players[1] is Dictionary and JSON.stringify(evidence).to_utf8_buffer().size()<=32768
+
+func agreed_task_evidence(room: Dictionary) -> Dictionary:
+ var reports=room.get("task_reports",{})
+ if room.get("reports",{}).size()!=2 or reports.size()!=2 or reports[0].is_empty() or reports[0]!=reports[1]:return {}
+ if room.reports[0]!=room.reports[1] or room.reports[0]!=room.outcome:return {}
+ return reports[0].duplicate(true)
 
 func match_store_request(code: String,action: String):
  if not rooms.has(code):return
@@ -568,7 +600,16 @@ func match_store_request(code: String,action: String):
  room.store_busy=true
  var payload={"action":action,"match_id":room.match_id}
  if action=="create":payload.players=room.players;payload.mode=room.get("mode","ranked")
- if action=="settle":payload.winner=room.outcome
+ if action=="settle":
+  payload.winner=room.outcome
+  if room.get("tournament",false):
+   var reports=room.get("score_reports",{})
+   if reports.size()==2 and reports[0]==reports[1]:payload.scores=reports[0]
+   else:
+    var target=3 if room.format==6 else 2 if room.format in [3,7] else 1
+    payload.scores=[target,0] if room.outcome==0 else [0,target]
+  var evidence=agreed_task_evidence(room)
+  if not evidence.is_empty():payload.evidence=evidence
  if action in ["settle","cancel"]:payload.resolution=resolution_metadata(room)
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
@@ -688,7 +729,7 @@ func tick_matches(now: int):
   if not room.stored:match_store_request(code,"create")
   elif room.cancel:match_store_request(code,"cancel")
   elif room.started and not room.stored_started:match_store_request(code,"start")
-  elif room.outcome in [0,1]:match_store_request(code,"settle")
+  elif room.outcome in [-1,0,1]:match_store_request(code,"settle")
 
 func account_reply(id: int,answer: Dictionary):
  if not clients.has(id):return
@@ -753,6 +794,11 @@ func handle_account(id: int,data: PackedByteArray):
  var platform_code=str(input.get("o","p"))
  if platform_code not in ["p","a"]:account_reply(id,{"ok":false,"message":"设备平台无效"});return
  var payload={"action":input.get("a",""),"username":input.get("u",""),"password":input.get("p",""),"device":input.get("d",""),"platform":"android" if platform_code=="a" else "pc","nickname":input.get("v",""),"token":input.get("s",""),"remember_token":input.get("r","")}
+ if payload.action in ["task_claim","task_reroll"]:
+  payload.day=input.get("d","");payload.slot=input.get("l");payload.task_id=input.get("q","")
+ if payload.action=="shop_buy":
+  payload.product_id=input.get("q","")
+  if input.has("v"):payload.expected_price=input.v
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
  account_requests[id]=request
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
@@ -769,6 +815,11 @@ func handle_account(id: int,data: PackedByteArray):
    for other_id in clients.keys():
     if other_id!=id and clients.has(other_id) and clients[other_id].account.to_lower()==account and clients[other_id].platform==platform:
      reject(other_id,"账号已在另一设备重新登录")
+  if answer.get("tasks",{}) is Dictionary:
+   var grants=answer.get("tasks",{}).get("shop_grants",{})
+   if grants is Dictionary:
+    for product in grants:
+     grants[product]=Marshalls.raw_to_base64(Crypto.new().sign(HashingContext.HASH_SHA256,("MCA:leader_emotes:"+str(product)).sha256_buffer(),account_key))
   account_reply(id,answer))
  var err=request.request(store_url("account"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(payload))
  if err!=OK:
@@ -777,11 +828,11 @@ func handle_account(id: int,data: PackedByteArray):
 func plaza_reply(id: int,answer: Dictionary,prefix: String=PLAZA_PREFIX):
  send_raw(id,(prefix+JSON.stringify(answer)).to_utf8_buffer())
 
-func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false,private_decks: bool=false):
- var prefix=CLOUD_DECK_PREFIX if private_decks else (TOURNAMENT_PREFIX if tournament else PLAZA_PREFIX)
- var service="云端卡组" if private_decks else ("比赛服务" if tournament else "套牌广场")
+func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false,private_decks: bool=false,community: bool=false):
+ var prefix=COMMUNITY_PREFIX if community else CLOUD_DECK_PREFIX if private_decks else (TOURNAMENT_PREFIX if tournament else PLAZA_PREFIX)
+ var service="社区服务" if community else "云端卡组" if private_decks else ("比赛服务" if tournament else "套牌广场")
  if account_key==null:plaza_reply(id,{"ok":false,"message":service+"尚未启用"},prefix);return
- if data.size()<=260 or data.size()>MAX_PLAZA_FRAME:plaza_reply(id,{"ok":false,"message":service+"请求长度无效"},prefix);return
+ if data.size()<=260 or data.size()>(8*1024*1024 if community else MAX_PLAZA_FRAME):plaza_reply(id,{"ok":false,"message":service+"请求长度无效"},prefix);return
  if plaza_requests.has(id):plaza_reply(id,{"ok":false,"message":"请等待当前请求完成"},prefix);return
  var auth=JSON.parse_string(Crypto.new().decrypt(account_key,data.slice(4,260)).get_string_from_utf8())
  if not auth is Dictionary:plaza_reply(id,{"ok":false,"message":service+"请求凭据无效"},prefix);return
@@ -795,7 +846,7 @@ func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false,private_d
  var input=JSON.parse_string(body.get_string_from_utf8())
  if not input is Dictionary or input.has("token"):plaza_reply(id,{"ok":false,"message":service+"请求格式无效"},prefix);return
  input["token"]=auth.get("s","")
- var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0;request.body_size_limit=131072 if private_decks else 65536
+ var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0;request.body_size_limit=8*1024*1024 if community else 131072 if private_decks else 65536
  plaza_requests[id]=request
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,answer_body: PackedByteArray):
   plaza_requests.erase(id);request.queue_free()
@@ -804,26 +855,29 @@ func handle_plaza(id: int,data: PackedByteArray,tournament: bool=false,private_d
   var answer=JSON.parse_string(answer_body.get_string_from_utf8())
   if not answer is Dictionary:plaza_reply(id,{"ok":false,"message":service+"响应无效"},prefix);return
   plaza_reply(id,answer,prefix))
- if request.request(store_url("cloud-decks" if private_decks else ("tournaments" if tournament else "deck-plaza")),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
+ if request.request(store_url("community" if community else "cloud-decks" if private_decks else ("tournaments" if tournament else "deck-plaza")),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify(input))!=OK:
   plaza_requests.erase(id);request.queue_free();plaza_reply(id,{"ok":false,"message":service+"暂不可用"},prefix)
 
 func handle_packet(id: int,data: PackedByteArray,channel: int):
  if not clients.has(id) or rejected.has(id):return
  clients[id].last_packet_at=Time.get_ticks_msec()
+ if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==COMMUNITY_PREFIX:
+  handle_plaza(id,data,false,false,true);return
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==CLOUD_DECK_PREFIX:
   handle_plaza(id,data,false,true);return
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==PLAZA_PREFIX:
   handle_plaza(id,data);return
  if data.size()>=4 and data.slice(0,4).get_string_from_ascii()==TOURNAMENT_PREFIX:
   handle_plaza(id,data,true);return
- if data.size()<4 or data.size()>MAX_FRAME:reject(id,"数据包长度无效");return
+ if data.size()<4 or data.size()>MAX_TASK_FRAME:reject(id,"数据包长度无效");return
+ if data.size()>MAX_FRAME and data.slice(0,4).get_string_from_ascii()!="MCR1":reject(id,"数据包长度无效");return
  if data.slice(0,4).get_string_from_ascii()==ACCOUNT_PREFIX:
   handle_account(id,data);return
  if data.slice(0,4).get_string_from_ascii()=="MCR1":
-  if data.size()>2048:reject(id,"控制消息过长");return
   var msg=JSON.parse_string(data.slice(4).get_string_from_utf8())
   if not msg is Dictionary:return
   var kind=msg.get("kind","")
+  if data.size()>2048 and kind!="match_result":reject(id,"控制消息过长");return
   if kind=="auth":verify_client(id,str(msg.get("token","")))
   elif kind=="match_result":report_match(id,msg)
   elif kind=="link_pong":

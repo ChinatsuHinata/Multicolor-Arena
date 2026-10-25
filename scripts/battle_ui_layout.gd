@@ -27,7 +27,7 @@ func measure(owner_view):
   view.HAND=Rect2(246,663,1108,232)
   view.PROMPT=Rect2(310,605,1000,37)
   view.NOTICE=Rect2(307,639,995,28)
-  view.INSPECTION=Rect2(16,100,218,660)
+  view.INSPECTION=Rect2(16,156,218,604)
   view.SIDEBAR=Rect2(1366,100,218,660)
   view.OPPONENT_HAND_COUNT=Rect2(1366,76,218,62)
   enemy_life=Rect2(18,18,218,view.battle_life_height(1-view.local_seat,61))

@@ -63,10 +63,10 @@ static func spell_options(e,id: String,who: int) -> Variant:
    var result=[]
    for entry in e.stack:
     if entry.owner==who: continue
-    var targets=[entry.target]+entry.target.get("parts",[])
-    var hits=targets.any(func(t):
+    # Grouped selections and multi-target abilities share the same target contract.
+    var hits=e.Pack.declared_targets(entry).any(func(t):
      var c=e.find_card(t.get("uid",-1))
-     return not c.is_empty() and c.owner==who and c.zone=="field" and (e.character_matches(c,"魂魄妖梦") or c.card_id=="token_halfghost"))
+     return e.Roster.unit(e,t) and c.owner==who and (e.character_matches(c,"魂魄妖梦") or e.character_matches(c,"半灵")))
     if hits: result.append({"stack_id":entry.id})
    return result
   "130": return all_units.filter(func(t): return e.stat(e.find_card(t.uid),"spirit")>=3)
@@ -126,6 +126,7 @@ static func on_leave(e,c: Dictionary):
 static func on_death(e,c: Dictionary,before: Dictionary):
  # Only units die; other permanents moving from the field to the grave leave the field.
  if not e.is_unit(before): return
+ e.task_probe(before.owner,"units_lost")
  var old_owner=e.catalogue_death_owner;e.catalogue_death_owner=before.owner
  e.catalogue_death_depth+=1
  _on_death_core(e,c,before)
@@ -143,8 +144,9 @@ static func _on_death_core(e,c: Dictionary,before: Dictionary):
  if has(info,"spell_rebirth") and before.get("spell_damage",false) and e.has_leader_ability(before): event(e,before,"spell_rebirth",true,data)
  for unit in e.death_observers if not e.death_observers.is_empty() else e.units(0)+e.units(1):
   if has(e.cards[unit.card_id],"death_devour") and not before.get("token",false): event(e,unit,"death_devour",true,data)
- # A dying leader sees its own death; retain last known information.
- var observers=(e.death_observers.filter(func(u): return u.owner==c.owner) if not e.death_observers.is_empty() else e.units(c.owner)).duplicate()
+ # Observe the last controller, before a grave move restores ownership.
+ # A dying leader also sees its own death.
+ var observers=(e.death_observers.filter(func(u): return u.owner==before.owner) if not e.death_observers.is_empty() else e.units(before.owner)).duplicate()
  if has(info,"leader_death_damage") and not observers.any(func(u): return u.uid==before.uid): observers.append(before)
  for unit in observers:
   if has(e.cards[unit.card_id],"leader_death_damage") and e.has_leader_ability(unit):
@@ -338,9 +340,14 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
     "反制非符": e.counter_entry(t.stack_id)
   "139": e.draw(who); e.damage_target(t,e.players[who].hand.size())
   "141":
-   for p in e.players:
-    for c in p.field.duplicate():
-     if e.Roster.permanent(e,c): e.move_to(c,"exile")
+   var permanents=(e.players[0].field+e.players[1].field).filter(func(c):return e.Roster.permanent(e,c))
+   # The entire exile happens before any castle returns its prisoners.
+   var castle_returns=[]
+   for c in permanents:
+    castle_returns.append_array(c.get("castle_exiles",[])+c.get("catalogue_castle",[]))
+    c.erase("castle_exiles");c.erase("catalogue_castle")
+   for c in permanents:e.move_to(c,"exile")
+   e.Pack.return_castle_exiles(e,castle_returns)
   "143":
    match t.mode:
     "移回战场":

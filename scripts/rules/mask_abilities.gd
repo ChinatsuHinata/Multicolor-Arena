@@ -129,12 +129,15 @@ static func spell_resolve(e,entry) -> bool:
       u.color_counters=list
   "fairy_rewrite":
    for s in e.stack:
-    if s.id==aim.stack_id:s.rewritten_fairy=true;s.target={"none":true};s.ability_text="你创造一个蓝绿双色的3/3与灵力3且不计战场格的妖精衍生物。"
+    if s.id==aim.stack_id:
+     if not s.get("rewritten_fairy",false):e.TaskProbes.counter(e,s,c,true)
+     s.rewritten_fairy=true;s.target={"none":true};s.ability_text="你创造一个蓝绿双色的3/3与灵力3且不计战场格的妖精衍生物。"
   "blue_flower":
    var chosen=c if aim.get("self",false) else {}
    if chosen.is_empty():
     for s in e.stack:
-     if s.id==aim.get("stack_id",-1):chosen=s.card;break
+     if s.id==aim.get("stack_id",-1):
+      chosen=s.card;e.TaskProbes.counter(e,s,c,true);break
    if not chosen.is_empty():
     e.move_to(chosen,"deck")
     if chosen.zone=="deck":

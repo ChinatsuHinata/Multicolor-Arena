@@ -50,6 +50,9 @@ var standing_page=0
 var standing_pages=1
 var silent_request=false
 var retained_scroll=0
+var custom_stages: CheckButton
+var stage_form
+var score_inputs: Array=[]
 
 func expand(control: Control,vertical: bool=false):
  control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -93,6 +96,7 @@ func relayout():
  for control in find_children("*","Button",true,false):app.ui_metrics.button(control)
  heading.add_theme_font_size_override("font_size",app.ui_metrics.title)
  notice.add_theme_font_size_override("font_size",app.ui_metrics.small)
+ if is_instance_valid(stage_form):stage_form.relayout()
 
 func clear_body():
  app.free_children(body);title_input=null;description_input=null;submit_button=null
@@ -164,7 +168,7 @@ func show_detail():
    var other=my_pairing.reports[1-int(my_pairing.actor)]
    if other!=null:
     var proposal=my_pairing.duplicate(true)
-    action(controls,"确认结果",func():app.confirm_action("确认结果："+result_caption(proposal,other)+"？",func():send_request({"action":"confirm_result","id":int(current.id),"pairing_id":int(proposal.id),"result":int(other),"revision":int(proposal.revision)})),true,"TournamentConfirmResult")
+    action(controls,"确认结果",func():app.confirm_action("确认结果："+result_caption(proposal,other)+" · 大比分 "+str(proposal.report_scores[1-int(proposal.actor)])+"？",func():send_request({"action":"confirm_result","id":int(current.id),"pairing_id":int(proposal.id),"result":int(other),"scores":proposal.report_scores[1-int(proposal.actor)],"revision":int(proposal.revision)})),true,"TournamentConfirmResult")
  if controls.get_child_count()==0:controls.hide()
  var tabs=HFlowContainer.new();body.add_child(tabs)
  for entry in [["group","群组"],["pairings","对阵"],["standings","排名"]]:
@@ -179,6 +183,10 @@ func show_detail():
  var game_label=text(column,"对局赛制："+Series.format_label(int(current.get("game_format",Series.BO1_SIDEBOARD))),app.ui_metrics.body,app.GOLD);game_label.name="TournamentGameFormatDisplay"
  var date_label=text(column,start_caption(current),app.ui_metrics.body,app.GOLD);date_label.name="TournamentStartTimeDisplay"
  text(column,FORMATS.get(current.get("format","swiss"),"")+" · "+round_caption(),app.ui_metrics.body,app.GOLD)
+ for stage in current.get("stages",[]):
+  text(column,str(stage.name)+" · "+preload("res://scripts/tournament_stage_form.gd").KINDS.get(stage.kind,stage.kind)+" · "+Series.format_label(int(stage.game_format))+" · "+points_caption(stage),app.ui_metrics.small)
+ var rewards=current.get("rewards",{"champion":50,"runner_up":40,"semifinalist":20})
+ text(column,"铜钱奖励：冠军 %d · 亚军 %d · 四强各 %d（按最终名次发放，不叠加）" % [int(rewards.champion),int(rewards.runner_up),int(rewards.semifinalist)],app.ui_metrics.body,app.GOLD)
  text(column,"%s · 群组 %d 人 · 已签到 %d 人 · 参赛名单 %d 人" % [PHASES.get(current.phase,""),current.member_count,current.checkin_count,current.roster_count],app.ui_metrics.small,app.MUTED)
  text(column,"比赛描述",app.ui_metrics.body,app.GOLD)
  var description=text(column,str(current.description) if not str(current.description).is_empty() else "主办方尚未填写比赛描述。",app.ui_metrics.body);description.name="TournamentDescriptionDisplay"
@@ -307,12 +315,14 @@ func _unhandled_key_input(event: InputEvent):
 
 func round_caption() -> String:
  var number=int(current.get("round_number",0))
+ if not current.get("stages",[]).is_empty():return "%s · 总第 %d 轮 · 待结束 %d 桌" % [str(current.stages[int(current.get("stage_index",0))].name),number,int(current.get("pending_matches",0))]
  if number==0:return "瑞士轮轮数："+("按签到人数自动确定" if int(current.get("swiss_rounds",0))==0 else str(int(current.swiss_rounds)))
  return "%s · 第 %d 轮 · 待结束 %d 桌" % [STAGES.get(current.get("round_stage",""),""),number,int(current.get("pending_matches",0))]
 
 func advance_caption() -> String:
  if current.phase=="locked":return "开始首轮"
  if int(current.get("pending_matches",0))>0:return "等待本轮结果"
+ if not current.get("stages",[]).is_empty():return "推进赛程 / 结算奖励"
  var last=int(current.total_swiss_rounds)+int(KNOCKOUT_ROUNDS.get(current.format,0))
  return "结束比赛" if int(current.round_number)>=last else "开始下一轮"
 
@@ -332,7 +342,7 @@ func build_settings_fields(parent: Node,editing: bool):
  var locked=editing and int(current.get("round_number",0))>0
  text(parent,"对局赛制",app.ui_metrics.body,app.GOLD)
  game_format_input=OptionButton.new();parent.add_child(game_format_input);game_format_input.name="TournamentGameFormat"
- for value in [Series.BO1,Series.BO1_SIDEBOARD,Series.BO3,Series.EXPLORATION,Series.EXPLORATION_RANDOM]:game_format_input.add_item(Series.format_label(value),value)
+ for value in [Series.BO1,Series.BO1_SIDEBOARD,Series.BO3,Series.BO5,Series.BO2,Series.EXPLORATION,Series.EXPLORATION_RANDOM]:game_format_input.add_item(Series.format_label(value),value)
  app.ui_metrics.button(game_format_input);expand(game_format_input)
  game_format_input.select(game_format_input.get_item_index(int(current.get("game_format",Series.BO1_SIDEBOARD)) if editing else Series.BO1_SIDEBOARD))
  game_format_input.disabled=locked;game_format_input.set_meta("page_disabled",locked)
@@ -354,12 +364,24 @@ func build_settings_fields(parent: Node,editing: bool):
  text(parent,"自动轮数为签到人数的 log₂ 向上取整。胜 3 分、平 1 分、负 0 分，轮空 3 分；同分依次比较对手积分总和、胜场及抽签序号。",app.ui_metrics.small,app.MUTED)
  text(parent,"可选瑞士轮前 2、4、8、16 名进入单败淘汰赛，签到人数须达到所选名额。按种子高低配对，前两名分处上下半区，胜者逐轮晋级直至决出冠军；半决赛、八强赛、十六强赛败者分别并列第 3、5、9 名。",app.ui_metrics.small,app.MUTED)
  text(parent,"轮次间隔从本轮开始计时。到点后有未结束或待确认对局，等待主办方裁定后再推进；自动轮次只在首轮开始后生效。",app.ui_metrics.small,app.MUTED)
+ custom_stages=CheckButton.new();parent.add_child(custom_stages);custom_stages.text="自定义阶段、局制、计分与晋级条件";app.ui_metrics.button(custom_stages)
+ custom_stages.button_pressed=editing and not current.get("stages",[]).is_empty()
+ custom_stages.disabled=locked;custom_stages.set_meta("page_disabled",locked)
+ stage_form=preload("res://scripts/tournament_stage_form.gd").new();parent.add_child(stage_form)
+ stage_form.begin(app,current.get("stages",[]) if editing else [],int(current.get("stage_index",0)) if locked else -1)
+ stage_form.visible=custom_stages.button_pressed
+ custom_stages.toggled.connect(func(enabled):stage_form.visible=enabled)
+ text(parent,"勾选自定义后，阶段配置覆盖上方基础赛程和局制。支持瑞士轮、单败、双败、循环赛任意串联；每阶段独立局制与积分。",app.ui_metrics.small,app.MUTED)
 
 func settings_payload() -> Dictionary:
  var stamp=parse_china_time(start_time_input.text)
  if mode=="configure" and int(current.get("start_at",0))>0 and start_time_input.text==china_time(int(current.start_at)):stamp=int(current.start_at)
  if stamp<=0:say("请输入有效比赛时间，格式为 YYYY-MM-DD HH:MM（北京时间）");return {}
- return {"format":FORMATS.keys()[format_input.selected],"swiss_rounds":int(rounds_input.value),"round_interval":int(interval_input.value*60),"game_format":game_format_input.get_selected_id(),"start_at":stamp}
+ var payload={"format":FORMATS.keys()[format_input.selected],"swiss_rounds":int(rounds_input.value),"round_interval":int(interval_input.value*60),"game_format":game_format_input.get_selected_id(),"start_at":stamp}
+ if custom_stages.button_pressed:
+  if not stage_form.capture():return {}
+  payload.stages=stage_form.stages
+ return payload
 
 func show_settings():
  if busy or not current.owned:return
@@ -378,12 +400,13 @@ func show_description_editor():
  if busy or not current.owned:return
  mode="description";clear_body();heading.text="编辑比赛描述"
  var column=scroll_body("TournamentDescriptionScroll")
- text(column,str(current.title),app.ui_metrics.title,app.GOLD)
+ text(column,"比赛名称",app.ui_metrics.body,app.GOLD)
+ title_input=LineEdit.new();column.add_child(title_input);title_input.text=str(current.title);title_input.max_length=40;title_input.custom_minimum_size.y=app.ui_metrics.hit
  text(column,"比赛描述（最多 2000 字，可留空）",app.ui_metrics.body)
  description_input=TextEdit.new();description_input.name="TournamentDescription";column.add_child(description_input);expand(description_input,true)
  description_input.custom_minimum_size.y=app.ui_metrics.hit*4;description_input.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY
  description_input.text=str(current.description)
- submit_button=action(body,"保存比赛描述",func():send_request({"action":"update_description","id":int(current.id),"description":description_input.text}),true,"TournamentSaveDescription")
+ submit_button=action(body,"保存比赛描述",func():send_request({"action":"update_description","id":int(current.id),"title":title_input.text,"description":description_input.text}),true,"TournamentSaveDescription")
  description_input.text_changed.connect(validate_description);validate_description()
 
 func validate_description():
@@ -399,6 +422,9 @@ func build_management(parent: Node):
  if not current.owned:return
  action(parent,"编辑比赛描述",show_description_editor,false,"TournamentEditDescription")
  action(parent,"删除比赛",confirm_delete,false,"TournamentDelete")
+ if current.get("super_admin",false):
+  action(parent,"账号权限与教程群组",app.community_management)
+  if not current.get("rewards_paid",false):build_reward_fields(parent)
  if current.phase!="complete":
   action(parent,"比赛设置",show_settings,false,"TournamentSettings")
   action(parent,"安排定时任务",show_schedule,false,"TournamentSchedule")
@@ -448,7 +474,7 @@ func submit_schedule():
 
 func result_caption(pairing: Dictionary,result) -> String:
  if result==null:return "未结束"
- if pairing.bye:return "轮空 · 3 分"
+ if pairing.bye:return "轮空（按本阶段规则计分）"
  if int(result)==-1:return "平局"
  return PlayerNameDisplay.caption(str(pairing.names[int(result)]))+" 获胜"
 
@@ -468,6 +494,7 @@ func build_pairing(parent: Node,pairing: Dictionary,personal: bool):
  var column=VBoxContainer.new();panel.add_child(column)
  text(column,"第 %d 桌：%s vs %s" % [int(pairing.table),PlayerNameDisplay.caption(str(pairing.names[0])),"轮空" if pairing.bye else PlayerNameDisplay.caption(str(pairing.names[1]))],app.ui_metrics.body,app.GOLD)
  text(column,result_caption(pairing,pairing.result),app.ui_metrics.body)
+ if pairing.get("scores",[null,null])[0]!=null:text(column,"大比分 %d : %d" % [int(pairing.scores[0]),int(pairing.scores[1])],app.ui_metrics.body)
  if pairing.result!=null:
   text(column,{"game":"游戏对战自动回填","agreement":"双方确认的结果","organizer":"主办方裁定","bye":"轮空"}.get(pairing.source,""),app.ui_metrics.small,app.MUTED)
  elif pairing.game_active:text(column,"游戏对局进行中，成绩结束后自动回填。",app.ui_metrics.small,app.MUTED)
@@ -485,8 +512,20 @@ func show_result_form(pairing: Dictionary,judge: bool):
  text(column,"第 %d 桌：%s vs %s" % [int(pairing.table),PlayerNameDisplay.caption(str(pairing.names[0])),PlayerNameDisplay.caption(str(pairing.names[1]))],app.ui_metrics.body,app.GOLD)
  result_input=OptionButton.new();result_input.name="TournamentResultChoice";column.add_child(result_input)
  for winner in range(2):result_input.add_item(result_caption(pairing,winner),winner)
- if current.round_stage=="swiss":result_input.add_item("平局",2)
+ if current.round_stage in ["swiss","round_robin"]:result_input.add_item("平局",2)
  app.ui_metrics.button(result_input)
+ score_inputs=[]
+ var scores=HBoxContainer.new();column.add_child(scores)
+ for actor in range(2):
+  text(scores,str(pairing.names[actor])+" 胜局",app.ui_metrics.small)
+  var input=SpinBox.new();scores.add_child(input);input.min_value=0;input.max_value=3;input.custom_minimum_size.y=app.ui_metrics.hit;score_inputs.append(input)
+ var target=3 if int(current.game_format)==Series.BO5 else 2 if int(current.game_format) in [Series.BO3,Series.BO2] else 1
+ score_inputs[0].value=target
+ result_input.item_selected.connect(func(_index):
+  var winner=result_input.get_selected_id()
+  var draw_score=0 if target==1 else 1
+  score_inputs[0].value=target if winner==0 else draw_score if winner==2 else 0
+  score_inputs[1].value=target if winner==1 else draw_score if winner==2 else 0)
  text(column,"裁定将直接计入成绩并允许推进轮次。" if judge else "结果表须由本桌对手确认后才计入成绩。双方意见不一致时，可修改结果或联系主办方裁定。",app.ui_metrics.small,app.MUTED)
  action(body,"确认裁定" if judge else "提交结果表",submit_result,true,"TournamentResultSubmit")
 
@@ -494,6 +533,7 @@ func submit_result():
  if busy:return
  var result=result_input.get_selected_id();result=-1 if result==2 else result
  var payload={"action":"judge_result" if mode=="judge" else "report_result","id":int(current.id),"pairing_id":int(result_pairing.id),"result":result,"revision":int(result_pairing.revision)}
+ payload.scores=[int(score_inputs[0].value),int(score_inputs[1].value)]
  if mode=="judge":app.confirm_action("将本桌裁定为："+result_caption(result_pairing,result)+"？",func():send_request(payload))
  else:send_request(payload)
 
@@ -513,13 +553,34 @@ func start_game(deck: Dictionary,pairing: Dictionary,game_format: int):
  app.online()
 
 func build_standings(parent: Node):
- text(parent,"瑞士轮积分排名",app.ui_metrics.body,app.GOLD)
- text(parent,"胜 3 分 · 平 1 分 · 负 0 分 · 轮空 3 分。排序：积分、对手积分总和、胜场、抽签序号。",app.ui_metrics.small,app.MUTED)
+ text(parent,"最终成绩（各阶段积分独立）" if current.phase=="complete" else "本阶段积分与名次",app.ui_metrics.body,app.GOLD)
+ text(parent,points_caption(current.stages[int(current.get("stage_index",0))]) if not current.get("stages",[]).is_empty() else "胜 3 分 · 平 1 分 · 负 0 分 · 轮空 3 分。排序：积分、对手积分总和、胜场、抽签序号。",app.ui_metrics.small,app.MUTED)
  if standings.is_empty():text(parent,"签到结束后显示参赛排名。",app.ui_metrics.body,app.MUTED)
  for entry in standings:
-  var suffix=" · 淘汰赛第 %d 名" % int(entry.placement) if entry.has("placement") else ""
+  var suffix=" · 最终第 %d 名" % int(entry.placement) if entry.has("placement") else ""
+  if entry.has("stage_name"):suffix+=" · "+str(entry.stage_name)
+  suffix+={"advanced":" · 提前晋级","eliminated":" · 已淘汰"}.get(entry.get("state",""),"")
   text(parent,"%d. %s · %d 分 · 对手分 %d · %d 胜 / %d 平 / %d 负 · 轮空 %d%s" % [int(entry.rank),PlayerNameDisplay.caption(str(entry.nickname)),int(entry.points),int(entry.buchholz),int(entry.wins),int(entry.draws),int(entry.losses),int(entry.byes),suffix],app.ui_metrics.body)
  pagination(body,standing_page,standing_pages,func():standing_page-=1;fetch_detail(int(current.id)),func():standing_page+=1;fetch_detail(int(current.id)))
 
 func say(message: String):
  notice.text=message;notice.visible=not message.is_empty()
+
+func points_caption(stage: Dictionary) -> String:
+ var points=stage.points
+ var value="胜 %d / 平 %d / 负 %d / 轮空 %d 分" % [int(points.win),int(points.draw),int(points.loss),int(points.bye)]
+ for key in points.get("scores",{}):value+=" · %s=%d分" % [key,int(points.scores[key])]
+ var advance=stage.advance
+ value+=" · 达到 %d 分晋级" % int(advance.points) if advance.mode=="points" else " · 前 %d 名晋级" % int(advance.count) if advance.mode=="rank" else " · 未淘汰选手晋级"
+ return value
+
+func build_reward_fields(parent: Node):
+ text(parent,"赛事铜钱奖励（bigcake 可修改）",app.ui_metrics.body,app.GOLD)
+ var inputs={}
+ for key in ["champion","runner_up","semifinalist"]:
+  text(parent,{"champion":"冠军","runner_up":"亚军","semifinalist":"四强每人"}[key],app.ui_metrics.small)
+  var input=SpinBox.new();parent.add_child(input);input.max_value=1000000;input.value=int(current.get("rewards",{}).get(key,0));input.custom_minimum_size.y=app.ui_metrics.hit;inputs[key]=input
+ action(parent,"保存铜钱奖励",func():
+  var rewards={}
+  for key in inputs:rewards[key]=int(inputs[key].value)
+  send_request({"action":"update_rewards","id":int(current.id),"rewards":rewards}))

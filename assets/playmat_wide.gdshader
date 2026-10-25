@@ -13,6 +13,8 @@ uniform float bottom_cut;
 // Sakura UI lifts the black mat toward dusk plum; the defaults leave it unchanged.
 uniform vec3 lift : source_color = vec3(0.0);
 uniform vec3 tint : source_color = vec3(1.0);
+uniform float vignette = 0.0;
+uniform vec3 edge_color : source_color = vec3(0.0);
 
 // The original art occupies 16 of the 23 horizontal world units. At these
 // two quiet columns only the straight divider lines cross the image. Repeating
@@ -66,4 +68,14 @@ void fragment() {
  }
  vec3 col = texture(playmat, vec2(source_x, source_y)).rgb * tint;
  ALBEDO = col + lift * (vec3(1.0) - col);
+ if (vignette > 0.0) {
+  // Radial falloff darkens the mat toward its rim so the centre stays readable.
+  vec2 d = UV - vec2(0.5);
+  float r = length(vec2(d.x * 0.92, d.y * 1.10)) * 2.0;
+  float v = smoothstep(0.42, 1.35, r) * vignette;
+  ALBEDO = mix(ALBEDO, edge_color, v);
+  // Faint paper grain keeps large empty areas from reading as flat colour.
+  float grain = fract(sin(dot(UV * vec2(1031.0, 1877.0), vec2(12.9898, 78.233))) * 43758.5453);
+  ALBEDO *= 0.975 + 0.05 * grain;
+ }
 }

@@ -65,10 +65,12 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as directory:
                 scripts = ("test_tournament_game_formats.gd",)
             elif "--rounds-only" in sys.argv:
                 scripts = ("test_tournament_rounds.gd",)
+            elif "--community-only" in sys.argv:
+                scripts = ("test_community_online.gd",)
             for script in scripts:
                 result = subprocess.run([str(godot), *display, "--path", ".", "--log-file", str(scratch / (script + ".log")),
-                    "--script", "res://tests/" + script, "--", "--fixture", str(config)],
-                    cwd=root, creationflags=flags, timeout=150, capture_output=True, encoding="utf-8", errors="replace")
+                    "--script", "res://tests/" + script, "--", "--fixture", str(config), *(["--forfeit-only"] if "--forfeit-only" in sys.argv else [])],
+                    cwd=root, creationflags=flags, timeout=300 if script == "test_tournament_game_formats.gd" else 150, capture_output=True, encoding="utf-8", errors="replace")
                 print(result.stdout, end="", flush=True)
                 print(result.stderr, end="", flush=True)
                 if result.returncode:

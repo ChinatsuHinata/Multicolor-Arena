@@ -358,7 +358,16 @@ static func resolve_complex(e,t):
   "spell-fdf-060":
    var victims=(e.units(0)+e.units(1)).duplicate()
    for u in victims:e.destroy(u)
-   C.choose(e,t,"cat:resurrect",C.pick(e,victims.filter(func(u):return u.zone=="grave"),0,victims.size(),"横置放入你的战场"))
+   var fallen=[]
+   for u in victims:
+    if u.zone not in ["grave","return_pending"]:continue
+    var r=C.ref(e,u)
+    if u.zone=="return_pending":
+     if u.get("return_destination","")!="grave":continue
+     # The destination choice performs one more zone change before resuming.
+     r.zone="grave";r.epoch+=1
+    fallen.append(r)
+   e.Roster.continue_after_returns(e,t,"cat:resurrect_choose",{"victims":fallen})
   "spell-fdf-043":
    if C.unit(e,a):
     var u=e.find_card(a.uid);var owner=u.owner;var before=e.stat(u,"health")-u.damage;var dealt=C.damage(e,a,8);var overflow=maxi(0,dealt-maxi(0,before))
@@ -442,6 +451,9 @@ static func resolve_complex_choice(e,t):
    for r in d.piles[a.pile]:
     if C.valid(e,r):e.move_to(e.find_card(r.uid),"hand")
    e.gain_life(who,n)
+  "cat:resurrect_choose":
+   var pool=d.victims.filter(func(r):return C.valid(e,r)).map(func(r):return e.find_card(r.uid))
+   C.choose(e,t,"cat:resurrect",C.pick(e,pool,0,pool.size(),"横置放入你的战场"))
   "cat:resurrect":
    var list=C.selected(e,a);e.Roster.field_many(e,list,who,true)
    for u in list:
@@ -452,7 +464,10 @@ static func resolve_complex_choice(e,t):
    C.damage(e,d.target,maxi(0,d.amount-list.size()*2))
   "cat:retarget":
    for s in e.stack:
-    if s.id==d.id:s.target=C.retarget_result(a);e.Roster.New.on_target(e,s.target,s)
+    if s.id==d.id:
+     var next_target=C.retarget_result(a)
+     if s.target!=next_target:e.TaskProbes.counter(e,s,t.source,true)
+     s.target=next_target;e.Roster.New.on_target(e,s.target,s)
   "cat:copy_x":
    if not a.get("copy_stop",false):C.copy_spell(e,d.entry,a.value,true)
   "cat:spell_copy":

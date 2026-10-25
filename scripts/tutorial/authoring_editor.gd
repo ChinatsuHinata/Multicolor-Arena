@@ -15,7 +15,7 @@ var model=Model.new()
 var selected_step=""
 var scene_id=""
 var workspace: Control
-var toolbar: HBoxContainer
+var toolbar: HFlowContainer
 var inspector: PanelContainer
 var form: VBoxContainer
 var status_label: Label
@@ -63,6 +63,7 @@ func begin(app,data: Dictionary={},path: String=""):
  name="TutorialAuthoringEditor";set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  model.fresh()
  if not data.is_empty():model.data=data.duplicate(true);model.path=path;model.saved_text=JSON.stringify(data)
+ review_source=JSON.stringify(model.data)
  selected_step=model.data.start_step
  build_toolbar()
  workspace=PanelContainer.new();workspace.name="AuthoringNodes";add_child(workspace)
@@ -84,13 +85,22 @@ func begin(app,data: Dictionary={},path: String=""):
  form=VBoxContainer.new();details.add_child(form);form.size_flags_horizontal=Control.SIZE_EXPAND_FILL;form.add_theme_constant_override("separation",8)
  resized.connect(layout);refresh()
 
+var online_revision=0
+var review_submission_id=0
+var online_busy=false
+var review_source=""
+
 func build_toolbar():
  var panel=PanelContainer.new();panel.name="AuthoringToolbar";add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);panel.offset_bottom=54
  panel.add_theme_stylebox_override("panel",host.ui_metrics.panel_style())
- toolbar=HBoxContainer.new();panel.add_child(toolbar)
+ toolbar=HFlowContainer.new();panel.add_child(toolbar);toolbar.resized.connect(layout)
  action(toolbar,"新建课程",func():guard_discard(func():host.tutorial_editor()))
  action(toolbar,"打开",func():guard_discard(open_file))
  action(toolbar,"保存",save)
+ action(toolbar,"提交审核",submit_online).name="SubmitTutorialReview"
+ if review_submission_id>0 and host.online_community().allowed("super_admin"):
+  action(toolbar,"批准发布",func():review_online(true))
+  action(toolbar,"退回",func():review_online(false))
  action(toolbar,"录制",open_recording).name="OpenRecording"
  action(toolbar,"试验当前节点",test_course).name="TestCurrentTutorialStep"
  action(toolbar,"返回",func():guard_discard(host.tutorials))
@@ -100,8 +110,9 @@ func build_toolbar():
 func layout():
  if inspector==null:return
  var width=clampf(size.x*0.48,340,660)
- workspace.position=Vector2(12,64);workspace.size=Vector2(maxf(180,size.x-width-36),maxf(100,size.y-76))
- inspector.position=Vector2(size.x-width-12,64);inspector.size=Vector2(width,maxf(100,size.y-76))
+ var top=maxf(64,toolbar.get_parent().size.y+10)
+ workspace.position=Vector2(12,top);workspace.size=Vector2(maxf(180,size.x-width-36),maxf(100,size.y-top-12))
+ inspector.position=Vector2(size.x-width-12,top);inspector.size=Vector2(width,maxf(100,size.y-top-12))
  layout_record_tools()
 
 func layout_record_tools():
@@ -922,13 +933,20 @@ func file_dialog(saving: bool):
   else:
    var reason=model.load_course(file)
    if not reason.is_empty():host.alert(reason,"打开失败")
-   else:selected_step=model.data.start_step;refresh()
+   else:
+    selected_step=model.data.start_step;review_submission_id=0
+    var base=JSON.parse_string(FileAccess.get_file_as_string(file+".revision")) if FileAccess.file_exists(file+".revision") else null
+    online_revision=int(base.get("revision",-1)) if base is Dictionary and base.get("id")==model.data.id else -1 if host.online_community().revision(str(model.data.id))>0 else 0
+    refresh()
   dialog.queue_free())
  dialog.canceled.connect(dialog.queue_free)
  dialog.popup_centered_ratio(0.8)
 
 
 func save():
+ if host.tutorial_editor_available():
+  if DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(host.tutorial_local_directory))!=OK:host.alert("无法创建教程草稿目录","保存失败");return
+  save_to(host.tutorial_local_directory.path_join(str(model.data.id).validate_filename()+".json"));return
  if model.path.is_empty() or (model.path.begins_with("res://") and not OS.has_feature("editor")):file_dialog(true)
  else:save_to(model.path)
 
@@ -936,7 +954,28 @@ func save():
 func save_to(file: String):
  var reason=model.save_course(file)
  if not reason.is_empty():host.alert(reason,"课程保存失败");return
+ host.online_community().write_atomic(file+".revision",JSON.stringify({"id":model.data.id,"revision":online_revision}))
  host.load_tutorial_catalog();update_status()
+
+func submit_online():
+ if online_busy or not host.tutorial_editor_available():return
+ var checked=model.validate()
+ if not checked.ok:host.alert("\n".join(checked.errors),"教程校验失败");return
+ online_busy=true
+ host.online_community().request({"action":"submit_lesson","document":model.data,"base_revision":online_revision},func(answer):
+  online_busy=false;update_status(str(answer.get("message","")))
+  if answer.get("ok",false):model.saved_text=JSON.stringify(model.data))
+
+func review_online(approve: bool):
+ if online_busy or review_submission_id<=0:return
+ if approve and JSON.stringify(model.data)!=review_source:host.alert("审阅内容已修改，请提交新稿审核，或重新打开原提交后批准。","待审稿已修改");return
+ var checked=model.validate()
+ if approve and not checked.ok:host.alert("\n".join(checked.errors),"教程校验失败");return
+ online_busy=true
+ host.online_community().request({"action":"review_lesson","id":review_submission_id,"approve":approve},func(answer):
+  online_busy=false
+  if answer.get("ok",false):host.community_management()
+  else:update_status(str(answer.get("message","审核失败"))))
 
 
 func test_course():

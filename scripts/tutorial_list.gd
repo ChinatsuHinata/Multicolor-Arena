@@ -18,6 +18,9 @@ var category_buttons: Dictionary={}
 var page_index=0
 var page_size=1
 var layout_pending=false
+var online_notice: Label
+var editor_button: Button
+var group_button: Button
 
 func action(parent: Node,caption: String,callback: Callable) -> Button:
  var button=app.button(parent,caption,Rect2(),callback)
@@ -31,8 +34,11 @@ func _ready():
  var header=HBoxContainer.new();body.add_child(header)
  heading=Label.new();heading.text="游戏教程";header.add_child(heading)
  heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_color_override("font_color",app.GOLD)
- if app.tutorial_editor_available():action(header,"教程编辑器",app.tutorial_editor).name="OpenTutorialEditor"
+ editor_button=action(header,"教程编辑器",app.tutorial_editor);editor_button.name="OpenTutorialEditor";editor_button.visible=app.tutorial_editor_available()
+ group_button=action(header,"教程群组 / 管理",app.community_management);group_button.visible=app.tutorial_editor_available()
  action(header,"返回",app.menu).name="TutorialBack"
+ online_notice=Label.new();online_notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(online_notice)
+ app.online_community().changed.connect(refresh_online)
  var content=HBoxContainer.new();body.add_child(content);content.size_flags_vertical=Control.SIZE_EXPAND_FILL
  categories=VBoxContainer.new();categories.name="TutorialCategories";content.add_child(categories)
  var group=ButtonGroup.new()
@@ -58,12 +64,20 @@ func _ready():
  next_button=action(navigation,"↓ 下一页",func():turn_page(1));next_button.name="TutorialNext"
  list_area.resized.connect(queue_layout)
  refresh_metrics();render_rows()
+ refresh_online()
+
+func refresh_online():
+ if not is_instance_valid(editor_button):return
+ editor_button.visible=app.tutorial_editor_available();group_button.visible=editor_button.visible
+ group_button.text="教程群组 · %d 待审" % app.online_community().pending_reviews if app.online_community().pending_reviews>0 else "教程群组 / 管理"
+ online_notice.text=app.online_community().status
+ if not app.online_community().syncing:render_rows()
 
 func refresh_metrics():
  for edge in ["left","right","top","bottom"]:
   margin.add_theme_constant_override("margin_"+edge,int(app.ui_metrics.padding))
  body.add_theme_constant_override("separation",int(app.ui_metrics.gap))
- body.get_child(1).add_theme_constant_override("separation",int(app.ui_metrics.gap))
+ body.get_child(2).add_theme_constant_override("separation",int(app.ui_metrics.gap))
  rows.add_theme_constant_override("separation",int(app.ui_metrics.gap))
  navigation.add_theme_constant_override("separation",int(app.ui_metrics.gap))
  categories.add_theme_constant_override("separation",int(app.ui_metrics.gap))

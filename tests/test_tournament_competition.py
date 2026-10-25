@@ -317,7 +317,7 @@ class CompetitionTests(unittest.TestCase):
                 self.assertEqual(lookup["game_format"], game_format)
                 expected_mode = competitions.game_mode(game_format)
                 self.assertEqual(lookup["mode"], expected_mode)
-                for bad_mode in ("ranked", "casual" if game_format > 3 else "exploration"):
+                for bad_mode in ("ranked", "casual" if game_format in (4, 5) else "exploration"):
                     self.assertFalse(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": bad_mode})["ok"])
                 before = self.conn.execute("SELECT id,elo,rank_step,rank_stars FROM players").fetchall()
                 self.assertTrue(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": expected_mode})["ok"])
@@ -345,7 +345,7 @@ class CompetitionTests(unittest.TestCase):
         self.assertFalse(self.call("detail")["ok"])
 
     def test_invalid_formats_do_not_create_or_modify_competitions(self):
-        for value in (True, 0, 6, "3", [], 1.5):
+        for value in (True, 0, 8, "3", [], 1.5):
             self.assertFalse(self.call("create", title="非法赛制", game_format=value, start_at=self.start_at)["ok"])
             self.assertFalse(self.call("configure", game_format=value)["ok"])
         self.assertEqual(self.call("detail")["tournament"]["game_format"], 2)

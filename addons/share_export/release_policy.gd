@@ -5,7 +5,7 @@ const VERSION=2
 const REMILIA_ID="1790434714.661_943735096"
 const REMILIA_NAME="蕾米速攻（AI）"
 const Challenge=preload("res://scripts/rules/remilia_challenge.gd")
-const PRIVATE_DIRECTORIES=["saves/","deck/","replay/","work/","test/","tests/","tools/","docs/","builds/","addons/","training/","models/","experiments/","scripts/export_verification/","examples/","mod/","output/","tmp/",".codex-remote-attachments/"]
+const PRIVATE_DIRECTORIES=["saves/","deck/","replay/","work/","test/","tests/","tools/","docs/","builds/","addons/","training/","models/","experiments/","scripts/export_verification/","examples/","mod/","output/","outputs/","tmp/",".codex-remote-attachments/"]
 
 static func excluded_path(path: String) -> bool:
  var relative=path.trim_prefix("res://").to_lower()

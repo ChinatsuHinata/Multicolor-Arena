@@ -1,0 +1,137 @@
+extends SceneTree
+## 单特效预览：不开对战、不读卡组、不依赖任何本体脚本，只把 fx/ 里的一个
+## 特效放进一个迷你台面里跑起来。用来做开发时的视觉确认与截图。
+##
+##   Godot --path . --script fx/fx_showcase.gd
+##   Godot --path . --script fx/fx_showcase.gd -- --only=<id>
+##   Godot --path . --script fx/fx_showcase.gd -- --only=<id> --png=work/fx/preview.png
+## 无 --only 时轮流播放全部特效。--png 需要非 headless 的渲染后端。
+
+const Registry=preload("res://fx/fx_registry.gd")
+const Stage=preload("res://fx/fx_stage.gd")
+const CARD_SIZE=Vector2(1.95,2.72)
+
+var registry
+var stage: Node3D
+var card: Node3D
+var modules: Array[Node]=[]
+var index=0
+var clock=0.0
+var capture_path=""
+var capture_at=-1.0
+var capturing=false
+var only=""
+var camera: Camera3D
+
+func _initialize() -> void:
+ for arg in OS.get_cmdline_user_args():
+  if arg.begins_with("--only="):only=arg.trim_prefix("--only=")
+  if arg.begins_with("--png="):capture_path=arg.trim_prefix("--png=")
+  if arg.begins_with("--at="):capture_at=float(arg.trim_prefix("--at="))
+ registry=Registry.new()
+ registry.allow_all=true
+ registry.reload(true)
+ if not registry.errors.is_empty():
+  for error in registry.errors:push_error("%s: %s" % [error.file,error.reason])
+ build_scene()
+ play_index(0)
+
+func build_scene() -> void:
+ var root_node=Node3D.new()
+ root_node.name="FxShowcase"
+ root.add_child(root_node)
+
+ var sun=DirectionalLight3D.new()
+ sun.rotation_degrees=Vector3(-62.0,-38.0,0.0)
+ sun.light_energy=1.1
+ root_node.add_child(sun)
+
+ card=MeshInstance3D.new()
+ var face=PlaneMesh.new();face.size=CARD_SIZE
+ card.mesh=face
+ var paper=StandardMaterial3D.new()
+ paper.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ paper.albedo_color=Color("#6b5566")
+ card.material_override=paper
+ card.position.y=0.0
+ root_node.add_child(card)
+
+ var mat_mesh=MeshInstance3D.new()
+ var mat_plane=PlaneMesh.new();mat_plane.size=Vector2(9.0,9.0)
+ mat_mesh.mesh=mat_plane
+ var mat=StandardMaterial3D.new()
+ mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ mat.albedo_color=Color("#33202f")
+ mat_mesh.material_override=mat
+ mat_mesh.position.y=-0.02
+ root_node.add_child(mat_mesh)
+
+ camera=Camera3D.new()
+ camera.position=Vector3(0.0,5.4,4.6)
+ camera.rotation_degrees=Vector3(-52.0,0.0,0.0)
+ camera.fov=42.0
+ root_node.add_child(camera)
+
+ stage=Stage.new()
+ stage.name="FxStage"
+ stage.use_registry(registry)
+ root_node.add_child(stage)
+
+func play_index(value: int) -> void:
+ if stage==null:return
+ stage.stop_all()
+ modules.clear()
+ clock=0.0
+ var all: Array=[]
+ for category in ["entrance","foil","spell"]:
+  for def in registry.by_category(category):
+   if only.is_empty() or str(def.id)==only:all.append(def)
+ if all.is_empty():
+  push_error("no effect matches --only="+only)
+  quit(1)
+  return
+ index=value%all.size()
+ var def=all[index]
+ var ctx={"parent":null if str(def.category)=="spell" else card,"card_size":CARD_SIZE,"uid":1,"card_id":"showcase"}
+ var started=stage.play(str(def.category),ctx)
+ modules.append_array(started)
+ for module in modules:
+  module.auto_advance=false
+
+func _process(delta: float) -> bool:
+ if modules.is_empty():return true
+ var longest=0.0
+ for module in modules:
+  if is_instance_valid(module):longest=maxf(longest,module.budget)
+ clock+=delta
+ for module in modules:
+  if is_instance_valid(module):module.advance(delta)
+ if not capture_path.is_empty():
+  # 抓帧默认落在演出峰值：入场/符卡取预算的 35%，闪卡取周期的 25%。
+  var peak=capture_at if capture_at>=0.0 else peak_seconds()
+  if clock>=peak:capture()
+  return false
+ if clock>longest+0.8:play_index(index+1)
+ return false
+
+func peak_seconds() -> float:
+ for module in modules:
+  if not is_instance_valid(module):continue
+  if str(module.category)=="foil":return module.cycle_seconds()*0.25
+  return module.budget*0.35
+ return 0.3
+
+func capture() -> void:
+ if capturing:return
+ capturing=true
+ # 抓帧请求发生在动画帧内，本帧的 3D 还没提交；等一帧再读帧缓冲。
+ await process_frame
+ var image=root.get_texture().get_image()
+ if image==null:
+  push_error("no framebuffer to capture; run without --headless")
+  quit(1)
+  return
+ DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(capture_path.get_base_dir()))
+ image.save_png(capture_path)
+ print("FX SHOWCASE saved ",capture_path)
+ quit(0)

@@ -57,6 +57,7 @@ func refresh_visibility():
  for button in buttons.values():
   button.disabled=not can_use()
   button.visible=not is_instance_valid(popup) or not popup.is_visible_in_tree() or not button.get_global_rect().intersects(popup.get_global_rect())
+  if is_instance_valid(view.emotes) and view.emotes.covers(button.get_global_rect()):button.hide()
  if not active_key.is_empty() and not buttons[active_key].visible:cancel()
  if not can_use():cancel()
 

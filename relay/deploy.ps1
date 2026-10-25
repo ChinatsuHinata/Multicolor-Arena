@@ -16,7 +16,7 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $relayDir 'account_private.pem') -PathType Leaf)) {
         throw 'Account private key is missing; do not deploy an account client with a different key.'
     }
-    & tar -czf $archive -C $relayDir project.godot server.gd match_queue.gd match_character_log.gd account_store.py deck_plaza_store.py tournament_store.py tournament_pairing.py deck_plaza_catalogue.json account_private.pem update_gateway.py multicolor-account-user.service multicolor-relay-user.service multicolor-relay-ws-user.service multicolor-update-gateway-user.service install-user.sh
+    & tar -czf $archive -C $relayDir project.godot server.gd match_queue.gd match_character_log.gd account_store.py task_store.py shop_store.py deck_plaza_store.py cloud_deck_store.py tournament_store.py tournament_pairing.py tournament_rules.py community_store.py deck_plaza_catalogue.json account_private.pem update_gateway.py multicolor-account-user.service multicolor-relay-user.service multicolor-relay-ws-user.service multicolor-update-gateway-user.service install-user.sh -C (Split-Path -Parent $relayDir) data/tutorial data/announcements.json data/shop.json
     if ($LASTEXITCODE -ne 0) { throw 'Could not package relay files.' }
     & scp -i $KeyPath -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -P $SshPort $archive "${User}@${Server}:~/relay-deploy.tar.gz"
     if ($LASTEXITCODE -ne 0) { throw 'SCP upload failed.' }

@@ -3,7 +3,7 @@ extends Button
 var unread=0:
  set(value):
   unread=value
-  tooltip_text="公告邮箱 · %d 条未读" % unread if unread>0 else "公告邮箱"
+  tooltip_text="公告邮箱 · %d 条未读或有待领取铜钱" % unread if unread>0 else "公告邮箱"
   queue_redraw()
 
 func _draw():

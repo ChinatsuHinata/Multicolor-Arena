@@ -6,12 +6,18 @@ var queries={}
 var grant_payment=false
 func apply_snapshot(snapshot: Dictionary):
  response_clock={}
+ leader_emote_profiles=[];emote_ready_at=[0.0,0.0];emote_serial=0
  for k in snapshot.state:set(k,snapshot.state[k])
  if not response_clock.is_empty() and snapshot.has("response_clock_sampled_at"):
   # Translate the host deadline to this device's clock, retaining time spent queued.
   response_clock=response_clock.duplicate(true)
   var remaining=float(response_clock.deadline)-float(snapshot.response_clock_sampled_at)
   response_clock.deadline=float(snapshot.get("response_clock_received_at",Time.get_unix_time_from_system()))+remaining
+ if snapshot.has("response_clock_sampled_at"):
+  emote_ready_at=emote_ready_at.duplicate()
+  var received=float(snapshot.get("response_clock_received_at",Time.get_unix_time_from_system()))
+  for who in range(2):
+   if float(emote_ready_at[who])>0:emote_ready_at[who]=received+float(emote_ready_at[who])-float(snapshot.response_clock_sampled_at)
  queries=snapshot.queries
  for id in snapshot.definitions:cards[id]=snapshot.definitions[id]
  if not cards.has("back"):
@@ -65,6 +71,7 @@ func attack(_who: int,uid: int,target: Dictionary={},plan: Array=[]):request("at
 func block(uids: Array):request("block",[uids])
 func combat_damage(allocation: Dictionary):request("combat_damage",[allocation])
 func surrender(_who: int):request("surrender")
+func send_emote(_who: int,kind: String) -> String:return request("send_emote",[kind])
 func choose_trigger_order(index: Variant):request("choose_trigger_order",[index])
 func choose_ward(index: int):request("choose_ward",[index])
 func choose_trigger(target: Dictionary):request("choose_trigger",[target])

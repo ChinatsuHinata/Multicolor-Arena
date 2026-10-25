@@ -187,7 +187,7 @@ internal sealed class RepairWindow : Form
 
     internal RepairWindow()
     {
-        Text = "multicolor:arena · 版本记录修复";
+        Text = "极彩：对决 · 版本记录修复";
         ClientSize = new Size(570, 365);
         Font = new Font("Microsoft YaHei UI", 10);
         FormBorderStyle = FormBorderStyle.FixedDialog;

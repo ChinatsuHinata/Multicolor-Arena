@@ -104,6 +104,33 @@ var page_focus_uids=[]
 var zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}}
 var hover_uid=0
 var unknown_material: ShaderMaterial
+## 特效层：只经由 fx_bridge 发声，本文件不出现任何特效 id 或材质名。
+const FxBridge=preload("res://fx/fx_bridge.gd")
+var fx
+var fx_products: Dictionary={}
+var fx_seen: Dictionary={}
+var fx_face_seen: Dictionary={}
+
+## 一次性接线。products 是冻结的对战商品快照，入场与闪卡据此决定跑哪些特效。
+func attach_fx(products: Dictionary={}) -> void:
+ fx_products=products.duplicate(true)
+ if fx==null:fx=FxBridge.new()
+ fx.attach(self)
+ fx.set_products(fx_products)
+
+func set_fx_products(products: Dictionary) -> void:
+ fx_products=products.duplicate(true)
+ if fx!=null:fx.set_products(fx_products)
+
+## 符卡使用：由 duel_view 在提交成功后调用。节点可能已经不在了，
+## 此时退回该座位颜色盘的世界坐标。
+func show_spell_effect(uid: int) -> Array:
+ if fx==null:return []
+ var card=duel.find_card(uid)
+ if card.is_empty():return []
+ var node=visuals.get("card_"+str(uid))
+ var center=node.global_position if is_instance_valid(node) else zone_position("palette",card.get("owner",local_seat))
+ return fx.spell_resolved(node,CARD_SIZE,{"uid":uid,"card_id":card.card_id,"center":center})
 
 func set_hovered_card(uid: int):
  if hover_uid==uid:return
@@ -146,10 +173,10 @@ func area(parent: Node3D, at: Vector3, dimensions: Vector3) -> Area3D:
 func build(engine, provider: Callable, mat_path: String, payment_reservations: Array=[], selection: Array=[]):
  duel=engine; texture_provider=provider
  var world=WorldEnvironment.new()
- var env=Environment.new(); env.background_mode=Environment.BG_COLOR
+ var env=Environment.new(); env.background_mode=Environment.BG_CANVAS if Palette.enabled else Environment.BG_COLOR
  env.background_color=Palette.FIELD_SKY if Palette.enabled else Color("#0a0b21")
  env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
- env.ambient_light_color=Color.WHITE; env.ambient_light_energy=0.7
+ env.ambient_light_color=Color("#f2dde6") if Palette.enabled else Color.WHITE; env.ambient_light_energy=0.62 if Palette.enabled else 0.7
  world.environment=env; add_child(world)
  camera=Camera3D.new(); camera.fov=PERSPECTIVE_FOV; camera.near=0.1; camera.far=90
  add_child(camera); set_camera()
@@ -173,12 +200,28 @@ func build(engine, provider: Callable, mat_path: String, payment_reservations: A
   if Palette.enabled:
    wide_mat.set_shader_parameter("lift",Palette.MAT_LIFT)
    wide_mat.set_shader_parameter("tint",Palette.MAT_TINT)
+   wide_mat.set_shader_parameter("vignette",Palette.MAT_VIGNETTE)
+   wide_mat.set_shader_parameter("edge_color",Palette.MAT_EDGE)
   mat=wide_mat
  else:
   var plain_mat=StandardMaterial3D.new()
   plain_mat.albedo_texture=mat_texture; plain_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
   plain_mat.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
   mat=plain_mat
+ if Palette.enabled:
+  var frame_size=displayed_board_size()+Vector2(0.9,0.9)
+  var frame_mat=StandardMaterial3D.new()
+  frame_mat.albedo_color=Color("#1d0f1a");frame_mat.roughness=0.95
+  frame_mat.cull_mode=BaseMaterial3D.CULL_DISABLED
+  var frame=plane(self,Vector3(0,-0.045,0),frame_size,frame_mat);frame.name="TableFrame"
+  var trim_mat=StandardMaterial3D.new()
+  trim_mat.albedo_color=Color(0.78,0.55,0.34,0.55)
+  trim_mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+  trim_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+  trim_mat.cull_mode=BaseMaterial3D.CULL_DISABLED
+  for side in [-1,1]:
+   var horizontal=plane(self,Vector3(0,-0.02,side*frame_size.y*0.5),Vector2(frame_size.x,0.07),trim_mat);horizontal.name="TableTrim"
+   var vertical=plane(self,Vector3(side*frame_size.x*0.5,-0.02,0),Vector2(0.07,frame_size.y),trim_mat);vertical.name="TableTrim"
  board=plane(self,Vector3.ZERO,displayed_board_size(),mat); board.name="Playmat3"
  if wide_playmat:add_wide_zone_guides()
  sync(payment_reservations,selection,[],false)
@@ -594,6 +637,17 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    visuals[key].rotation=d.rotation
   var node=visuals[key]
   node.show()
+  # 入场：单位第一次以 field 状态出现时触发一次；分页移出再回来、读档直接
+  # 落位都不重播（没有动画就没有入场）。
+  if fx!=null and d.uid>0 and d.zone=="field" and d.get("group","")=="unit" and not fx_seen.has(d.uid):
+   fx_seen[d.uid]=duel.revision
+   if fresh and animate:fx.unit_entered(node,CARD_SIZE,{"uid":d.uid,"card_id":d.card_id,"owner":d.owner})
+  # 闪卡：卡面建立或换异画时挂一次，卡牌节点释放时随之消失。
+  if fx!=null and d.uid>0:
+   var face_key=str(d.card_id)+":"+str(d.get("art_id",""))
+   if fx_face_seen.get(d.uid,"")!=face_key:
+    fx_face_seen[d.uid]=face_key
+    fx.card_face_built(node,CARD_SIZE,{"uid":d.uid,"card_id":d.card_id,"owner":d.owner})
   var prev=descriptors.get(key,{})
   var can_possess=duel.pending.get("kind","")=="possession" and duel.pending.get("owner",-1)==d.owner and d.zone=="palette" and d.uid>0 and not duel.find_card(d.uid).tapped and duel.can_possess(duel.find_card(d.uid))
   var outline=node.get_node("Outline")

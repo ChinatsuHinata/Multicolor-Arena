@@ -1,0 +1,211 @@
+extends Control
+## Transient speech stays outside the rebuilt HUD and never blocks rule animation.
+const Profiles=preload("res://scripts/rules/leader_emotes.gd")
+const Wheel=preload("res://scripts/emote_wheel.gd")
+const Bubble=preload("res://scripts/emote_bubble.gd")
+const Icon=preload("res://scripts/emote_icon.gd")
+const DISPLAY_MS=4000
+var view
+var button: Button
+var wheel: Control
+var shade: Control
+var bubbles={}
+var expires={}
+var speakers={}
+var seen={}
+var game_key=""
+var observed_serial=0
+var entry_finger=-1
+
+func build(owner_view):
+ view=owner_view;name="LeaderEmotes"
+ set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ mouse_filter=Control.MOUSE_FILTER_IGNORE
+ button=view.host.button(self,"",Rect2(),open_wheel)
+ button.name="LeaderEmoteButton";button.icon=Icon.texture("greeting",48)
+ button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
+ button.z_index=90
+ refresh()
+
+func enabled() -> bool:
+ return Profiles.profile(view.engine,view.local_seat).get("enabled",false)
+
+func other_popup() -> bool:
+ if view.host.menu_popup_open() or view.modal or view.observing or view.history_open or view.debug_open or view.action_menu_open or view.keep_popup_open:return true
+ for node in [view.modal_root,view.android_choice_panel,view.android_battle_menu_root,view.table.inspect_root]:
+  if is_instance_valid(node) and node.visible:return true
+ if view.is_android and view.inspection.visible:return true
+ for child in view.host.get_children():
+  if child is Window and child.visible and not child.is_queued_for_deletion():return true
+ return false
+
+func available() -> bool:
+ var e=view.engine
+ if not enabled() or e.winner!=-2 or e.phase in ["mulligan","over"] or e.priority!=view.local_seat:return false
+ if view.replay_view() or view.spectator_view() or view.network_locked() or view.response_disabled():return false
+ if view.network_session!=null and not view.network_session.can_act(true):return false
+ if not e.pending.is_empty() or not e.entry_choices.is_empty() or not view.local.is_empty():return false
+ if view.tutorial_runtime!=null and (not view.tutorial_controls_enabled or view.tutorial_runtime.playing_sequence()):return false
+ if other_popup() or view.revealing() or view.table.combat_animating:return false
+ if view.drag_uid!=0 or view.debug_drag_uid!=0 or view.unit_drag_uid!=0 or view.attack_preview_uid!=0:return false
+ return e.emote_remaining(view.local_seat)<=0.0
+
+func entry_rect() -> Rect2:
+ var safe=view.responsive.safe
+ var extent=maxf(52.0,view.host.ui_metrics.hit) if view.is_android else 52.0
+ var at=Vector2(safe.position.x,view.responsive.hand_toggle_rect.position.y-extent-view.host.ui_metrics.gap) if view.is_android else Vector2(view.responsive.enemy_life.end.x+10,18)
+ return Rect2(at,Vector2(extent+12 if view.is_android else extent,extent))
+
+func refresh():
+ if view==null or view.engine==null:return
+ var key=str(view.engine.get_instance_id())+":"+(str(view.network_session.local_game_id) if view.network_session!=null else "offline")
+ if key!=game_key or int(view.engine.emote_serial)<observed_serial:
+  reset();game_key=key
+ observed_serial=int(view.engine.emote_serial)
+ var bounds=entry_rect();button.position=bounds.position;button.size=bounds.size
+ button.visible=enabled() and not view.replay_view() and not view.spectator_view()
+ button.disabled=not available()
+ var remaining=ceili(view.engine.emote_remaining(view.local_seat))
+ button.text=str(remaining) if remaining>0 else ""
+ button.tooltip_text="表情冷却：%d 秒" % remaining if remaining>0 else "表情 · 在我方可响应且没有弹框时使用"
+ if is_instance_valid(wheel):
+  if not available():close_wheel()
+  else:position_wheel()
+ var now=Time.get_ticks_msec()
+ for who in bubbles.keys():
+  var bubble=bubbles[who]
+  if now>=int(expires[who]):
+   bubble.queue_free();bubbles.erase(who);expires.erase(who);speakers.erase(who);continue
+  var placement=bubble_layout(who,bubble.size)
+  bubble.position=placement.position;bubble.set_tip_x(placement.tip_x)
+  bubble.modulate.a=minf(1.0,float(int(expires[who])-now)/300.0)
+
+func open_wheel():
+ if is_instance_valid(wheel):close_wheel();return
+ if not available():return
+ shade=Control.new();shade.name="LeaderEmoteDismiss"
+ shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade.mouse_filter=Control.MOUSE_FILTER_STOP;shade.z_index=210;add_child(shade)
+ wheel=Wheel.new();shade.add_child(wheel)
+ wheel.selected.connect(send);wheel.dismissed.connect(close_wheel)
+ position_wheel();wheel.grab_focus()
+
+func position_wheel():
+ var safe=view.responsive.safe
+ var extent=minf(360 if view.is_android else 330,minf(safe.size.x,safe.size.y)-16)
+ wheel.size=Vector2.ONE*extent
+ var origin=Vector2(button.position.x+button.size.x+12,button.position.y+button.size.y*0.5-extent*0.5)
+ wheel.position=Vector2(clampf(origin.x,safe.position.x+8,safe.end.x-extent-8),clampf(origin.y,safe.position.y+8,safe.end.y-extent-8))
+
+func close_wheel():
+ if is_instance_valid(shade):
+  shade.hide();shade.queue_free()
+ shade=null;wheel=null;entry_finger=-1
+
+func send(kind: String):
+ if not available():close_wheel();return
+ close_wheel()
+ var error=view.engine.send_emote(view.local_seat,kind)
+ if not error.is_empty():view.message=error
+ view.render();refresh()
+
+func handle(event: InputEvent) -> bool:
+ if is_instance_valid(wheel) and not available():close_wheel()
+ var pointer=event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag
+ if is_instance_valid(wheel):
+  if event.is_action_pressed("ui_cancel") or event is InputEventKey and event.pressed and event.keycode==KEY_BACK:
+   close_wheel();get_viewport().set_input_as_handled();return true
+  if pointer:
+   if event is InputEventMouse and event.device==-1:
+    get_viewport().set_input_as_handled();return true
+   var at=wheel.make_input_local(event).position
+   if (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed and not wheel._has_point(at):
+    close_wheel();get_viewport().set_input_as_handled();return true
+   if event is InputEventScreenTouch or event is InputEventScreenDrag:
+    wheel._gui_input(wheel.make_input_local(event))
+    view.suppress_touch_mouse_until=Time.get_ticks_msec()+250;view.suppress_touch_mouse_point=event.position
+    get_viewport().set_input_as_handled()
+  # Focused wheel receives keyboard/mouse GUI events; battle input stops here.
+  return true
+ if not button.visible:return false
+ if event is InputEventMouse and event.device==-1 and button.get_global_rect().has_point(event.position):
+  get_viewport().set_input_as_handled();return true
+ if event is InputEventScreenTouch:
+  if event.pressed and button.get_global_rect().has_point(event.position):entry_finger=event.index
+  if event.index==entry_finger:
+   if not event.pressed:
+    entry_finger=-1
+    if not event.canceled and button.get_global_rect().has_point(event.position):open_wheel()
+   view.suppress_touch_mouse_until=Time.get_ticks_msec()+250;view.suppress_touch_mouse_point=event.position
+   get_viewport().set_input_as_handled();return true
+ if event is InputEventScreenDrag and event.index==entry_finger:
+  get_viewport().set_input_as_handled();return true
+ return false
+
+func consume(events: Array) -> Array:
+ refresh()
+ var remaining=[]
+ for event in events:
+  if event.get("emote",false) or event.get("type","")=="emote":show_event(event)
+  else:remaining.append(event)
+ return remaining
+
+func show_event(event: Dictionary):
+ var who=int(event.get("owner",-1));var kind=str(event.get("kind",""))
+ if who not in [0,1] or not Profiles.DEFAULT_LINES.has(kind):return
+ var key=str(who)+":"+str(event.get("serial",0))
+ if seen.has(key):return
+ seen[key]=true
+ if seen.size()>256:seen.erase(seen.keys()[0])
+ # A spectator's seat sets the camera perspective; both players are public speakers.
+ if not view.spectator_view() and who==view.local_seat and not enabled():return
+ var line=str(event.get("text",Profiles.DEFAULT_LINES[kind])).strip_edges().substr(0,120)
+ if line.is_empty():return
+ if is_instance_valid(bubbles.get(who)):bubbles[who].queue_free()
+ var bubble=Bubble.new();add_child(bubble);bubble.z_index=95
+ bubble.name="LeaderEmoteBubble"+str(who)
+ if view.is_android:bubble.size=Vector2(320,88)
+ var leader_id=str(event.get("leader_id",Profiles.profile(view.engine,who).get("leader_id","")))
+ bubble.configure(line,kind,who==view.local_seat,leader_id=="character-fdn-026")
+ bubbles[who]=bubble;expires[who]=Time.get_ticks_msec()+DISPLAY_MS
+ speakers[who]=int(event.get("leader_uid",Profiles.profile(view.engine,who).get("leader_uid",0)))
+ var placement=bubble_layout(who,bubble.size)
+ bubble.position=placement.position;bubble.set_tip_x(placement.tip_x)
+
+func bubble_target(who: int) -> Rect2:
+ var uid=int(speakers.get(who,Profiles.profile(view.engine,who).get("leader_uid",0)))
+ var leader=view.engine.find_card(uid)
+ if leader.is_empty():leader=view.engine.players[who].leader
+ if leader.get("zone","") not in ["leader","field"]:return Rect2()
+ var visual=view.table.visuals.get("card_"+str(leader.uid))
+ if is_instance_valid(visual):return view.projected_card_rect(visual)
+ if leader.zone=="leader":return Rect2(view.project(view.table.zone_position("leader",who))-Vector2(24,32),Vector2(48,64))
+ # A paged-out unit has no screen card; point at its battlefield page control.
+ var group=view.table.field_group(leader)
+ var pager=view.zone_pagers.get(group+str(leader.owner),{})
+ if is_instance_valid(pager.get("root")):return pager.root.get_rect()
+ var bounds=view.table.zone_page_bounds(leader.owner,group)
+ var point=view.project(Vector3(bounds.get_center().x,0.035,bounds.get_center().y))
+ return Rect2(point-Vector2(24,32),Vector2(48,64))
+
+func bubble_layout(who: int,dimensions: Vector2) -> Dictionary:
+ var safe=view.responsive.safe.grow(-8)
+ var target=bubble_target(who);var down=who==view.local_seat
+ var fallback=target.size==Vector2.ZERO
+ var anchor=Vector2(view.HAND.get_center().x,view.HAND.position.y-8 if down else safe.position.y+90)
+ if not fallback:anchor=Vector2(target.get_center().x,target.position.y if down else target.end.y)
+ var origin=Vector2(anchor.x-dimensions.x*0.5,anchor.y-dimensions.y if down else anchor.y)
+ origin.x=clampf(origin.x,safe.position.x,safe.end.x-dimensions.x)
+ origin.y=clampf(origin.y,safe.position.y,safe.end.y-dimensions.y)
+ return {"position":origin,"tip_x":anchor.x-origin.x,"target":target,"fallback":fallback}
+
+func reset():
+ close_wheel()
+ for bubble in bubbles.values():
+  if is_instance_valid(bubble):bubble.queue_free()
+ bubbles.clear();expires.clear();speakers.clear();seen.clear();observed_serial=0
+
+func covers(rect: Rect2) -> bool:
+ for bubble in bubbles.values():
+  if is_instance_valid(bubble) and bubble.visible and bubble.get_global_rect().intersects(rect):return true
+ return false

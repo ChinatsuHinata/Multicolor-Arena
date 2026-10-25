@@ -122,6 +122,6 @@ func build_about(host):
  var scroll=ScrollContainer.new();root.add_child(scroll);expand(scroll,true)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var body=column(scroll)
- text(body,"multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),metrics.title).add_theme_color_override("font_color",app.GOLD)
+ text(body,"极彩：对决  "+str(ProjectSettings.get_setting("application/config/version")),metrics.title).add_theme_color_override("font_color",app.GOLD)
  var description=text(body,"本作品基于开源游戏引擎godot和东方project的二次创作“极彩multicolor”，由chatgpt辅助代码所制成。所有卡图等知识产权均归属于社团“The 495th Complex”")
  description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART

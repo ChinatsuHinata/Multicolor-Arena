@@ -41,12 +41,15 @@ func relay_join(address: String,port: int,code: String,websocket: bool=false,tok
  return connect_relay(address,port,code,"watch" if watch else "guest",websocket,token,options)
 
 func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="",public_room: bool=true,mode: String="ranked",competition: String="") -> Error:
- return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash,"public":public_room,"mode":mode,"tournament_match":competition})
+ return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash,"public":public_room,"mode":mode,"tournament_match":competition,"series_scores":true})
 
-func relay_result(match_id: String,winner: int):
+func relay_result(match_id: String,winner: int,evidence: Dictionary={},scores: Array=[]):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
- peer.put_packet(("MCR1"+JSON.stringify({"kind":"match_result","match_id":match_id,"winner":winner})).to_utf8_buffer())
+ var result={"kind":"match_result","match_id":match_id,"winner":winner,"scores":scores}
+ # A pathological modded summary must never prevent the ordinary result packet.
+ if not evidence.is_empty() and JSON.stringify(evidence).to_utf8_buffer().size()<=32768:result.evidence=evidence
+ peer.put_packet(("MCR1"+JSON.stringify(result)).to_utf8_buffer())
 
 func connect_relay(address: String,port: int,code: String,role: String,websocket: bool,token: String="",options: Dictionary={}) -> Error:
  close();relay_role=role;relay_code=code;relay_websocket=websocket;relay_token=token;relay_options=options.duplicate(true)

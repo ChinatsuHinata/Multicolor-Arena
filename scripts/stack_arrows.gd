@@ -9,7 +9,7 @@ func _process(_delta):
 func _draw():
  var sakura=Palette.enabled
  # Phones show the board smaller, so the target link is drawn heavier there.
- var weight=1.6 if view.is_android else 1.0
+ var weight=1.6 if is_instance_valid(view) and view.is_android else 1.0
  var shade=Color(0.09,0.03,0.08,0.85) if sakura else Color(0.03,0.05,0.08,0.85)
  var stroke=Color("#ffb3c7") if sakura else Color("#f5d379")
  var head=Color("#ffe1ea") if sakura else Color("#ffe8a2")

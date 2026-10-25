@@ -22,7 +22,7 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path(output.path_join("fixtures-"+str(Time.get_ticks_usec())))
  root.mode=Window.MODE_WINDOWED;root.content_scale_size=Vector2i(1600,900);root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.size=Vector2i(1600,900)
  app=load("res://main.tscn").instantiate();app.settings_path=output.path_join("missing-settings.json");app.account_session_path=output.path_join("missing-account.json")
- root.add_child(app);await frames();app.tutorial_editor();await frames();editor=app.screen.get_child(0)
+ root.add_child(app);await frames();open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0)
  var source={"id":"private_source","name":"初始场景测试卡组","leader":"70","main":["53","53","35"],"side":["96"],"rule_set":"official"}
  app.decks=[source.duplicate(true)]
  var other_leader=Store.CARDS.keys().filter(func(id):return id!="70" and Store.CARDS[id].kind=="自机" and Store.CARDS[id].get("canonical_id",id)==id)[0]
@@ -96,7 +96,7 @@ func run():
  editor.close_dialog();await frames()
  expect(editor.model.undo() and editor.model.data==before,"initial configuration edit can be undone atomically")
  for kind in ["deck","in_game"]:
-  app.tutorial_editor();await frames();editor=app.screen.get_child(0);editor.change_scene(kind);await frames()
+  open_tutorial_editor_for_test();await frames();editor=app.screen.get_child(0);editor.change_scene(kind);await frames()
   editor.open_initial_scene();await frames();form=fields()
   var original=editor.model.data.duplicate(true)
   var imported=source.duplicate(true);imported.rule_set="test";form.import_deck(imported)
@@ -124,7 +124,7 @@ func run():
   editor.close_dialog();await frames()
  root.content_scale_size=Vector2i(1600,900);root.size=Vector2i(1600,900);await frames()
  for lesson in ["t1","t2","t3","t4"]:
-  app.tutorial_editor("res://data/tutorial/beginner/"+lesson+".json");await frames();editor=app.screen.get_child(0)
+  open_tutorial_editor_for_test("res://data/tutorial/beginner/"+lesson+".json");await frames();editor=app.screen.get_child(0)
   var original=editor.model.data.duplicate(true)
   editor.open_initial_scene();await frames()
   await click(editor.find_child("ApplyTutorialInitialScene",true,false).get_global_rect().get_center());await frames()

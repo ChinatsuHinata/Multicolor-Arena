@@ -25,13 +25,24 @@ const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
 const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 const AnnouncementStore=preload("res://scripts/announcement_store.gd")
 const AnnouncementPopup=preload("res://scripts/announcement_popup.gd")
+const TaskPopup=preload("res://scripts/task_popup.gd")
+const ShopPopup=preload("res://scripts/shop_popup.gd")
 var announcement_store=AnnouncementStore.new()
 var announcement_catalogue_path=AnnouncementStore.CATALOGUE_PATH
 var announcement_push_in_editor=false
 var mailbox_button
+var announcements_syncing=false
 var tournament_button
 var tournament_ui
 var tournament_account_return=false
+var task_service=preload("res://scripts/task_service.gd").new()
+var task_button
+var shop_button
+var shop_hide_purchased=false
+var shop_inventory=preload("res://scripts/shop_inventory.gd").new()
+var task_balance: Label
+var task_account_return=false
+var task_server_url=preload("res://scripts/account_client.gd").SERVER_URL
 var tournament_server_url=preload("res://scripts/account_client.gd").SERVER_URL
 var tournament_unread=preload("res://scripts/tournament_unread.gd").new()
 const Palette=preload("res://scripts/ui_palette.gd")
@@ -50,6 +61,7 @@ var tutorial_directory_ui
 var tutorial_progress=preload("res://scripts/tutorial/progress.gd").new()
 # Entries are discovered from the tutorial catalog; progress uses stable IDs.
 var tutorial_entries: Array = []
+var community_service
 var tutorial_catalog_errors: Array = []
 var tutorial_local_directory="user://tutorials"
 var completed_tutorials: Dictionary = {}
@@ -107,6 +119,7 @@ var about_code=""
 var fullscreen = false
 var top_down_view = false
 var show_card_inspection = true
+var auto_pay_keep_colors: Array = []
 var delay_turn_end = true
 var auto_camera_focus = true
 var android_manual_camera = false
@@ -170,6 +183,13 @@ var cloud_edit_deck_id=""
 var cloud_edit_account=""
 var deck_plaza_server_url=preload("res://scripts/deck_plaza_client.gd").Account.SERVER_URL
 func _ready():
+ get_window().title="极彩：对决"
+ shop_inventory.initialize(settings_path.get_base_dir().path_join("shop_loadouts.json"),is_test_build)
+ task_service.changed.connect(sync_shop_inventory)
+ add_child(task_service);task_service.changed.connect(refresh_task_balance)
+ var task_timer=Timer.new();task_timer.wait_time=60.0;add_child(task_timer);task_timer.start()
+ task_timer.timeout.connect(func():
+  if page=="menu" and not account_pending:refresh_tasks())
  if is_android:get_tree().quit_on_go_back=false
  if not is_android:
   get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_KEEP
@@ -217,6 +237,9 @@ func _ready():
    fullscreen = saved_settings.get("fullscreen", false) == true
    top_down_view = saved_settings.get("top_down_view", false) == true
    show_card_inspection = saved_settings.get("show_card_inspection", true) == true
+   if saved_settings.get("auto_pay_keep_colors") is Array:
+    for color in saved_settings.auto_pay_keep_colors:
+     if str(color) in ["红","蓝","绿","黄","黑"] and not auto_pay_keep_colors.has(str(color)):auto_pay_keep_colors.append(str(color))
    delay_turn_end = saved_settings.get("delay_turn_end", true) == true
    auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
@@ -247,6 +270,7 @@ func _ready():
  add_child(tournament_unread);tournament_unread.changed.connect(refresh_tournament_badge)
  var tournament_timer=Timer.new();tournament_timer.name="TournamentUnreadTimer";tournament_timer.wait_time=60.0
  add_child(tournament_timer);tournament_timer.timeout.connect(check_tournament_unread);tournament_timer.start()
+ tournament_timer.timeout.connect(check_announcements)
  call_deferred("restore_account")
  menu()
  if not load_error.is_empty(): alert(load_error)
@@ -428,8 +452,102 @@ func add_mailbox_button():
  mailbox_button.offset_top=ui_metrics.padding;mailbox_button.offset_bottom=ui_metrics.padding+extent
  mailbox_button.pressed.connect(open_announcement_mailbox)
  refresh_mailbox_badge()
+ call_deferred("check_announcements")
  call_deferred("push_update_announcement")
  add_tournament_button(extent)
+ add_task_button(extent)
+ add_shop_button(extent)
+
+func add_shop_button(extent: float):
+ shop_button=preload("res://scripts/shop_button.gd").new();shop_button.name="ShopEntry";shop_button.tooltip_text="香霖堂 · 商店"
+ screen.add_child(shop_button)
+ for state in ["normal","hover","pressed","focus"]:shop_button.add_theme_stylebox_override(state,mailbox_button.get_theme_stylebox(state))
+ shop_button.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+ shop_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ shop_button.offset_right=-extent*3-ui_metrics.gap*3-ui_metrics.padding;shop_button.offset_left=shop_button.offset_right-extent
+ shop_button.offset_top=ui_metrics.padding;shop_button.offset_bottom=ui_metrics.padding+extent
+ shop_button.pressed.connect(open_shop)
+
+func open_shop():
+ close_menu_popup();android_swipe_scroll.reset();sync_tasks()
+ menu_popup=ShopPopup.new();screen.add_child(menu_popup)
+ menu_popup.closed.connect(func():menu_popup=null)
+ menu_popup.build_shop(self);refresh_tasks()
+
+func add_task_button(extent: float):
+ task_button=preload("res://scripts/task_button.gd").new();task_button.name="TaskEntry";task_button.tooltip_text="任务与铜钱"
+ screen.add_child(task_button)
+ for state in ["normal","hover","pressed","focus"]:task_button.add_theme_stylebox_override(state,mailbox_button.get_theme_stylebox(state))
+ task_button.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
+ task_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+ task_button.offset_right=-extent*2-ui_metrics.gap*2-ui_metrics.padding;task_button.offset_left=task_button.offset_right-extent
+ task_button.offset_top=ui_metrics.padding;task_button.offset_bottom=ui_metrics.padding+extent
+ task_button.pressed.connect(open_tasks)
+ var coins_row=HBoxContainer.new();coins_row.name="CoinsDisplay";screen.add_child(coins_row)
+ coins_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+ coins_row.add_theme_constant_override("separation",int(ui_metrics.gap*0.25))
+ coins_row.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ coins_row.resized.connect(func():call_deferred("position_coins_display"))
+ var coin_icon=preload("res://scripts/coin_icon.gd").new();coin_icon.name="CoinIcon";coins_row.add_child(coin_icon)
+ coin_icon.custom_minimum_size=Vector2(extent*0.5,extent*0.5)
+ coin_icon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ task_balance=Label.new();task_balance.name="CopperBalance";coins_row.add_child(task_balance)
+ task_balance.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ task_balance.add_theme_color_override("font_color",GOLD);task_balance.add_theme_font_size_override("font_size",ui_metrics.body)
+ task_balance.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ call_deferred("position_coins_display")
+ sync_tasks();refresh_task_balance();call_deferred("refresh_tasks")
+
+func sync_tasks():
+ task_service.set_session(account_name,account_token,task_server_url)
+ var mailbox_account=account_name if not account_token.is_empty() else ""
+ if announcement_store.account!=mailbox_account.to_lower():
+  announcement_store.set_account(mailbox_account);refresh_mailbox_badge();call_deferred("check_announcements")
+
+func sync_shop_inventory():
+ shop_inventory.sync_session(task_service.account,task_service.snapshot)
+
+func refresh_tasks():
+ sync_tasks();task_service.refresh()
+
+func refresh_task_balance():
+ if is_instance_valid(task_button):task_button.has_reward=task_service.has_claimable()
+ if not is_instance_valid(task_balance):return
+ task_balance.text="铜钱：%d" % int(task_service.snapshot.coins) if task_service.snapshot.has("coins") else "铜钱：—"
+ task_balance.tooltip_text="登录后同步铜钱" if task_service.account.is_empty() else task_service.error
+
+func position_coins_display():
+ if not is_instance_valid(task_balance) or page!="menu":return
+ var rank_node=screen.find_child("PlayerRank",true,false) as Control
+ if not is_instance_valid(rank_node):return
+ var coins_row=task_balance.get_parent()
+ if coins_row==null or coins_row.name!="CoinsDisplay":return
+ var rank_label=rank_node.find_child("RankCaption",false,false) as Label
+ if not is_instance_valid(rank_label):return
+ # Calculate the actual text width
+ var text_width=rank_label.get_theme_font("font").get_string_size(rank_label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,rank_label.get_theme_font_size("font_size")).x
+ # Position coins right after the text with minimal gap
+ var rank_global=rank_node.global_position-screen.global_position
+ var label_global=rank_label.global_position-screen.global_position
+ coins_row.offset_left=label_global.x+text_width+ui_metrics.gap*0.25
+ coins_row.offset_top=rank_global.y+(rank_node.size.y-coins_row.size.y)*0.5
+ if is_android and is_instance_valid(shop_button):
+  var extent=shop_button.size.y
+  shop_button.offset_right=-extent*3-ui_metrics.gap*3-ui_metrics.padding;shop_button.offset_left=shop_button.offset_right-extent
+  shop_button.offset_top=ui_metrics.padding;shop_button.offset_bottom=ui_metrics.padding+extent
+  if shop_button.get_global_rect().intersects(coins_row.get_global_rect()):
+   # Dense phone layouts wrap the new entry below tasks to keep the wallet clear.
+   shop_button.offset_right=task_button.offset_right;shop_button.offset_left=shop_button.offset_right-extent
+   shop_button.offset_top=ui_metrics.padding+extent+ui_metrics.gap;shop_button.offset_bottom=shop_button.offset_top+extent
+
+func open_tasks():
+ close_menu_popup();android_swipe_scroll.reset();sync_tasks()
+ menu_popup=TaskPopup.new();screen.add_child(menu_popup)
+ menu_popup.closed.connect(func():menu_popup=null)
+ menu_popup.build_tasks(self);refresh_tasks()
+
+func task_login():
+ task_account_return=true;account_mode="login";account_notice="登录后同步任务与铜钱";account_page()
 
 func add_tournament_button(extent: float):
  tournament_button=preload("res://scripts/tournament_button.gd").new()
@@ -469,7 +587,22 @@ func tournament_login_expired(message: String):
  if is_instance_valid(account_status_label):account_status_label.text=message
 
 func refresh_mailbox_badge():
- if is_instance_valid(mailbox_button):mailbox_button.unread=announcement_store.unread_count()
+ if is_instance_valid(mailbox_button):mailbox_button.unread=announcement_store.attention_count()
+
+func check_announcements():
+ if page!="menu" or announcements_syncing:return
+ announcements_syncing=true
+ online_community().request({"action":"announcements"},func(answer):
+  announcements_syncing=false
+  if not answer.get("ok",false):return
+  announcement_store.merge_online(answer.get("announcements",[]));refresh_mailbox_badge()
+  if menu_popup_open() and menu_popup is AnnouncementPopup:menu_popup.refresh_announcements())
+
+func claim_announcement_coins(id: String,callback: Callable):
+ online_community().request({"action":"claim_announcement","id":id},func(answer):
+  if answer.get("ok",false):
+   announcement_store.record_claimed(id);refresh_mailbox_badge();refresh_tasks()
+  if callback.is_valid():callback.call(answer))
 
 func open_announcement_mailbox(entry: Dictionary={},automatic: bool=false):
  close_menu_popup();android_swipe_scroll.reset()
@@ -606,10 +739,10 @@ func card(parent: Node, id: String, rect: Rect2, clickable: Callable = Callable(
 
 func header(title: String, back: Callable, actions_width: float=0.0) -> Button:
  if is_android and page in ["online","replays"]:
-  label(screen,"multicolor:arena",Rect2(0,6,screen.size.x-160-actions_width,32),20,GOLD)
+  label(screen,"极彩：对决",Rect2(0,6,screen.size.x-160-actions_width,32),20,GOLD)
   label(screen,title,Rect2(0,43,screen.size.x-160-actions_width,ui_metrics.hit),32)
   return button(screen,"返回",Rect2(screen.size.x-142,14,138,ui_metrics.hit),back)
- label(screen,"multicolor:arena  /  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(42,22,500,34),20,GOLD)
+ label(screen,"极彩：对决  /  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(42,22,500,34),20,GOLD)
  label(screen,title,Rect2(42,68,1100,48),32)
  var back_button=button(screen,"返回",Rect2(screen.size.x-146,20,126,ui_metrics.hit) if is_android else Rect2(1430,32,126,46),back)
  box(screen,Rect2(42,126,1514,1),Color("#30424f"),Color("#30424f"))
@@ -656,7 +789,7 @@ func main_menu_entries() -> Array:
 
 func menu():
  # Account restoration can refresh the menu while its announcement is being read.
- var announcement=menu_popup if page=="menu" and menu_popup_open() and menu_popup is AnnouncementPopup else null
+ var announcement=menu_popup if page=="menu" and menu_popup_open() and (menu_popup is AnnouncementPopup or menu_popup is TaskPopup or menu_popup is ShopPopup) else null
  if announcement!=null:
   announcement.reparent(self);menu_popup=null
  build_main_menu()
@@ -675,7 +808,11 @@ func build_main_menu():
  var left=VBoxContainer.new();left.name="MainMenuContent";row.add_child(left)
  left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left.size_flags_vertical=Control.SIZE_EXPAND_FILL;left.size_flags_stretch_ratio=1.15
  var version=Label.new();version.text="VERSION "+str(ProjectSettings.get_setting("application/config/version"));left.add_child(version);version.add_theme_color_override("font_color",GOLD);version.add_theme_font_size_override("font_size",24)
- rank_display(left,true)
+ var rank=rank_display(left,true)
+ rank.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+ rank.get_node("RankCaption").autowrap_mode=TextServer.AUTOWRAP_OFF
+ rank.item_rect_changed.connect(func():call_deferred("position_coins_display"))
+ call_deferred("position_coins_display")
  var spacer=Control.new();left.add_child(spacer);spacer.custom_minimum_size.y=ui_metrics.gap
  var actions=main_menu_entries()
  var main_actions=GridContainer.new();main_actions.name="MainMenuActions";main_actions.columns=2;left.add_child(main_actions);main_actions.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -685,18 +822,26 @@ func build_main_menu():
   var b=button(main_actions,item[0],Rect2(),item[1]);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.size_flags_vertical=Control.SIZE_EXPAND_FILL;b.custom_minimum_size=Vector2.ZERO
   b.add_theme_font_size_override("font_size",mini(ui_metrics.body,32))
  var art=Control.new();row.add_child(art);art.size_flags_horizontal=Control.SIZE_EXPAND_FILL;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var a=card(art,"68",Rect2(0,0,255,356));var b=card(art,"70",Rect2(0,0,280,391))
+ var a=card(art,"70" if Palette.enabled else "68",Rect2(0,0,255,356),Callable(),"tts_151700" if Palette.enabled else "")
+ var b: Control=null
+ if not Palette.enabled:b=card(art,"70",Rect2(0,0,280,391))
  var arrange=func():
-  var h=minf(art.size.y*0.62,440);a.size=Vector2(h/1.397,h);b.size=a.size
-  a.position=Vector2(art.size.x*0.14,art.size.y*0.18);b.position=Vector2(art.size.x*0.5,art.size.y*0.3)
-  a.rotation_degrees=-10;b.rotation_degrees=10
-  for tile in [a,b]:tile.get_child(0).size=tile.size-Vector2(10,10)
+  var h=minf(art.size.y*0.62,440);a.size=Vector2(h/1.397,h)
+  a.get_child(0).size=a.size-Vector2(10,10)
+  if b==null:
+   a.position=(art.size-a.size)*0.5
+  else:
+   b.size=a.size
+   a.position=Vector2(art.size.x*0.14,art.size.y*0.18);b.position=Vector2(art.size.x*0.5,art.size.y*0.3)
+   a.rotation_degrees=-10;b.rotation_degrees=10
+   b.get_child(0).size=b.size-Vector2(10,10)
  art.resized.connect(arrange)
  add_mailbox_button()
 
 func ensure_lan_session():
  if is_instance_valid(lan_session):return
  lan_session=preload("res://net/lan_session.gd").new();add_child(lan_session);lan_session.initialize(lan_storage_directory)
+ lan_session.shop_inventory=shop_inventory
  lan_session.snapshot_ready.connect(network_snapshot_ready)
  lan_session.room_joined.connect(on_room_joined)
  lan_session.rating_updated.connect(func(elo):account_elo=elo)
@@ -704,6 +849,7 @@ func ensure_lan_session():
  lan_session.match_found.connect(preview_room_join_sound)
  lan_session.replay_finished.connect(func(archive):call_deferred("offer_replay",archive))
  lan_session.changed.connect(func():
+  if lan_session.match_settled:task_service.match_completed(lan_session.cloud_match_id)
   if lan_session.match_settled and auto_patch_check_pending:call_deferred("check_cloud_pck_patch"))
 
 func restore_pending_ranked_match() -> bool:
@@ -1011,12 +1157,15 @@ func account_request_finished(ok: bool,message: String,username: String):
  account_notice=message
  sync_private_cloud_decks()
  sync_tournament_unread()
+ sync_tasks()
  if ok and account_action in ["login","resume"]:
   auto_patch_check_pending=not OS.has_feature("editor") or auto_patch_update_in_editor
   if restore_pending_ranked_match():
    if has_meta("online_account_return"):remove_meta("online_account_return")
    return
   call_deferred("check_cloud_pck_patch")
+ if ok and account_action in ["login","resume"] and task_account_return:
+  task_account_return=false;menu();call_deferred("open_tasks");return
  if ok and account_action in ["login","resume"] and not deck_account_return.is_empty():
   var destination=deck_account_return;deck_account_return=""
   call_deferred("open_cloud_deck_slots" if destination=="cloud" else ("upload_current_deck" if destination=="upload" else "open_deck_plaza"))
@@ -1057,14 +1206,33 @@ func settings():
  layout.build_settings(self)
 
 func tutorials():
+ online_community()
+ load_tutorial_catalog()
  clear_page("tutorials")
  tutorial_ui=preload("res://scripts/tutorial_list.gd").new()
  tutorial_ui.app=self
  screen.add_child(tutorial_ui)
+ community_service.sync_tutorials()
  if not tutorial_catalog_errors.is_empty():alert("\n".join(tutorial_catalog_errors),"教程目录错误")
 
 func tutorial_editor_available() -> bool:
- return is_test_build and not is_android
+ return is_instance_valid(community_service) and community_service.allowed("tutorial_editor")
+
+func online_community():
+ if not is_instance_valid(community_service):
+  community_service=preload("res://scripts/community_service.gd").new();community_service.app=self;add_child(community_service)
+ return community_service
+
+func community_management():
+ clear_page("community")
+ var view=preload("res://scripts/community_page.gd").new();view.app=self;screen.add_child(view)
+
+func tutorial_review(document: Dictionary,submission_id: int,base_revision: int):
+ if not tutorial_editor_available():return
+ clear_page("tutorial_editor")
+ var editor=load("res://scripts/tutorial/authoring_editor.gd").new()
+ editor.online_revision=base_revision;editor.review_submission_id=submission_id
+ screen.add_child(editor);editor.begin(self,document,"")
 
 func tutorial_editor(path: String=""):
  if not tutorial_editor_available():return
@@ -1075,6 +1243,7 @@ func tutorial_editor(path: String=""):
   data=loaded.data
  clear_page("tutorial_editor")
  var editor=load("res://scripts/tutorial/authoring_editor.gd").new()
+ editor.online_revision=online_community().revision(str(data.get("id","")))
  screen.add_child(editor);editor.begin(self,data,path)
 
 func load_tutorial_catalog():
@@ -1084,18 +1253,16 @@ func load_tutorial_catalog():
   tutorial_catalog_errors.append("教程目录 data/tutorial/catalog.json.lessons 必须是数组");return
  var ids={}
  var paths=catalog.lessons.duplicate()
- var local_dir=tutorial_local_directory
- if DirAccess.dir_exists_absolute(local_dir):
-  for filename in DirAccess.get_files_at(local_dir):
-   if filename.ends_with(".json"):paths.append(local_dir.path_join(filename))
+ var online_paths=community_service.paths() if is_instance_valid(community_service) else []
+ paths.append_array(online_paths)
  for path in paths:
   if not path is String:tutorial_catalog_errors.append("教程目录 lessons：路径必须是字符串");continue
   var loaded=preload("res://scripts/tutorial/config.gd").new().load_file(path,Store.CARDS)
   if not loaded.ok:tutorial_catalog_errors.append_array(loaded.errors);continue
   var lesson=loaded.data
   if ids.has(lesson.id):
-   # A local edited copy may intentionally replace a bundled lesson by ID.
-   if path.begins_with(local_dir+"/") and not str(ids[lesson.id]).begins_with(local_dir+"/"):
+   # Only an approved online package may replace a bundled lesson.
+   if path in online_paths:
     tutorial_entries=tutorial_entries.filter(func(entry):return entry.id!=lesson.id)
    else:tutorial_catalog_errors.append("教程目录：课程 ID 重复 "+lesson.id);continue
   ids[lesson.id]=path
@@ -1266,7 +1433,7 @@ func choose_pck_patch():
  dialog.file_mode=FileDialog.FILE_MODE_OPEN_FILE
  dialog.access=FileDialog.ACCESS_FILESYSTEM
  dialog.use_native_dialog=true
- dialog.filters=PackedStringArray(["*.pck ; multicolor:arena PCK 补丁","* ; 所有文件"])
+ dialog.filters=PackedStringArray(["*.pck ; 极彩：对决 PCK 补丁","* ; 所有文件"])
  dialog.file_selected.connect(func(path):
   dialog.queue_free()
   var service=patch_manager()
@@ -1322,7 +1489,7 @@ func set_sakura_ui(value: bool):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"auto_pay_keep_colors":auto_pay_keep_colors,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -1347,6 +1514,16 @@ func set_top_down_view(value: bool):
 func set_show_card_inspection(value: bool):
  show_card_inspection=value
  save_settings()
+
+func set_auto_pay_keep_colors(colors: Array):
+ var next=[]
+ for color in ["红","蓝","绿","黄","黑"]:
+  if color in colors:next.append(color)
+ auto_pay_keep_colors=next
+ save_settings()
+ if is_instance_valid(duel_view):
+  duel_view.refresh_payment_plan()
+  duel_view.render()
 
 func set_delay_turn_end(value: bool):
  delay_turn_end=value
@@ -1395,6 +1572,7 @@ func set_replay_training_mode(value: bool):
  
 
 func return_from_account():
+ task_account_return=false
  tournament_account_return=false
  if has_meta("online_account_return"):remove_meta("online_account_return")
  var from_deck=not deck_account_return.is_empty()
@@ -2375,7 +2553,7 @@ func about():
   return
  var title=label(screen,"关于",Rect2(100,210,1400,70),44,GOLD)
  title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var version=label(screen,"multicolor:arena  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
+ var version=label(screen,"极彩：对决  "+str(ProjectSettings.get_setting("application/config/version")),Rect2(100,295,1400,44),24,GOLD)
  version.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var body=label(screen,"本作品基于开源游戏引擎godot和东方project的二次创作“极彩multicolor”，由chatgpt辅助代码\n所制成。所有卡图等知识产权均归属于社团“The 495th Complex”",Rect2(100,365,1400,90),32)
  body.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -2572,7 +2750,7 @@ func refresh_responsive_layout():
  screen.position=ui_metrics.safe.position;screen.size=ui_metrics.safe.size
  queue_redraw()
  if deck_picker_open():deck_picker_layout_changed=true;deck_picker_ui.refresh_metrics();return
- if page=="menu" and menu_popup_open() and menu_popup is AnnouncementPopup:
+ if page=="menu" and menu_popup_open() and (menu_popup is AnnouncementPopup or menu_popup is TaskPopup or menu_popup is ShopPopup):
   menu_popup.backdrop.theme=theme;menu_popup.relayout();return
  if page in ["editor","sideboard"]:editor(page=="sideboard")
  elif page=="menu":menu()
@@ -2640,16 +2818,16 @@ func desktop_menu():
  var actions=main_menu_entries()
  var badge=rank_display(screen,true);badge.position=Vector2(92,140);badge.size=Vector2(620,112)
  if Palette.enabled:
-  var title=label(screen,"multicolor : arena",Rect2(92,286,700,64),46,Palette.SAKURA);title.name="MenuTitle"
-  title.add_theme_color_override("font_outline_color",Palette.NIGHT);title.add_theme_constant_override("outline_size",8)
-  label(screen,"桜 · 神社",Rect2(96,350,400,30),18,Palette.MIST).name="MenuSubtitle"
   box(screen,Rect2(96,390,164,4),Palette.VERMILION,Palette.VERMILION).mouse_filter=Control.MOUSE_FILTER_IGNORE
  var rows=[422,512,594,676]
  for i in range(actions.size()):
   var item=actions[i]
   button(screen,item[0],Rect2(96+(i%2)*374,rows[int(i/2)],350,70 if i<2 else 64),item[1])
- card(screen,"68",Rect2(890,205,255,360)).rotation_degrees = -12
- card(screen,"70",Rect2(1140,250,280,394)).rotation_degrees = 12
+ if Palette.enabled:
+  card(screen,"70",Rect2(1040,440,250,350),Callable(),"tts_151700")
+ else:
+  card(screen,"68",Rect2(930,440,210,293)).rotation_degrees = -8
+  card(screen,"70",Rect2(1150,458,220,307)).rotation_degrees = 8
  add_mailbox_button()
 
 func desktop_settings():

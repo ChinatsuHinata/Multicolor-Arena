@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="multicolor:arena"
-config/version="1.2.8.15"
+config/name="极彩：对决"
+config/version="1.2.9.1"
 config/quit_on_go_back=false
 run/main_scene="res://main.tscn"
 config/use_custom_user_dir=true

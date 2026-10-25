@@ -49,6 +49,9 @@ func new_app():
  app=load("res://main.tscn").instantiate();app.settings_path=fixtures.path_join("settings.json")
  app.account_session_path=fixtures.path_join("account.json");app.tutorial_local_directory=fixtures.path_join("lessons")
  root.add_child(app);await frames()
+ authorize_tutorial_editor_for_test()
+ app.online_community().manifest[lesson.id]={"path":course_path,"revision":1,"digest":FileAccess.get_file_as_string(course_path).sha256_text()}
+ app.load_tutorial_catalog()
 
 func flow():
  return app.screen.get_child(0).runtime
@@ -77,15 +80,15 @@ func run():
  expect(Progress.ordered_steps(lesson)==["intro","add","result","board","damage","after","return_deck"],"directory follows the course links rather than JSON key order")
  for mobile in [false,true]:
   app.is_android=mobile;app.is_test_build=true;app.tutorials();await frames()
-  expect((app.tutorial_ui.find_child("OpenTutorialEditor",true,false)!=null)==not mobile,"authoring header follows platform gate")
-  expect((app.tutorial_ui.find_child("EditTutorialt1",true,false)!=null)==not mobile,"per-course authoring follows platform gate")
+  expect(app.tutorial_ui.editor_button.visible,"tutorial group members can open authoring on either platform")
+  expect(app.tutorial_ui.find_child("EditTutorialt1",true,false)!=null,"per-course editing is available to tutorial group members")
   if mobile:
    app.tutorial_editor(course_path);await frames()
-   expect(app.page=="tutorials","Android direct authoring request is blocked")
- app.is_android=false;app.is_test_build=false;app.tutorials();await frames()
- expect(app.tutorial_ui.find_child("OpenTutorialEditor",true,false)==null and app.tutorial_ui.find_child("EditTutorialt1",true,false)==null,"release hides both authoring entrances")
- app.tutorial_editor(course_path);await frames();expect(app.page=="tutorials","release direct authoring request is blocked")
- app.is_test_build=true
+   expect(app.page=="tutorial_editor","Android group members can open the editor")
+ app.is_android=false;app.is_test_build=false;app.account_token="";app.tutorials();await frames()
+ expect(not app.tutorial_ui.editor_button.visible and app.tutorial_ui.find_child("EditTutorialt1",true,false)==null,"nonmembers have neither authoring entrance")
+ app.tutorial_editor(course_path);await frames();expect(app.page=="tutorials","nonmember direct authoring request is blocked")
+ app.is_test_build=true;authorize_tutorial_editor_for_test()
  for production in app.tutorial_entries.filter(func(item):return str(item.path).begins_with("res://data/tutorial/")):
   app.tutorial_directory(production.path);await frames()
   var directory=app.tutorial_directory_ui

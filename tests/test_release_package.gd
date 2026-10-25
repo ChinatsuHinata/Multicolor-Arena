@@ -35,7 +35,7 @@ func _initialize():
   check(AI.profile(named)==AI.PROFILE,"New display name independently selects AI")
  check(JSON.stringify([source,portable])==original,"Packaging does not edit source decks")
  check(not Policy.select_decks(presets.decks,[]).has("error"),"Missing local AI uses the embedded challenge deck")
- for path in ["res://test/probe.gd","res://tests/test_rules.gdc","res://training/corpus.json","res://models/value.onnx","res://data/test_precons.json","res://data/experimental-weights.json","res://work/experiment.bin"]:
+ for path in ["res://test/probe.gd","res://tests/test_rules.gdc","res://training/corpus.json","res://models/value.onnx","res://data/test_precons.json","res://data/experimental-weights.json","res://work/experiment.bin","res://outputs/audit/evidence.json"]:
   check(Policy.excluded_path(path),"Excluded: "+path)
  for path in ["res://scripts/ai/decision_agent.gd","res://scripts/ai/matchup_models.gd","res://scripts/rules/remilia_aggro_ai.gd","res://data/bundled_decks.json","res://data/alternate_art.json","res://cards/spell-fdn-010.json"]:
   check(not Policy.excluded_path(path),"Runtime retained: "+path)

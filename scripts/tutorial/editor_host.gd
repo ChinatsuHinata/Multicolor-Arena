@@ -159,7 +159,7 @@ func refresh_responsive_layout():
 func menu():
  flow.reject_ui_action("editor.return_menu",{})
 
-func save_deck():
+func save_deck(_after_saved: Callable=Callable()):
  flow.reject_ui_action("editor.save",{})
 
 func save_settings():
