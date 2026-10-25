@@ -29,6 +29,7 @@ var timing="after"
 func configure(def: Dictionary,context: Dictionary) -> void:
  super(def,context)
  timing=str(def.get("timing","after"))
+ flight_mode=str(def.get("flight","none"))
 
 ## 卡牌从堆叠飞到落点的时长，本体经 ctx.travel 传入；预览与单测没有时取 params.travel_ms。
 func travel_seconds() -> float:
@@ -38,14 +39,90 @@ func travel_seconds() -> float:
 func land_seconds() -> float:
  return minf(travel_seconds(),budget) if timing=="before" else 0.0
 
+## 飞行位姿由上下文插值，或实时追踪 3D 卡牌；holder 仍固定在落点。
+var flight_mode="none"
+var landed=false
+var proxy: MeshInstance3D
+
+func flight_seconds() -> float:
+ if timing!="before":return 0.0
+ var flight=ctx.get("flight")
+ return maxf(float(flight.seconds),0.0) if flight is Dictionary and flight.has("seconds") else travel_seconds()
+
+func flight_ease(u: float) -> float:
+ u=clampf(u,0.0,1.0)
+ var flight=ctx.get("flight")
+ if flight is Dictionary and flight.get("ease","cubic_in_out")=="linear":return u
+ if flight is Dictionary and flight.get("ease","cubic_in_out")=="sine_in_out":return -(cos(PI*u)-1.0)/2.0
+ return 4.0*u*u*u if u<0.5 else 1.0-pow(-2.0*u+2.0,3.0)/2.0
+
+func flight_global(t: float) -> Transform3D:
+ var fs=flight_seconds()
+ var landing=ctx.get("landing")
+ if not landing is Transform3D:landing=holder.global_transform if is_instance_valid(holder) else Transform3D.IDENTITY
+ var flight=ctx.get("flight")
+ if flight is Dictionary and flight.get("from") is Transform3D:
+  var from: Transform3D=flight.from
+  var to: Transform3D=flight.get("to",landing)
+  var u=flight_ease(t/fs) if fs>0.0 else 1.0
+  var origin=from.origin.lerp(to.origin,u)
+  var q=Quaternion(from.basis.orthonormalized()).slerp(Quaternion(to.basis.orthonormalized()),u)
+  var sc=from.basis.get_scale().lerp(to.basis.get_scale(),u)
+  return Transform3D(Basis(q).scaled(sc),origin)
+ var node=ctx.get("node")
+ if is_instance_valid(node) and node is Node3D and node.is_inside_tree():return node.global_transform
+ return landing
+
+func flight_local(t: float=-1.0) -> Transform3D:
+ if t<0.0:t=elapsed
+ if not is_instance_valid(holder) or not holder.is_inside_tree():return Transform3D.IDENTITY
+ return holder.global_transform.affine_inverse()*flight_global(t)
+
+func in_flight(t: float=-1.0) -> bool:
+ if t<0.0:t=elapsed
+ return flight_seconds()>0.0 and t<flight_seconds() and not landed
+
+func owns_flight() -> bool:
+ return is_instance_valid(proxy)
+
+func card_landed() -> void:
+ landed=true
+ if is_instance_valid(proxy):proxy.visible=false
+
+## 代理卡在模块节点检查后创建；flight=proxy 的模块自身节点须 ≤63。
+func build_proxy() -> void:
+ if flight_mode!="proxy" or ctx.get("flight_proxy",false)!=true:return
+ var flight=ctx.get("flight")
+ if not flight is Dictionary or not (flight.get("texture") is Texture2D or flight.get("color") is Color):return
+ proxy=MeshInstance3D.new();proxy.name="FlightProxy"
+ var plane=PlaneMesh.new();plane.size=card_size()
+ proxy.mesh=plane
+ proxy.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ var mat=StandardMaterial3D.new()
+ mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ mat.cull_mode=BaseMaterial3D.CULL_DISABLED
+ if flight.get("texture") is Texture2D:
+  mat.albedo_texture=flight.texture;mat.albedo_color=Color.WHITE
+ else:mat.albedo_color=flight.color
+ proxy.material_override=mat
+ holder.add_child(proxy)
+
+func update_proxy() -> void:
+ if not is_instance_valid(proxy):return
+ proxy.visible=not landed
+ proxy.transform=flight_local(minf(elapsed,flight_seconds()))
+
 func start() -> bool:
  var ok=super()
+ if ok:build_proxy()
  pin_to_landing()
+ update_proxy()
  return ok
 
 func advance(delta: float) -> void:
  super(delta)
  pin_to_landing()
+ update_proxy()
 
 ## ctx.landing 是落点的全局变换；有它时 holder 钉在落点，不随飞行中的卡牌移动。
 func pin_to_landing() -> void:

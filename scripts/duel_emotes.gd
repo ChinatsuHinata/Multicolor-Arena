@@ -7,6 +7,7 @@ const Icon=preload("res://scripts/emote_icon.gd")
 const DISPLAY_MS=4000
 var view
 var button: Button
+var opponent_button: Button
 var wheel: Control
 var shade: Control
 var bubbles={}
@@ -16,6 +17,7 @@ var seen={}
 var game_key=""
 var observed_serial=0
 var entry_finger=-1
+var entry_control: Button
 
 func build(owner_view):
  view=owner_view;name="LeaderEmotes"
@@ -25,6 +27,9 @@ func build(owner_view):
  button.name="LeaderEmoteButton";button.icon=Icon.texture("greeting",48)
  button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
  button.z_index=90
+ opponent_button=view.host.button(self,"",Rect2(),toggle_opponent_emotes)
+ opponent_button.name="OpponentEmoteToggle";opponent_button.toggle_mode=true
+ opponent_button.z_index=90
  refresh()
 
 func enabled() -> bool:
@@ -53,8 +58,44 @@ func available() -> bool:
 func entry_rect() -> Rect2:
  var safe=view.responsive.safe
  var extent=maxf(52.0,view.host.ui_metrics.hit) if view.is_android else 52.0
- var at=Vector2(safe.position.x,view.responsive.hand_toggle_rect.position.y-extent-view.host.ui_metrics.gap) if view.is_android else Vector2(view.responsive.enemy_life.end.x+10,18)
+ var at=Vector2(safe.position.x,view.responsive.hand_toggle_rect.position.y-extent-view.host.ui_metrics.gap) if view.is_android else Vector2(view.responsive.own_life.end.x+10,view.responsive.own_life.position.y)
  return Rect2(at,Vector2(extent+12 if view.is_android else extent,extent))
+
+func opponent_entry_rect() -> Rect2:
+ var entry=entry_rect()
+ if view.is_android:
+  var height=maxf(view.host.ui_metrics.hit,opponent_button.get_combined_minimum_size().y)
+  var gap=view.host.ui_metrics.gap
+  var bounds=Rect2(entry.position-Vector2(0,height+gap),Vector2(view.responsive.enemy_life.size.x,height))
+  var enemy_status_bottom=view.responsive.enemy_life.end.y+view.host.ui_metrics.hit*2+gap*3+view.host.ui_metrics.body*2.5
+  # Dense touch controls can fill the upper rail. Use its separate lower gap
+  # without moving the camera, payment, hand or emote-send controls.
+  if bounds.position.y<enemy_status_bottom+gap:
+   # The phase caption expands into unused toolbar space. Float in that blank
+   # space when it fits, keeping both players' status text clear as well.
+   var toolbar=view.responsive.toolbar
+   if is_instance_valid(toolbar):
+    var phase=toolbar.get_node_or_null("BattlePhase")
+    if phase!=null:
+     var text_width=phase.get_theme_font("font").get_string_size(phase.text,HORIZONTAL_ALIGNMENT_LEFT,-1,phase.get_theme_font_size("font_size")).x
+     if phase.size.x-text_width>=bounds.size.x+gap*2:
+      bounds.position=Vector2(phase.global_position.x+phase.size.x-bounds.size.x-gap,toolbar.position.y)
+      return bounds
+   bounds.position.y=view.responsive.hand_toggle_rect.end.y+gap
+  return bounds
+ return Rect2(view.responsive.enemy_life.end.x+10,80,100,60)
+
+func opponent_emotes_hidden() -> bool:
+ return not view.host.show_opponent_emotes and not view.replay_view() and not view.spectator_view()
+
+func toggle_opponent_emotes():
+ if not opponent_button.visible or opponent_button.disabled or other_popup():return
+ view.host.set_show_opponent_emotes(not view.host.show_opponent_emotes)
+
+func remove_bubble(who: int):
+ if is_instance_valid(bubbles.get(who)):
+  bubbles[who].hide();bubbles[who].queue_free()
+ bubbles.erase(who);expires.erase(who);speakers.erase(who)
 
 func refresh():
  if view==null or view.engine==null:return
@@ -68,6 +109,19 @@ func refresh():
  var remaining=ceili(view.engine.emote_remaining(view.local_seat))
  button.text=str(remaining) if remaining>0 else ""
  button.tooltip_text="表情冷却：%d 秒" % remaining if remaining>0 else "表情 · 在我方可响应且没有弹框时使用"
+ opponent_button.text="对方表情\n"+("已开启" if view.host.show_opponent_emotes else "已关闭")
+ # Reapplying even the same override emits theme_changed on every frame.
+ # Keep text/layout caches intact until responsive metrics actually change.
+ var opponent_font_size=view.host.ui_metrics.small if view.is_android else 14
+ if opponent_button.get_theme_font_size("font_size")!=opponent_font_size:
+  opponent_button.add_theme_font_size_override("font_size",opponent_font_size)
+ var opponent_bounds=opponent_entry_rect()
+ opponent_button.position=opponent_bounds.position;opponent_button.size=opponent_bounds.size
+ opponent_button.visible=not view.replay_view() and not view.spectator_view()
+ opponent_button.disabled=other_popup() or view.tutorial_runtime!=null and (not view.tutorial_controls_enabled or view.tutorial_runtime.playing_sequence())
+ opponent_button.set_pressed_no_signal(view.host.show_opponent_emotes)
+ opponent_button.tooltip_text="点击关闭对方表情" if view.host.show_opponent_emotes else "点击开启对方表情"
+ if opponent_emotes_hidden():remove_bubble(1-view.local_seat)
  if is_instance_valid(wheel):
   if not available():close_wheel()
   else:position_wheel()
@@ -75,7 +129,7 @@ func refresh():
  for who in bubbles.keys():
   var bubble=bubbles[who]
   if now>=int(expires[who]):
-   bubble.queue_free();bubbles.erase(who);expires.erase(who);speakers.erase(who);continue
+   remove_bubble(who);continue
   var placement=bubble_layout(who,bubble.size)
   bubble.position=placement.position;bubble.set_tip_x(placement.tip_x)
   bubble.modulate.a=minf(1.0,float(int(expires[who])-now)/300.0)
@@ -100,7 +154,7 @@ func position_wheel():
 func close_wheel():
  if is_instance_valid(shade):
   shade.hide();shade.queue_free()
- shade=null;wheel=null;entry_finger=-1
+ shade=null;wheel=null;entry_finger=-1;entry_control=null
 
 func send(kind: String):
  if not available():close_wheel();return
@@ -127,15 +181,25 @@ func handle(event: InputEvent) -> bool:
     get_viewport().set_input_as_handled()
   # Focused wheel receives keyboard/mouse GUI events; battle input stops here.
   return true
- if not button.visible:return false
- if event is InputEventMouse and event.device==-1 and button.get_global_rect().has_point(event.position):
-  get_viewport().set_input_as_handled();return true
+ for entry in [button,opponent_button]:
+  if not entry.visible or entry==opponent_button and entry.disabled:continue
+  if event is InputEventMouse and entry.get_global_rect().has_point(event.position):
+   if event.device==-1:get_viewport().set_input_as_handled()
+   # Let real mouse input reach the button, without running battlefield input.
+   return true
  if event is InputEventScreenTouch:
-  if event.pressed and button.get_global_rect().has_point(event.position):entry_finger=event.index
+  if event.pressed and entry_finger==-1:
+   for entry in [button,opponent_button]:
+    if entry.visible and not (entry==opponent_button and entry.disabled) and entry.get_global_rect().has_point(event.position):
+     entry_finger=event.index;entry_control=entry;break
   if event.index==entry_finger:
    if not event.pressed:
+    var target=entry_control
     entry_finger=-1
-    if not event.canceled and button.get_global_rect().has_point(event.position):open_wheel()
+    entry_control=null
+    if not event.canceled and is_instance_valid(target) and target.visible and not target.disabled and target.get_global_rect().has_point(event.position):
+     if target==button:open_wheel()
+     else:toggle_opponent_emotes()
    view.suppress_touch_mouse_until=Time.get_ticks_msec()+250;view.suppress_touch_mouse_point=event.position
    get_viewport().set_input_as_handled();return true
  if event is InputEventScreenDrag and event.index==entry_finger:
@@ -157,6 +221,8 @@ func show_event(event: Dictionary):
  if seen.has(key):return
  seen[key]=true
  if seen.size()>256:seen.erase(seen.keys()[0])
+ # Consume muted events too, so reconnect snapshots cannot replay them later.
+ if who!=view.local_seat and opponent_emotes_hidden():return
  # A spectator's seat sets the camera perspective; both players are public speakers.
  if not view.spectator_view() and who==view.local_seat and not enabled():return
  var line=str(event.get("text",Profiles.DEFAULT_LINES[kind])).strip_edges().substr(0,120)

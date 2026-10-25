@@ -4,7 +4,7 @@ import math
 import secrets
 import time
 import task_store
-from tournament_pairing import swiss_pairs
+from tournament_pairing import knockout_pairs, swiss_pairs
 
 KINDS = ("swiss", "single_elimination", "double_elimination", "round_robin")
 GAME_FORMATS = (1, 2, 3, 4, 5, 6, 7)  # 6=BO5, 7=BO2; legacy IDs stay stable.
@@ -253,6 +253,17 @@ def advance_round(conn, tid, expected, now=None):
         active_ids = {e["player_id"] for e in active}
         # A withdrawn/early-qualified opponent is skipped without awarding free points.
         pairs = [(a, b) for a, b in robin_pairs(ids, completed + 1) if a in active_ids and (b is None or b in active_ids)]
+    elif stage["kind"] == "single_elimination":
+        if completed == 0:
+            pairs = knockout_pairs([e["player_id"] for e in sorted(active, key=lambda e: e["seed"])])
+        else:
+            previous = conn.execute("""SELECT p.player_a,p.player_b,p.result FROM tournament_pairings p
+                JOIN tournament_rounds r ON r.tournament_id=p.tournament_id AND r.number=p.round_number
+                WHERE p.tournament_id=? AND r.stage_index=? AND r.stage_round=? ORDER BY p.table_number""", (tid, index, completed)).fetchall()
+            winners = [a if result == 0 else b for a, b, result in previous]
+            pairs = list(zip(winners[::2], winners[1::2]))
+            if len(winners) % 2:
+                pairs.append((winners[-1], None))
     else:
         pairs = []
         pools = [[e for e in active if e["losses"] == losses] for losses in (0, 1)] if stage["kind"] == "double_elimination" else [active]

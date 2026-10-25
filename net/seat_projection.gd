@@ -1,7 +1,7 @@
 extends RefCounted
 const Codec=preload("res://net/state_codec.gd")
 const SpellDamagePreview=preload("res://scripts/rules/spell_damage_preview.gd")
-const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names","response_clock","leader_emote_profiles","emote_ready_at","emote_serial"]
+const PUBLIC_FIELDS=["active","priority","phase","turn","first","passes","winner","revision","stack","combat","turn_usage","unpreventable_turn","log","history","player_names","response_clock","leader_emote_profiles","emote_ready_at","emote_serial","equipped_shop_products"]
 static func hidden_card(who: int,zone: String,index: int) -> Dictionary:
  return {"card_id":"back","uid":-1000000-who*100000-(10000 if zone=="deck" else 0)-index,"epoch":0,"owner":who,"original_owner":who,"zone":zone,"leader":false,"tapped":false,"damage":0,"timer":0,"entered":0,"attacked":false,"network_hidden":true}
 static func collect_card_definitions(e,c: Dictionary,definitions: Dictionary):

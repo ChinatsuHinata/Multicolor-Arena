@@ -81,9 +81,26 @@ class ShopTests(unittest.TestCase):
     def test_half_price_rounding_and_deadline(self):
         self.assertEqual([shop.discounted_price(p) for p in (0, 1, 9, 10, 11)], [0, 1, 5, 5, 6])
         for product in shop.PRODUCTS:
-            for now, price in ((shop.SALE["starts_at"] - 1, 10), (shop.SALE["starts_at"], 5),
-                               (shop.SALE["ends_at"] - 1, 5), (shop.SALE["ends_at"], 10)):
+            base = shop.PRODUCTS[product]
+            discounted = shop.discounted_price(base)
+            for now, price in ((shop.SALE["starts_at"] - 1, base), (shop.SALE["starts_at"], discounted),
+                               (shop.SALE["ends_at"] - 1, discounted), (shop.SALE["ends_at"], base)):
                 self.assertEqual(shop.price_for(product, now), price)
+
+    def test_free_effects_claim_once_with_empty_wallet(self):
+        effects = [p for p in shop.CATALOGUE["products"] if p["category"] in ("entrance", "spell")]
+        self.assertEqual({p["fx"] for p in effects}, {"reimu_yinyang_gather", "reimu_dream_orbs"})
+        with self.conn:self.conn.execute("UPDATE task_wallets SET coins=0 WHERE player_id=1")
+        for product in effects:
+            self.assertEqual(product["price"], 0)
+            self.assertFalse(self.buy(product["id"], token="invalid", expected_price=0)["ok"])
+            for _ in range(2):
+                result = self.buy(product["id"], expected_price=0)
+                self.assertTrue(result["ok"])
+                self.assertEqual(result["tasks"]["coins"], 0)
+                self.assertIn(product["id"], result["tasks"]["shop_grants"])
+        self.assertEqual(shop.owned(self.conn, 2), [])
+        self.assertEqual(self.conn.execute("SELECT price FROM shop_purchases").fetchall(), [(0,), (0,)])
 
     def test_expired_quote_never_debits_more_than_confirmed(self):
         with patch.object(shop.time, "time", return_value=shop.SALE["ends_at"]):

@@ -74,6 +74,14 @@ func entry_caption(entry: Dictionary) -> String:
  if not cost.is_empty():mode+=("\n" if not mode.is_empty() else "")+cost
  if caption.is_empty():return mode
  return caption+"\n"+mode if not mode.is_empty() else caption
+func spell_owner_label(parent: Node,card: Dictionary) -> Label:
+ var owner=view.host.Store.Database.spell_owner_caption(view.engine.cards.get(card.get("card_id",""),{}))
+ if owner.is_empty():return null
+ var label=Label.new();label.name="SpellOwner";label.text=owner
+ label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ label.add_theme_font_size_override("font_size",view.host.ui_metrics.small if view.is_android else 14)
+ label.add_theme_color_override("font_color",view.host.GOLD);parent.add_child(label)
+ return label
 func build(owner_view):
  view=owner_view;position=AREA.position;size=AREA.size;mouse_filter=Control.MOUSE_FILTER_IGNORE
  clip_contents=false
@@ -125,7 +133,7 @@ func apply_collapsed_state():
  if is_instance_valid(backing):backing.visible=not collapsed
  if is_instance_valid(toggle_button):
   toggle_button.text="‹" if collapsed else "›"
-  toggle_button.tooltip_text="展开堆叠" if collapsed else "收起堆叠"
+  toggle_button.tooltip_text="展开对抗区" if collapsed else "收起对抗区"
   update_toggle_position()
 
 func update_toggle_position():
@@ -138,7 +146,7 @@ func sync():
  visible=not unresolved.is_empty()
  if view.is_android and not view.table.targetable_stacks.is_empty():collapsed=false
  apply_collapsed_state()
- heading.text="堆叠  %d" % unresolved.size()
+ heading.text="对抗区  %d" % unresolved.size()
  var resolving_id=view.engine.pending.get("resolving_entry",view.engine.pending.get("trigger",{}).get("entry",{})).get("id",-1)
  var next=JSON.stringify(unresolved.map(func(e):return [e.id,e.get("ability_text",""),e.get("awaiting_target",false),chosen_mode(e),e.id==resolving_id]))
  if next!=signature:
@@ -183,6 +191,7 @@ func sync():
     order.add_theme_font_size_override("font_size",view.host.ui_metrics.small)
     order.add_theme_color_override("font_color",RESOLVING_GLOW.lightened(0.3) if entry.id==resolving_id else LEAD_GLOW.lightened(0.25))
     order.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(order)
+   spell_owner_label(details if view.is_android else row,card)
    var caption_text=entry_caption(entry)
    # The desktop ribbon already announces the resolving entry.
    if entry.id==resolving_id and not view.is_android and not compact_enabled():caption_text="正在结算\n"+caption_text
@@ -210,7 +219,9 @@ func sync():
   var tile=tiles[id].tile;var selected=id in view.table.selected_stacks;var legal=id in view.table.targetable_stacks
   var context=view.card_context_caption(entry.card) if entry.kind=="card" else ""
   var caption=tiles[id].caption.text
-  tile.tooltip_text=entry.name+("\n"+caption if not caption.is_empty() else "")+("\n"+context if not context.is_empty() else "")
+  var card=entry.card if entry.kind=="card" else entry.source
+  var owner=view.host.Store.Database.spell_owner_caption(view.engine.cards.get(card.get("card_id",""),{}))
+  tile.tooltip_text=entry.name+("\n"+owner if not owner.is_empty() else "")+("\n"+caption if not caption.is_empty() else "")+("\n"+context if not context.is_empty() else "")
   var style=base_style(tiles[id],id==resolving_id)
   var conditional=entry.kind=="card" and view.conditional_hint(entry.card)
   view.sync_stack_target_marker(tile,{"stack_id":id})
@@ -284,23 +295,30 @@ func compact_row(row: VBoxContainer,entry: Dictionary,card: Dictionary,index: in
  var title=Label.new();title.name="StackName";title.text=entry.name;title.clip_text=true;title.mouse_filter=Control.MOUSE_FILTER_IGNORE
  title.position=Vector2(text_x,5);title.size=Vector2(width-text_x-8,title_size+7)
  title.add_theme_font_size_override("font_size",title_size);title.add_theme_color_override("font_color",view.host.GOLD if android else Palette.SAKURA);tile.add_child(title)
+ var caption_y=title.position.y+title.size.y+1
+ var owner=spell_owner_label(tile,card)
+ if owner!=null:
+  owner.position=Vector2(text_x,caption_y);owner.size=Vector2(width-text_x-8,0)
+  owner.size.y=owner.get_line_count()*owner.get_line_height()+2;caption_y+=owner.size.y
  var caption_size=maxi(14,roundi(metrics.small*0.7)) if android else 14
  var caption=Label.new();caption.name="StackCaption";caption.text=entry_caption(entry)
  caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING if android else TextServer.OVERRUN_TRIM_ELLIPSIS
  # Phone captions carry chosen modes that are not repeated anywhere else.
  caption.max_lines_visible=-1 if android else 4;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
- caption.position=Vector2(text_x,title.position.y+title.size.y+1);caption.size=Vector2(width-text_x-8,maxf(caption_size+4,thumb.y-title.size.y-6) if android else thumb.y-18)
+ caption.position=Vector2(text_x,caption_y);caption.size=Vector2(width-text_x-8,maxf(caption_size+4,thumb.y-title.size.y-6) if android else thumb.y-18)
  caption.add_theme_font_size_override("font_size",caption_size);caption.add_theme_color_override("font_color",view.host.WHITE if android else Palette.WASHI)
  caption.visible=not caption.text.is_empty();tile.add_child(caption)
  if not caption.visible:
   # Without effect text, give long names a second line instead of clipping.
   title.clip_text=false;title.autowrap_mode=TextServer.AUTOWRAP_ARBITRARY;title.max_lines_visible=2
   title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;title.size.y=(title_size+7)*2
+  if owner!=null:owner.position.y=title.position.y+title.size.y+1
  if caption.visible:
   # Grow the row for wrapped effects instead of hiding them behind the tooltip.
   var lines=caption.get_line_count() if android else mini(caption.get_line_count(),4)
   caption.size.y=maxf(caption.size.y,lines*caption.get_line_height()+4.0)
   tile.custom_minimum_size.y=maxf(tile.custom_minimum_size.y,caption.position.y+caption.size.y+6.0)
+ if owner!=null:tile.custom_minimum_size.y=maxf(tile.custom_minimum_size.y,owner.position.y+owner.size.y+6.0)
  bind_tile_input(tile,entry,card,resolving_id)
  if android:bind_touch(tile,entry,card,resolving_id)
  tile.tooltip_text=entry.name+("\n"+caption.text if not caption.text.is_empty() else "")

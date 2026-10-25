@@ -10,7 +10,7 @@ cp "$relay_dir/project.godot" "$staging_dir/project.godot"
 if [ ! -f "$staging_dir/server.gd" ]; then cp "$relay_dir/server.gd" "$staging_dir/server.gd"; fi
 if [ ! -f "$staging_dir/match_queue.gd" ] && [ -f "$relay_dir/match_queue.gd" ]; then cp "$relay_dir/match_queue.gd" "$staging_dir/"; fi
 if [ ! -f "$staging_dir/match_character_log.gd" ] && [ -f "$relay_dir/match_character_log.gd" ]; then cp "$relay_dir/match_character_log.gd" "$staging_dir/"; fi
-python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/task_store.py" "$staging_dir/shop_store.py" "$staging_dir/deck_plaza_store.py" "$staging_dir/cloud_deck_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py" "$staging_dir/tournament_rules.py" "$staging_dir/community_store.py"
+python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/task_store.py" "$staging_dir/shop_store.py" "$staging_dir/deck_plaza_store.py" "$staging_dir/cloud_deck_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py" "$staging_dir/tournament_rules.py" "$staging_dir/tournament_limitless.py" "$staging_dir/tournament_limitless_web.py" "$staging_dir/community_store.py"
 "$HOME/.local/bin/godot" --headless --path "$staging_dir" --script server.gd --check-only
 restart_services=(multicolor-account-user.service)
 if ! cmp -s "$staging_dir/server.gd" "$relay_dir/server.gd" || { [ -f "$staging_dir/match_queue.gd" ] && ! cmp -s "$staging_dir/match_queue.gd" "$relay_dir/match_queue.gd"; } || { [ -f "$staging_dir/match_character_log.gd" ] && ! cmp -s "$staging_dir/match_character_log.gd" "$relay_dir/match_character_log.gd"; }; then
@@ -27,7 +27,7 @@ if [ -f "$relay_dir/data/shop.json" ]; then cp "$relay_dir/data/shop.json" "$bac
 if [ -f "$relay_dir/tournament_store.py" ]; then cp "$relay_dir/tournament_store.py" "$backup_dir/"; fi
 if [ -f "$relay_dir/tournament_pairing.py" ]; then cp "$relay_dir/tournament_pairing.py" "$backup_dir/"; fi
 if [ -f "$relay_dir/deck_plaza_catalogue.json" ]; then cp "$relay_dir/deck_plaza_catalogue.json" "$backup_dir/"; fi
-for file in tournament_rules.py community_store.py; do
+for file in tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py; do
     if [ -f "$relay_dir/$file" ]; then cp "$relay_dir/$file" "$backup_dir/"; fi
 done
 python3 - "$relay_dir/data/players.sqlite3" "$backup_dir/players.sqlite3" <<'PY'
@@ -50,13 +50,13 @@ rollback() {
     if [ -f "$backup_dir/tournament_store.py" ]; then cp "$backup_dir/tournament_store.py" "$relay_dir/"; else rm -f -- "$relay_dir/tournament_store.py"; fi
     if [ -f "$backup_dir/tournament_pairing.py" ]; then cp "$backup_dir/tournament_pairing.py" "$relay_dir/"; else rm -f -- "$relay_dir/tournament_pairing.py"; fi
     if [ -f "$backup_dir/deck_plaza_catalogue.json" ]; then cp "$backup_dir/deck_plaza_catalogue.json" "$relay_dir/"; fi
-    for file in tournament_rules.py community_store.py; do
+    for file in tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py; do
         if [ -f "$backup_dir/$file" ]; then cp "$backup_dir/$file" "$relay_dir/"; else rm -f -- "$relay_dir/$file"; fi
     done
     systemctl --user restart "${restart_services[@]}" || true
 }
 trap rollback ERR
-for file in server.gd account_store.py task_store.py shop_store.py deck_plaza_store.py cloud_deck_store.py tournament_store.py tournament_pairing.py tournament_rules.py community_store.py deck_plaza_catalogue.json; do
+for file in server.gd account_store.py task_store.py shop_store.py deck_plaza_store.py cloud_deck_store.py tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py deck_plaza_catalogue.json; do
     install -m 600 "$staging_dir/$file" "$relay_dir/$file.next"
     mv "$relay_dir/$file.next" "$relay_dir/$file"
 done

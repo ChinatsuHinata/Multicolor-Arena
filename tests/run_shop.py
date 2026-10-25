@@ -53,7 +53,8 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_shop_", dir=scratch) as direc
             if result.returncode or "SCRIPT ERROR" in result.stderr:raise SystemExit(result.returncode or 1)
         conn=accounts.database(database)
         assert conn.execute("SELECT coins FROM task_wallets WHERE player_id=1").fetchone()[0]==0
-        assert conn.execute("SELECT product_id,price FROM shop_purchases WHERE player_id=1").fetchall()==[("emotes_reimu",shop.price_for("emotes_reimu"))]
+        assert conn.execute("SELECT product_id,price FROM shop_purchases WHERE player_id=1 ORDER BY product_id").fetchall()==[
+            ("emotes_reimu",shop.price_for("emotes_reimu")), ("entrance_reimu_yinyang_gather",0), ("spell_reimu_dream_orbs",0)]
         conn.close()
     finally:
         for process in reversed(services):process.terminate()

@@ -1,7 +1,7 @@
 extends "res://fx/categories/fx_entrance_module.gd"
-## 博丽灵梦入场（timing=before）：卡牌离开堆叠飞向战场时，红白阴阳玉在落点
-## 螺旋聚合；卡牌落场时一圈绯光炸开，阴阳玉随即向外散去。阴阳玉与光环全部由
-## 着色器程序化绘制，不需要素材。只对灵梦触发由清单 cards 决定。
+## 飞行护送：红白阴阳玉绕卡牌正反面公转，末段逐渐压平为落点水平环。
+## 落地收拢蓄力：水平环收紧变亮；无飞行时退回从四周螺旋聚集。
+## 炸开散去：落点炸开绯光与白环，阴阳玉向外飞散、升高、淡出。
 
 const ORB_SHADER="""
 shader_type spatial;
@@ -40,7 +40,7 @@ void fragment(){
  col=mix(col,vec3(0.8,0.66,0.86),smoothstep(0.62,1.0,rn)*0.4);
  float hl=max(0.0,1.0-length(p/BODY-vec2(-0.34,-0.4))/0.42);
  col+=vec3(1.0)*hl*hl*0.6;
- float halo=(1.0-smoothstep(BODY,1.0,r))*0.55*glow_strength;
+ float halo=pow(1.0-smoothstep(BODY,1.0,r),1.5)*0.75*glow_strength;
  ALBEDO=mix(glow.rgb,col,body);
  ALPHA=clamp(max(body,halo)*alpha,0.0,1.0);
 }
@@ -69,8 +69,9 @@ static var ring_shader: Shader
 var orbs: Array[MeshInstance3D]=[]
 var orb_angle: Array[float]=[]
 var orb_delay: Array[float]=[]
-var orb_size: Array[float]=[]
 var orb_spin: Array[float]=[]
+var orb_halo: Array[Color]=[]
+var converge: MeshInstance3D
 var ring: MeshInstance3D
 var inner: MeshInstance3D
 var flash: MeshInstance3D
@@ -85,8 +86,11 @@ func _build() -> bool:
  var red=Color(str(params.get("red","#c8323c")))
  var white=Color(str(params.get("white","#fbf2f0")))
  var glow=Color(str(params.get("glow","#e2604f")))
+ var halos=params.get("halos",[])
+ if not halos is Array or halos.is_empty():halos=[glow]
  var flash_tint=Color(str(params.get("flash","#f9c9d8")))
  var span=maxf(size.x,size.y)*1.7
+ converge=make_plane(holder,Vector3(0.0,0.01,0.0),Vector2(span,span),ring_material(red,0.04,0.0))
  ring=make_plane(holder,Vector3(0.0,0.012,0.0),Vector2(span,span),ring_material(glow,0.05,0.0))
  inner=make_plane(holder,Vector3(0.0,0.014,0.0),Vector2(span,span),ring_material(white,0.025,0.0))
  flash=make_plane(holder,Vector3(0.0,0.016,0.0),Vector2(span,span),ring_material(flash_tint,0.12,1.0))
@@ -96,7 +100,9 @@ func _build() -> bool:
   mat.shader=orb_shader
   mat.set_shader_parameter("red",red)
   mat.set_shader_parameter("white",white)
-  mat.set_shader_parameter("glow",glow)
+  var halo=Color(halos[i%halos.size()])
+  mat.set_shader_parameter("glow",halo)
+  orb_halo.append(halo)
   var quad=QuadMesh.new()
   var scale_jitter=rng.randf_range(0.85,1.15)
   quad.size=Vector2.ONE*base*1.5*scale_jitter
@@ -108,8 +114,7 @@ func _build() -> bool:
   holder.add_child(node)
   orbs.append(node)
   orb_angle.append(TAU*float(i)/float(count)+rng.randf_range(-0.18,0.18))
-  orb_delay.append(rng.randf_range(0.0,0.12))
-  orb_size.append(scale_jitter)
+  orb_delay.append(rng.randf_range(0.0,0.2))
   orb_spin.append(rng.randf_range(5.0,8.0)*(1.0 if rng.randf()<0.5 else -1.0))
  return true
 
@@ -122,51 +127,94 @@ func ring_material(tint: Color,width: float,fill: float) -> ShaderMaterial:
  mat.set_shader_parameter("alpha",0.0)
  return mat
 
-## 三段全部按模块时钟（秒）排，land 是卡牌落场时刻：
-##  聚合 0 → lead（飞行前 gather_share）：阴阳玉从高处螺旋落到落点四周；
-##  环绕 lead → land：卡牌即将落下，阴阳玉收紧环绕、光晕渐亮；
-##  进场后 land → budget：落场闪光与光环扩散，阴阳玉向外散去。
+## 飞行段使用基底位姿，落地后在 holder 原点收拢；无飞行时保留延迟聚集。
 func _frame(_delta: float) -> void:
  var t=elapsed
  var size=card_size()
- var land=maxf(land_seconds(),0.1)
- var lead=maxf(land*clampf(float(params.get("gather_share",0.7)),0.1,1.0),0.05)
- var tail=maxf(budget-land,0.1)
- var r0=float(params.get("start_radius",1.45))
- var r1=float(params.get("gather_radius",0.55))
- var r_hold=r1*float(params.get("hold_shrink",0.92))
- var r2=float(params.get("scatter_radius",1.9))
- var turns=float(params.get("spin_turns",0.55))
- var hold_turns=float(params.get("hold_turns",0.3))
+ var w=size.x
  var aspect=size.y/size.x*0.82
- var landed=exp(-pow((t-land)/0.07,2.0))
+ var T=flight_seconds()
+ var flying_mode=T>=0.05
+ var period=maxf(float(params.get("orbit_period_ms",450))/1000.0,0.1)
+ var tilt=deg_to_rad(float(params.get("orbit_tilt_deg",22)))
+ var charge=float(params.get("charge_ms",110))/1000.0
+ var settle=float(params.get("settle_ms",180))/1000.0 if flying_mode else maxf(float(params.get("gather_ms",560))/1000.0-charge,0.1)
+ var B0=T if flying_mode else 0.0
+ var G=minf(B0+settle+charge,budget-0.25)
+ var c_start=G-charge
+ var tail=maxf(budget-G,0.1)
+ var orbit_radius=float(params.get("orbit_radius",0.78))
+ var orbit_height=float(params.get("orbit_height",0.32))
+ var front_scale=float(params.get("front_scale",0.18))
+ var back_alpha=float(params.get("back_alpha",0.6))
+ var r0=float(params.get("start_radius",1.6))
+ var r1=float(params.get("gather_radius",0.5))
+ var rc=float(params.get("charge_radius",0.36))
+ var r2=float(params.get("scatter_radius",2.1))
+ var cturns=float(params.get("charge_turns",0.3))
+ var k=clampf((t-c_start)/charge,0.0,1.0)
+ var s=clampf((t-G)/tail,0.0,1.0)
+ var out=1.0-pow(1.0-s,3.0)
+ var beat=exp(-pow((t-G)/0.07,2.0))
  for i in range(orbs.size()):
-  var delay=orb_delay[i]*lead
-  var g=smoothstep(0.0,1.0,clampf((t-delay)/maxf(lead-delay,0.01),0.0,1.0))
-  var hold=clampf((t-lead)/maxf(land-lead,0.01),0.0,1.0)
-  var s=clampf((t-land-0.03)/maxf(tail-0.03,0.01),0.0,1.0)
-  var out=1.0-pow(1.0-s,3.0)
-  var radius=lerpf(r0,r1,g)
-  if hold>0.0:radius=lerpf(r1,r_hold,hold*hold)
-  if s>0.0:radius=lerpf(r_hold,r2,out)
-  var angle=orb_angle[i]+TAU*turns*g+TAU*hold_turns*hold+TAU*0.12*out
-  var height=lerpf(0.95,0.36,g)-0.04*hold+0.38*out
-  orbs[i].position=Vector3(cos(angle)*radius*size.x,height,sin(angle)*radius*size.x*aspect)
-  var appear=smoothstep(delay,delay+0.2,t)
-  # 落场瞬间轻微收缩再弹开，强调卡牌落下的那一拍
-  var pulse=1.0-0.22*landed
-  orbs[i].scale=Vector3.ONE*(0.55+0.45*appear)*pulse*(1.0+0.15*out)
+  var a=orb_angle[i]+TAU*t/period
+  var d=sin(a)
+  var pos: Vector3
+  var scale: float
+  var alpha: float
+  var glow_strength: float
+  if flying_mode and t<T:
+   var F=flight_local(t)
+   var V=F*Vector3(cos(a)*orbit_radius*w,sin(a)*orbit_radius*w*cos(tilt),sin(a)*orbit_radius*w*sin(tilt))
+   var H=F.origin+Vector3(cos(a)*orbit_radius*w,orbit_height,sin(a)*orbit_radius*w*aspect)
+   var blend=smoothstep(float(params.get("flatten_from",0.65)),1.0,t/T)
+   pos=V.lerp(H,blend)
+   var appear=smoothstep(0.0,0.08,t)
+   scale=(0.5+0.5*appear)*(1.0+front_scale*d)
+   alpha=appear*lerpf(back_alpha,1.0,(d+1.0)*0.5)
+   glow_strength=1.0+0.4*(d+1.0)*0.5
+  elif t<G:
+   var start_radius=orbit_radius if flying_mode else r0
+   var P=flight_local(T).origin+Vector3(cos(a)*orbit_radius*w,orbit_height,sin(a)*orbit_radius*w*aspect) if flying_mode else Vector3(cos(a)*r0*w,0.9,sin(a)*r0*w*aspect)
+   var delay=0.0 if flying_mode else orb_delay[i]*settle
+   var s1=smoothstep(0.0,1.0,clampf((t-B0-delay)/maxf(settle-delay,0.01),0.0,1.0))
+   var radius=lerpf(start_radius,r1,s1)
+   if k>0.0:radius=lerpf(r1,rc,k*k)
+   var angle=a+TAU*cturns*k
+   var height=lerpf(P.y,orbit_height,s1)-0.04*k
+   pos=Vector3(cos(angle)*radius*w,height,sin(angle)*radius*w*aspect)
+   var appear=1.0 if flying_mode else smoothstep(delay,delay+0.15,t)
+   scale=(1.0+0.2*k)*(1.0+0.5*front_scale*d)
+   if not flying_mode:scale*=0.5+0.5*appear
+   alpha=appear
+   glow_strength=0.8+0.6*s1+1.0*k
+  else:
+   var radius=lerpf(rc,r2,out)
+   var height=orbit_height-0.04+0.5*out
+   var angle=a+TAU*0.15*out
+   pos=Vector3(cos(angle)*radius*w,height,sin(angle)*radius*w*aspect)
+   scale=1.2*(1.0-0.18*beat)*(1.0+0.2*out)
+   alpha=pow(1.0-s,1.5)
+   glow_strength=0.8+0.6+1.0*(1.0-s)+1.0*beat
+  orbs[i].position=pos
+  orbs[i].scale=Vector3.ONE*scale
   var mat: ShaderMaterial=orbs[i].material_override
-  mat.set_shader_parameter("alpha",appear*(1.0-pow(s,1.4)))
+  mat.set_shader_parameter("alpha",alpha)
   mat.set_shader_parameter("spin",orb_spin[i]*t)
-  mat.set_shader_parameter("glow_strength",1.0+0.5*hold*(1.0-s)+0.8*landed)
- var f=clampf((t-land+0.02)/(tail*0.85),0.0,1.0)
+  mat.set_shader_parameter("glow_strength",glow_strength)
+ var cg=clampf((t-B0)/maxf(G-B0,0.01),0.0,1.0)
+ var live=1.0 if B0<=t and t<G else 0.0
+ var alpha=live*0.6*smoothstep(B0,B0+0.08,t)*(1.0-smoothstep(G-0.06,G,t))
+ set_ring(converge,lerpf(0.95,0.28,smoothstep(0.0,1.0,cg)),alpha)
+ var converge_mat: ShaderMaterial=converge.material_override
+ converge_mat.set_shader_parameter("fill",0.35*k)
+ var f=clampf((t-G)/(tail*0.8),0.0,1.0)
  var fo=1.0-pow(1.0-f,2.0)
- var live=1.0 if f>0.0 else 0.0
- set_ring(ring,0.18+0.78*fo,live*pow(1.0-f,1.6)*0.95)
- set_ring(inner,0.1+0.62*fo,live*pow(1.0-f,2.2)*0.8)
- var flash_f=clampf((t-land+0.02)/0.22,0.0,1.0)
- set_ring(flash,0.2+0.35*flash_f,(1.0 if flash_f>0.0 else 0.0)*pow(1.0-flash_f,2.0)*0.35)
+ var on=1.0 if t>=G else 0.0
+ set_ring(ring,0.2+0.8*fo,on*pow(1.0-f,1.6)*0.95)
+ set_ring(inner,0.1+0.65*fo,on*pow(1.0-f,2.2)*0.8)
+ var ff=clampf((t-G)/0.2,0.0,1.0)
+ set_ring(flash,0.2+0.35*ff,on*pow(1.0-ff,2.0)*0.45)
 
 func set_ring(node: MeshInstance3D,radius: float,alpha: float) -> void:
  var mat: ShaderMaterial=node.material_override

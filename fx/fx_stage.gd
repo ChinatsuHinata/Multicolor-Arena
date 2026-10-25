@@ -13,6 +13,7 @@ var active: Array[Node]=[]
 var pending: Array[Dictionary]=[]
 ## Tests step the clock by hand; the real game leaves this false.
 var auto_step=false
+var last_flight_seconds=0.0
 
 func _init():
  registry=RegistryScript.new()
@@ -34,11 +35,28 @@ func layer(category: String) -> Node3D:
 ## their own layer. `context.card_id` filters by each manifest's `cards`.
 ## Entrance effects split by timing: `before` starts now, while the card is
 ## still flying in from the stack; `after` waits `context.travel` seconds
-## until the card has landed. Only modules started now are returned.
+## until the card has landed. `context.timings` (optional) limits entrance
+## effects to those timings, so the departure and the landing can each play
+## their own half. Only modules started now are returned.
 func play(category: String,context: Dictionary,products: Dictionary={}) -> Array:
+ last_flight_seconds=0.0
  var started: Array=[]
+ var timings=context.get("timings",[])
+ var proxy_taken=false
  for def in registry.enabled(category,products,str(context.get("card_id",""))):
+  if category=="entrance" and timings is Array and not timings.is_empty() and not timings.has(RegistryScript.timing(def)):continue
   var ctx=context.duplicate(true)
+  if category=="entrance" and RegistryScript.flight(def)=="proxy" and not proxy_taken and ctx.get("flight") is Dictionary and (ctx.flight.get("texture") is Texture2D or ctx.flight.get("color") is Color):
+   ctx["flight_proxy"]=true;proxy_taken=true
+   if RegistryScript.flight_ms(def)>0.0:
+    var seconds=RegistryScript.flight_ms(def)/1000.0
+    ctx["travel"]=seconds
+    var flight: Dictionary=ctx.flight
+    flight["seconds"]=seconds
+    if def.has("flight_ease"):flight["ease"]=str(def.flight_ease)
+    ctx["flight"]=flight
+    last_flight_seconds=seconds
+  else:ctx["flight_proxy"]=false
   if not ctx.has("parent") or ctx.parent==null:ctx["parent"]=layer(category)
   var wait=maxf(float(ctx.get("travel",0.0)),0.0)
   if category=="entrance" and RegistryScript.timing(def)=="after" and wait>0.0:
@@ -47,6 +65,10 @@ func play(category: String,context: Dictionary,products: Dictionary={}) -> Array
   var module=spawn_module(def,ctx)
   if module!=null:started.append(module)
  return started
+
+func landed(uid: int) -> void:
+ for module in active:
+  if is_instance_valid(module) and module.category=="entrance" and int(module.ctx.get("uid",0))==uid and module.has_method("card_landed"):module.card_landed()
 
 func spawn_module(def: Dictionary,ctx: Dictionary) -> Node:
  var module=registry.spawn(def,ctx)

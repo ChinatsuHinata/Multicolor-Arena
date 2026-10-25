@@ -10,7 +10,7 @@ const CATEGORIES=["entrance","foil","spell"]
 const TIMINGS=["before","after"]
 const ORIGINS=["none","character"]
 const DESTINATIONS=["none","spell_target"]
-const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes","cards","timing","character_spell","character","origin","destination"]
+const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes","cards","timing","flight","flight_ms","flight_ease","character_spell","character","origin","destination","hold_ms"]
 
 static func load_all(root: String=ROOT) -> Dictionary:
  var effects: Dictionary={}
@@ -59,15 +59,26 @@ static func validate(data: Variant,path: String) -> String:
   if not data.cards is Array or data.cards.is_empty():return "cards must be a non-empty array of card ids"
   for card in data.cards:
    if not card is String or str(card).strip_edges().is_empty():return "cards must hold card id strings"
+ if data.has("flight"):
+  if str(data.category)!="entrance":return "flight only applies to entrance effects"
+  if not data.flight is String or not ["none","track","proxy"].has(data.flight):return "flight must be one of none, track, proxy"
+  if data.flight in ["track","proxy"] and data.get("timing","after")!="before":return "flight requires timing before"
+ if data.has("flight_ms"):
+  if data.get("flight","none")!="proxy":return "flight_ms requires flight proxy"
+  if (not data.flight_ms is float and not data.flight_ms is int) or not (float(data.flight_ms)>=200.0 and float(data.flight_ms)<=2000.0):return "flight_ms must be between 200 and 2000"
+ if data.has("flight_ease"):
+  if data.get("flight","none")!="proxy":return "flight_ease requires flight proxy"
+  if not ["cubic_in_out","sine_in_out","linear"].has(data.flight_ease):return "flight_ease must be one of cubic_in_out, sine_in_out, linear"
  if data.has("timing"):
   if str(data.category)!="entrance":return "timing only applies to entrance effects"
   if not data.timing is String or not TIMINGS.has(str(data.timing)):return "timing must be one of "+", ".join(TIMINGS)
- for key in ["character_spell","character","origin","destination"]:
+ for key in ["character_spell","character","origin","destination","hold_ms"]:
   if data.has(key) and str(data.category)!="spell":return key+" only applies to spell effects"
  if data.has("character_spell") and not data.character_spell is bool:return "character_spell must be a boolean"
  if data.has("character") and not data.character is String:return "character must be a string"
  if data.has("origin") and (not data.origin is String or not ORIGINS.has(data.origin)):return "origin must be one of none, character"
  if data.has("destination") and (not data.destination is String or not DESTINATIONS.has(data.destination)):return "destination must be one of none, spell_target"
+ if data.has("hold_ms") and (not data.hold_ms is float and not data.hold_ms is int or float(data.hold_ms)<0.0 or float(data.hold_ms)>5000.0):return "hold_ms must be a number 0-5000"
  if data.get("origin","none")=="character" and data.get("character_spell",false)!=true:return "origin character requires character_spell"
  return ""
 

@@ -11,7 +11,7 @@ $archive = Join-Path $relayDir 'deck-plaza-deploy.tar.gz'
 $target = "${User}@${Server}"
 $sshOptions = @('-i',$KeyPath,'-o','IdentitiesOnly=yes','-o','StrictHostKeyChecking=yes','-o','ConnectTimeout=10','-o','ServerAliveInterval=10','-o','ServerAliveCountMax=2')
 try {
-    $programs = @('account_store.py','task_store.py','shop_store.py','deck_plaza_store.py','cloud_deck_store.py','tournament_store.py','tournament_pairing.py','tournament_rules.py','community_store.py','deck_plaza_catalogue.json','install-deck-plaza.sh')
+    $programs = @('account_store.py','task_store.py','shop_store.py','deck_plaza_store.py','cloud_deck_store.py','tournament_store.py','tournament_pairing.py','tournament_rules.py','tournament_limitless.py','tournament_limitless_web.py','community_store.py','deck_plaza_catalogue.json','install-deck-plaza.sh')
     if (-not $BackendOnly) { $programs += @('server.gd','match_queue.gd','match_character_log.gd') }
     & tar -czf $archive -C $relayDir @programs -C (Split-Path -Parent $relayDir) data/tutorial data/announcements.json data/shop.json
     if ($LASTEXITCODE -ne 0) { throw 'Could not package deck plaza programs.' }

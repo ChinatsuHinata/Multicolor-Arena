@@ -20,6 +20,7 @@ var viewport: SubViewport
 var surface: TextureRect
 var stage
 var subject: Dictionary
+var spell_target: Dictionary={}
 var header: HBoxContainer
 var title: Label
 var hint: Label
@@ -28,6 +29,13 @@ var emote_bar: HBoxContainer
 var bubble: Control
 var bubble_remaining=0.0
 var loop_remaining=0.0
+var entrance_landing=Transform3D.IDENTITY
+var entrance_from=Transform3D.IDENTITY
+var entrance_elapsed=0.0
+var entrance_duration=0.0
+var entrance_ease="cubic_in_out"
+var entrance_flying=false
+var entrance_proxy=false
 var effect_available=false
 var closing=false
 var touch_button: Button
@@ -102,20 +110,30 @@ func make_board():
    engine.players[0].leader.zone="leader";engine.players[0].field.clear()
    var zone="palette" if item.category=="spell" else "field"
    subject=engine.make_card(card_id,0,zone);subject.entered=-1;engine.players[0][zone].append(subject)
+  if item.category=="spell":
+   var leader=engine.players[0].leader;leader.zone="field";engine.players[0].field.append(leader)
+   spell_target=engine.make_card("character-mar-ex",1,"field");spell_target.entered=-1;engine.players[1].field.append(spell_target)
  for who in range(2):engine.leader_emote_profiles.append(Profiles.make_profile(engine,who))
  table=Table.new();viewport.add_child(table)
  table.condition_hint_provider=func(_card):return false
  table.build(engine,host.texture,host.battlefield_background)
  table.set_top_down_view(host.top_down_view)
- # Keep the showcased card in the central battlefield, including spell cards.
+ # Units land in the center; spell cards sit sideways along the right edge.
  var node=subject_node()
  node.position=Vector3(0,0.04,1.8);node.scale=Vector3.ONE*1.15
+ entrance_landing=node.global_transform
+ if not spell_target.is_empty():
+  table.visuals["card_"+str(engine.players[0].leader.uid)].position=Vector3(-2.4,0.04,1.4)
+  table.visuals["card_"+str(spell_target.uid)].position=Vector3(1.8,0.04,-1.5)
+  node.position=Vector3(5.5,0.04,1.4)
+  node.rotation.y=PI/2
  table.camera_distance=0.62;table.top_down_camera_size=12.0;table.set_camera()
 
 func subject_node() -> Node3D:
  return table.visuals.get("card_"+str(subject.uid))
 
 func configure_effect(registry=null):
+ entrance_flying=false
  if is_instance_valid(stage):stage.stop_all();stage.queue_free()
  var source=registry if registry!=null else Registry.new()
  source.reload()
@@ -126,6 +144,8 @@ func configure_effect(registry=null):
   if str(definition.id)==bound or str(definition.get("shop_product",""))==bound:
    selected.definitions[definition.id]=definition.duplicate(true)
  stage=Stage.new();stage.use_registry(selected);table.add_child(stage)
+ # One preview clock keeps the flying card, its effects and landing in sync.
+ stage.auto_step=true;stage.set_process(false)
  effect_available=not selected.definitions.is_empty()
  hint.text="入场特效循环播放" if item.category=="entrance" else "符卡特效循环播放"
  if effect_available:play_effect()
@@ -133,11 +153,57 @@ func configure_effect(registry=null):
 
 func play_effect():
  stage.clear()
+ loop_remaining=LOOP_GAP
+ if item.category=="entrance":
+  play_entrance()
+  return
  var node=subject_node()
- var context={"parent":node if item.category=="entrance" else null,"node":node,"center":node.global_position,"card_size":Table.CARD_SIZE,"uid":subject.uid,"card_id":subject.card_id}
+ var context={"parent":null,"node":node,"center":node.global_position,"card_size":Table.CARD_SIZE,"uid":subject.uid,"card_id":subject.card_id}
+ if item.category=="spell":
+  var leader=engine.players[0].leader;var leader_info=engine.cards[leader.card_id]
+  context.merge({"owner":0,"requires_character":engine.cards[subject.card_id].get("requires_character",""),"palette_character_spells":engine.players[0].palette.filter(func(card):return not str(engine.cards[card.card_id].get("requires_character","")).is_empty()).size(),"units":[{"uid":leader.uid,"owner":0,"card_id":leader.card_id,"character":leader_info.get("character",""),"kind":leader_info.kind,"deck_leader":true,"position":table.visuals["card_"+str(leader.uid)].global_position}],"targets":[{"uid":spell_target.uid,"position":table.visuals["card_"+str(spell_target.uid)].global_position}]})
  var started=stage.play(str(item.category),context)
- effect_available=not started.is_empty();loop_remaining=LOOP_GAP
+ effect_available=not started.is_empty()
  if not effect_available:hint.text="此商品的特效暂不可预览"
+
+func entrance_context() -> Dictionary:
+ return {"node":subject_node(),"uid":subject.uid,"card_id":subject.card_id,"card_size":Table.CARD_SIZE,"landing":entrance_landing,"travel":entrance_duration}
+
+func play_entrance():
+ var node=subject_node()
+ entrance_elapsed=0.0;entrance_duration=table.animation_duration
+ entrance_ease="cubic_in_out";entrance_flying=true;entrance_proxy=false
+ entrance_from=Transform3D(Basis.from_euler(Vector3(deg_to_rad(40),deg_to_rad(-7),0)).scaled(entrance_landing.basis.get_scale()*0.8),entrance_landing.origin+Vector3(-2.8,1.4,-3.2))
+ node.global_transform=entrance_from;node.show()
+ var context=entrance_context()
+ context.merge({"parent":null,"timings":["before"],"flight":{"from":entrance_from,"to":entrance_landing,"seconds":entrance_duration,"ease":entrance_ease,"texture":host.texture(subject.card_id)}})
+ var started=stage.play("entrance",context)
+ for module in started:
+  if not module.owns_flight():continue
+  entrance_proxy=true
+  entrance_duration=module.flight_seconds()
+  entrance_ease=str(module.ctx.flight.get("ease",entrance_ease))
+  break
+ node.visible=not entrance_proxy
+
+func advance_effects(delta: float):
+ if not is_instance_valid(stage):return
+ if entrance_flying:
+  var step=minf(delta,maxf(0,entrance_duration-entrance_elapsed))
+  entrance_elapsed=minf(entrance_elapsed+step,entrance_duration)
+  var u=clampf(entrance_elapsed/maxf(entrance_duration,0.001),0,1)
+  if entrance_ease=="sine_in_out":u=-(cos(PI*u)-1)/2
+  elif entrance_ease!="linear":u=4*u*u*u if u<0.5 else 1-pow(-2*u+2,3)/2
+  subject_node().global_transform=entrance_from.interpolate_with(entrance_landing,u)
+  stage.advance_all(step)
+  delta-=step
+  if entrance_elapsed>=entrance_duration:
+   entrance_flying=false
+   subject_node().global_transform=entrance_landing;subject_node().show()
+   stage.landed(subject.uid)
+   var context=entrance_context();context.merge({"parent":subject_node(),"travel":0.0,"timings":["after"]},true)
+   stage.play("entrance",context)
+ if delta>0:stage.advance_all(delta)
 
 func show_emote(kind: String):
  if closing or item.category!="emotes" or kind not in KINDS:return
@@ -185,11 +251,12 @@ func relayout():
 
 func _process(delta: float):
  if closing:return
+ advance_effects(delta)
  if is_instance_valid(bubble):
   bubble_remaining-=delta
   if bubble_remaining<=0:remove_child(bubble);bubble.queue_free();bubble=null
   else:bubble.modulate.a=minf(1,bubble_remaining/0.3);place_bubble()
- if effect_available and is_instance_valid(stage) and stage.active.is_empty():
+ if effect_available and is_instance_valid(stage) and not entrance_flying and stage.active.is_empty():
   loop_remaining-=delta
   if loop_remaining<=0:play_effect()
 
@@ -223,6 +290,6 @@ func button_at(point: Vector2) -> Button:
  return null
 
 func shutdown():
- closing=true;set_process(false)
+ closing=true;entrance_flying=false;set_process(false)
  if is_instance_valid(stage):stage.stop_all()
 

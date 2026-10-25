@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 CHINA_TIME = timezone(timedelta(hours=8))
-SEASON_REWARDS = ((1, 40), (3, 28), (10, 20))
+SEASON_REWARDS = ((1, 80), (3, 60), (10, 40))
 FIRST_SEASON_END = int(datetime(2026, 12, 1, tzinfo=CHINA_TIME).timestamp())
 CATALOGUE_VERSION = 3
 MAX_COUNTER = 1_000_000
@@ -332,7 +332,7 @@ def season_reward(position):
     for limit, coins in SEASON_REWARDS:
         if 0 < position <= limit:
             return coins
-    return 12 if position > 0 else 0
+    return 30 if position > 0 else 0
 
 
 def close_season(conn, season_id, now=None):

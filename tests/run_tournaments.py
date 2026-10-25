@@ -41,10 +41,22 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as directory:
             login = accounts.handle(conn, {"action": "login", **credentials})
             assert accounts.handle(conn, {"action":"nickname", "token":login["token"], "nickname":name})["ok"]
             login["nickname"] = name
-            logins[name] = {"token": login["token"], "nickname": login["nickname"]}
+            logins[name] = {"token": login["token"], "nickname": login["nickname"],
+                            "player_id": accounts.verify(conn, login["token"])["player_id"]}
+        limitless_tid = 0
+        if "--limitless-only" in sys.argv:
+            import tournament_store
+            created = tournament_store.handle(conn, {"action":"create", "title":"Limitless 审核通信测试", "start_at":int(time.time())+3600},
+                {"ok":True,"username":"bigcake","player_id":logins["bigcake"]["player_id"]})
+            limitless_tid = created["tournament"]["id"]
+            snapshot = {"title":"测试来源", "started":True, "finished":False, "phases":[], "pairings":[],
+                "standings":[{"player":"doctorblack","name":"黑心 博士","placing":1,"wins":1,"losses":0,"ties":0,"drop":False}]}
+            with conn:
+                conn.execute("UPDATE tournaments SET phase='locked' WHERE id=?", (limitless_tid,))
+                conn.execute("INSERT INTO tournament_limitless(tournament_id,external_id,generation,snapshot_json,synced_at) VALUES(?,'6aba47b9783097f8dcb72660','test',?,?)", (limitless_tid,json.dumps(snapshot),int(time.time())))
         conn.close()
         config = fixture / "fixture.json"
-        config.write_text(json.dumps({"folder": str(fixture), "logins": logins}), encoding="utf-8")
+        config.write_text(json.dumps({"folder": str(fixture), "logins": logins, "limitless_tournament":limitless_tid}), encoding="utf-8")
         with (scratch / "services.log").open("w", encoding="utf-8") as log:
             services.append(subprocess.Popen([sys.executable, "relay/account_store.py", "--database", str(database_path),
                 "--port", "48066"], cwd=root, stdout=log, stderr=log, creationflags=flags))
@@ -67,6 +79,8 @@ with tempfile.TemporaryDirectory(prefix="TEST_ONLY_", dir=scratch) as directory:
                 scripts = ("test_tournament_rounds.gd",)
             elif "--community-only" in sys.argv:
                 scripts = ("test_community_online.gd",)
+            elif "--limitless-only" in sys.argv:
+                scripts = ("test_limitless_online.gd",)
             for script in scripts:
                 result = subprocess.run([str(godot), *display, "--path", ".", "--log-file", str(scratch / (script + ".log")),
                     "--script", "res://tests/" + script, "--", "--fixture", str(config), *(["--forfeit-only"] if "--forfeit-only" in sys.argv else [])],

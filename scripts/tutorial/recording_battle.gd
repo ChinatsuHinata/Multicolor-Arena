@@ -93,9 +93,6 @@ func _input(event: InputEvent):
  if is_instance_valid(owner_editor.dialog_layer):return
  if event is InputEventMouse and is_instance_valid(owner_editor.record_tools) and owner_editor.record_tools.is_visible_in_tree() and owner_editor.record_tools.get_global_rect().has_point(event.position):return
  if recorder.replaying:get_viewport().set_input_as_handled();return
- # The ordinary debug C shortcut opens the graveyard picker in _input.
- # Let setup C reach GUI text fields or our copy handler instead.
- if recorder.editing_setup() and event is InputEventKey and event.keycode==KEY_C:return
  if recorder.can_edit_setup() and not host.menu_popup_open() and not modal and not debug_open and not history_open and not revealing() and not table.is_animating() and drag_uid==0 and debug_drag_uid==0 and unit_drag_uid==0 and event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:
   for who in life_widgets:
    if life_widgets[who].button.get_global_rect().has_point(event.position):

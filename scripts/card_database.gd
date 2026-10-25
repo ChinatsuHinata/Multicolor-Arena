@@ -168,7 +168,12 @@ static func spell_attributes(card: Dictionary) -> String:
  for attribute in spell_type.split("·",false):
   if attribute not in ["符卡","角色","角色符卡","高速"] and attribute not in attributes:attributes.append(attribute)
  if card.get("fast",false) or "高速" in spell_type:attributes.append("高速")
- return " · ".join(attributes)
+ var owner=spell_owner_caption(card)
+ return " · ".join(attributes)+("\n"+owner if not owner.is_empty() else "")
+static func spell_owner_caption(card: Dictionary) -> String:
+ if card.get("kind","")!="符卡":return ""
+ var character=str(card.get("requires_character","")).strip_edges()
+ return "所属角色："+character if not character.is_empty() else ""
 static func ability(card: Dictionary, handler: String) -> Dictionary:
  for binding in card.abilities:
   if binding["实现"]==handler: return binding.get("参数",{})

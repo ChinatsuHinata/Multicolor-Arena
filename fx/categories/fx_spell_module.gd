@@ -1,5 +1,5 @@
 extends "res://fx/fx_module.gd"
-## 符卡使用特效：符卡离开手牌进入堆叠/墓地之前，在台面上独立绽放。
+## 符卡结算特效：符卡在对抗区结算（未被反制、目标未失效）时，在台面上独立绽放。
 ##
 ## 契约
 ##  * parent 是特效根（fx_stage 的 spell 层），不是卡牌节点；卡牌此刻可能已翻面；
@@ -8,7 +8,9 @@ extends "res://fx/fx_module.gd"
 ##  * 时长超出 budget 由基类收尾，生命周期内必须自我清理。
 ##  * 角色符卡用 character_spell / character 参数，角色名缺省取 ctx.requires_character；
 ##  * 角色起点依次优先套牌自机、自机、颜色值高、卡牌 id 小、uid 小；
-##  * 终点模式 destination 为 none 或 spell_target，目标世界坐标用 local_point() 转换。
+##  * 终点模式 destination 为 none 或 spell_target，目标世界坐标用 local_point() 转换；
+##  * 演出占用：holding() 为真时公开演出队列停住，目标的死亡、区域移动等后续变化
+##    要等特效播到 hold_ms（缺省整段 budget）之后才显示。
 
 const MIN_Y=0.02
 const MAX_Y=0.06
@@ -17,6 +19,7 @@ var character_spell=false
 var spell_character=""
 var origin_mode="none"
 var destination_mode="none"
+var hold=0.0
 
 func configure(def: Dictionary,context: Dictionary) -> void:
  super.configure(def,context)
@@ -25,6 +28,11 @@ func configure(def: Dictionary,context: Dictionary) -> void:
  if spell_character.is_empty():spell_character=str(ctx.get("requires_character",""))
  origin_mode=str(def.get("origin","character" if character_spell else "none"))
  destination_mode=str(def.get("destination","none"))
+ hold=clampf(float(def.get("hold_ms",budget*1000.0))/1000.0,0.0,budget)
+
+## 演出队列据此等待：特效仍在播且未到 hold 时刻。stop() 后立即放行。
+func holding() -> bool:
+ return playing and elapsed<hold
 
 func caster() -> int:
  return int(ctx.get("owner",0))

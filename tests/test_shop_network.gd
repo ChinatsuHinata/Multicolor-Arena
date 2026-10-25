@@ -25,14 +25,19 @@ func run():
  service.purchase("emotes_marisa");await synced(false)
  check(service.snapshot.coins==0 and service.snapshot.purchased_product_ids==["emotes_reimu"],"insufficient balance preserves wallet and inventory")
  service.purchase("test_leader_emotes");await synced(false)
+ var effects=["entrance_reimu_yinyang_gather","spell_reimu_dream_orbs"]
+ for id in effects:
+  service.purchase(id,0);await synced()
+  check(service.snapshot.coins==0 and service.snapshot.purchased_product_ids.has(id),"free effect claimed through authenticated transport: "+id)
  var inventory=Inventory.new();inventory.initialize(directory.path_join("loadout.json"))
  inventory.sync_session(service.account,service.snapshot)
  check(inventory.battle_enabled("emotes_reimu"),"server purchase enables the product without manual equipment")
  var loadout=inventory.network_loadout()
- check(Grants.verify(loadout)==["emotes_reimu"],"real relay signs a valid anonymous grant")
- check(loadout.keys()==["emotes_reimu"],"peer payload contains only equipped cosmetic ID and signature")
+ var equipped=["emotes_reimu"]+effects;equipped.sort()
+ check(Grants.verify(loadout)==equipped,"real relay signs valid anonymous grants for dialogue and free effects")
+ check(loadout.keys()==equipped,"peer payload contains only equipped cosmetic IDs and signatures")
  var forged=loadout.duplicate();forged.emotes_marisa=forged.emotes_reimu
- check(Grants.verify(forged)==["emotes_reimu"],"signature cannot unlock another product")
+ check(Grants.verify(forged)==equipped,"signature cannot unlock another product")
  host=Session.new();guest=Session.new();root.add_child(host);root.add_child(guest)
  host.initialize(directory+"/host");guest.initialize(directory+"/guest");guest.shop_inventory=inventory
  check(host.create_room(3,false,48107,"127.0.0.1","test").is_empty(),"create local paid-emote room")
@@ -48,6 +53,10 @@ func run():
  await prepare()
  var engine=host.authority
  check(not engine.leader_emote_profiles[0].enabled and engine.leader_emote_profiles[1].enabled,"only purchased and equipped seat is enabled")
+ check(engine.equipped_shop_products==[[],equipped],"room freezes verified effect ownership separately for each seat")
+ check(guest.latest_snapshot.projection.state.equipped_shop_products==[[],equipped],"opponent effect equipment reaches the peer snapshot")
+ inventory.set_battle_enabled(effects[0],false)
+ check(engine.equipped_shop_products[1].has(effects[0]),"inventory changes leave the active match equipment frozen")
  engine.phase="main";engine.pending={};engine.entry_choices=[];engine.priority=1;engine.presentation_events.clear()
  host.sequence+=1;host.publish([])
  check(await until(func():return guest.can_act() and guest.sequence==host.sequence),"active battle synchronized")

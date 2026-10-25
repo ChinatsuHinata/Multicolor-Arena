@@ -503,8 +503,9 @@ class DailyTasks(unittest.TestCase):
         pending = self.match(settle=False)
         with patch("time.time", return_value=tasks.FIRST_SEASON_END):
             accounts.handle_match(self.conn, {**pending, "action": "settle", "winner": 0})
+        expected_coins = [80, 60, 60, 40, 40, 40, 40, 40, 40, 40, 30, 30]
         for position, player in enumerate([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1], 1):
-            self.assertEqual(self.state(player)["coins"], tasks.season_reward(position))
+            self.assertEqual(self.state(player)["coins"], expected_coins[position - 1])
             self.assertEqual(self.state(player)["previous"]["position"], position)
         self.assertGreater(accounts.player_rank(self.conn, 2)["position"], 1)
         self.assertEqual(self.state(13)["coins"], 0)

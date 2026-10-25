@@ -11,7 +11,9 @@ DATA = ROOT / "community_data"
 if not DATA.exists():
     DATA = ROOT / "data" if (ROOT / "data/tutorial/catalog.json").exists() else ROOT.parent / "data"
 ROLES = ("tournament_admin", "tutorial_editor")
+GROUPS = ("super_admin", *ROLES)
 MAX_LESSON_BYTES = 6 * 1024 * 1024
+MAX_GIFT_COINS = 1000000
 
 
 def integer(value, maximum=1000000):
@@ -32,7 +34,13 @@ def initialize(conn):
             note TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS online_announcements(id TEXT PRIMARY KEY,document TEXT NOT NULL,
             coins INTEGER NOT NULL DEFAULT 0 CHECK(coins>=0));
+        CREATE TABLE IF NOT EXISTS community_coin_grants(request_id TEXT PRIMARY KEY,
+            operator_id INTEGER NOT NULL REFERENCES players(id),
+            target_player_id INTEGER NOT NULL REFERENCES players(id),
+            coins INTEGER NOT NULL CHECK(coins>0),created_at INTEGER NOT NULL);
     """)
+    # This binding also migrates existing databases and is never removable via the API.
+    conn.execute("INSERT OR IGNORE INTO community_roles VALUES('bigcake','super_admin')")
     if not conn.execute("SELECT 1 FROM community_meta WHERE key='roles_initialized'").fetchone():
         conn.execute("INSERT OR IGNORE INTO community_roles VALUES('heixingboshi','tournament_admin')")
         conn.execute("INSERT INTO community_meta VALUES('roles_initialized','1')")
@@ -55,17 +63,62 @@ def initialize(conn):
                          (entry.get("id", entry["version"]), json.dumps(entry, ensure_ascii=False), coins))
 
 
-def is_super(account):
-    return account.get("ok") is True and account.get("username", "").casefold() == "bigcake"
+def member_of(conn, account, role):
+    return bool(account.get("ok") is True and conn.execute("""
+        SELECT 1 FROM community_roles r JOIN players p ON p.username=r.username
+        WHERE p.id=? AND r.role=?""", (account.get("player_id"), role)).fetchone())
+
+
+def is_super(account, conn):
+    return member_of(conn, account, "super_admin")
 
 
 def has_role(conn, account, role):
-    return is_super(account) or bool(account.get("ok") and conn.execute(
-        "SELECT 1 FROM community_roles WHERE username=? AND role=?", (account.get("username", ""), role)).fetchone())
+    return role in GROUPS and (is_super(account, conn) or member_of(conn, account, role))
 
 
 def permissions(conn, account):
-    return {"super_admin": is_super(account), **{role: has_role(conn, account, role) for role in ROLES}}
+    return {role: has_role(conn, account, role) for role in GROUPS}
+
+
+def grant_coins(conn, data, account):
+    request_id, coins = data.get("request_id"), data.get("coins")
+    if not isinstance(request_id, str) or not re.fullmatch(r"[a-f0-9]{32}", request_id):
+        raise ValueError("赠予请求编号无效，请重新发起赠予")
+    if not integer(coins, MAX_GIFT_COINS) or coins < 1:
+        raise ValueError("赠予铜钱须为 1–1,000,000 的整数")
+    if ("target_username" in data) == ("target_player_id" in data):
+        raise ValueError("请指定唯一的目标玩家账号或数字 ID")
+    if "target_username" in data:
+        username = data["target_username"]
+        if not isinstance(username, str) or not re.fullmatch(r"[A-Za-z0-9_]{3,24}", username.strip()):
+            raise ValueError("目标玩家账号无效，请填写登录账号而非昵称")
+        target = conn.execute("SELECT id,username FROM players WHERE username=? COLLATE NOCASE", (username.strip(),)).fetchone()
+    else:
+        player_id = data["target_player_id"]
+        if not integer(player_id, 2**53 - 1) or player_id < 1:
+            raise ValueError("目标玩家数字 ID 无效")
+        target = conn.execute("SELECT id,username FROM players WHERE id=?", (int(player_id),)).fetchone()
+    if not target:
+        raise ValueError("目标玩家不存在")
+    coins, now = int(coins), int(time.time())
+    # The unique receipt serializes concurrent retries before the wallet is changed.
+    inserted = conn.execute("""INSERT OR IGNORE INTO community_coin_grants
+        VALUES(?,?,?,?,?)""", (request_id, account["player_id"], target[0], coins, now)).rowcount
+    receipt = conn.execute("SELECT operator_id,target_player_id,coins FROM community_coin_grants WHERE request_id=?", (request_id,)).fetchone()
+    if receipt != (account["player_id"], target[0], coins):
+        raise ValueError("此赠予请求编号已用于其他赠予，请重新发起")
+    if inserted:
+        wallet = conn.execute("SELECT coins FROM task_wallets WHERE player_id=?", (target[0],)).fetchone()
+        if wallet and not integer(wallet[0], 2**53 - 1 - coins):
+            raise ValueError("目标玩家铜钱余额已达上限")
+        task_store.award(conn, target[0], "admin_grant", request_id, "grant", coins, now)
+    balance = conn.execute("SELECT coins FROM task_wallets WHERE player_id=?", (target[0],)).fetchone()[0]
+    message = f"已赠予 {target[1]}（ID {target[0]}）{coins} 铜钱，当前余额 {balance} 铜钱"
+    if not inserted:
+        message = f"此赠予已完成，无需重复发放；{target[1]}（ID {target[0]}）当前余额 {balance} 铜钱"
+    return {"ok": True, "message": message, "target_username": target[1], "target_player_id": target[0],
+            "coins": coins, "balance": balance, "already_granted": not bool(inserted)}
 
 
 def encode(document):
@@ -105,7 +158,7 @@ def dispatch(conn, data, account):
     action = data.get("action")
     if action == "manifest":
         rows = conn.execute("SELECT id,revision,digest,document FROM online_tutorials ORDER BY id").fetchall()
-        pending = conn.execute("SELECT COUNT(*) FROM tutorial_submissions WHERE status='pending'").fetchone()[0] if is_super(account) else 0
+        pending = conn.execute("SELECT COUNT(*) FROM tutorial_submissions WHERE status='pending'").fetchone()[0] if is_super(account, conn) else 0
         return {"ok": True, "permissions": permissions(conn, account), "pending_reviews": pending, "lessons": [
             {"id": id, "revision": revision, "digest": digest, "title": json.loads(body)["title"]}
             for id, revision, digest, body in rows]}
@@ -131,9 +184,11 @@ def dispatch(conn, data, account):
             raise ValueError("此公告没有可领取的铜钱")
         granted = task_store.award(conn, account["player_id"], "announcement", id, "claim", row[0], int(time.time()))
         return {"ok": True, "claimed": True, "message": f"已领取 {row[0]} 铜钱" if granted else "此公告奖励已领取", "coins": row[0]}
-    if action in ("roles", "set_role", "publish_announcement"):
-        if not is_super(account):
-            raise ValueError("仅 bigcake 可执行此操作")
+    if action in ("roles", "set_role", "publish_announcement", "grant_coins"):
+        if not is_super(account, conn):
+            raise ValueError("仅超级管理员组可执行此操作")
+        if action == "grant_coins":
+            return grant_coins(conn, data, account)
         if action == "set_role":
             username, role, enabled = data.get("username"), data.get("role"), data.get("enabled")
             if not isinstance(username, str) or role not in ROLES or type(enabled) is not bool:
@@ -141,8 +196,8 @@ def dispatch(conn, data, account):
             target = conn.execute("SELECT username FROM players WHERE username=? COLLATE NOCASE", (username.strip(),)).fetchone()
             if not target:
                 raise ValueError("玩家账号不存在")
-            if target[0].casefold() == "bigcake":
-                raise ValueError("不能移除 bigcake 的超级管理员权限")
+            if target[0].casefold() == "bigcake" and not enabled:
+                raise ValueError("bigcake 固定绑定超级管理员组，不能移除其权限")
             if enabled:
                 conn.execute("INSERT OR IGNORE INTO community_roles VALUES(?,?)", (target[0], role))
             else:
@@ -174,17 +229,17 @@ def dispatch(conn, data, account):
                 raise ValueError("最多同时提交 20 份待审核教程")
             conn.execute("INSERT INTO tutorial_submissions(author_id,lesson_id,base_revision,document,created_at) VALUES(?,?,?,?,?)",
                          (account["player_id"], document["id"], int(base), body, int(time.time())))
-            return {"ok": True, "message": "已推送给 bigcake，批准后会同步给所有玩家"}
+            return {"ok": True, "message": "已推送给超级管理员组，批准后会同步给所有玩家"}
         if action in ("submission", "review_lesson"):
             if not integer(data.get("id"), 2**53 - 1) or data["id"] < 1:
                 raise ValueError("提交编号无效")
             row = conn.execute("SELECT author_id,lesson_id,base_revision,document,status FROM tutorial_submissions WHERE id=?", (data.get("id"),)).fetchone()
-            if not row or not is_super(account) and row[0] != account["player_id"]:
+            if not row or not is_super(account, conn) and row[0] != account["player_id"]:
                 raise ValueError("提交不存在或无权查看")
             if action == "submission":
                 return {"ok": True, "document": json.loads(row[3]), "base_revision": row[2]}
-            if not is_super(account):
-                raise ValueError("仅 bigcake 可审核教程")
+            if not is_super(account, conn):
+                raise ValueError("仅超级管理员组可审核教程")
             if row[4] != "pending" or type(data.get("approve")) is not bool:
                 raise ValueError("此提交已处理或审核参数无效")
             if data["approve"]:
@@ -198,6 +253,6 @@ def dispatch(conn, data, account):
                          ("approved" if data["approve"] else "rejected", int(time.time()), str(data.get("note", ""))[:1000], data["id"]))
         rows = conn.execute("""SELECT s.id,p.username,s.lesson_id,s.base_revision,s.status,s.created_at,s.note
             FROM tutorial_submissions s JOIN players p ON p.id=s.author_id
-            WHERE (? OR s.author_id=?) ORDER BY s.id DESC LIMIT 100""", (is_super(account), account["player_id"])).fetchall()
+            WHERE (? OR s.author_id=?) ORDER BY s.id DESC LIMIT 100""", (is_super(account, conn), account["player_id"])).fetchall()
         return {"ok": True, "permissions": permissions(conn, account), "message": "", "submissions": [dict(zip(("id", "author", "lesson_id", "base_revision", "status", "created_at", "note"), row)) for row in rows]}
     raise ValueError("社区操作无效")

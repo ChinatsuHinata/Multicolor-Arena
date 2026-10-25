@@ -100,6 +100,26 @@ func run():
   if live(module):module.advance(2.0)
  await process_frame
  expect(not spell_layer.get_children().any(func(child):return str(child.name)=="Fx_probe_spell"),"the spell effect frees itself after its budget")
+ # 符卡特效只由引擎的 spell_resolved 公开事件触发，演出队列播到它时开播。
+ var foe_target=put("character-fdf-ex02","field",1)
+ view.render();await frames()
+ # 目标在结算中死亡：引擎先发结算事件，再发目标进墓地的移动。
+ var death={"type":"move","card":foe_target.duplicate(true),"from":"field","to":"grave","to_owner":1}
+ view.reveal_player.enqueue([{"type":"spell_resolved","card":spell_card.duplicate(true),"owner":0,"targets":[{"uid":foe_target.uid,"owner":1,"zone":"field"}]},death])
+ await frames()
+ var queued=modules_with("spell").filter(func(module):return str(module.id)=="probe_spell" and holder_ok(module))
+ expect(not queued.is_empty(),"the reveal queue starts the spell effect at the resolution event")
+ expect(not queued.is_empty() and queued[0].ctx.targets.size()==1 and queued[0].ctx.targets[0].uid==foe_target.uid,"the resolution event's targets reach the spell context")
+ expect(not queued.is_empty() and queued[0].holding(),"the spell effect holds the presentation queue while it plays")
+ expect(view.revealing() and view.reveal_player.current.get("type","")=="spell_resolved" and view.reveal_player.queue.size()==1,"the target's death waits behind the spell effect")
+ for module in queued:module.advance(module.hold*0.5)
+ await frames()
+ expect(view.reveal_player.current.get("type","")=="spell_resolved","the queue still waits halfway through the effect")
+ for module in queued:module.advance(2.0)
+ await frames()
+ expect(view.reveal_player.current.get("type","")!="spell_resolved","the queue moves on once the spell effect has played out")
+ view.reveal_player.reset();e.presentation_events.clear()
+ await frames()
 
  # 单位离场：入场与闪卡挂在卡牌节点下，节点释放即 holder 失效，舞台上不留孤儿。
  # 离场有 0.42s 的退场补间，等它跑完再判断。只检查挂在这张卡上的模块——
@@ -126,6 +146,19 @@ func run():
  var pinned=modules_with("entrance").filter(func(module):return int(module.ctx.get("uid",-1))==removed_uid and str(module.id)=="probe_entrance" and holder_ok(module))
  expect(not pinned.is_empty() and pinned[0].ctx.get("landing") is Transform3D,"the entrance effect receives its landing transform")
  expect(not pinned.is_empty() and pinned[0].land_seconds()==0.0,"an after-timing effect starts with the card already landed")
+
+ # 公开演出把单位从堆叠飞进战场：飞行开始（3D 卡尚未建立）即开播 before，落场后只补 after。
+ var flown=put("character-fdf-ex02","field",0)
+ view.reveal_player.hide_move_source({"card":flown,"from":"stack","to":"field"})
+ var early=modules_with("entrance").filter(func(module):return int(module.ctx.get("uid",-1))==flown.uid)
+ expect(view.table.visuals.get("card_"+str(flown.uid))==null,"the flying unit has no battle visual yet")
+ expect(early.size()==1 and str(early[0].id)=="probe_before" and holder_ok(early[0]),"a public stack-to-field move starts only the before effect at departure")
+ expect(not early.is_empty() and early[0].ctx.get("landing") is Transform3D and is_equal_approx(early[0].land_seconds(),view.reveal_player.MOVE_SECONDS),"the departure effect is pinned to the landing and lands with the flight")
+ view.render();await frames()
+ stage.advance_all(view.table.animation_duration+0.02)
+ var flown_node=view.table.visuals.get("card_"+str(flown.uid))
+ expect(holder_ids(flown_node).has("probe_entrance"),"the after effect still plays once the flown unit lands")
+ expect(not holder_ids(flown_node).has("probe_before"),"the before effect is not replayed at landing")
 
  # 付费特效未装备时不跑。
  var registry=stage.registry

@@ -35,6 +35,32 @@ func check_layout(preview):
   expect(safe.encloses(button.get_global_rect()) and button.size.y>=app.ui_metrics.hit,"emote touch target fits: "+button.name)
   expect(not preview.surface.get_global_rect().intersects(button.get_global_rect()),"emote control does not cover battlefield")
 
+func check_spell_placement(preview):
+ for card in preview.engine.players[0].palette:
+  var node=preview.table.visuals["card_"+str(card.uid)]
+  var screen=preview.table.camera.unproject_position(node.global_position)
+  expect(is_equal_approx(node.rotation.y,PI/2),"spell preview card lies sideways")
+  expect(screen.x>preview.viewport.size.x*0.5 and Rect2(Vector2.ZERO,Vector2(preview.viewport.size)).has_point(screen),"spell preview card sits visibly on the right")
+
+func check_entrance_flight(preview):
+ preview.set_process(false);preview.play_effect()
+ var node=preview.subject_node();var module=preview.stage.active[0]
+ expect(preview.entrance_flying and module.owns_flight() and not node.visible,"entrance starts with a flying proxy and no stationary duplicate")
+ expect(module.in_flight() and is_equal_approx(module.flight_seconds(),preview.entrance_duration),"front half of the effect shares the preview flight duration")
+ var start=module.proxy.global_transform
+ preview.advance_effects(preview.entrance_duration*0.5)
+ expect(preview.entrance_flying and module.proxy.global_position.distance_to(start.origin)>0.1 and not module.proxy.global_position.is_equal_approx(preview.entrance_landing.origin),"card flies toward the battlefield while the front half plays")
+ await capture("shop-preview-entrance-flight")
+ preview.advance_effects(preview.entrance_duration*0.5+0.01)
+ expect(not preview.entrance_flying and node.visible and node.global_transform.is_equal_approx(preview.entrance_landing),"real card appears exactly at its landing")
+ expect(module.landed and not module.proxy.visible and module.playing and preview.stage.active==[module],"landing hides the proxy and continues the same effect's back half")
+ preview.advance_effects(0.2)
+ await capture("shop-preview-entrance-landed")
+ preview.advance_effects(module.budget)
+ preview._process(Preview.LOOP_GAP+0.01)
+ expect(preview.entrance_flying and not node.visible and preview.stage.active.size()==1 and preview.stage.active[0]!=module,"every loop starts a new flight before landing")
+ preview.set_process(true)
+
 func run():
  var folder="res://work/shop-preview/"+str(Time.get_ticks_usec())
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(folder))
@@ -89,6 +115,19 @@ func run():
   if product.id=="emotes_satori_koishi":
    expect(preview.bubble.distort_reply and preview.bubble.red_reply,"dual speaker preview retains the battle text effect")
   popup.close_preview();await frames(2)
+ # Shipped free effects can be previewed before claiming, with a real caster
+ # and target for the character spell.
+ for product in app.shop_inventory.catalogue:
+  if product.category not in ["entrance","spell"]:continue
+  popup.open_preview(product);await frames(2);preview=popup.preview
+  expect(preview.effect_available and preview.stage.active.size()==1 and preview.stage.active[0].id==product.fx,"unowned free effect previews its bound module: "+product.id)
+  if product.category=="spell" and not preview.stage.active.is_empty():
+   var module=preview.stage.active[0]
+   expect(module.has_origin() and module.destinations().size()==1 and module.palette_character_spells()==1,"dream orbs preview has Reimu, a target and one character spell")
+   check_spell_placement(preview)
+  elif product.category=="entrance":await check_entrance_flight(preview)
+  await capture("shop-preview-"+product.category)
+  popup.close_preview();await frames(2)
  # Exercise both binding forms with memory-only fixtures, excluding unrelated
  # free effects. No fake products or effects enter the shipped catalogue.
  for category in ["entrance","spell"]:
@@ -104,6 +143,9 @@ func run():
   await click(effect_entry.get_global_rect().get_center());await frames();preview=popup.preview
   expect(not preview.effect_available and preview.hint.text.contains("暂不可"),"missing effect is reported without unrelated playback")
   preview.configure_effect(registry);await frames(2)
+  if category=="entrance":
+   expect(preview.entrance_flying and preview.stage.active.is_empty(),"after-only entrance still flies in before its effect starts")
+   preview.advance_effects(preview.entrance_duration+0.01)
   expect(preview.stage.active.size()==1 and preview.stage.active[0].id=="probe_"+category,"preview plays only the selected effect")
   expect(preview.emote_bar.get_child_count()==0,"effect preview only exposes exit")
   app.menu();await frames()
@@ -114,6 +156,7 @@ func run():
    expect(module.holder.get_parent()==(preview.subject_node() if category=="entrance" else preview.stage.layer("spell")),"effect uses correct battle attachment")
    module.advance(module.budget+0.01)
    preview._process(Preview.LOOP_GAP+0.01);await frames(2)
+   if category=="entrance":preview.advance_effects(preview.entrance_duration+0.01)
    expect(preview.stage.active.size()==1 and preview.stage.active[0]!=module,"effect restarts after completion")
   expect(preview.stage.get_child_count()<=2,"loop releases completed modules")
   expect(battle_snapshot(preview)==before,"effect loops never advance the battle")
@@ -148,6 +191,10 @@ func run():
   popup.open_preview(app.shop_inventory.product("emotes_reimu"));await frames()
   await key(KEY_BACK)
   expect(not is_instance_valid(popup.preview) and popup.detail_overlay==details,"Android Back exits preview before details")
+  popup.open_preview(app.shop_inventory.product("spell_reimu_dream_orbs"));await frames(2)
+  check_layout(popup.preview);check_spell_placement(popup.preview)
+  await capture("shop-preview-spell-android-%d" % int(case.dpi))
+  popup.close_preview();await frames(2)
   app.close_menu_popup();await frames()
  expect(JSON.stringify([app.shop_inventory.preferences,app.shop_inventory.purchased_ids,app.task_service.snapshot])==inventory_before,"preview never writes ownership, equipment, wallet or task progress")
  finish()

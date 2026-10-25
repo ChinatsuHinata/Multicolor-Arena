@@ -11,6 +11,8 @@
   {"id":"emotes_aya","category":"emotes","name":"射命丸文 · 自机对话","description":"【飞散的红叶天狗】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"79","image":"res://recourse/数据库/79.png","portrait_region":[220,150,390,390],"accent":"d89080"},
   {"id":"emotes_satori","category":"emotes","name":"古明地觉 · 自机对话","description":"【第三只眼】专属六句对话：问候、称赞、失误、惊讶、威胁及投降。","price":10,"battle_effect":"leader_emotes","leader_id":"76","image":"res://recourse/数据库/76.png","portrait_region":[220,160,390,390],"accent":"c29ade"},
   {"id":"emotes_remilia","category":"emotes","name":"蕾米莉亚 · 自机对话","description":"【永远的鲜红幼月】专属六类对话；面对芙兰朵露时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"74","image":"res://recourse/数据库/74.png","portrait_region":[235,160,365,365],"accent":"d28fae"},
-  {"id":"emotes_sakuya","category":"emotes","name":"十六夜咲夜 · 自机对话","description":"【红魔馆的女仆】专属六类对话；面对蕾米莉亚时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"75","image":"res://recourse/数据库/75.png","portrait_region":[140,170,390,390],"accent":"93b8d5"}
+  {"id":"emotes_sakuya","category":"emotes","name":"十六夜咲夜 · 自机对话","description":"【红魔馆的女仆】专属六类对话；面对蕾米莉亚时使用特别问候。","price":10,"battle_effect":"leader_emotes","leader_id":"75","image":"res://recourse/数据库/75.png","portrait_region":[140,170,390,390],"accent":"93b8d5"},
+  {"id":"entrance_reimu_yinyang_gather","category":"entrance","name":"博丽灵梦 · 阴阳玉·聚散","description":"乐园的可爱巫女「博丽灵梦」的入场特效。","price":0,"fx":"reimu_yinyang_gather","card_id":"70","leader_id":"70","image":"res://recourse/数据库/70.png"},
+  {"id":"spell_reimu_dream_orbs","category":"spell","name":"灵符「梦想妙珠」 · 符卡特效","description":"灵符「梦想妙珠」的符卡特效。","price":0,"fx":"reimu_dream_orbs","card_id":"spell-rei-011","leader_id":"70","image":"res://recourse/数据库/spell-rei-011.jpg"}
  ]
 }

@@ -31,6 +31,8 @@ tests/*
 !tests/run_cloud_decks.py
 !tests/test_tournament_store.py
 !tests/test_tournament_competition.py
+!tests/test_limitless_tournaments.py
+!tests/test_limitless_admission.py
 !tests/test_competition_extensions.py
 !tests/test_community_store.py
 !tests/run_tournaments.py
@@ -89,4 +91,5 @@ tests/*
 /mod/
 
 # Local generated artwork and packaging output.
-/output/
+output/
+outputs/

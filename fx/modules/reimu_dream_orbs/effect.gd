@@ -71,7 +71,8 @@ var charge_ring: MeshInstance3D
 var impact_ring: MeshInstance3D
 var impact_flash: MeshInstance3D
 var charge=0.26
-var flight=0.42
+var flight=0.38
+var trail=0.05
 var last=0.0
 var gather_radius=0.5
 var gather_height=0.55
@@ -88,13 +89,14 @@ func _build() -> bool:
  var n=clampi(palette_character_spells(),int(params.get("min_orbs",1)),int(params.get("max_orbs",12)))
  var size=card_size().x
  charge=float(params.get("charge_ms",260))/1000.0
- flight=float(params.get("flight_ms",420))/1000.0
- var stagger=minf(float(params.get("stagger_ms",45))/1000.0,float(params.get("stagger_total_ms",360))/1000.0/maxf(n-1,1))
+ flight=float(params.get("flight_ms",380))/1000.0
+ trail=float(params.get("trail_ms",50))/1000.0
+ var stagger=minf(float(params.get("stagger_ms",95))/1000.0,float(params.get("stagger_total_ms",520))/1000.0/maxf(n-1,1))
  gather_radius=float(params.get("gather_radius",0.5))
  gather_height=float(params.get("gather_height",0.55))
  scatter_radius=float(params.get("scatter_radius",2.6))
  var arc_height=float(params.get("arc_height",1.1))
- var arc_spread=float(params.get("arc_spread",0.55))
+ var arc_spread=float(params.get("arc_spread",0.3))
  var red=Color(str(params.get("red","#c8323c")))
  var white=Color(str(params.get("white","#fbf2f0")))
  var glow=Color(str(params.get("glow","#e2604f")))
@@ -195,7 +197,7 @@ func _frame(_delta: float) -> void:
   mat.set_shader_parameter("glow_strength",1.0+0.6*smoothstep(0.0,charge,t) if t<launch else 1.6)
   for j in range(2):
    var ghost: MeshInstance3D=orb.ghosts[j]
-   ghost.position=orb_position(i,t-(0.035 if j==0 else 0.07))
+   ghost.position=orb_position(i,t-trail*(0.5 if j==0 else 1.0))
    ghost.scale=Vector3.ONE*scale_value*(0.85 if j==0 else 0.7)
    var ghost_mat: ShaderMaterial=ghost.material_override
    ghost_mat.set_shader_parameter("alpha",(0.45 if j==0 else 0.2) if flying else 0.0)

@@ -161,7 +161,7 @@ func render():
   add_text(content,str(season.get("title","当前赛季"))+" · 赛季结束后按最终段位／名次自动结算，只发最高档",host.ui_metrics.small,host.MUTED)
   if season.get("ends_at")!=null:
    add_text(content,"结束时间："+Time.get_datetime_string_from_unix_time(int(season.ends_at)+8*3600).replace("T"," ")+"（北京时间）",host.ui_metrics.small,host.GOLD).name="SeasonEndTime"
-  for entry in [["第 11 名+","达到贤者段位。",12],["第 4–10 名","贤者段位排名。",20],["第 2–3 名","贤者段位排名。",28],["第 1 名","贤者段位榜首。",40]]:
+  for entry in [["第 11 名+","达到贤者段位。",30],["第 4–10 名","贤者段位排名。",40],["第 2–3 名","贤者段位排名。",60],["第 1 名","贤者段位榜首。",80]]:
    task_row(entry[0],entry[1],entry[2],"赛季结束时结算","SeasonReward"+str(entry[2]))
   var previous: Dictionary=data.get("previous",{})
   if not previous.is_empty():

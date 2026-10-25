@@ -19,12 +19,27 @@ description: 为 Multicolor-Arena 开发、修改或验收香霖堂特效（单�
 
 本体里不得出现任何特效 id、材质名、节点名。如果需求逼着你改接线，**先停下**，确认是不是品类选错了（例如"符卡在卡面上发光"是 `foil` 不是 `spell`）；只有新增第四个品类才需要动接线。
 
+## 设计参考资料
+
+定视觉方案（主色、形状母题、节奏）前先查两处，方案里写明取自哪条资料：
+
+1. **卡牌数据库**（仓库内，权威）：`cards/<卡牌id>.json` 与卡图 `recourse/数据库/<卡牌id>.png`。
+   - 读 `名称`、`类别`、`颜色`、`角色名`、`称号`、`符卡类型`、`完整说明`/`能力文字`、`能力绑定[].实现`；
+   - 按名称或角色查 id：`grep -l '"角色名": "博丽灵梦"' cards/*.json`；
+   - 演出要对上卡牌效果：反制、伤害、治疗、抽牌、指向目标等效果决定特效的方向、落点与收尾方式（例如带目标的伤害符卡用 `destination: "spell_target"`），不要做出与效果相反的观感；
+   - 卡图用 Read 亲自看，特效主色与卡面配色协调，不遮挡读牌信息。
+2. **THBWiki 东方百科**（https://thbwiki.cc/ ，外部，作风格参考）：
+   - 查对应人物页（如 `https://thbwiki.cc/博丽灵梦`）与符卡页/符卡列表，取原作弹幕的形状、颜色、运动方式与角色母题（阴阳玉、御币、符札等）；
+   - 用 WebFetch 或内置浏览器读页，只提炼设计要点写进规格，不整段搬运百科文字，不下载或直接使用百科图片作素材（素材按下文规格自行生图）；
+   - 百科设定与卡牌数据冲突时，**以卡牌数据库为准**（效果、颜色、名称都看 `cards/`）。
+
 ## 固定流程
 
+0. **查资料**：按上节读卡牌 json / 卡图与 THBWiki 人物、符卡页，定主色与母题。
 1. **判品类**（选错全部返工）：
    - `entrance`：单位进场，挂花牌视觉根，400–700 ms；清单 `timing` 选时间点：`before`（单位牌出堆叠、正飞向战场时开播，可放到 900–1100 ms）或 `after`（缺省，卡牌落场后开播）；
    - `foil`：卡面持续流光，挂花牌视觉根，常驻不自动收尾；
-   - `spell`：符卡提交成功后在台面演出，挂 `FxLayer_spell`，700–1200 ms。
+   - `spell`：符卡结算（未被反制、目标未失效）时在台面演出，挂 `FxLayer_spell`，700–1200 ms。
 2. **写清单** `fx/definitions/<id>.json`（目录不存在就建），定 `params` 初值。
 3. **写模块** `fx/modules/<id>/effect.gd`，先只用纯色几何跑通验收，不等素材。
 4. **跑单特效验收 + 预览截图**，确认读牌信息不被遮挡。
@@ -58,7 +73,9 @@ description: 为 Multicolor-Arena 开发、修改或验收香霖堂特效（单�
 - `budget_ms` 50–5000，缺省 700（foil 不用）；`free` 为 bool；`params` 为对象；
 - `cards`（可选）：卡牌 id 字符串的非空数组，只让这些卡触发；省略 = 所有卡。由 `fx_registry.enabled(category, products, card_id)` 筛选，模块里不要自己比对 `ctx.card_id`；`allow_all` 预览忽略筛选；
 - `timing`（可选，仅 entrance）：`before` | `after`，缺省 `after`；
+- `flight`（可选，仅 entrance 且 `timing: before`）：`none`（缺省）| `track`（模块用 `flight_local(t)` 追踪对抗区→战场飞行的卡牌位姿）| `proxy`（再由基底画一张 3D 代理卡 `FlightProxy` 接管飞行画面，本体隐藏 2D 飞行贴图，阴阳玉等可绕到卡前/卡后；占 1 节点，模块自身 ≤63）。API：`flight_seconds()`、`flight_global(t)`、`flight_local(t)`、`in_flight()`、`card_landed()`，细节见 `fx/README.md`；`flight_ms`/`flight_ease`（仅 proxy）可放慢并改写这段飞行。
 - 角色符卡（仅 spell）：`"character_spell": true`、`"character": "<角色名>"`、`"origin": "character"|"none"`、`"destination": "spell_target"|"none"`；起点排序：套牌自机 > 自机单位 > 颜色值高 > 卡牌 id 小（再按 uid 小）；
+- `hold_ms`（仅 spell）：0–5000，缺省为整段 budget；在此之前演出队列停住，目标死亡、区域移动等动画结算后才显示。
 - **视觉参数只放 `params`**，调色/数量/半径改这里，不改脚本。
 - 收费：加 `shop_product: "<商品id>"`，或在 `data/shop.json` 商品上写 `"fx": "<特效id>"`。启用判定在 `fx_registry.enabled()`，只读 `battle_loadout()` 冻结快照。联机不校验特效商品（扩展 `MCA:fx:` 签名域属协议改动，不是特效任务）。
 

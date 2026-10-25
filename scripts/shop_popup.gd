@@ -169,10 +169,10 @@ func buy_product(id: String):
  var price=host.shop_inventory.price_for(item)
  purchase_dialog=ConfirmationDialog.new();purchase_dialog.name="ConfirmShopPurchase"
  purchase_dialog.min_size=Vector2i(500,170)
- purchase_dialog.title="确认购买"
- purchase_dialog.dialog_text="花费 %d 铜钱购买「%s」？" % [price,str(item.name)]
+ purchase_dialog.title="确认领取" if price==0 else "确认购买"
+ purchase_dialog.dialog_text="免费领取「%s」？" % str(item.name) if price==0 else "花费 %d 铜钱购买「%s」？" % [price,str(item.name)]
  if host.shop_inventory.is_special(item):purchase_dialog.dialog_text+="\n开业酬宾 5 折 · 原价 %d 铜钱\n活动截至 %s" % [int(item.price),host.shop_inventory.sale_deadline_text()]
- purchase_dialog.get_ok_button().text="确认购买";purchase_dialog.get_cancel_button().text="取消"
+ purchase_dialog.get_ok_button().text="确认领取" if price==0 else "确认购买";purchase_dialog.get_cancel_button().text="取消"
  host.add_child(purchase_dialog);host.style_dialog(purchase_dialog)
  purchase_dialog.confirmed.connect(func():
   if not is_instance_valid(purchase_dialog):return
@@ -313,7 +313,7 @@ func add_product(item: Dictionary):
  var special=host.shop_inventory.is_special(item)
  if special:add_sale_badge(art)
  var title=add_text(column,str(item.get("name","")),host.ui_metrics.body,host.WHITE);title.name="ProductTitle"
- if is_purchased(item) and not host.is_android:add_text(column,"已领取" if item.get("test_only",false) else "已购买",host.ui_metrics.small,host.GOLD).name="PurchasedBadge"
+ if is_purchased(item) and not host.is_android:add_text(column,"已领取" if int(item.get("price",0))==0 else "已购买",host.ui_metrics.small,host.GOLD).name="PurchasedBadge"
  if not host.is_android:add_text(column,str(item.get("description","")),host.ui_metrics.small,host.MUTED)
  var id=str(item.get("id",""))
  if not host.is_android and Preview.supports(item):
@@ -329,7 +329,7 @@ func add_product(item: Dictionary):
  elif item.get("test_only",false):
   if not host.is_android:add_text(column,"测试商品 · 免费体验",host.ui_metrics.small,host.GOLD)
   if is_purchased(item):
-   var manage=host.button(column,"已购买 · 管理" if host.is_android else "在我的商品中设置",Rect2(),show_my_items);host.ui_metrics.button(manage);product_actions.append(manage)
+   var manage=host.button(column,"已领取 · 管理" if host.is_android else "在我的商品中设置",Rect2(),show_my_items);host.ui_metrics.button(manage);product_actions.append(manage)
   else:
    var claim=host.button(column,"免费领取",Rect2(),func():
     if not host.shop_inventory.claim_test(id):host.alert(host.shop_inventory.error))
@@ -339,17 +339,18 @@ func add_product(item: Dictionary):
    product_actions.append(claim)
  elif item.has("price"):
   if is_purchased(item):
-   var manage=host.button(column,"已购买 · 管理" if host.is_android else "在我的商品中设置",Rect2(),show_my_items);host.ui_metrics.button(manage);product_actions.append(manage)
+   var manage=host.button(column,("已领取 · 管理" if int(item.price)==0 else "已购买 · 管理") if host.is_android else "在我的商品中设置",Rect2(),show_my_items);host.ui_metrics.button(manage);product_actions.append(manage)
   else:
    if special and not host.is_android:
     var original=add_text(column,"原价 %d 铜钱" % int(item.price),host.ui_metrics.small,host.MUTED);original.name="OriginalPrice"
    var price=host.shop_inventory.price_for(item)
-   var buy=host.button(column,("购买 %d" % price) if host.is_android else str(price),Rect2(),buy_product.bind(id))
+   var buy=host.button(column,"免费领取" if price==0 else ("购买 %d" % price) if host.is_android else str(price),Rect2(),buy_product.bind(id))
    buy.name="BuyProduct_"+id;host.ui_metrics.button(buy);buy.custom_minimum_size.x=0
-   buy.icon=CoinIcon.texture(host.ui_metrics.button_font);buy.icon_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+   if price>0:buy.icon=CoinIcon.texture(host.ui_metrics.button_font)
+   buy.icon_alignment=HORIZONTAL_ALIGNMENT_RIGHT
    var service=host.task_service
    buy.disabled=service.account.is_empty() or is_instance_valid(service.client) or not service.snapshot.has("coins") or int(service.snapshot.get("coins",0))<price
-   buy.tooltip_text="请先登录账号" if service.account.is_empty() else "正在同步，请稍候" if is_instance_valid(service.client) or not service.snapshot.has("coins") else "铜钱不足" if buy.disabled else "购买后在「我的商品」中开启，下一场对战生效"
+   buy.tooltip_text="请先登录账号" if service.account.is_empty() else "正在同步，请稍候" if is_instance_valid(service.client) or not service.snapshot.has("coins") else "铜钱不足" if buy.disabled else "领取后在「我的商品」中设置，下一场对战生效" if price==0 else "购买后在「我的商品」中开启，下一场对战生效"
    product_actions.append(buy)
 
 func product_image_rect(art: Control) -> Rect2:
@@ -426,9 +427,9 @@ func show_product_details(item: Dictionary):
  var description=VBoxContainer.new();reader.add_child(description);description.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  add_text(description,str(item.get("description","")),host.ui_metrics.body,host.WHITE).name="ProductDescription"
  if item.has("price"):
-  add_text(description,"售价：%d 铜钱" % host.shop_inventory.price_for(item),host.ui_metrics.body,host.GOLD)
+  add_text(description,"免费领取" if host.shop_inventory.price_for(item)==0 else "售价：%d 铜钱" % host.shop_inventory.price_for(item),host.ui_metrics.body,host.GOLD)
   if host.shop_inventory.is_special(item):add_text(description,"原价 %d 铜钱 · 开业酬宾 5 折 · 截至 %s" % [int(item.price),host.shop_inventory.sale_deadline_text()],host.ui_metrics.small,host.MUTED)
- add_text(description,"购买后可在「我的商品」设置对战开关，下一场对战生效。",host.ui_metrics.small,host.MUTED)
+  add_text(description,"领取后可在「我的商品」设置对战开关，下一场对战生效。" if int(item.get("price",0))==0 else "购买后可在「我的商品」设置对战开关，下一场对战生效。",host.ui_metrics.small,host.MUTED)
  if Preview.supports(item):add_preview_button(column,item)
  fit_product_details();call_deferred("fit_product_details");close.grab_focus()
 

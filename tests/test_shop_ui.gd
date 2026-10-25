@@ -66,11 +66,33 @@ func search_for(popup,text: String):
 func set_sale_time(now: int):
  app.shop_inventory.server_time=now;app.shop_inventory.server_tick_ms=Time.get_ticks_msec()
 
+func special_count(popup) -> int:
+ return popup.catalogue.filter(func(item):return app.shop_inventory.is_special(item)).size()
+
+func verify_free_effects(popup):
+ app.task_service.snapshot.coins=0;app.task_service.changed.emit();await frames()
+ for category in [2,3]:
+  popup.select_category(category);await frames()
+  expect(popup.result_count==1,"each effect category has its free product")
+  var item=popup.catalogue.filter(func(product):return product.category==ShopPopup.CATEGORIES[category].id)[0]
+  var buy=popup.find_child("BuyProduct_"+item.id,true,false)
+  expect(buy!=null and buy.text=="免费领取" and not buy.disabled and buy.icon==null,"zero-balance account can claim effect without a coin icon")
+  expect(popup.find_child("SaleBadge",true,false)==null,"free effect does not show a discount badge")
+  popup.buy_product(item.id);await frames()
+  expect(popup.purchase_dialog.title=="确认领取" and popup.purchase_dialog.dialog_text.contains("免费领取"),"free effect has a claim confirmation")
+  popup.purchase_dialog.confirmed.emit();await frames()
+  expect(app.shop_inventory.owns(item.id) and app.task_service.snapshot.coins==0,"claim grants effect without spending copper")
+  popup.show_my_items();await frames()
+  var toggle=popup.find_child("BattleEnable_"+item.id,true,false)
+  expect(toggle!=null and toggle.button_pressed,"claimed effect offers its battle switch")
+ app.task_service.snapshot={"coins":128};app.task_service.changed.emit();await frames()
+ popup.select_category(0);await frames()
+
 func verify_sale(popup):
  var sale=app.shop_inventory.sale
  set_sale_time(int(sale.starts_at)+3600)
  popup.select_category(0);await frames()
- expect(popup.result_count==popup.catalogue.size() and popup.page_count==ceili(float(popup.catalogue.size())/ShopPopup.PAGE_SIZE),"every product appears in the special category with pagination")
+ expect(popup.result_count==special_count(popup) and popup.page_count==ceili(float(special_count(popup))/ShopPopup.PAGE_SIZE),"paid products appear in the special category with pagination")
  expect(popup.sale_banner.visible and popup.sale_heading.text.contains("新店开业酬宾") and popup.sale_details.text.contains("11月2日 00:00"),"opening sale and deadline are prominent")
  check_bounds(popup)
  await capture("shop-opening-sale")
@@ -84,7 +106,7 @@ func verify_sale(popup):
  popup.purchase_dialog.confirmed.emit();await frames()
  expect(not app.shop_inventory.owns(DEMO) and app.task_service.snapshot.coins==5 and popup.notice.text.contains("重新确认"),"stale sale confirmation never spends the higher regular price")
  popup.select_category(1);await frames()
- expect(popup.result_count==popup.catalogue.size() and popup.find_child("SaleBadge",true,false)==null,"original category still contains all products after expiry without discount badges")
+ expect(popup.result_count==popup.catalogue.filter(func(item):return item.category=="emotes").size() and popup.find_child("SaleBadge",true,false)==null,"dialogue category retains its products after expiry without discount badges")
  expect(popup.find_child("BuyProduct_"+DEMO,true,false).text=="10","regular price returns at the deadline")
  await capture("shop-sale-ended")
  set_sale_time(int(sale.starts_at)+3600)
@@ -144,7 +166,7 @@ func verify_purchase_filter(popup):
  expect(popup.hide_purchased.button_pressed and (popup.result_count==7 and popup.grid.get_child_count()==mini(7,ShopPopup.PAGE_SIZE)),"filter hides only purchased product IDs")
  expect(popup.grid.get_node_or_null("ShopProduct_0")==null and popup.grid.get_node_or_null("ShopProduct_2")==null,"purchased tiles are removed from the grid")
  popup.select_category(0);await frames()
- expect(popup.hide_purchased.button_pressed and popup.result_count==popup.catalogue.size()-2,"special category keeps the same purchased-product filtering")
+ expect(popup.hide_purchased.button_pressed and popup.result_count==special_count(popup)-2,"special category keeps the same purchased-product filtering")
  popup.select_category(4);await frames()
  expect((popup.result_count==7 and popup.grid.get_child_count()==mini(7,ShopPopup.PAGE_SIZE)),"category switch keeps purchase filtering")
  app.menu();await frames()
@@ -268,7 +290,7 @@ func run():
  var popup=app.menu_popup
  expect(popup is ShopPopup and popup.heading.text=="香霖堂","shop icon opens 香霖堂")
  expect(popup.tabs.size()==7,"shop has seven categories")
- expect(not popup.catalogue.is_empty() and popup.catalogue.all(func(item):return item.price==10 and not item.get("test_only",false)) and popup.result_count==popup.catalogue.size(),"all paid products appear in specials without changing base prices")
+ expect(not popup.catalogue.is_empty() and popup.catalogue.all(func(item):return item.price>=0 and not item.get("test_only",false)) and popup.result_count==special_count(popup),"paid products appear in specials and free effects retain zero prices")
  expect(not popup.hide_purchased.button_pressed,"purchased-product filter starts disabled")
  expect(popup.balance.text=="铜钱：—" and popup.notice.text.contains("登录"),"guest wallet has a clear unknown state")
  check_bounds(popup)
@@ -276,7 +298,7 @@ func run():
  for index in range(popup.tabs.size()):
   popup.categories_scroll.ensure_control_visible(popup.tabs[index]);await frames()
   await click(popup.tabs[index].get_global_rect().get_center());await frames()
-  expect(popup.selected==index and popup.empty_state.visible==(index not in [0,1]),"category switches to expected catalogue "+str(index))
+  expect(popup.selected==index and popup.empty_state.visible==(index not in [0,1,2,3]),"category switches to expected catalogue "+str(index))
   if index==1:expect(popup.find_child("BuyProduct_"+DEMO,true,false).disabled,"guest cannot claim paid product")
   expect(popup.tabs.filter(func(tab):return tab.button_pressed).size()==1,"exactly one category remains selected")
  app.account_name="TEST_ONLY_shop";app.account_token="TEST_ONLY_offline";app.sync_tasks()
@@ -291,6 +313,7 @@ func run():
   popup.select_category(1);await frames();await capture("shop-emote-products")
   app.queue_free();await frames();quit(0);return
  await capture("shop-wallet")
+ await verify_free_effects(popup)
  await verify_sale(popup)
  await verify_dialogue_pages(popup)
  app.task_service.snapshot.coins=0;app.task_service.changed.emit();await frames()
@@ -311,7 +334,7 @@ func run():
  popup=await verify_my_products(popup)
  app.shop_hide_purchased=true;popup.hide_purchased.set_pressed_no_signal(true)
  popup.select_category(0);await frames()
- expect(popup.result_count==popup.catalogue.size()-1 and not popup.empty_state.visible,"special category includes unpurchased goods from every original category")
+ expect(popup.result_count==special_count(popup)-1 and not popup.empty_state.visible,"special category includes unpurchased paid goods from every original category")
  await close_with(KEY_ESCAPE)
  expect(root.gui_get_focus_owner()==app.shop_button or root.gui_get_focus_owner()==null,"close does not focus a freed menu entry")
  app.is_android=true;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND

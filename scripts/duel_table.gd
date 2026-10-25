@@ -110,6 +110,8 @@ var fx
 var fx_products: Dictionary={}
 var fx_seen: Dictionary={}
 var fx_face_seen: Dictionary={}
+## 已在飞行起点播过"进入前"入场特效的单位；落场 sync 时只补"进入后"。
+var fx_departed: Dictionary={}
 
 ## 一次性接线。products 是冻结的对战商品快照，入场与闪卡据此决定跑哪些特效。
 func attach_fx(products: Dictionary={}) -> void:
@@ -117,23 +119,57 @@ func attach_fx(products: Dictionary={}) -> void:
  if fx==null:fx=FxBridge.new()
  fx.attach(self)
  fx.set_products(fx_products)
+ fx.set_owner_products(duel.equipped_shop_products)
 
 func set_fx_products(products: Dictionary) -> void:
  fx_products=products.duplicate(true)
- if fx!=null:fx.set_products(fx_products)
+ if fx!=null:
+  fx.set_products(fx_products)
+  fx.set_owner_products(duel.equipped_shop_products)
 
-## 符卡使用：由 duel_view 在提交成功后调用。节点可能已经不在了，
-## 此时退回该座位颜色盘的世界坐标。
-func show_spell_effect(uid: int) -> Array:
+## 公开演出（duel_reveal）开始把单位牌从堆叠等处飞向战场时调用：此刻 3D 卡尚未
+## 建立，"进入前"特效挂舞台层、钉在目的地落点，travel 为飞行时长。
+## source 给出时特效可接管飞行画面并改写飞行时长，返回值 >0 表示调用方应隐藏 2D 飞行贴图并用该秒数做飞行补间。
+func unit_departing(uid: int,travel: float,source: Dictionary={}) -> float:
+ if fx==null or uid<=0 or fx_seen.has(uid) or fx_departed.has(uid):return 0.0
+ var d=layout().get("card_"+str(uid),{})
+ if d.is_empty() or d.zone!="field" or d.get("group","")!="unit":return 0.0
+ fx_departed[uid]=true
+ var landing=global_transform*Transform3D(Basis.from_euler(d.rotation).scaled(d.scale),d.at)
+ var extra={"parent":null,"uid":uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel,"timings":["before"]}
+ if source.has("point") and source.has("pixel_height") and (source.get("texture") is Texture2D):
+  extra["flight"]={"from":flight_source(source.point,float(source.pixel_height),landing),"to":landing,"seconds":travel,"ease":"cubic_in_out","texture":source.texture}
+ var started=fx.unit_entered(null,CARD_SIZE,extra)
+ if not fx.owns_flight(started):return 0.0
+ var seconds=fx.flight_seconds(started)
+ return seconds if seconds>0.0 else travel
+
+## SubViewport 像素投向相机前方，起点卡面正对相机并保持屏幕高度。
+func flight_source(point: Vector2,pixel_height: float,landing: Transform3D) -> Transform3D:
+ var origin=camera.project_ray_origin(point);var dir=camera.project_ray_normal(point)
+ var hit=Plane(Vector3.UP,landing.origin.y).intersects_ray(origin,dir)
+ var reach=origin.distance_to(hit) if hit!=null else 10.0
+ var at=origin+dir*reach*0.5
+ var cam=camera.global_basis
+ var up_px=camera.unproject_position(at).distance_to(camera.unproject_position(at+cam.y))
+ var k=pixel_height/maxf(up_px*CARD_SIZE.y,0.001)
+ var basis=Basis(cam.x,cam.z,-cam.y).scaled(Vector3(k,k,k))
+ return Transform3D(basis,at)
+
+## 符卡结算：由 duel_reveal 播到引擎的 spell_resolved 公开事件时调用——符卡
+## 未被反制、目标未失效才会有这个事件。event.targets 是结算前记下的目标；
+## 不带 event 时（测试）退回堆叠条目。节点可能已经不在了，此时退回区域坐标。
+func show_spell_effect(uid: int,event: Dictionary={}) -> Array:
  if fx==null:return []
  var card=duel.find_card(uid)
- if card.is_empty():return []
+ if card.is_empty():card=event.get("card",{})
+ if card.is_empty() or not duel.cards.has(str(card.get("card_id",""))):return []
  var stack_entry: Dictionary={}
  for entry in duel.stack:
   if entry.get("kind","")=="card" and int(entry.get("card",{}).get("uid",-1))==uid:
    stack_entry=entry
    break
- var owner=int(stack_entry.get("owner",card.get("owner",local_seat)))
+ var owner=int(event.get("owner",stack_entry.get("owner",card.get("owner",local_seat))))
  var node=visuals.get("card_"+str(uid))
  var center=node.global_position if is_instance_valid(node) else to_global(zone_position("palette",owner))
  var info=duel.cards[card.card_id]
@@ -153,7 +189,10 @@ func show_spell_effect(uid: int) -> Array:
    var palette_info=duel.cards[c.card_id]
    if palette_info.kind=="符卡" and not str(palette_info.get("requires_character","")).is_empty():palette_character_spells+=1
  var targets: Array[Dictionary]=[]
- var target: Dictionary=stack_entry.get("target",{})
+ for ref in event.get("targets",[]):
+  if int(ref.get("uid",0))>0:targets.append({"uid":int(ref.uid),"position":_spell_snapshot_position(ref,int(ref.get("owner",owner)))})
+  elif ref.has("player"):targets.append({"uid":0,"player":int(ref.player),"position":to_global(zone_position("leader",int(ref.player)))})
+ var target: Dictionary={} if event.has("targets") else stack_entry.get("target",{})
  var refs: Array=[]
  if target.has("uid"):refs.append(target)
  for group in target.get("picks",[]):
@@ -689,10 +728,15 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   # "进入前"（立即开播）与"进入后"（落场后开播）。
   if fx!=null and d.uid>0 and d.zone=="field" and d.get("group","")=="unit" and not fx_seen.has(d.uid):
    fx_seen[d.uid]=duel.revision
+   var departed=fx_departed.has(d.uid)
+   fx_departed.erase(d.uid)
+   if departed:fx.unit_landed(d.uid)
    if fresh and animate:
     var landing=global_transform*Transform3D(Basis.from_euler(d.rotation).scaled(d.scale),d.at)
     var travel=0.0 if presented_moves.has(d.uid) else animation_duration
-    fx.unit_entered(node,CARD_SIZE,{"uid":d.uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel})
+    var extra={"uid":d.uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel}
+    if departed:extra["timings"]=["after"]
+    fx.unit_entered(node,CARD_SIZE,extra)
   # 闪卡：卡面建立或换异画时挂一次，卡牌节点释放时随之消失。
   if fx!=null and d.uid>0:
    var face_key=str(d.card_id)+":"+str(d.get("art_id",""))
@@ -729,6 +773,8 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
  # 离开战场（含新一局 uid 重置回牌库）的单位不再算"已入场"，下次进场重播。
  for uid in fx_seen.keys():
   if now.get(uid,{}).get("zone","")!="field":fx_seen.erase(uid)
+ for uid in fx_departed.keys():
+  if now.get(uid,{}).get("zone","")!="field":fx_departed.erase(uid)
  for key in visuals.keys():
   if next.has(key): continue
   var node=visuals[key]

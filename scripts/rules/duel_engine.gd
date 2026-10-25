@@ -13,6 +13,8 @@ const Exploration=preload("res://scripts/rules/gensokyo_exploration.gd")
 const TaskProbes=preload("res://scripts/rules/task_probes.gd")
 const LeaderEmotes=preload("res://scripts/rules/leader_emotes.gd")
 var leader_emote_profiles: Array=[]
+## Frozen, verified cosmetic IDs for each seat; public to opponents and spectators.
+var equipped_shop_products: Array=[[],[]]
 var emote_ready_at: Array=[0.0,0.0]
 var emote_serial=0
 var task_stats: Array=[]
@@ -179,6 +181,24 @@ func confirm_revealed(who: int,serial: int) -> String:
 func show_result(message: String,source: Dictionary={}):
  note(message,history_art(source))
  presentation_events.append({"type":"result","text":message,"card":source.duplicate(true)})
+## Public, presentation-only: a spell left the stack and actually resolves
+## (not countered, targets still valid). Targets are captured before the
+## effect moves them, so the table can still find where they stood.
+func present_spell_resolved(entry: Dictionary):
+ if entry.get("kind","")!="card" or cards[entry.card.card_id].kind!="符卡":return
+ var refs=[entry.target]
+ for group in entry.target.get("picks",[]):refs.append_array(group)
+ refs.append_array(entry.target.get("parts",[]))
+ var targets=[];var seen={}
+ for ref in refs:
+  if not ref is Dictionary or ref.get("invalid",false):continue
+  if ref.has("uid"):
+   var c=find_card(int(ref.uid))
+   if c.is_empty() or seen.has(c.uid):continue
+   seen[c.uid]=true;targets.append({"uid":c.uid,"owner":c.owner,"zone":c.zone})
+  elif ref.has("player") and not seen.has("p%d" % int(ref.player)):
+   seen["p%d" % int(ref.player)]=true;targets.append({"uid":0,"player":int(ref.player)})
+ presentation_events.append({"type":"spell_resolved","card":entry.card.duplicate(true),"owner":entry.owner,"targets":targets})
 func record_declaration(who: int,target: Dictionary,source: Dictionary):
  var parts=[]
  for key in ["card_name","color","guess","declaration"]:
@@ -211,8 +231,14 @@ func shuffle(cards_to_shuffle: Array):
   var tmp=cards_to_shuffle[i]
   cards_to_shuffle[i]=cards_to_shuffle[j]
   cards_to_shuffle[j]=tmp
+func equip_shop_products(who: int,products: Array):
+ if who not in [0,1]:return
+ equipped_shop_products[who]=products.duplicate()
+ LeaderEmotes.equip(self,who,products)
+
 func start(a: Dictionary,b: Dictionary, first_player: int, seed_value: int=0):
  TaskProbes.start(self,[a,b])
+ equipped_shop_products=[[],[]]
  leader_emote_profiles=[];emote_ready_at=[0.0,0.0];emote_serial=0
  response_clock={}
  mod_manifest=mod_registry.manifest();mod_state={};mod_resolution={};mod_changes=[];mod_x_casts={};mod_query_guard={};mod_change_serial=0;mod_change_processing=false;mod_timestamp=0;mod_prepares_remaining=0
@@ -1071,19 +1097,20 @@ func pass_priority(who: int):
     else: damage_target(e.target,e.amount)
     note(e.name+"结算",history_art(source))
   elif e.get("rewritten_fairy",false):
-   task_probe(e.owner,"spells_resolved");Roster.Batch.rewritten_resolve(self,e);note(e.name+"改写效果结算",history_art(e.card))
+   present_spell_resolved(e);task_probe(e.owner,"spells_resolved");Roster.Batch.rewritten_resolve(self,e);note(e.name+"改写效果结算",history_art(e.card))
   elif e.card.card_id=="spell-fdn-066":
-   task_probe(e.owner,"spells_resolved")
+   present_spell_resolved(e);task_probe(e.owner,"spells_resolved")
    var options=Roster.Batch.spells(self)
    if options.is_empty():
     to_grave(e.card);note(e.name+"结算时没有其他符卡可选",history_art(e.card))
    else:pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"fairy_rewrite_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
   elif e.card.card_id=="spell-fdn-069":
-   task_probe(e.owner,"spells_resolved")
+   present_spell_resolved(e);task_probe(e.owner,"spells_resolved")
    var options=Roster.Batch.spells(self)
    options.append({"mode":"青ノ花自身","self":true})
    pending={"kind":"effect_choice","owner":e.owner,"trigger":{"effect":"blue_flower_resolution","owner":e.owner,"source":e.card,"entry":e,"optional":false},"options":options}
   elif e.card.card_id in ["100","spell-rei-012","spell-fdf-053"]:
+   present_spell_resolved(e)
    var options=stack.filter(func(entry):return entry.kind=="card" and (cards[entry.card.card_id].kind=="符卡" and Extra.cost_value(self,entry.card)==int(e.card.get("cast_x",e.target.get("x",0))) if e.card.card_id=="spell-fdf-053" else e.card.card_id=="100" or Extra.cost_value(self,entry.card)<=3)).map(func(entry):return {"stack_id":entry.id})
    if options.is_empty():
     to_grave(e.card);note(e.name+"结算时没有可反制的牌",history_art(e.card))
@@ -1091,7 +1118,7 @@ func pass_priority(who: int):
   elif cards[e.card.card_id].kind=="符卡" and not spell_target_valid(e.card.card_id,e.target):
    task_probe(e.owner,"spells_fizzled")
    to_grave(e.card); note("目标失效，"+e.name+"不结算")
-  else: Effects.resolved(self,e); note(e.name+"结算",history_art(e.card))
+  else: present_spell_resolved(e); Effects.resolved(self,e); note(e.name+"结算",history_art(e.card))
   retain_resolving_entry(e)
   judge(); damage_context={}; priority=active
   reveal_resolution_depth-=1;pump_choices()
@@ -2216,6 +2243,23 @@ func debug_add(id: String,owner: int,destination: String) -> String:
   c.timer=int(cards[id].get("time",0));replace_melody(c,true)
  note("调试加入："+player_names[owner]+" · "+cards[id].name+" → "+{"field":"战场","hand":"手牌","palette":"颜色盘","grave":"墓地"}[destination],history_art(c))
  return ""
+
+func debug_copy(uid: int) -> int:
+ if not debug_enabled or winner!=-2:return 0
+ if not pending.is_empty() or not stack.is_empty() or not combat.is_empty():return 0
+ var card=find_card(uid)
+ if card.is_empty() or card.zone not in ["deck","hand","field","palette","grave","exile","leader"]:return 0
+ # Match tutorial setup copying: preserve tableau state, with a fresh identity.
+ var copy=make_card(card.card_id,card.owner,card.zone,card.zone=="leader")
+ for key in ["tapped","attacked","damage","timer","entered","entered_turns","plus_counters","minus_counters","poverty","leader_counters","courage","color_counters","token_colors","art_id"]:
+  if card.has(key):copy[key]=card[key].duplicate(true) if card[key] is Array else card[key]
+ if card.zone=="leader":
+  if not players[card.owner].has("extra_leaders"):players[card.owner].extra_leaders=[]
+  players[card.owner].extra_leaders.append(copy)
+ else:
+  var zone_cards=players[card.owner][card.zone];zone_cards.insert(zone_cards.find(card)+1,copy)
+ note("调试复制："+player_names[card.owner]+" · "+cards[card.card_id].name,history_art(copy))
+ return int(copy.uid)
 
 func spell_target_valid(id: String,target: Dictionary) -> bool:
  if not Roster.key(cards[id],Roster.SPELLS+Roster.UCS_SPELLS).is_empty():return Roster.target_survives(self,id,target)

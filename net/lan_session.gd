@@ -1040,7 +1040,7 @@ func handle_room_action(actor: int,action: Dictionary):
  if series.start_game():
   undo_history.entries.clear();undo_request={}
   authority=Duel.new();authority.configure_mods(Series.uses_mods(series.state));authority.player_names=series.state.names.duplicate();authority.start(series.state.decks[0],series.state.decks[1],series.state.first)
-  for who in range(2):Duel.LeaderEmotes.equip(authority,who,series.state.get("emote_products",[[],[]])[who])
+  for who in range(2):authority.equip_shop_products(who,series.state.get("emote_products",[[],[]])[who])
   authority.show_result(series.opening_text())
   authority.presentation_events.push_front(authority.presentation_events.pop_back())
  sequence+=1

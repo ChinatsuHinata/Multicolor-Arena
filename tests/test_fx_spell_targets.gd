@@ -95,6 +95,37 @@ func check_manifest() -> void:
  for pair in [["character_spell",1,"character_spell must be a boolean"],["character",1,"character must be a string"],["origin","bogus","origin must be one of none, character"],["destination","bogus","destination must be one of none, spell_target"]]:
   var bad=def.duplicate(true);bad[pair[0]]=pair[1]
   expect(Manifest.validate(bad,DEFINITION)==pair[2],"spell field validation: "+str(pair[0]))
+ for value in [-1,5001,"600"]:
+  var bad=def.duplicate(true);bad["hold_ms"]=value
+  expect(Manifest.validate(bad,DEFINITION)=="hold_ms must be a number 0-5000","hold_ms rejects "+str(value))
+ var held=def.duplicate(true);held["hold_ms"]=600
+ expect(Manifest.validate(held,DEFINITION).is_empty(),"hold_ms accepts 600")
+ var entrance_hold={"id":def.id,"category":"entrance","script":def.script,"hold_ms":100}
+ expect(Manifest.validate(entrance_hold,DEFINITION)=="hold_ms only applies to spell effects","entrance rejects hold_ms")
+ check_hold(def)
+
+## 演出占用：缺省占满整段 budget，hold_ms 可提前放行，stop() 立即放行。
+func check_hold(def: Dictionary) -> void:
+ var parent=Node3D.new();root.add_child(parent)
+ for pair in [[null,1.2],[600,0.6],[9000,1.2]]:
+  var spell_def={"id":"hold_probe","category":"spell","budget_ms":1200}
+  if pair[0]!=null:spell_def["hold_ms"]=pair[0]
+  var module=Spell.new();module.auto_advance=false
+  module.configure(spell_def,{"parent":parent});root.add_child(module)
+  expect(is_equal_approx(module.hold,pair[1]),"hold resolves to %s s for hold_ms=%s" % [pair[1],pair[0]])
+  expect(not module.holding(),"a module that has not started holds nothing")
+  module.start()
+  expect(module.holding(),"a started spell effect holds the queue")
+  module.advance(pair[1]-0.05)
+  expect(module.holding(),"still holding just before the hold time")
+  module.advance(0.1)
+  expect(not module.holding(),"released once the hold time passes")
+  module.stop();module.free()
+ var stopped=Spell.new();stopped.auto_advance=false
+ stopped.configure({"id":"hold_probe","category":"spell","budget_ms":1200},{"parent":parent});root.add_child(stopped)
+ stopped.start();stopped.stop()
+ expect(not stopped.holding(),"stop() releases the queue immediately")
+ stopped.free();parent.free()
 
 func effect_context(parent: Node3D,count: int) -> Dictionary:
  return {"parent":parent,"uid":7,"card_size":Vector2(1.95,2.72),"owner":0,"center":Vector3(0.0,0.0,1.6),"matching_uids":[11],

@@ -10,12 +10,15 @@
 
 | 功能 | 测试 |
 | --- | --- |
+| Limitless 快速导入、进行中赛事网页读取、账号 ID 保存与持久化、来源选手资格门控、管理员审核／拒绝／撤回、重复身份冲突与过期审核保护、桌面与安卓入口 | `test_limitless_admission.py`、`test_limitless_ui.gd`、`test_account_ui.gd`、`run_tournaments.py --limitless-only`（隔离临时数据库与回环中转；示例为好奇杯极彩十月月赛） |
+| Limitless 来源签表与排名、用户账号对应、缺少上轮结果／下轮签表／完整选手／新鲜数据时禁止开轮、原桌号与签位、游戏结束等待来源确认、禁止本地裁定、异步同步与缓存持久化、限流和来源改签保护、来源最终排名奖励；历轮浏览和双端界面 | `test_limitless_tournaments.py`、`test_limitless_ui.gd`（离线临时数据；有界面运行时截图输出 `work/limitless-ui/`） |
+| 桌面／安卓设置与对战内 60／120／自定义帧率档位、仅自定义可输入、无上下调节按钮、自定义数值记忆、0 不限帧、即时生效及保存重启 | `test_frame_rate_limit.gd`（有界面运行时保存截图） |
 | 赛事创建与管理的自定义阶段表单、数值行文字换行与输入框高度、增删阶段及内容保留、桌面／安卓高 DPI 和安全区变化 | `test_tournament_layout.gd`（离线运行；有界面运行时截图输出 `work/tournament-layout-tests/`） |
-| 多阶段瑞士／单败／双败／循环赛、BO5／BO2、大比分一致确认、积分提前晋级淘汰、跨阶段四强奖励及超管权限；线上教程提交审核与匿名同步、权限撤销、公告并发领取 | `test_competition_extensions.py`、`test_community_store.py`、`run_tournaments.py --formats-only`、`run_tournaments.py --community-only --render`（独立临时数据库与回环中转；截图输出 `work/tournament-tests/`） |
+| 多阶段瑞士／单败／双败／循环赛、BO5／BO2、大比分一致确认、积分提前晋级淘汰、跨阶段四强奖励及超管权限；线上教程提交审核与匿名同步、权限撤销、公告并发领取；bigcake 固定绑定超级管理员组、按账号／数字玩家 ID 赠予铜钱、越权拦截、金额校验、并发幂等与持久化、桌面鼠标／安卓触摸提交及余额同步、赠予离页后恢复重试不重复发放及账号隔离 | `test_competition_extensions.py`、`test_community_store.py`、`run_tournaments.py --formats-only`、`run_tournaments.py --community-only --render`（独立临时数据库与回环中转；截图输出 `work/tournament-tests/`） |
 | 「永夜归还-待宵-」先确认双方套牌自机去向、完整复活名单、横置进场与结束阶段移除；夺取操控权、区域实例有效性、移除替代、衍生物及存档恢复 | `test_eternal_night_return.gd` |
 | 颜色盘取消一张／多张选牌后重新分配已选牌颜色、合法替代牌与实际扣费、混色／减费备选费用、成对产色／红薯／保留色及双座位联机视图；桌面／安卓选目标与确认支付阶段 | `test_payment_reselection.gd`、`test_payment_reselection_ui.gd` |
 | 自机表情五分饼图的桌面／安卓实际输入、响应权与弹框限制、十秒冷却、自机区／战场／离场锚点、双方座位的气泡方向、敌方未开通显示、投降及重复事件隔离、联机同步；真实第三方观战接收双方表情、双端两种视角显示全部台词及未开通的投降气泡，观战入口只读 | `test_leader_emotes.gd`、`test_leader_emotes_network.gd`、`test_leader_emotes_ui.gd`（有界面运行时保存截图） |
-| 香霖堂开业酬宾醒目横幅、全部商品进入特价分类、商品图案右下角红色 5 折标、固定半价向上取整、北京时间 11 月 2 日零时自动结束、原价恢复与过期确认保护、账号购买与装备隔离、原子扣款与重复购买、匿名授权及购买后联机发送 | `test_shop_store.py`、`test_shop_inventory.gd`、`test_shop_products.gd`、`test_shop_ui.gd`、`run_shop.py`（仅本机回环及临时数据库；商店 UI 有界面运行时保存截图） |
+| 香霖堂开业酬宾醒目横幅、付费商品进入特价分类、商品图案右下角红色 5 折标、固定半价向上取整、北京时间 11 月 2 日零时自动结束、原价恢复与过期确认保护、账号购买与装备隔离、原子扣款与重复购买、灵梦入场与梦想妙珠免费领取及按座位播放、匿名授权及购买后联机发送 | `test_shop_store.py`、`test_shop_inventory.gd`、`test_shop_products.gd`、`test_shop_effects.gd`、`test_shop_ui.gd`、`test_shop_preview.gd`、`run_shop.py`（仅本机回环及临时数据库；商店 UI 有界面运行时保存截图） |
 | 蕾米 AI 四个合法阻挡者停攻与夜王强化豁免、大量单位的阻挡组合上限、32／64 位移边界、双方共享截止时间、嵌套预算与模拟继承、80 单位真实决策及超时后的威吓阻挡回退 | `test_remilia_ai_budget.gd` |
 | 辉光城两种卡牌的关押与释放：出鞘整批移除后释放、双方座位与单位控制方、满战场腾格、双方城堡同时离场、失效关押关系及普通离场进场触发；双端叠放显示与联机视角 | `test_castle_release.gd`、`test_castle_exile_display.gd` |
 | 六根清净斩反制帕秋莉与其他分组目标能力、神奈子启动能力、分配伤害／多目标符卡、两种半灵、离场重进、六点伤害及双座位联机／存档；天ノ磐舟区分目标和费用 | `test_youmu_counter.gd` |

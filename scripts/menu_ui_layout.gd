@@ -44,6 +44,35 @@ func check(parent: Node,caption: String,checked: bool,callback: Callable) -> Che
  result.button_pressed=checked;result.toggled.connect(callback)
  return result
 
+func frame_rate_limit_control(parent: Node) -> HBoxContainer:
+ var row=HBoxContainer.new();row.name="FrameRateLimitControl";parent.add_child(row)
+ row.add_theme_constant_override("separation",metrics.gap)
+ expand(text(row,"帧率上限"))
+ var presets=["60","120","custom"]
+ var preset=OptionButton.new();preset.name="FrameRatePreset";row.add_child(preset)
+ for caption in ["60 FPS","120 FPS","自定义"]:preset.add_item(caption)
+ preset.select(presets.find(app.frame_rate_preset));metrics.button(preset)
+ var limit=LineEdit.new();limit.name="FrameRateLimit";row.add_child(limit)
+ limit.text=str(app.frame_rate_limit);limit.editable=app.frame_rate_preset=="custom"
+ limit.alignment=HORIZONTAL_ALIGNMENT_RIGHT;limit.max_length=4
+ limit.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER
+ limit.custom_minimum_size=Vector2(metrics.body*4,metrics.hit)
+ limit.tooltip_text="选择自定义后输入 0–1000 的整数，按回车或移开焦点即可生效并保存。0 为不限帧；实际帧率受设备性能和垂直同步影响。"
+ text(row,"FPS")
+ var host=app
+ var commit=func():
+  if not limit.editable or host.frame_rate_preset!="custom":return
+  var value=limit.text.strip_edges()
+  if value.is_valid_int():host.set_frame_rate_limit(value.to_float())
+  limit.text=str(host.frame_rate_limit)
+ limit.text_submitted.connect(func(_value):commit.call())
+ limit.focus_exited.connect(commit)
+ preset.item_selected.connect(func(index):
+  host.set_frame_rate_preset(presets[index])
+  limit.editable=host.frame_rate_preset=="custom";limit.text=str(host.frame_rate_limit)
+  if limit.editable:limit.grab_focus();limit.select_all())
+ return row
+
 func room_join_volume_control(parent: Node) -> HBoxContainer:
  var row=HBoxContainer.new();row.name="RoomJoinVolumeControl";parent.add_child(row)
  row.add_theme_constant_override("separation",metrics.gap)
@@ -84,8 +113,14 @@ func build_settings(host):
  var scroll=ScrollContainer.new();root.add_child(scroll);expand(scroll,true)
  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var body=column(scroll)
+ var frame_rate=frame_rate_limit_control(body)
  room_join_volume_control(body)
- if app.is_android:card_preview_duration_control(body)
+ if app.is_android:
+  var preview_duration=card_preview_duration_control(body)
+  if frame_rate.get_combined_minimum_size().x+preview_duration.get_combined_minimum_size().x+metrics.gap<=app.screen.size.x:
+   var timing=HBoxContainer.new();timing.name="SettingsTimingControls";body.add_child(timing);body.move_child(timing,0)
+   frame_rate.reparent(timing);preview_duration.reparent(timing)
+   expand(frame_rate);expand(preview_duration)
  if not app.is_android:
   check(body,"全屏显示",app.fullscreen,func(value):
    app.fullscreen=value

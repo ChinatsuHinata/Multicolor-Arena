@@ -54,4 +54,4 @@ def purchase(conn, player_id, product_id, expected_price=None):
             raise ValueError(f"铜钱不足，需要 {price} 铜钱")
         conn.execute("INSERT INTO shop_purchases(player_id,product_id,price,purchased_at) VALUES(?,?,?,?)",
                      (player_id, product_id, price, now))
-    return "购买成功，可在我的商品中管理对战开关"
+    return "领取成功，可在我的商品中管理对战开关" if price == 0 else "购买成功，可在我的商品中管理对战开关"

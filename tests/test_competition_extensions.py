@@ -66,6 +66,18 @@ class StageTests(unittest.TestCase):
         self.assertFalse(self.call("start_round", expected_round=2)["ok"])
         self.assertEqual(sum(amounts), self.conn.execute("SELECT SUM(coins) FROM task_wallets").fetchone()[0])
 
+    def test_single_bracket_keeps_winners_in_fixed_slots_with_seeded_byes(self):
+        self.create([{"kind": "single_elimination", "game_format": 1}], 6)
+        first = self.advance()
+        ids = [e["player_id"] for e in self.people[2:8]]
+        actual = self.conn.execute("SELECT player_a,player_b FROM tournament_pairings WHERE tournament_id=? ORDER BY table_number", (self.tid,)).fetchall()
+        self.assertEqual(actual, [(ids[0], None), (ids[3], ids[4]), (ids[1], None), (ids[2], ids[5])])
+        self.finish_pairs(winner=1)
+        second = self.advance()
+        self.assertEqual([p["names"] for p in second["pairings"]], [[self.people[2]["username"], self.people[6]["username"]], [self.people[3]["username"], self.people[7]["username"]]])
+        self.finish_pairs(); final = self.advance()
+        self.assertEqual(final["pairings"][0]["names"], [self.people[2]["username"], self.people[3]["username"]])
+
     def test_double_elimination_final_reset_and_no_early_elimination(self):
         for count in (2,3,5,8):
             self.create([{"kind":"double_elimination", "game_format":1}], count)

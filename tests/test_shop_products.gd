@@ -15,7 +15,7 @@ func run():
  var catalogue=JSON.parse_string(FileAccess.get_file_as_string("res://data/shop.json")).products
  var a=Store.blank("正式表情测试");a.main=["100","100","100","100","100","100"];a.rule_set="test"
  var b=a.duplicate(true);b.leader="70"
- for item in catalogue:
+ for item in catalogue.filter(func(product):return product.category=="emotes"):
   a.leader=item.leader_id
   var e=Duel.new();e.start(a,b,0,42);e.phase="main";e.pending={};e.entry_choices=[];e.presentation_events.clear()
   expect(not e.leader_emote_profiles[0].enabled,"purchase is required for "+item.id)
@@ -30,7 +30,7 @@ func run():
   e.surrender(0)
   expect(e.presentation_events.back().text==Emotes.PROFILES[item.leader_id].lines.surrender and e.winner==1,item.id+" surrender dialogue")
   expect(item.price==10 and ResourceLoader.exists(item.image),item.id+" price and portrait source")
- expect(catalogue.size()==Emotes.PROFILES.size(),"every dialogue profile has a shop product")
+ expect(catalogue.filter(func(product):return product.category=="emotes").size()==Emotes.PROFILES.size(),"every dialogue profile has a shop product")
  for special in [
   ["character-fdf-ex01","74","姐姐大人，是要和芙兰玩吗"],
   ["character-fdf-ex01","character-ucs-067","姐姐大人，是要和芙兰玩吗"],

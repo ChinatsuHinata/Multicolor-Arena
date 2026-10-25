@@ -58,7 +58,7 @@ const COLOR_INK={"红":Color("#cf5b60"),"蓝":Color("#4d94d5"),"绿":Color("#489
 var debug_mode=false
 var experiment_agent=LocalExperiment.new()
 var debug_controls: Control
-var debug_free_checkbox: CheckButton
+var debug_free_checkbox: CheckBox
 var debug_root: Control
 var debug_open=false
 var history_open=false
@@ -365,10 +365,12 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
 
  if debug_mode:
   debug_controls=layer(ui)
-  debug_free_checkbox=CheckButton.new()
+  debug_free_checkbox=CheckBox.new()
   debug_free_checkbox.text="无需付费"
-  debug_free_checkbox.position=Vector2(1308,58)
-  debug_free_checkbox.size=Vector2(140,34)
+  debug_free_checkbox.name="DebugFreePayment"
+  debug_free_checkbox.position=Vector2(132,100)
+  debug_free_checkbox.size=Vector2(104,44)
+  debug_free_checkbox.add_theme_font_size_override("font_size",16)
   debug_free_checkbox.button_pressed=engine.debug_free_payment
   debug_free_checkbox.tooltip_text="跳过出牌、异能与攻击的颜色费用"
   debug_free_checkbox.toggled.connect(func(value):
@@ -1064,7 +1066,7 @@ func configure_shop_products():
  var inventory=host.get("shop_inventory")
  if inventory==null:return
  battle_products=inventory.battle_loadout()
- engine.LeaderEmotes.equip(engine,local_seat,battle_products.keys())
+ engine.equip_shop_products(local_seat,battle_products.keys())
  # 台面可能已建好（重开一局），商品快照要同步过去；未建时 attach_fx 会用同一份。
  if is_instance_valid(table):table.set_fx_products(battle_products)
 
@@ -1153,7 +1155,7 @@ func toggle_android_palette(who: int):
 
 func keep_button_rect() -> Rect2:
  if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.enemy_life.size.x,host.ui_metrics.hit)
- return Rect2(INSPECTION.position.x,100,INSPECTION.size.x,44)
+ return Rect2(INSPECTION.position.x,100,108 if debug_mode else INSPECTION.size.x,44)
 
 func keep_popup_rect() -> Rect2:
  var gap=host.ui_metrics.gap
@@ -1189,7 +1191,8 @@ func keep_title_height() -> float:
 
 func keep_caption() -> String:
  var colors=host.auto_pay_keep_colors
- return ("保留色：" if is_android else "自动支付保留：")+("无" if colors.is_empty() else "".join(colors))
+ if debug_mode and not is_android:return "保留色："+("无" if colors.is_empty() else str(colors.size())+"色")
+ return ("保留色：" if is_android or debug_mode else "自动支付保留：")+("无" if colors.is_empty() else "".join(colors))
 
 func render_keep_color():
  keep_popup=null;keep_dismiss=null
@@ -1211,6 +1214,7 @@ func render_keep_color():
  button.z_index=111 if keep_popup_open else 0
  if is_android:host.ui_metrics.button(button)
  button.tooltip_text="自动支付时优先留下所选颜色；再点一次色块取消"
+ if debug_mode:button.tooltip_text+="\n当前保留："+("无" if host.auto_pay_keep_colors.is_empty() else "、".join(host.auto_pay_keep_colors))
  var font=button.get_theme_font("font")
  var size=host.ui_metrics.button_font if is_android else 16
  var floor_size=14 if is_android else 12
@@ -1369,7 +1373,6 @@ func update_field_capacity_position():
   var solved=clear_palette_pager_position(candidates[0],size,safe,blocked)
   chosen=solved if solved.is_finite() else candidates[0].clamp(safe.position,safe.end-size)
  field_capacity_badge.position=chosen
- field_capacity_badge.z_index=PAGER_Z-1
  field_capacity_badge.visible=not (is_android and android_palette_view)
 
 func next_zone_page(who: int,group: String):
@@ -2123,6 +2126,8 @@ func card_context_caption(c: Dictionary) -> String:
 func hand_card_tooltip(c: Dictionary) -> String:
  var info=engine.cards[c.card_id]
  var result=info.name+"\n"+CostDisplay.caption(info.cost)+( "  "+info.variable_cost+"X".repeat(maxi(1,int(info.get("variable_multiplier",1)))) if not info.variable_cost.is_empty() else "")
+ var owner=host.Store.Database.spell_owner_caption(info)
+ if not owner.is_empty():result+="\n"+owner
  var context=card_context_caption(c)
  return result+("\n"+context if not context.is_empty() else "")
 func refresh_stage_tooltip():
@@ -2395,11 +2400,20 @@ func _unhandled_key_input(event: InputEvent):
  if tutorial_runtime!=null and not tutorial_controls_enabled:return
  if is_instance_valid(android_battle_menu_root):return
  if host.menu_popup_open():return
- if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A,KEY_G,KEY_H]:return
+ if not event is InputEventKey or not event.pressed or event.echo or event.keycode not in [KEY_Q,KEY_A,KEY_G,KEY_H,KEY_C]:return
  if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:return
  if not is_visible_in_tree() or not is_instance_valid(table):return
  var focus=get_viewport().gui_get_focus_owner()
  if focus is LineEdit or focus is TextEdit:return
+ if event.keycode==KEY_C:
+  if can_debug_copy():
+   var uid=engine.debug_copy(debug_copy_source())
+   if uid>0:
+    var card=engine.find_card(uid)
+    inspect_card(card.card_id,uid,"",card.get("art_id",""))
+    message="已在原区域复制："+engine.cards[card.card_id].name
+    render();get_viewport().set_input_as_handled()
+  return
  if event.keycode in [KEY_G,KEY_H]:
   if revealing() or table.combat_animating or history_open or debug_drag_uid!=0:return
   var zone="grave" if event.keycode==KEY_G else "exile"
@@ -2634,7 +2648,9 @@ func _input(event: InputEvent):
  if debug_open and event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
   close_debug(); get_viewport().set_input_as_handled(); return
  if event is InputEventKey and event.pressed and not event.echo and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed and can_debug_add():
-  var destination={KEY_Z:"hand",KEY_X:"palette",KEY_C:"grave"}.get(event.keycode,"")
+  var focus=get_viewport().gui_get_focus_owner()
+  if focus is LineEdit or focus is TextEdit:return
+  var destination={KEY_Z:"hand",KEY_X:"palette"}.get(event.keycode,"")
   if not destination.is_empty():
    open_debug_card_picker(engine.active,destination)
    get_viewport().set_input_as_handled();return
@@ -3198,12 +3214,9 @@ func commit_local():
   local={};engine.choose_effect(paid_target);engine.paid_cast_uid=-1;picker.reset();selection=[];render();return
  if local.get("action","") in ["attack","direct_attack"]:
   engine.attack(acting_player(),local.uid,local.target,local.plan); local={}; selection=[]; picker.reset(); render(); return
- var cast_uid=local.uid if local.get("action","")=="" or local.get("action","")=="cast" else -1
  var error=engine.commit_extension(acting_player(),local.uid,activation_target(),local.plan,local.get("key","")) if local.get("action","")=="extension" else engine.commit_ability(acting_player(),local.uid,local.index,activation_target(),local.plan) if local.get("action","")=="ability" else engine.commit_cast(acting_player(),local.uid,local.target,local.plan)
  if error.is_empty():
   engine.paid_cast_uid=-1;local={}; selection=[]; picker.reset(); message=""; close_debug()
-  # 符卡使用特效：提交成功后才有演出，失败或反制不触发。
-  if cast_uid>0 and engine.cards.get(engine.find_card(cast_uid).card_id,{}).kind=="符卡":table.show_spell_effect(cast_uid)
  else: message=error
  modal=false; render()
 func cancel_cast():
@@ -3400,7 +3413,7 @@ func settings_menu():
   return
  var panel=overlay("对战设置")
  var m=host.ui_metrics
- var rows=8+(2 if is_android else 0)+(1 if debug_mode or (replay_view() and host.is_test_build and not is_android) else 0)
+ var rows=9+(2 if is_android else 0)+(1 if debug_mode or (replay_view() and host.is_test_build and not is_android) else 0)
  panel.size=Vector2(minf(840,m.safe.size.x-32),minf(m.safe.size.y-32,m.hit*rows+m.gap*(rows+1)+52))
  center_panel(panel)
  panel.get_node("DialogTitle").size=Vector2(panel.size.x-60,m.title*1.4)
@@ -3421,6 +3434,7 @@ func settings_menu():
 func build_battle_settings_options(column: VBoxContainer):
  var m=host.ui_metrics
  var toolkit=preload("res://scripts/menu_ui_layout.gd").new();toolkit.app=host;toolkit.metrics=m
+ toolkit.frame_rate_limit_control(column)
  var volume=toolkit.room_join_volume_control(column)
  if is_android:
   var caption=volume.get_child(0) as Label
@@ -3798,9 +3812,17 @@ func open_debug_help():
  guide.bbcode_enabled=true;guide.scroll_active=true
  guide.add_theme_font_size_override("normal_font_size",18)
  guide.add_theme_color_override("default_color",host.WHITE)
- guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。测试模式下点按「结束主要阶段」即可继续，无需长按。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\nC：加入当前回合玩家的墓地，包括梦违牌。\n\n[b]移动已有卡牌[/b]\n按住场上单位拖到所属玩家的单位区域可调整摆放顺序；拖到其他区域执行调试移动。在「更多操作」中点击「调试」可打开区域列表，列表和手牌中的卡面也可拖到所属玩家的目标区域。拖入战场需要先在「设置」中开启「允许调试拖动放入战场」。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
+ guide.text="[b]手动测试[/b]\n人机不会自动行动；顶部「操作」提示当前可操作的一方。双方手牌均可查看。「无需付费」只跳过颜色费用，目标和使用时机照常检查。测试模式下点按「结束主要阶段」即可继续，无需长按。\n\n[b]加入任意卡牌[/b]\n对抗和选择均为空时，左键点击双方战场的空白单位／道具／结界区域，搜索卡牌并加入对应阵营。可选梦违和衍生物。\nZ：加入当前回合玩家的手牌。\nX：竖直加入当前回合玩家的颜色盘。\n\n[b]复制已有卡牌[/b]\n右键查看要复制的卡牌，再按 C：在原所属玩家的同一区域复制一张。双方手牌、战场、颜色盘、牌库、墓地、除外区和自机区均可复制；保留横置、伤害、计时和指示物，牌库副本插在原牌之后。复制不触发进场、离场或死亡效果。文本输入、选择、拖动及动画期间不响应 C。\n\n[b]移动已有卡牌[/b]\n按住场上单位拖到所属玩家的单位区域可调整摆放顺序；拖到其他区域执行调试移动。在「更多操作」中点击「调试」可打开区域列表，列表和手牌中的卡面也可拖到所属玩家的目标区域。拖入战场需要先在「设置」中开启「允许调试拖动放入战场」。移入牌库会放在牌库顶。新增或调试移动不会触发进场、离场、死亡效果。\n\n[b]查看区域[/b]\n点击场上的牌库、墓地或除外区查看；G／H 可打开己方墓地／除外区。请先完成或取消当前选择，再加入或拖动卡牌。"
  panel.add_child(guide)
  btn("返回对局",Rect2(535,544,220,46),close_overlay,false,panel)
+
+func debug_copy_source() -> int:
+ if not debug_mode or engine==null:return 0
+ var card=engine.find_card(inspect_uid)
+ return inspect_uid if not card.is_empty() and card.zone in ["deck","hand","field","palette","grave","exile","leader"] else 0
+
+func can_debug_copy() -> bool:
+ return debug_mode and network_session==null and engine!=null and engine.debug_enabled and engine.winner==-2 and engine.phase!="mulligan" and engine.stack.is_empty() and engine.combat.is_empty() and engine.pending.is_empty() and local.is_empty() and not history_open and not observing and not modal and not revealing() and not table.is_animating() and drag_uid==0 and unit_drag_uid==0 and debug_drag_uid==0 and attack_preview_uid==0 and debug_copy_source()!=0
 
 func can_debug_add() -> bool:
  return debug_mode and network_session==null and engine!=null and engine.debug_enabled and engine.winner==-2 and engine.phase!="mulligan" and engine.stack.is_empty() and engine.combat.is_empty() and engine.pending.is_empty() and local.is_empty() and not history_open and not debug_open and not observing and not modal and not table.combat_animating and debug_drag_uid==0

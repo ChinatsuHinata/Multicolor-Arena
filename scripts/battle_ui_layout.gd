@@ -500,7 +500,7 @@ func position_persistent():
   if is_instance_valid(action_column):
    for action in action_column.get_children():minimum_action_height=maxf(minimum_action_height,action.get_combined_minimum_size().y)
   var inset=view.stack_panel.ANDROID_PANEL_INSET
-  var compact_heading=ceilf(wrapped_height("堆叠 %d" % view.engine.stack.size(),view.SIDEBAR.size.x-inset*2,metrics.small))+metrics.gap
+  var compact_heading=ceilf(wrapped_height("对抗区 %d" % view.engine.stack.size(),view.SIDEBAR.size.x-inset*2,metrics.small))+metrics.gap
   var minimum_stack_height=view.stack_panel.TOGGLE_SIZE.y if view.stack_panel.collapsed else ceilf(compact_heading+inset*2+view.stack_panel.ANDROID_CARD_SIZE.y+metrics.gap)+2
   if view.stack_panel.visible and available-restore_reserve<minimum_action_height+minimum_stack_height:
    # Leave the entire rail to stack cards and actions when touch density is high.
@@ -556,7 +556,7 @@ func position_persistent():
   view.stack_panel.heading.add_theme_font_size_override("font_size",metrics.body)
   view.stack_panel.heading.position=Vector2(stack_inset,stack_inset)
   view.stack_panel.heading.size=Vector2(view.SIDEBAR.size.x-stack_inset*2,heading_height-metrics.gap)
-  view.stack_panel.heading.text="堆叠 %d" % view.engine.unresolved_stack_entries().size()
+  view.stack_panel.heading.text="对抗区 %d" % view.engine.unresolved_stack_entries().size()
   view.stack_panel.heading.tooltip_text="从上往下结算"
   if view.network_session!=null:
    view.stack_panel.visible=view.stack_panel.visible and view.network_session.room.get("undo_request",{}).is_empty()

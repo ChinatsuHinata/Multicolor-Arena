@@ -8,6 +8,9 @@ const MOVE_SECONDS=0.30
 const RESULT_SECONDS=1.25
 const MOVE_BATCH_THRESHOLD=4
 const MOVE_BATCH_FACES=8
+const SPELL_POLL_SECONDS=0.05
+## 特效时钟停走时的兜底：最长预算 5 s 再留一点余量，队列绝不卡死。
+const SPELL_HOLD_LIMIT_MS=5500
 var view
 var busy=false
 var queue: Array=[]
@@ -25,6 +28,9 @@ var saved_hand: Dictionary={}
 var shown_at=0
 var started_at=0
 var move_ends={}
+## 正在占用演出队列的符卡特效模块（见 fx_spell_module.holding()）。
+var spell_effects: Array=[]
+var spell_wait_started=0
 
 func _ready():
  set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -38,7 +44,7 @@ func reset():
  if is_instance_valid(result_label):result_label.queue_free()
  if is_instance_valid(hand_node) and not saved_hand.is_empty():
   hand_node.visible=saved_hand.visible;hand_node.hidden_card=saved_hand.hidden;hand_node.art.texture=saved_hand.texture
- queue.clear();current={};public_uids.clear();completed.clear();movements.clear();results.clear();move_ends.clear();busy=false
+ queue.clear();current={};public_uids.clear();completed.clear();movements.clear();results.clear();move_ends.clear();spell_effects.clear();busy=false
  hand_node=null;saved_hand={};face=null;result_label=null
 func enqueue(events: Array):
  # Generated keystones become one visible stack immediately, without one
@@ -89,6 +95,11 @@ func next_card():
  if current.type=="result":show_result();return
  if current.type=="move":show_move();return
  if current.type=="move_batch":show_move_batch();return
+ # 符卡真正结算（未被反制、目标未失效）：开播符卡特效，并停住队列直到特效
+ # 放行，目标死亡、区域移动等后续演出与桌面同步都排在动画结算之后。
+ if current.type=="spell_resolved":
+  spell_effects=view.table.show_spell_effect(int(current.card.get("uid",0)),current);spell_wait_started=Time.get_ticks_msec()
+  await_spell_effects();return
  var c=current.card
  hand_node=null;saved_hand={}
  var nodes=view.hand_nodes if c.owner==view.local_seat else view.enemy_nodes
@@ -173,7 +184,11 @@ func zone_rect(zone: String,owner: int,uid: int,source: bool,destination_layout:
 func hidden_move(event: Dictionary) -> bool:
  var c=event.card
  return c.card_id=="back" or event.from in ["hand","deck"] and event.to in ["hand","deck"] and (c.owner!=view.local_seat and not view.replay_view() or event.from=="deck" and event.to=="deck") and not view.debug_mode
-func hide_move_source(event: Dictionary):
+func flight_source(rect: Rect2,texture: Texture2D) -> Dictionary:
+ var center=rect.get_center()
+ if not view.STAGE.has_point(center) or texture==null:return {}
+ return {"point":view.stage_point(center),"pixel_height":rect.size.y/view.STAGE.size.y*float(view.viewport.size.y),"texture":texture}
+func hide_move_source(event: Dictionary,flight: Dictionary={}) -> float:
  var c=event.card
  var stack_rect=view.stack_panel.card_rect(c.uid)
  if event.from=="stack" and stack_rect.has_area():
@@ -184,17 +199,22 @@ func hide_move_source(event: Dictionary):
  for nodes in [view.hand_nodes,view.enemy_nodes]:
   if nodes.has(c.uid):nodes[c.uid].hide()
  view.table.presented_moves[c.uid]=true
+ # 单位牌此刻开始飞向战场："进入前"入场特效与飞行同时开播，而非落地后。
+ if event.to=="field":return view.table.unit_departing(c.uid,MOVE_SECONDS,flight)
+ return 0.0
 func show_move():
  var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
  var hidden=hidden_move(current)
  var texture=view.host.texture("back") if hidden else view.card_texture(c)
  create_face(from.size,from.get_center(),texture)
- hide_move_source(current)
+ var seconds=MOVE_SECONDS
+ var owned=hide_move_source(current,flight_source(from,texture) if current.to=="field" and not hidden else {})
+ if owned>0.0:face.visible=false;seconds=owned
  if current.from==current.to and current.from=="deck":to.position.y-=20
  sequence=create_tween().set_parallel(true)
- sequence.tween_property(face,"position",to.position,MOVE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
- sequence.tween_property(face,"size",to.size,MOVE_SECONDS)
- if current.to in ["void","token"]:sequence.tween_property(face,"modulate:a",0.0,MOVE_SECONDS)
+ sequence.tween_property(face,"position",to.position,seconds).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+ sequence.tween_property(face,"size",to.size,seconds)
+ if current.to in ["void","token"]:sequence.tween_property(face,"modulate:a",0.0,seconds)
  sequence.chain().tween_callback(func():
   move_ends[c.uid]=to
   movements.append({"uid":c.uid,"from":current.from,"to":current.to,"hidden":hidden})
@@ -209,12 +229,17 @@ func show_move_batch():
   var to=zone_rect(event.to,event.to_owner,c.uid,false,layout)
   destinations[c.uid]=to
   if index<MOVE_BATCH_FACES:
-   create_face(from.size,from.get_center(),view.host.texture("back") if hidden_move(event) else view.card_texture(c))
+   var hidden=hidden_move(event)
+   var texture=view.host.texture("back") if hidden else view.card_texture(c)
+   create_face(from.size,from.get_center(),texture)
+   var seconds=MOVE_SECONDS
+   var owned=hide_move_source(event,flight_source(from,texture) if event.to=="field" and not hidden else {})
+   if owned>0.0:face.visible=false;seconds=owned
    batch_faces.append(face)
-   sequence.tween_property(face,"position",to.position,MOVE_SECONDS).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-   sequence.tween_property(face,"size",to.size,MOVE_SECONDS)
-   if event.to in ["void","token"]:sequence.tween_property(face,"modulate:a",0.0,MOVE_SECONDS)
-  hide_move_source(event)
+   sequence.tween_property(face,"position",to.position,seconds).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+   sequence.tween_property(face,"size",to.size,seconds)
+   if event.to in ["void","token"]:sequence.tween_property(face,"modulate:a",0.0,seconds)
+  else:hide_move_source(event)
  result_label=Label.new();result_label.text="×%d" % current.cards.size()
  result_label.position=Vector2(view.STAGE.get_center().x-30,view.STAGE.position.y+16)
  result_label.add_theme_font_size_override("font_size",24);result_label.add_theme_color_override("font_color",view.host.GOLD)
@@ -238,6 +263,13 @@ func hide_public():
  if is_instance_valid(hand_node) and not saved_hand.is_empty():
   hand_node.art.texture=saved_hand.texture;hand_node.hidden_card=saved_hand.hidden;hand_node.tooltip_text=saved_hand.tooltip
  card_hidden.emit(current.serial)
+func await_spell_effects():
+ if not busy:return
+ var capped=Time.get_ticks_msec()-spell_wait_started>SPELL_HOLD_LIMIT_MS
+ if not capped and spell_effects.any(func(module):return is_instance_valid(module) and module.has_method("holding") and module.holding()):
+  sequence=create_tween();sequence.tween_interval(SPELL_POLL_SECONDS);sequence.tween_callback(await_spell_effects);return
+ spell_effects.clear()
+ call_deferred("next_card")
 func finish_card():
  if is_instance_valid(hand_node) and not saved_hand.is_empty():hand_node.visible=saved_hand.visible
  hand_node=null;saved_hand={}

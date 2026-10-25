@@ -15,7 +15,10 @@ func run():
  expect(Time.get_unix_time_from_datetime_string("2026-11-01T16:00:00Z")==end,"sale ends at November 2 midnight in UTC+8")
  expect(not inv.sale_active(start-1) and inv.sale_active(start) and inv.sale_active(end-1) and not inv.sale_active(end),"sale has inclusive start and exclusive end")
  for item in inv.catalogue:
-  expect(inv.is_special(item,start) and inv.price_for(item,start)==5 and inv.price_for(item,end)==10,"all products are half price only during the sale: "+item.id)
+  if item.price>0:
+   expect(inv.is_special(item,start) and inv.price_for(item,start)==Inventory.discounted_price(item.price) and inv.price_for(item,end)==item.price,"paid products are half price only during the sale: "+item.id)
+  else:
+   expect(not inv.is_special(item,start) and inv.price_for(item,start)==0 and inv.price_for(item,end)==0,"free effects stay free without sale badges: "+item.id)
  expect(Inventory.discounted_price(11)==6 and Inventory.discounted_price(1)==1 and Inventory.discounted_price(0)==0,"half-price copper always rounds up")
  expect(not inv.catalogue.is_empty() and inv.product("test_leader_emotes").is_empty(),"test product is delisted even in test builds")
  inv.sync_session("ACCOUNT_A",{})

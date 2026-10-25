@@ -794,6 +794,7 @@ func handle_account(id: int,data: PackedByteArray):
  var platform_code=str(input.get("o","p"))
  if platform_code not in ["p","a"]:account_reply(id,{"ok":false,"message":"设备平台无效"});return
  var payload={"action":input.get("a",""),"username":input.get("u",""),"password":input.get("p",""),"device":input.get("d",""),"platform":"android" if platform_code=="a" else "pc","nickname":input.get("v",""),"token":input.get("s",""),"remember_token":input.get("r","")}
+ if payload.action=="limitless":payload.limitless_id=input.get("v","")
  if payload.action in ["task_claim","task_reroll"]:
   payload.day=input.get("d","");payload.slot=input.get("l");payload.task_id=input.get("q","")
  if payload.action=="shop_buy":

@@ -15,6 +15,7 @@ var started_at=0
 var session_token=""
 var remember_token=""
 var nickname=""
+var limitless_id=""
 var elo=1000
 var rank: Dictionary={}
 var tasks_snapshot: Dictionary={}
@@ -81,6 +82,9 @@ func clear_password_change():
 
 func update_nickname(value: String,token: String):
  send_request({"a":"nickname","v":value,"s":token,"t":int(Time.get_unix_time_from_system()),"n":Crypto.new().generate_random_bytes(8).hex_encode()})
+
+func update_limitless(value: String,token: String):
+ send_request({"a":"limitless","v":value,"s":token,"t":int(Time.get_unix_time_from_system()),"n":Crypto.new().generate_random_bytes(8).hex_encode()})
 
 func resume(saved_token: String):
  send_request({"a":"resume","r":saved_token,"d":device_id(),"o":platform_code(),"t":int(Time.get_unix_time_from_system()),"n":Crypto.new().generate_random_bytes(8).hex_encode()})
@@ -150,6 +154,7 @@ func _process(_delta):
     session_token=str(answer.get("token","")) if ok else ""
     remember_token=str(answer.get("remember_token","")) if ok else ""
     nickname=str(answer.get("nickname",name)) if ok else ""
+    limitless_id=str(answer.get("limitless_id","")) if ok else ""
     elo=int(answer.get("elo",1000)) if ok else 1000
     rank=answer.get("rank",{}) if ok else {}
     tasks_snapshot=answer.get("tasks",{}) if answer.get("tasks",{}) is Dictionary else {}

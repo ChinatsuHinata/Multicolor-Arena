@@ -61,7 +61,7 @@ func sale_active(now: float=-1) -> bool:
  return float(sale.get("starts_at",0))<=now and now<float(sale.get("ends_at",0))
 
 func is_special(item: Dictionary,now: float=-1) -> bool:
- return not item.get("test_only",false) and item.has("price") and sale_active(now) and (sale.get("all_products",false) or item.get("special",false))
+ return not item.get("test_only",false) and int(item.get("price",0))>0 and sale_active(now) and (sale.get("all_products",false) or item.get("special",false))
 
 static func discounted_price(price: int) -> int:
  # All present and future discounts are half price, rounded up to whole copper.

@@ -22,6 +22,7 @@ var ai_opponent="remilia"
 const PatchService=preload("res://scripts/pck_patch_service.gd")
 const PckAutoUpdater=preload("res://scripts/pck_auto_updater.gd")
 const RoomJoinSound=preload("res://scripts/room_join_sound.gd")
+const MAX_FRAME_RATE_LIMIT=1000
 const CardPreviewHold=preload("res://scripts/card_preview_hold_settings.gd")
 const AnnouncementStore=preload("res://scripts/announcement_store.gd")
 const AnnouncementPopup=preload("res://scripts/announcement_popup.gd")
@@ -117,8 +118,12 @@ var suppress_swipe_mouse_until=0
 var suppress_swipe_mouse_point=Vector2(-10000,-10000)
 var about_code=""
 var fullscreen = false
+var frame_rate_limit=0
+var frame_rate_preset="custom"
+var custom_frame_rate_limit=0
 var top_down_view = false
 var show_card_inspection = true
+var show_opponent_emotes = true
 var auto_pay_keep_colors: Array = []
 var delay_turn_end = true
 var auto_camera_focus = true
@@ -147,6 +152,8 @@ var sideboard_done: Button
 var replay_controller
 var account_name=""
 var account_nickname=""
+var account_limitless_id=""
+var account_limitless_input: LineEdit
 var account_elo=1000
 var account_rank: Dictionary={}
 var account_token=""
@@ -235,8 +242,14 @@ func _ready():
   var saved_settings = JSON.parse_string(FileAccess.get_file_as_string(settings_path))
   if saved_settings is Dictionary:
    fullscreen = saved_settings.get("fullscreen", false) == true
+   frame_rate_limit=normalize_frame_rate_limit(saved_settings.get("frame_rate_limit",0))
+   custom_frame_rate_limit=normalize_frame_rate_limit(saved_settings.get("custom_frame_rate_limit",frame_rate_limit))
+   var inferred_preset=str(frame_rate_limit) if frame_rate_limit in [60,120] else "custom"
+   frame_rate_preset=str(saved_settings.get("frame_rate_preset",inferred_preset))
+   if frame_rate_preset not in ["60","120","custom"]:frame_rate_preset=inferred_preset
    top_down_view = saved_settings.get("top_down_view", false) == true
    show_card_inspection = saved_settings.get("show_card_inspection", true) == true
+   show_opponent_emotes = saved_settings.get("show_opponent_emotes", true) == true
    if saved_settings.get("auto_pay_keep_colors") is Array:
     for color in saved_settings.auto_pay_keep_colors:
      if str(color) in ["红","蓝","绿","黄","黑"] and not auto_pay_keep_colors.has(str(color)):auto_pay_keep_colors.append(str(color))
@@ -259,6 +272,7 @@ func _ready():
    replay_training_mode = is_test_build and not is_android and saved_settings.get("replay_training_mode", false) == true
    if saved_settings.get("completed_tutorials") is Dictionary:
     completed_tutorials = saved_settings.completed_tutorials.duplicate()
+ apply_frame_rate_limit()
  if fullscreen: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
  apply_ui_style()
  CardPreviewHold.seconds=android_card_preview_seconds
@@ -582,7 +596,7 @@ func open_tournaments():
  screen.add_child(tournament_ui)
 
 func tournament_login_expired(message: String):
- account_name="";account_nickname="";account_token="";account_elo=1000;account_rank={}
+ account_name="";account_nickname="";account_limitless_id="";account_token="";account_elo=1000;account_rank={}
  open_tournaments();account_notice=message
  if is_instance_valid(account_status_label):account_status_label.text=message
 
@@ -928,16 +942,18 @@ func account_page(password_change: bool=false):
  var next_page="account_password" if password_change else "account"
  var same_page=page==next_page
  var focused=get_viewport().gui_get_focus_owner()
- var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input,account_old_password_input] else ""
+ var focused_name=focused.name if focused!=null and focused in [account_username_input,account_password_input,account_confirm_input,account_old_password_input,account_limitless_input] else ""
  var focused_caret=focused.get_caret_column() if focused is LineEdit and not focused_name.is_empty() else 0
  var saved_username=account_username_input.text if same_page and is_instance_valid(account_username_input) and account_username_input.name=="AccountUsername" else ""
  var saved_nickname=account_username_input.text if same_page and is_instance_valid(account_username_input) and account_username_input.name=="AccountNickname" else ""
+ var saved_limitless=account_limitless_input.text if same_page and is_instance_valid(account_limitless_input) else account_limitless_id
  var saved_password=account_password_input.text if same_page and is_instance_valid(account_password_input) else ""
  var saved_confirm=account_confirm_input.text if same_page and is_instance_valid(account_confirm_input) else ""
  var saved_old_password=account_old_password_input.text if same_page and is_instance_valid(account_old_password_input) else ""
  var saved_status=account_notice if account_action=="resume" and account_pending else account_status_label.text if is_instance_valid(account_status_label) else account_notice
  clear_page(next_page)
  account_username_input=null
+ account_limitless_input=null
  account_old_password_input=null;account_password_change_button=null
  account_password_input=null;account_confirm_input=null
  var margin=MarginContainer.new();screen.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -999,6 +1015,9 @@ func account_page(password_change: bool=false):
    if is_android:rating.add_theme_font_size_override("font_size",mini(ui_metrics.small,30))
    account_username_input=LineEdit.new();account_username_input.name="AccountNickname";account_username_input.text=saved_nickname if not saved_nickname.is_empty() else account_nickname;account_username_input.max_length=20;account_username_input.placeholder_text="设置房间中显示的昵称";form.add_child(account_username_input);account_username_input.custom_minimum_size.y=ui_metrics.hit
    var change=button(form,"保存昵称",Rect2(),account_change_nickname);ui_metrics.button(change);change.disabled=account_pending
+   var limitless_note=Label.new();limitless_note.text="Limitless 账号 ID（用户名，非显示昵称；留空可清除）。已开赛赛事须经管理员核验身份。";limitless_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;form.add_child(limitless_note);limitless_note.add_theme_font_size_override("font_size",ui_metrics.small)
+   account_limitless_input=LineEdit.new();account_limitless_input.name="AccountLimitlessID";account_limitless_input.text=saved_limitless;account_limitless_input.max_length=32;account_limitless_input.placeholder_text="例如 doctorblack";account_limitless_input.custom_minimum_size.y=ui_metrics.hit;account_limitless_input.editable=not account_pending;form.add_child(account_limitless_input)
+   var save_limitless=button(form,"保存 Limitless 账号 ID",Rect2(),account_change_limitless);save_limitless.name="AccountSaveLimitless";ui_metrics.button(save_limitless);save_limitless.disabled=account_pending
    var password_entry=button(form,"修改密码",Rect2(),account_password_page);password_entry.name="AccountOpenPasswordChange";ui_metrics.button(password_entry);password_entry.disabled=account_pending
    var logout=button(form,"退出账号",Rect2(),account_logout);ui_metrics.button(logout);logout.disabled=account_pending
  else:
@@ -1036,6 +1055,7 @@ func account_page(password_change: bool=false):
  elif is_instance_valid(account_password_input) and account_password_input.name==focused_name:focus_target=account_password_input
  elif is_instance_valid(account_confirm_input) and account_confirm_input.name==focused_name:focus_target=account_confirm_input
  elif is_instance_valid(account_old_password_input) and account_old_password_input.name==focused_name:focus_target=account_old_password_input
+ elif is_instance_valid(account_limitless_input) and account_limitless_input.name==focused_name:focus_target=account_limitless_input
  if focus_target!=null:
   focus_target.grab_focus.call_deferred()
   focus_target.set_caret_column.call_deferred(focused_caret)
@@ -1117,6 +1137,16 @@ func account_change_nickname():
  account_client.finished.connect(account_request_finished)
  account_client.update_nickname(value,account_token)
 
+func account_change_limitless():
+ if account_pending or account_token.is_empty() or not is_instance_valid(account_limitless_input):return
+ var value=account_limitless_input.text.strip_edges()
+ var pattern=RegEx.new();pattern.compile("^[A-Za-z0-9_-]{0,32}$")
+ if pattern.search(value)==null:account_status_label.text="Limitless 账号 ID 仅支持英文字母、数字、下划线或短横线";return
+ account_pending=true;account_action="limitless";account_status_label.text="正在保存 Limitless 账号 ID…"
+ account_client=preload("res://scripts/account_client.gd").new();add_child(account_client)
+ account_client.finished.connect(account_request_finished)
+ account_client.update_limitless(value,account_token)
+
 func account_logout():
  if account_pending or account_token.is_empty():return
  account_pending=true;account_action="logout";account_status_label.text="正在退出账号…"
@@ -1132,11 +1162,13 @@ func account_request_finished(ok: bool,message: String,username: String):
  var returned_token=account_client.session_token if is_instance_valid(account_client) else ""
  var returned_remember_token=account_client.remember_token if is_instance_valid(account_client) else ""
  var returned_nickname=account_client.nickname if is_instance_valid(account_client) else ""
+ var returned_limitless=account_client.limitless_id if is_instance_valid(account_client) else ""
  var returned_elo=account_client.elo if is_instance_valid(account_client) else 1000
  var returned_rank=account_client.rank.duplicate(true) if is_instance_valid(account_client) else {}
  if is_instance_valid(account_client):account_client.queue_free();account_client=null
  if account_action=="logout" or (account_action=="password" and ok):
   account_name="";account_nickname="";account_token="";account_remember_token="";account_elo=1000;account_rank={}
+  account_limitless_id=""
   account_mode="login"
   AccountSessionStore.clear(account_session_path)
   for field in [account_old_password_input,account_password_input,account_confirm_input]:
@@ -1146,12 +1178,16 @@ func account_request_finished(ok: bool,message: String,username: String):
  if ok:
   match account_action:
    "login","resume":
+    account_limitless_id=returned_limitless
     account_name=username;account_nickname=returned_nickname;account_token=returned_token;account_remember_token=returned_remember_token;account_elo=returned_elo;account_rank=returned_rank
     if is_instance_valid(lan_session):lan_session.cloud_token=account_token;lan_session.cloud_nickname=account_nickname
     if not AccountSessionStore.save_token(preload("res://scripts/account_client.gd").device_id(),returned_remember_token,account_session_path):
      message+="；本机未能保存自动登录凭据"
    "register":account_mode="login"
    "nickname":account_nickname=returned_nickname;account_elo=returned_elo;account_rank=returned_rank
+   "limitless":
+    account_limitless_id=returned_limitless
+    if is_instance_valid(account_limitless_input):account_limitless_input.text=returned_limitless
  elif account_action=="resume" and message=="自动登录已失效，请重新登录":
   AccountSessionStore.clear(account_session_path)
  account_notice=message
@@ -1178,7 +1214,7 @@ func account_request_finished(ok: bool,message: String,username: String):
   return
  if page=="menu" and ok:menu()
  if page in ["account","account_password"]:
-  if ok or account_action=="password":
+  if ok or account_action in ["password","limitless"]:
    if page=="account_password" and not account_name.is_empty():account_password_page()
    else:account_page()
   if is_instance_valid(account_status_label):account_status_label.text=message
@@ -1489,9 +1525,30 @@ func set_sakura_ui(value: bool):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"auto_pay_keep_colors":auto_pay_keep_colors,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"frame_rate_limit":frame_rate_limit,"frame_rate_preset":frame_rate_preset,"custom_frame_rate_limit":custom_frame_rate_limit,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"show_opponent_emotes":show_opponent_emotes,"auto_pay_keep_colors":auto_pay_keep_colors,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
+
+func normalize_frame_rate_limit(value) -> int:
+ if not (value is int or value is float):return 0
+ if not is_finite(float(value)):return 0
+ return roundi(clampf(float(value),0,MAX_FRAME_RATE_LIMIT))
+
+func set_frame_rate_limit(value: float):
+ frame_rate_preset="custom"
+ custom_frame_rate_limit=normalize_frame_rate_limit(value)
+ apply_frame_rate_limit()
+ save_settings()
+
+func set_frame_rate_preset(value: String):
+ if value not in ["60","120","custom"]:return
+ frame_rate_preset=value
+ apply_frame_rate_limit()
+ save_settings()
+
+func apply_frame_rate_limit():
+ frame_rate_limit=custom_frame_rate_limit if frame_rate_preset=="custom" else int(frame_rate_preset)
+ Engine.max_fps=frame_rate_limit
 
 func set_room_join_volume(value: float):
  room_join_volume=RoomJoinSound.normalize_volume(value)
@@ -1513,6 +1570,11 @@ func set_top_down_view(value: bool):
 
 func set_show_card_inspection(value: bool):
  show_card_inspection=value
+ save_settings()
+
+func set_show_opponent_emotes(value: bool):
+ show_opponent_emotes=value
+ if is_instance_valid(duel_view) and is_instance_valid(duel_view.emotes):duel_view.emotes.refresh()
  save_settings()
 
 func set_auto_pay_keep_colors(colors: Array):
@@ -1588,7 +1650,7 @@ func require_deck_login(destination: String) -> bool:
  return false
 
 func deck_login_expired(destination: String,message: String):
- account_name="";account_nickname="";account_token="";account_elo=1000;account_rank={}
+ account_name="";account_nickname="";account_limitless_id="";account_token="";account_elo=1000;account_rank={}
  sync_private_cloud_decks()
  require_deck_login(destination)
  account_notice=message
@@ -2837,6 +2899,8 @@ func desktop_settings():
  button(screen,"关于",Rect2(1260,32,140,46),about)
  var sound_settings=preload("res://scripts/menu_ui_layout.gd").new()
  sound_settings.app=self;sound_settings.metrics=ui_metrics
+ var frame_rate_row=sound_settings.frame_rate_limit_control(screen)
+ frame_rate_row.position=Vector2(420,142);frame_rate_row.size=Vector2(700,48)
  var sound_row=sound_settings.room_join_volume_control(screen)
  sound_row.position=Vector2(420,202);sound_row.size=Vector2(700,60)
  var cb = CheckButton.new()

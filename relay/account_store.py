@@ -54,6 +54,8 @@ def database(path):
     columns = {row[1] for row in conn.execute("PRAGMA table_info(players)")}
     if "nickname" not in columns:
         conn.execute("ALTER TABLE players ADD COLUMN nickname TEXT NOT NULL DEFAULT ''")
+    if "limitless_id" not in columns:
+        conn.execute("ALTER TABLE players ADD COLUMN limitless_id TEXT NOT NULL DEFAULT ''")
     if "elo" not in columns:
         conn.execute(f"ALTER TABLE players ADD COLUMN elo INTEGER NOT NULL DEFAULT {INITIAL_ELO}")
     for column in ("rank_step", "rank_stars", "rank_streak"):
@@ -154,9 +156,9 @@ def player_rank(conn, player_id):
             "stars": stars, "streak": streak, "position": position}
 
 
-def response(ok, message, username="", nickname="", token="", remember_token="", platform="", elo=None, rank=None):
+def response(ok, message, username="", nickname="", token="", remember_token="", platform="", elo=None, rank=None, limitless_id=""):
     return {"ok": ok, "message": message, "username": username,
-            "nickname": nickname, "token": token, "remember_token": remember_token,
+            "nickname": nickname, "token": token, "remember_token": remember_token, "limitless_id": limitless_id,
             "platform": platform, **({"elo": elo} if elo is not None else {}),
             **({"rank": rank} if rank is not None else {})}
 
@@ -171,7 +173,8 @@ def verify(conn, token):
         player_id, username, nickname, _, device, _, platform, elo = row
         return {"ok": True, "username": username, "nickname": nickname or username,
                 "device": device, "platform": platform, "player_id": player_id, "elo": elo,
-                "rank": player_rank(conn, player_id)}
+                "rank": player_rank(conn, player_id),
+                "limitless_id": conn.execute("SELECT limitless_id FROM players WHERE id=?", (player_id,)).fetchone()[0]}
     return response(False, "登录已失效，请重新登录")
 
 
@@ -289,8 +292,9 @@ def handle(conn, data):
             conn.execute("""UPDATE sessions SET token_hash=?,issued_at=?,remember_hash=?,remember_issued_at=?
                 WHERE player_id=? AND platform=?""", (hashlib.sha256(token.encode("ascii")).digest(), now,
                     hashlib.sha256(remember_token.encode("ascii")).digest(), now, row[0], row[5]))
-        return response(True, "已自动登录", row[1], row[2] or row[1], token, remember_token, row[5], elo=row[6], rank=player_rank(conn, row[0]))
-    if action in ("verify", "nickname", "logout", "tasks", "task_claim", "task_reroll", "shop_buy"):
+        return response(True, "已自动登录", row[1], row[2] or row[1], token, remember_token, row[5], elo=row[6], rank=player_rank(conn, row[0]),
+                        limitless_id=conn.execute("SELECT limitless_id FROM players WHERE id=?", (row[0],)).fetchone()[0])
+    if action in ("verify", "nickname", "limitless", "logout", "tasks", "task_claim", "task_reroll", "shop_buy"):
         account = verify(conn, data.get("token"))
         if action == "logout" and not account["ok"]:
             row = remembered_session(conn, data.get("remember_token"), data.get("device"))
@@ -302,6 +306,15 @@ def handle(conn, data):
             return account
         if action == "verify":
             return account
+        if action == "limitless":
+            try:
+                with conn:
+                    # Older relays forward the encrypted generic value as nickname.
+                    value = tournament_store.tournament_limitless.update_account(conn, account["player_id"], data.get("limitless_id", data.get("nickname")))
+                return response(True, "Limitless 账号 ID 已保存", account["username"], account["nickname"],
+                                elo=account["elo"], rank=account["rank"], limitless_id=value)
+            except ValueError as exc:
+                return response(False, str(exc))
         if action == "tasks":
             return {"ok": True, "message": "任务已同步", "tasks": account_tasks(conn, account)}
         if action in ("task_claim", "task_reroll", "shop_buy"):
@@ -324,7 +337,7 @@ def handle(conn, data):
             return response(False, "昵称不能为空")
         with conn:
             conn.execute("UPDATE players SET nickname=? WHERE id=?", (nickname, account["player_id"]))
-        return response(True, "昵称已更新", account["username"], nickname, elo=account["elo"], rank=account["rank"])
+        return response(True, "昵称已更新", account["username"], nickname, elo=account["elo"], rank=account["rank"], limitless_id=account["limitless_id"])
     username = data.get("username")
     password = data.get("password")
     device = data.get("device")
@@ -375,7 +388,8 @@ def handle(conn, data):
              hashlib.sha256(remember_token.encode("ascii")).digest(), now))
     failures.pop(key, None)
     nickname, elo = conn.execute("SELECT nickname,elo FROM players WHERE id=?", (row[0],)).fetchone()
-    return response(True, "登录成功", row[1], nickname or row[1], token, remember_token, platform, elo=elo, rank=player_rank(conn, row[0]))
+    return response(True, "登录成功", row[1], nickname or row[1], token, remember_token, platform, elo=elo, rank=player_rank(conn, row[0]),
+                    limitless_id=conn.execute("SELECT limitless_id FROM players WHERE id=?", (row[0],)).fetchone()[0])
 
 
 def handle_match(conn, data):

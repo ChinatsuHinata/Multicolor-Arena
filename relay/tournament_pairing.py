@@ -4,11 +4,14 @@ from collections import deque
 
 def knockout_pairs(players):
     """Place ranked entrants so the top two seeds can only meet in the final."""
+    if not players:
+        return []
     order = [0, 1]
     while len(order) < len(players):
         size = len(order) * 2
         order = [seed for first in order for seed in (first, size - 1 - first)]
-    return [(players[order[index]], players[order[index + 1]]) for index in range(0, len(order), 2)]
+    slots = [players[seed] if seed < len(players) else None for seed in order]
+    return [(a, b) if a is not None else (b, a) for a, b in zip(slots[::2], slots[1::2])]
 
 
 def perfect_matching(graph):

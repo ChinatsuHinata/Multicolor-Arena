@@ -5,6 +5,7 @@ import time
 import json
 import community_store
 import tournament_rules
+import tournament_limitless
 from tournament_pairing import knockout_pairs, swiss_pairs
 
 ORGANIZER_USERNAMES = frozenset(("bigcake", "heixingboshi"))
@@ -60,6 +61,7 @@ def initialize(conn):
         message TEXT NOT NULL DEFAULT '')""")
     conn.execute("CREATE INDEX IF NOT EXISTS tournament_schedules_due ON tournament_schedules(status,due_at)")
     tournament_rules.initialize(conn)
+    tournament_limitless.initialize(conn)
 
 
 def config(conn, tournament_id):
@@ -67,12 +69,12 @@ def config(conn, tournament_id):
                                                 (tournament_id,)).fetchone()))
 
 
-def can_create(account, conn=None):
-    return community_store.has_role(conn, account, "tournament_admin") if conn is not None else community_store.is_super(account)
+def can_create(account, conn):
+    return community_store.has_role(conn, account, "tournament_admin")
 
 
 def can_manage(conn, account, owner):
-    return community_store.is_super(account) or can_create(account, conn) and owner == account["player_id"]
+    return community_store.is_super(account, conn) or can_create(account, conn) and owner == account["player_id"]
 
 
 def error(message):
@@ -93,7 +95,9 @@ def record(conn, row, account):
     pending = conn.execute("SELECT COUNT(*) FROM tournament_pairings WHERE tournament_id=? AND round_number=? AND result IS NULL",
                            (tournament_id, settings["round_number"])).fetchone()[0]
     return {"id": tournament_id, "title": title, "description": description, "phase": phase, **settings, **tournament_rules.config(conn, tournament_id),
-            "super_admin": community_store.is_super(account),
+            "pairing_source": "limitless" if tournament_limitless.bound(conn, tournament_id) else "local",
+            "limitless_admission": tournament_limitless.admission(conn, tournament_id, account["player_id"]),
+            "super_admin": community_store.is_super(account, conn),
             "pending_matches": pending,
             "created_at": created, "owned": can_manage(conn, account, owner),
             "joined": member is not None, "checked_in": member is not None and member[0] is not None,
@@ -101,7 +105,7 @@ def record(conn, row, account):
             "member_count": counts[0], "checkin_count": counts[1], "roster_count": counts[2]}
 
 
-def detail(conn, row, account, page=0, roster_only=False, message="", pairing_page=0, standing_page=0):
+def detail(conn, row, account, page=0, roster_only=False, message="", pairing_page=0, standing_page=0, pairing_round=0, query=None):
     condition = " AND m.in_roster=1" if roster_only else ""
     count = conn.execute("SELECT COUNT(*) FROM tournament_members m WHERE m.tournament_id=?" + condition,
                          (row[0],)).fetchone()[0]
@@ -111,15 +115,18 @@ def detail(conn, row, account, page=0, roster_only=False, message="", pairing_pa
         FROM tournament_members m JOIN players p ON p.id=m.player_id WHERE m.tournament_id=?""" + condition +
         " ORDER BY m.joined_at,m.player_id LIMIT ? OFFSET ?", (row[0], MEMBER_PAGE_SIZE, page * MEMBER_PAGE_SIZE)).fetchall()
     competition = record(conn, row, account)
+    selected_round = pairing_round or competition["round_number"]
+    round_row = conn.execute("SELECT number,stage,stage_index,stage_round FROM tournament_rounds WHERE tournament_id=? AND number=?",
+                             (row[0], selected_round)).fetchone()
     standings = standings_for(conn, row[0])
     standing_pages = max(1, math.ceil(len(standings) / MEMBER_PAGE_SIZE))
     standing_page = min(standing_page, standing_pages - 1)
     pairing_count = conn.execute("SELECT COUNT(*) FROM tournament_pairings WHERE tournament_id=? AND round_number=?",
-                                (row[0], competition["round_number"])).fetchone()[0]
+                                (row[0], selected_round)).fetchone()[0]
     pairing_pages = max(1, math.ceil(pairing_count / PAIR_PAGE_SIZE))
     pairing_page = min(pairing_page, pairing_pages - 1)
     pairings = conn.execute("SELECT id FROM tournament_pairings WHERE tournament_id=? AND round_number=? ORDER BY table_number LIMIT ? OFFSET ?",
-                           (row[0], competition["round_number"], PAIR_PAGE_SIZE, pairing_page * PAIR_PAGE_SIZE)).fetchall()
+                           (row[0], selected_round, PAIR_PAGE_SIZE, pairing_page * PAIR_PAGE_SIZE)).fetchall()
     mine = conn.execute("""SELECT id FROM tournament_pairings WHERE tournament_id=? AND round_number=?
         AND (player_a=? OR player_b=?)""", (row[0], competition["round_number"], account["player_id"], account["player_id"])).fetchone()
     schedules = conn.execute("""SELECT id,action,due_at,expected_round,status,message FROM tournament_schedules
@@ -127,6 +134,9 @@ def detail(conn, row, account, page=0, roster_only=False, message="", pairing_pa
     public_standings = [{key: value for key, value in entry.items() if key not in ("player_id",)}
                         for entry in standings[standing_page * MEMBER_PAGE_SIZE:(standing_page + 1) * MEMBER_PAGE_SIZE]]
     return {"ok": True, "message": message, "tournament": competition,
+            "pairing_round": selected_round, "round_info": dict(zip(("number", "stage", "stage_index", "stage_round"), round_row)) if round_row else {},
+            "limitless": tournament_limitless.view(conn, row[0], {**(query or {}), "owned": competition["owned"]}),
+            "join_requests": tournament_limitless.requests_view(conn, row[0], int((query or {}).get("request_page", 0))) if competition["owned"] else {},
             "standings": public_standings, "standing_page": standing_page, "standing_pages": standing_pages,
             "pairings": [pairing_record(conn, pair[0], account) for pair in pairings],
             "pairing_page": pairing_page, "pairing_pages": pairing_pages,
@@ -170,7 +180,7 @@ def handle_group(conn, data, account):
         rows = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE phase!='deleted' ORDER BY id DESC LIMIT ? OFFSET ?",
                             (PAGE_SIZE, page * PAGE_SIZE)).fetchall()
         return {"ok": True, "message": "", "can_create": can_create(account, conn),
-                "super_admin": community_store.is_super(account),
+                "super_admin": community_store.is_super(account, conn),
                 "tournaments": [record(conn, row, account) for row in rows], "page": page, "pages": pages, "total": count}
     tournament_id = data.get("id")
     if not integer(tournament_id, 1):
@@ -187,6 +197,22 @@ def handle_group(conn, data, account):
     player_id, phase = account["player_id"], row[4]
     member = conn.execute("SELECT checked_in_at FROM tournament_members WHERE tournament_id=? AND player_id=?",
                           (tournament_id, player_id)).fetchone()
+    if tournament_limitless.bound(conn, tournament_id):
+        state = tournament_limitless.admission(conn, tournament_id, player_id)
+        if action == "leave" and state.get("status") == "pending":
+            with conn:
+                conn.execute("UPDATE tournament_limitless_requests SET status='withdrawn' WHERE tournament_id=? AND player_id=?", (tournament_id, player_id))
+            return detail(conn, row, account, message="已撤回加入申请")
+        if action == "join" and member is None:
+            if not state.get("can_join") and state.get("status") != "pending":
+                return error(state["reason"])
+            if state.get("started"):
+                try:
+                    with conn:
+                        message = tournament_limitless.apply_join(conn, tournament_id, player_id)
+                    return detail(conn, row, account, message=message)
+                except ValueError as exc:
+                    return error(str(exc))
     if action in ("open_checkin", "close_checkin"):
         if not can_manage(conn, account, row[1]):
             return error("仅主办方可以管理赛前签到")
@@ -226,6 +252,8 @@ def handle_group(conn, data, account):
                 return error("你尚未加入比赛群组")
             with conn:
                 conn.execute("DELETE FROM tournament_members WHERE tournament_id=? AND player_id=?", (tournament_id, player_id))
+                conn.execute("DELETE FROM tournament_limitless_players WHERE tournament_id=? AND player_id=?", (tournament_id, player_id))
+                conn.execute("UPDATE tournament_limitless_requests SET status='withdrawn' WHERE tournament_id=? AND player_id=?", (tournament_id, player_id))
             message = "已退出比赛群组"
         else:
             if member is None:
@@ -241,6 +269,8 @@ def handle_group(conn, data, account):
 
 
 def standings_for(conn, tournament_id):
+    if tournament_limitless.bound(conn, tournament_id):
+        return tournament_limitless.local_standings(conn, tournament_id)
     if tournament_rules.config(conn, tournament_id)["stages"]:
         if conn.execute("SELECT phase FROM tournaments WHERE id=?", (tournament_id,)).fetchone()[0] == "complete":
             return tournament_rules.final_standings(conn, tournament_id)
@@ -296,6 +326,7 @@ def pairing_record(conn, pairing_id, account):
             names.append(name or f"选手{seed:02d}")
     scores = conn.execute("SELECT score_a,score_b,report_score_a,report_score_b FROM tournament_pairings WHERE id=?", (pairing_id,)).fetchone()
     return {"id": row[0], "table": row[1], "names": names, "actor": actor, "bye": row[3] is None,
+            "external_match": conn.execute("SELECT external_match FROM tournament_pairings WHERE id=?", (pairing_id,)).fetchone()[0],
             "scores": list(scores[:2]), "report_scores": [json.loads(v) if v else None for v in scores[2:]],
             "result": row[4], "reports": list(row[5:7]), "revision": row[7], "source": row[8],
             "match_id": row[9] if actor >= 0 else "", "game_active": bool(row[10])}
@@ -344,6 +375,8 @@ def seed_roster(conn, tournament_id):
 
 
 def start_round(conn, tournament_id, expected_round, now=None):
+    if tournament_limitless.bound(conn, tournament_id):
+        return tournament_limitless.start_round(conn, tournament_id, expected_round, int(time.time()) if now is None else now)
     if tournament_rules.config(conn, tournament_id)["stages"]:
         return tournament_rules.advance_round(conn, tournament_id, expected_round, now)
     now = int(time.time()) if now is None else now
@@ -398,6 +431,8 @@ def start_round(conn, tournament_id, expected_round, now=None):
 
 
 def handle_result(conn, data, account, row):
+    if tournament_limitless.bound(conn, row[0]):
+        return error("此比赛以 Limitless 为准，请先在 Limitless 登记结果，再同步到游戏内")
     pairing_id, result, revision = data.get("pairing_id"), data.get("result"), data.get("revision")
     if not integer(pairing_id, 1) or type(result) not in (int, float) or result not in (-1, 0, 1) or not integer(revision):
         return error("结果表格式无效")
@@ -450,6 +485,25 @@ def handle(conn, data, account):
         return handle_group(conn, data, account)
     open_due_checkins(conn)
     action = data.get("action")
+    if action == "create_limitless":
+        if not can_create(account, conn):
+            return error("仅赛事管理员可从 Limitless 创建比赛")
+        try:
+            external = tournament_limitless.tournament_id(data.get("url"))
+        except ValueError as exc:
+            return error(str(exc))
+        existing = conn.execute("""SELECT t.id FROM tournaments t JOIN tournament_limitless l ON l.tournament_id=t.id
+            WHERE t.owner_id=? AND l.external_id=? AND t.phase!='deleted'""", (account["player_id"], external)).fetchone()
+        if existing:
+            row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", existing).fetchone()
+            return detail(conn, row, account, message="已打开你导入的同一 Limitless 比赛")
+        with conn:
+            tid = conn.execute("INSERT INTO tournaments(owner_id,title,description,created_at) VALUES(?,'Limitless 赛事（同步中）','',?)", (account["player_id"], int(time.time()))).lastrowid
+            conn.execute("""INSERT INTO tournament_limitless(tournament_id,external_id,generation,auto_sync,import_pending)
+                VALUES(?,?,?,1,1)""", (tid, external, secrets.token_hex(16)))
+        message = tournament_limitless.request_sync(conn, tid)
+        row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", (tid,)).fetchone()
+        return detail(conn, row, account, message="已建立赛事，名称、时间和签表将在同步后填入；" + message)
     if action == "create":
         try:
             format_name, rounds, interval = settings_input(data)
@@ -459,8 +513,8 @@ def handle(conn, data, account):
             if not stages and game_format == 7 and format_name != "swiss":
                 raise ValueError("BO2 淘汰阶段需决胜局制，请使用自定义阶段为淘汰赛指定 BO1/BO3/BO5")
             rewards = tournament_rules.rewards_input(data.get("rewards", tournament_rules.DEFAULT_REWARDS))
-            if rewards != tournament_rules.DEFAULT_REWARDS and not community_store.is_super(account):
-                raise ValueError("仅 bigcake 可修改赛事铜钱奖励")
+            if rewards != tournament_rules.DEFAULT_REWARDS and not community_store.is_super(account, conn):
+                raise ValueError("仅超级管理员组可修改赛事铜钱奖励")
         except ValueError as exc:
             return error(str(exc))
         with conn:
@@ -487,10 +541,12 @@ def handle(conn, data, account):
     if row is None:
         return {**error("比赛不存在"), "tournament_missing": True}
     if action == "detail":
-        values = [data.get(key, 0) for key in ("member_page", "pairing_page", "standing_page")]
-        if any(not integer(value) for value in values) or type(data.get("roster_only", False)) is not bool:
+        values = [data.get(key, 0) for key in ("member_page", "pairing_page", "standing_page", "pairing_round", "external_page", "external_phase", "external_round")]
+        if any(not integer(value) for value in values) or not integer(data.get("request_page", 0)) or type(data.get("roster_only", False)) is not bool:
             return error("页码或成员筛选无效")
-        return detail(conn, row, account, int(values[0]), data.get("roster_only", False), pairing_page=int(values[1]), standing_page=int(values[2]))
+        if values[3] > config(conn, row[0])["round_number"]:
+            return error("所选轮次尚未开始")
+        return detail(conn, row, account, int(values[0]), data.get("roster_only", False), pairing_page=int(values[1]), standing_page=int(values[2]), pairing_round=int(values[3]), query=data)
     owned = can_manage(conn, account, row[1])
     if action in ("report_result", "confirm_result", "judge_result"):
         with conn:
@@ -500,6 +556,39 @@ def handle(conn, data, account):
         return detail(conn, row, account, message=answer["message"])
     if not owned:
         return error("仅主办方可以管理比赛")
+    if action == "review_limitless_join":
+        try:
+            with conn:
+                message = tournament_limitless.review_join(conn, row[0], account["player_id"], data)
+            return detail(conn, row, account, message=message)
+        except ValueError as exc:
+            return error(str(exc))
+    if action in ("link_limitless", "sync_limitless", "unlink_limitless", "map_limitless", "complete_limitless"):
+        try:
+            if action == "link_limitless":
+                message = tournament_limitless.configure(conn, row[0], data)
+            elif action == "sync_limitless":
+                message = tournament_limitless.request_sync(conn, row[0])
+            elif action == "map_limitless":
+                message = tournament_limitless.save_players(conn, row[0], data.get("mapping"))
+            elif action == "complete_limitless":
+                if data.get("finished") is not True:
+                    raise ValueError("请先确认 Limitless 已公布最终排名且赛事已结束")
+                with conn:
+                    message = tournament_limitless.complete(conn, row[0])
+            else:
+                if config(conn, row[0])["round_number"]:
+                    raise ValueError("已开赛 Limitless 比赛不能解除来源绑定")
+                if conn.execute("SELECT 1 FROM tournament_limitless_requests WHERE tournament_id=? AND status IN ('pending','approved')", (row[0],)).fetchone():
+                    raise ValueError("已有选手申请或通过身份审核，不能解除赛事来源")
+                with conn:
+                    conn.execute("DELETE FROM tournament_limitless WHERE tournament_id=?", (row[0],))
+                    conn.execute("DELETE FROM tournament_limitless_players WHERE tournament_id=?", (row[0],))
+                message = "已解除 Limitless 绑定"
+        except ValueError as exc:
+            return error(str(exc))
+        row = conn.execute(f"SELECT {SELECT} FROM tournaments WHERE id=?", (row[0],)).fetchone()
+        return detail(conn, row, account, message=message, query={"external_view": "pairings", **data})
     if action == "delete":
         page = data.get("page", 0)
         if not integer(page):
@@ -507,7 +596,7 @@ def handle(conn, data, account):
         with conn:
             conn.execute("""UPDATE rating_matches SET status='cancelled' WHERE status IN ('pending','playing')
                 AND match_id IN (SELECT match_id FROM tournament_pairings WHERE tournament_id=?)""", (row[0],))
-            for table in ("tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members", "tournament_stage_members"):
+            for table in ("tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members", "tournament_stage_members", "tournament_limitless", "tournament_limitless_players", "tournament_limitless_rounds", "tournament_limitless_requests"):
                 conn.execute(f"DELETE FROM {table} WHERE tournament_id=?", (row[0],))
             # Keep an ID tombstone so stale clients cannot act on a newly created competition with the same ID.
             conn.execute("UPDATE tournaments SET phase='deleted',title='',description='',timer_notice='',round_interval=0 WHERE id=?", (row[0],))
@@ -517,6 +606,8 @@ def handle(conn, data, account):
     try:
         with conn:
             if action == "configure":
+                if tournament_limitless.bound(conn, row[0]):
+                    raise ValueError("Limitless 比赛的轮次与局制由来源签表决定")
                 format_name, rounds, interval = settings_input(data)
                 settings = config(conn, row[0])
                 advanced = tournament_rules.config(conn, row[0])
@@ -546,8 +637,8 @@ def handle(conn, data, account):
                 conn.execute("UPDATE tournaments SET stages_json=? WHERE id=?", (json.dumps(stages), row[0]))
                 message = "比赛设置已保存"
             elif action == "update_rewards":
-                if not community_store.is_super(account):
-                    raise ValueError("仅 bigcake 可修改赛事铜钱奖励")
+                if not community_store.is_super(account, conn):
+                    raise ValueError("仅超级管理员组可修改赛事铜钱奖励")
                 if tournament_rules.config(conn, row[0])["rewards_paid"]:
                     raise ValueError("赛事奖励已发放，不能追溯修改已入账铜钱")
                 rewards = tournament_rules.rewards_input(data.get("rewards"))
@@ -604,6 +695,7 @@ def handle(conn, data, account):
 def tick(conn, now=None):
     """Called by the HTTP server even when no client is connected."""
     now = int(time.time()) if now is None else now
+    tournament_limitless.tick(conn, now)
     open_due_checkins(conn, now)
     with conn:
         expired = conn.execute("SELECT id,match_id FROM tournament_pairings WHERE game_claimed=1 AND result IS NULL AND game_heartbeat<?", (now - 90,)).fetchall()
@@ -617,7 +709,8 @@ def tick(conn, now=None):
         waiting = action == "start_round" and row[4] == "running" and settings["round_number"] == expected and conn.execute("SELECT COUNT(*) FROM tournament_pairings WHERE tournament_id=? AND round_number=? AND result IS NULL", (tournament_id, expected)).fetchone()[0] > 0
         if waiting:
             with conn:
-                conn.execute("UPDATE tournament_schedules SET status='waiting',message=? WHERE id=?", ("到点后仍有未结束对局，等待主办方裁定", task_id))
+                message = "等待 Limitless 公布本轮赛果并同步" if tournament_limitless.bound(conn, tournament_id) else "到点后仍有未结束对局，等待主办方裁定"
+                conn.execute("UPDATE tournament_schedules SET status='waiting',message=? WHERE id=?", (message, task_id))
             continue
         try:
             with conn:
@@ -635,7 +728,8 @@ def tick(conn, now=None):
                 conn.execute("UPDATE tournament_schedules SET status='done',message=? WHERE id=?", (message, task_id))
         except ValueError as exc:
             with conn:
-                conn.execute("UPDATE tournament_schedules SET status='failed',message=? WHERE id=?", (str(exc), task_id))
+                status = "waiting" if action == "start_round" and row[4] in ("locked", "running") and config(conn, tournament_id)["round_number"] == expected and tournament_limitless.bound(conn, tournament_id) else "failed"
+                conn.execute("UPDATE tournament_schedules SET status=?,message=? WHERE id=?", (status, str(exc), task_id))
     for tournament_id, number in conn.execute("SELECT id,round_number FROM tournaments WHERE phase='running' AND round_interval>0 AND round_started_at+round_interval<=?", (now,)).fetchall():
         try:
             with conn:
@@ -662,6 +756,8 @@ def handle_game(conn, data):
                 conn.execute("UPDATE tournament_pairings SET game_heartbeat=? WHERE id=?", (int(time.time()), row[0]))
         return {"ok": True, "closed": not active, "result": row[5]}
     if action in ("lookup", "claim"):
+        if conn.execute("SELECT source FROM tournament_pairings WHERE id=?", (row[0],)).fetchone()[0] == "awaiting_limitless":
+            return error("游戏已结束，请在 Limitless 登记赛果并同步后继续")
         if not active:
             return error("本桌结果已确定或轮次已结束")
         if action == "lookup":
@@ -701,7 +797,12 @@ def handle_game(conn, data):
         if row[5] is None:
             if not active or not row[6]:
                 return error("比赛对局尚未登记或轮次已结束")
-            conn.execute("UPDATE tournament_pairings SET result=?,source='game',revision=revision+1,game_claimed=0 WHERE id=?", (winner, row[0]))
-            conn.execute("UPDATE tournament_pairings SET score_a=?,score_b=? WHERE id=?", (*scores, row[0]))
+            if tournament_limitless.bound(conn, row[1]):
+                conn.execute("""UPDATE tournament_pairings SET source='awaiting_limitless',revision=revision+1,
+                    game_claimed=0,report_a=?,report_b=?,report_score_a=?,report_score_b=? WHERE id=?""",
+                    (winner, winner, json.dumps(scores), json.dumps(scores), row[0]))
+            else:
+                conn.execute("UPDATE tournament_pairings SET result=?,source='game',revision=revision+1,game_claimed=0 WHERE id=?", (winner, row[0]))
+                conn.execute("UPDATE tournament_pairings SET score_a=?,score_b=? WHERE id=?", (*scores, row[0]))
         return {"ok": True, "result": row[5] if row[5] is not None else winner}
     return error("比赛对局操作无效")

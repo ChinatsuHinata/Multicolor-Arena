@@ -12,6 +12,8 @@ var manifest: Dictionary={}
 var pending: Array=[]
 var next_manifest: Dictionary={}
 var directory="user://online_tutorials"
+var coin_grant_request: Dictionary={}
+var coin_grant_token=""
 
 func _ready():
  directory=app.settings_path.get_base_dir().path_join("online_tutorials")
@@ -20,6 +22,19 @@ func _ready():
 
 func allowed(role: String) -> bool:
  return not app.account_token.is_empty() and permission_token==app.account_token and permissions.get(role,false)
+
+func pending_coin_grant() -> Dictionary:
+ return coin_grant_request.duplicate() if coin_grant_token==app.account_token else {}
+
+func prepare_coin_grant(payload: Dictionary) -> Dictionary:
+ var previous=pending_coin_grant();previous.erase("request_id")
+ if previous!=payload:
+  coin_grant_token=app.account_token;coin_grant_request=payload.duplicate()
+  coin_grant_request.request_id=Crypto.new().generate_random_bytes(16).hex_encode()
+ return coin_grant_request.duplicate()
+
+func confirm_coin_grant(request_id: String):
+ if coin_grant_token==app.account_token and coin_grant_request.get("request_id","")==request_id:coin_grant_request={}
 
 func request(payload: Dictionary,callback: Callable):
  var client=Client.new();add_child(client);client.server_url=app.tournament_server_url

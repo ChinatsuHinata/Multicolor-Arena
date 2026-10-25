@@ -3,6 +3,7 @@ extends Control
 signal selected(entry: Dictionary)
 
 const SearchAliases = preload("res://scripts/card_search_aliases.gd")
+const Database = preload("res://scripts/card_database.gd")
 const CostDisplay = preload("res://scripts/card_cost_display.gd")
 const Palette = preload("res://scripts/ui_palette.gd")
 const GOLD = Color("#d9b775")
@@ -330,7 +331,11 @@ func update_preview():
  image.custom_minimum_size.y=120;image.size_flags_vertical=Control.SIZE_EXPAND_FILL;preview_card.add_child(image)
  var scroll=ScrollContainer.new();scroll.name="CardTextScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;preview_card.add_child(scroll);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
  var body=VBoxContainer.new();body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(body)
- for value in [str(info.get("name",preview_id)),CostDisplay.caption(info.get("cost",{})),str(info.get("rules_text",""))]:
+ var lines=[str(info.get("name",preview_id)),CostDisplay.caption(info.get("cost",{}))]
+ var attributes=Database.spell_attributes(info)
+ if not attributes.is_empty():lines.append(attributes)
+ lines.append(str(info.get("rules_text","")))
+ for value in lines:
   var line=_label(body,value,Rect2(),layout_metrics.body,GOLD if value==info.get("name") else WHITE)
   line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 

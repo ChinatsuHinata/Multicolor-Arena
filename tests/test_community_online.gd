@@ -29,6 +29,121 @@ func shot(name: String):
  await RenderingServer.frame_post_draw
  root.get_texture().get_image().save_png("res://work/tournament-tests/"+name+".png")
 
+func activate(control: Control):
+ var at=control.get_global_rect().get_center()
+ if not app.is_android:await click(at);await frames();return
+ var event=InputEventScreenTouch.new();event.index=0;event.position=at;event.pressed=true
+ root.push_input(event,true);await process_frame
+ event=event.duplicate();event.pressed=false;root.push_input(event,true);await frames()
+
+func management(user: String):
+ login(user);app.tutorials()
+ expect(await until(func():return not app.online_community().syncing),"group permissions synchronize for "+user)
+ app.community_management();await frames()
+ var page=app.screen.get_child(0)
+ expect(await until(func():return not page.busy),"group management finishes loading for "+user)
+ return page
+
+func verify_coin_grants():
+ var page=await management("first_player")
+ expect(find_button(page,"赠予铜钱")==null,"ordinary tutorial members cannot see the coin grant tab")
+ var forged={"action":"grant_coins","target_username":"first_player","coins":23,"request_id":"11111111111111111111111111111111","username":"bigcake","super_admin":true}
+ expect(not (await api(forged,"first_player")).get("ok",false),"payload cannot impersonate a super administrator")
+ expect(not (await api(forged,"")).get("ok",false),"anonymous users cannot grant coins")
+ expect(not (await api({"action":"set_role","username":"bigcake","role":"super_admin","enabled":false})).get("ok",false),"bigcake remains bound to the super administrator group")
+ expect(not (await api({"action":"set_role","username":"second_player","role":"super_admin","enabled":true})).get("ok",false),"group management cannot add another account to the bound super administrator group")
+ var roles=await api({"action":"roles"})
+ expect(roles.get("roles",[]).any(func(entry):return entry.username=="bigcake" and entry.role=="super_admin"),"group roster includes bigcake's persistent super administrator membership")
+ for mobile in [false,true]:
+  app.is_android=mobile;app.refresh_ui_metrics()
+  page=await management("bigcake")
+  var tab_button=find_button(page,"赠予铜钱")
+  expect(tab_button!=null,"super administrator group exposes the coin grant tab")
+  if tab_button==null:continue
+  await activate(tab_button)
+  var target_kind=page.find_child("CoinGrantTargetKind",true,false)
+  var target=page.find_child("CoinGrantTarget",true,false)
+  var amount=page.find_child("CoinGrantAmount",true,false)
+  var submit=page.find_child("GrantCoins",true,false)
+  expect(target_kind!=null and target!=null and amount!=null and submit!=null,"coin grant form exposes target, amount and submit controls")
+  if target_kind==null or target==null or amount==null or submit==null:continue
+  expect(amount.min_value==1 and amount.max_value==1000000,"coin grant amount has positive integer bounds")
+  if mobile:
+   target_kind.select(1);target_kind.item_selected.emit(1);await frames()
+   target=page.find_child("CoinGrantTarget",true,false)
+   amount=page.find_child("CoinGrantAmount",true,false)
+   submit=page.find_child("GrantCoins",true,false)
+   expect(target!=null and amount!=null and submit!=null,"changing target mode rebuilds a usable coin grant form")
+   if target==null or amount==null or submit==null:continue
+  target.text=str(int(fixture.logins.first_player.player_id)) if mobile else "first_player"
+  target.text_changed.emit(target.text)
+  amount.value=5 if mobile else 23
+  var scroll=page.rows.get_parent() as ScrollContainer
+  scroll.ensure_control_visible(submit);await frames()
+  expect(root.get_visible_rect().encloses(submit.get_global_rect()),"coin grant submit fits the viewport")
+  expect(submit.size.y>=app.ui_metrics.hit,"coin grant submit keeps the required touch size")
+  await shot("coin-grant-android" if mobile else "coin-grant-desktop")
+  await activate(submit)
+  expect(await until(func():return not page.busy),"coin grant over encrypted transport finishes")
+  expect(page.notice.text.contains("first_player") and page.notice.text.contains(str(5 if mobile else 23)),"coin grant reports the recipient and amount: "+page.notice.text)
+  target=page.find_child("CoinGrantTarget",true,false)
+  expect(target!=null and target.text.is_empty(),"successful coin grant clears the target to prevent an accidental second grant")
+  page=await management("first_player")
+  expect(find_button(page,"赠予铜钱")==null,"switching back to a tutorial member removes the coin grant controls")
+  login("first_player");app.refresh_tasks()
+  expect(await until(func():return not is_instance_valid(app.task_service.client)),"recipient refreshes the authoritative wallet")
+  expect(app.task_service.snapshot.get("coins",-1)==(45 if mobile else 40),"gift adds to the existing wallet without an unauthorized extra grant")
+ app.is_android=false;app.refresh_ui_metrics()
+ await verify_coin_grant_resume()
+ login("first_player")
+
+func verify_coin_grant_resume():
+ var page=await management("bigcake")
+ var tab_button=find_button(page,"赠予铜钱")
+ expect(tab_button!=null,"super administrator can reopen the coin grant form")
+ if tab_button==null:return
+ await activate(tab_button)
+ var target=page.find_child("CoinGrantTarget",true,false)
+ var amount=page.find_child("CoinGrantAmount",true,false)
+ var submit=page.find_child("GrantCoins",true,false)
+ expect(target!=null and amount!=null and submit!=null,"coin grant retry form is available")
+ if target==null or amount==null or submit==null:return
+ target.text="missing_player";target.text_changed.emit(target.text);amount.value=7
+ var scroll=page.rows.get_parent() as ScrollContainer
+ scroll.ensure_control_visible(submit);await frames();await activate(submit)
+ expect(await until(func():return not page.busy),"nonexistent recipient receives a response")
+ expect(page.notice.text.contains("不存在") and target.text=="missing_player" and not submit.disabled,"recipient error preserves editable inputs for correction")
+ var community=app.online_community()
+ var failed_request_id=str(community.pending_coin_grant().get("request_id",""))
+ target.text="first_player";target.text_changed.emit(target.text)
+ page.submit_coin_grant()
+ var request_id=str(community.pending_coin_grant().get("request_id",""))
+ expect(not request_id.is_empty() and request_id!=failed_request_id,"correcting the recipient creates a distinct pending gift request")
+ app.tutorials()
+ expect(await until(func():return not community.syncing and community.get_child_count()==0),"gift and tutorial sync finish after leaving the management page")
+ expect(str(community.pending_coin_grant().get("request_id",""))==request_id,"leaving before the reply retains the gift request identifier")
+ login("first_player");app.refresh_tasks()
+ expect(community.pending_coin_grant().is_empty(),"another account cannot see the administrator's pending gift")
+ expect(await until(func():return not is_instance_valid(app.task_service.client)),"recipient refreshes after the interrupted gift flow")
+ expect(app.task_service.snapshot.get("coins",-1)==52,"gift reaches the wallet even when the administrator leaves before the reply")
+ page=await management("bigcake")
+ target=page.find_child("CoinGrantTarget",true,false)
+ amount=page.find_child("CoinGrantAmount",true,false)
+ submit=page.find_child("GrantCoins",true,false)
+ expect(target!=null and amount!=null and submit!=null,"reopened management restores the pending gift tab")
+ if target==null or amount==null or submit==null:return
+ expect(target.text=="first_player" and amount.value==7,"reopened gift form restores the original recipient and amount")
+ expect(str(community.pending_coin_grant().get("request_id",""))==request_id,"reopened gift form reuses the original request identifier")
+ scroll=page.rows.get_parent() as ScrollContainer
+ scroll.ensure_control_visible(submit);await frames();await activate(submit)
+ expect(await until(func():return not page.busy),"retrying an interrupted gift receives its receipt")
+ expect(community.pending_coin_grant().is_empty(),"successful retry clears the unconfirmed gift")
+ target=page.find_child("CoinGrantTarget",true,false)
+ expect(target!=null and target.text.is_empty(),"successful retry clears the restored target input")
+ login("first_player");app.refresh_tasks()
+ expect(await until(func():return not is_instance_valid(app.task_service.client)),"recipient refreshes after the gift retry")
+ expect(app.task_service.snapshot.get("coins",-1)==52,"retry after leaving the page cannot grant the same seven coins twice")
+
 func run():
  var args=OS.get_cmdline_user_args()
  for i in range(args.size()-1):
@@ -89,13 +204,14 @@ func run():
  expect(mail.find_child("ClaimAnnouncementCoins",true,false)!=null,"announcement exposes coin claim button")
  await click(mail.find_child("ClaimAnnouncementCoins",true,false).get_global_rect().get_center())
  expect(await until(func():return not mail.claim_busy),"clicked announcement claim finishes")
- expect(mail.claim_states.get("community-coins",false),"coin receipt disables duplicate claims")
+ expect(app.announcement_store.is_claimed("community-coins") and mail.find_child("ClaimAnnouncementCoins",true,false).disabled,"coin receipt disables duplicate claims")
  expect(mail.find_child("AnnouncementClaimStatus",true,false).text.contains("已领取"),"real encrypted claim reports its result inside the mailbox")
  expect(not app.get_children().any(func(node):return node is Window and node.visible),"real claim does not leave an input-blocking dialog")
  expect(await until(func():return app.task_service.snapshot.get("coins",0)==17),"announcement claim synchronizes the authoritative wallet")
  await click(mail.close_button.get_global_rect().get_center());await frames()
  expect(not app.menu_popup_open(),"mailbox remains closable after the real encrypted claim")
  expect((await api({"action":"claim_announcement","id":"community-coins"},"first_player")).get("ok",false),"retry is safe and returns existing receipt")
+ await verify_coin_grants()
  await api({"action":"set_role","username":"first_player","role":"tutorial_editor","enabled":false})
  app.tutorials();await until(func():return not app.online_community().syncing)
  expect(not app.tutorial_editor_available(),"revoked membership removes editor entry")

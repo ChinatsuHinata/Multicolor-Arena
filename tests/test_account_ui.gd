@@ -54,10 +54,12 @@ func run():
  app.account_client.session_token="a".repeat(64)
  app.account_client.remember_token="b".repeat(64)
  app.account_client.nickname="云端玩家"
+ app.account_client.limitless_id="doctorblack"
  app.account_client.elo=1000
  app.account_action="login"
  app.account_request_finished(true,"登录成功","sample_user");await process_frame
  check(app.account_status_label.text=="登录成功" and app.account_name=="sample_user","successful response shows the signed-in player")
+ check(app.account_limitless_id=="doctorblack" and app.screen.find_child("AccountLimitlessID",true,false).text=="doctorblack","login restores the saved Limitless ID")
  check(app.account_elo==1000 and app.screen.find_child("AccountElo",true,false).text=="我的 Elo：1000","account page displays the signed-in player's initial Elo")
  app.is_android=true;app.account_page();await process_frame
  check(app.screen.find_child("AccountElo",true,false).text=="我的 Elo：1000","Android account page also displays personal Elo")
@@ -67,6 +69,10 @@ func run():
  check(AccountSessionStore.load_token(AccountClient.device_id(),app.account_session_path)=="b".repeat(64),"login remembers a device-bound token")
  for android in [false,true]:
   app.is_android=android;app.account_page();await process_frame
+  check(app.screen.find_child("AccountSaveLimitless",true,false)!=null,"each platform can save its own Limitless ID")
+  app.account_limitless_input.text="pending_id";app.account_page();await process_frame
+  check(app.account_limitless_input.text=="pending_id","account layout rebuild preserves the Limitless draft")
+  app.account_limitless_input.text=app.account_limitless_id
   var entry=app.screen.find_child("AccountOpenPasswordChange",true,false) as Button
   check(entry!=null and not entry.disabled and app.account_old_password_input==null and app.account_password_input==null and app.account_confirm_input==null,"account page exposes a password-change button without password fields")
   entry.pressed.emit();await process_frame

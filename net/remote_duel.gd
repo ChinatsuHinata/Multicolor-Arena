@@ -6,6 +6,7 @@ var queries={}
 var grant_payment=false
 func apply_snapshot(snapshot: Dictionary):
  response_clock={}
+ equipped_shop_products=[[],[]]
  leader_emote_profiles=[];emote_ready_at=[0.0,0.0];emote_serial=0
  for k in snapshot.state:set(k,snapshot.state[k])
  if not response_clock.is_empty() and snapshot.has("response_clock_sampled_at"):

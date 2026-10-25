@@ -1,5 +1,8 @@
 {
   "deck": {
+    "art_overrides": {
+      "70": "tts_151700"
+    },
     "id": "precon_reimu_v1",
     "leader": "character-rei-001",
     "main": [
@@ -34,8 +37,6 @@
       "170",
       "character-rei-017",
       "character-rei-017",
-      "character-ucs-060",
-      "character-ucs-060",
       "character-rec-096",
       "character-rec-096",
       "29",
@@ -52,7 +53,9 @@
       "177",
       "character-rei-026",
       "character-rei-026",
-      "162"
+      "162",
+      "70",
+      "70"
     ],
     "name": "预组-灵梦",
     "rule_set": "official",

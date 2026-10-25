@@ -64,6 +64,12 @@ static func matches_card(def: Dictionary,card_id: String) -> bool:
 static func timing(def: Dictionary) -> String:
  return str(def.get("timing","after"))
 
+static func flight(def: Dictionary) -> String:
+ return str(def.get("flight","none"))
+
+static func flight_ms(def: Dictionary) -> float:
+ return float(def.flight_ms) if def.has("flight_ms") else 0.0
+
 ## Returns a configured module, or null (with the reason in errors) if the
 ## manifest or its script is broken. Never throws.
 func spawn(def: Dictionary,ctx: Dictionary) -> Node:
