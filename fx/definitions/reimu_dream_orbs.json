@@ -2,7 +2,7 @@
   "id": "reimu_dream_orbs",
   "category": "spell",
   "name": "灵符·梦想妙珠",
-  "description": "博丽灵梦的角色符卡：阴阳玉在灵梦身边聚起，依次追踪射向符卡目标并炸开；阴阳玉数量等于双方颜色盘中的角色符卡数。",
+  "description": "博丽灵梦的角色符卡：彩色光珠在灵梦身边聚起，依次追踪射向符卡目标并炸开；光珠数量等于双方颜色盘中的角色符卡数。",
   "script": "res://fx/modules/reimu_dream_orbs/effect.gd",
   "budget_ms": 1300,
   "priority": 10,
@@ -14,11 +14,13 @@
   "origin": "character",
   "destination": "spell_target",
   "params": {
-    "min_orbs": 1, "max_orbs": 12, "orb_size": 0.26,
+    "min_orbs": 1, "max_orbs": 12, "orb_size": 0.36,
+    "colors": ["#ff3b4a","#ffa23a","#ffe45c","#4dff7a","#45d8ff","#4a6dff","#c45cff"],
+    "color_stride": 3, "core": "#fffaf4", "burst_ms": 120,
     "gather_radius": 0.5, "gather_height": 0.55,
     "charge_ms": 260, "flight_ms": 380, "stagger_ms": 95, "stagger_total_ms": 520, "trail_ms": 50,
     "arc_height": 1.1, "arc_spread": 0.3, "scatter_radius": 2.6,
-    "red": "#c8323c", "white": "#fbf2f0", "glow": "#e2604f", "flash": "#f9c9d8", "gold": "#e9c175"
+    "glow": "#e2604f", "flash": "#f9c9d8", "gold": "#e9c175"
   },
-  "notes": "orb 数 = clamp(palette_character_spells, min_orbs, max_orbs)；起点为基底排序出的灵梦单位，无则为符卡中心；终点为符卡目标，无目标时向外散射。相邻阴阳玉间隔 stagger_ms（总跨度不超过 stagger_total_ms），拖影只占 trail_ms，保证每颗之间留出空隙、一颗接一颗射出。"
+  "notes": "orb 数 = clamp(palette_character_spells, min_orbs, max_orbs)；起点为基底排序出的灵梦单位，无则为符卡中心；终点为符卡目标，无目标时向外散射。相邻光珠间隔 stagger_ms（总跨度不超过 stagger_total_ms），拖影只占 trail_ms，保证每颗之间留出空隙、一颗接一颗射出。光珠为白芯 + 彩色光晕的加法光球，颜色按 colors 以 color_stride 步进轮换（参考 THBWiki 萃梦想/绯想天截图）；命中时在目标处放大 1.9 倍并在 burst_ms 内淡出。"
 }

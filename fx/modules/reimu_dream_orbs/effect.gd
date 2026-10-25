@@ -1,46 +1,28 @@
 extends "res://fx/categories/fx_spell_module.gd"
-## 灵符·梦想妙珠：角色起点聚集，阴阳玉依次追向符卡目标，无目标时向外散射。
+## 灵符·梦想妙珠：角色起点聚集彩色光珠，依次追向符卡目标并炸开，无目标时向外散射。
 
 const ORB_SHADER="""
 shader_type spatial;
-render_mode unshaded,cull_disabled,depth_draw_never,blend_mix;
-uniform float spin=0.0;
+render_mode unshaded,cull_disabled,depth_draw_never,depth_test_disabled,blend_add;
 uniform float alpha=1.0;
 uniform float glow_strength=1.0;
-uniform vec4 red:source_color=vec4(0.78,0.2,0.24,1.0);
-uniform vec4 white:source_color=vec4(0.98,0.95,0.94,1.0);
-uniform vec4 glow:source_color=vec4(0.89,0.38,0.31,1.0);
-const float BODY=0.66;
-float inside(float d,float r){return 1.0-smoothstep(r-0.025,r+0.025,d);}
+uniform float flicker=0.0;
+uniform vec4 tint:source_color=vec4(1.0,0.23,0.29,1.0);
+uniform vec4 core:source_color=vec4(1.0,0.98,0.96,1.0);
 void vertex(){
  MODELVIEW_MATRIX=VIEW_MATRIX*mat4(INV_VIEW_MATRIX[0],INV_VIEW_MATRIX[1],INV_VIEW_MATRIX[2],MODEL_MATRIX[3]);
  MODELVIEW_MATRIX=MODELVIEW_MATRIX*mat4(vec4(length(MODEL_MATRIX[0].xyz),0.0,0.0,0.0),vec4(0.0,length(MODEL_MATRIX[1].xyz),0.0,0.0),vec4(0.0,0.0,length(MODEL_MATRIX[2].xyz),0.0),vec4(0.0,0.0,0.0,1.0));
  MODELVIEW_NORMAL_MATRIX=mat3(MODELVIEW_MATRIX);
 }
 void fragment(){
- vec2 p=(UV-0.5)*2.0;
- float r=length(p);
- float body=1.0-smoothstep(BODY-0.02,BODY,r);
- vec2 q=p/BODY;
- float c=cos(spin);float s=sin(spin);
- q=vec2(c*q.x-s*q.y,s*q.x+c*q.y);
- float w=smoothstep(-0.02,0.02,q.x);
- float up=length(q-vec2(0.0,0.5));
- float dn=length(q+vec2(0.0,0.5));
- w=mix(w,0.0,inside(up,0.5));
- w=mix(w,1.0,inside(dn,0.5));
- w=mix(w,1.0,inside(up,0.15));
- w=mix(w,0.0,inside(dn,0.15));
- vec3 col=mix(red.rgb,white.rgb,w);
- float rn=clamp(r/BODY,0.0,1.0);
- float z=sqrt(max(0.0,1.0-rn*rn));
- col*=0.6+0.4*z;
- col=mix(col,vec3(0.8,0.66,0.86),smoothstep(0.62,1.0,rn)*0.4);
- float hl=max(0.0,1.0-length(p/BODY-vec2(-0.34,-0.4))/0.42);
- col+=vec3(1.0)*hl*hl*0.6;
- float halo=(1.0-smoothstep(BODY,1.0,r))*0.55*glow_strength;
- ALBEDO=mix(glow.rgb,col,body);
- ALPHA=clamp(max(body,halo)*alpha,0.0,1.0);
+ float r=length(UV-0.5)*2.0;
+ float hot=1.0-smoothstep(0.0,0.3,r);
+ float body=exp(-pow(r/0.42,2.0));
+ float halo=exp(-pow(r/0.78,2.0))*0.55*glow_strength;
+ float edge=1.0-smoothstep(0.9,1.0,r);
+ vec3 col=tint.rgb*(body*1.1+halo)+core.rgb*hot*hot*(1.0+0.15*flicker);
+ ALBEDO=col;
+ ALPHA=clamp(alpha*edge,0.0,1.0);
 }
 """
 
@@ -73,6 +55,7 @@ var impact_flash: MeshInstance3D
 var charge=0.26
 var flight=0.38
 var trail=0.05
+var burst_time=0.12
 var last=0.0
 var gather_radius=0.5
 var gather_height=0.55
@@ -97,8 +80,6 @@ func _build() -> bool:
  scatter_radius=float(params.get("scatter_radius",2.6))
  var arc_height=float(params.get("arc_height",1.1))
  var arc_spread=float(params.get("arc_spread",0.3))
- var red=Color(str(params.get("red","#c8323c")))
- var white=Color(str(params.get("white","#fbf2f0")))
  var glow=Color(str(params.get("glow","#e2604f")))
  var flash=Color(str(params.get("flash","#f9c9d8")))
  var gold=Color(str(params.get("gold","#e9c175")))
@@ -106,20 +87,27 @@ func _build() -> bool:
  var impact_at=origin_l if dests_l.is_empty() else dests_l[0]+Vector3(0.0,0.014,0.0)
  impact_ring=make_plane(holder,impact_at,Vector2.ONE*size*2.6,ring_material(gold,0.05,0.0))
  impact_flash=make_plane(holder,impact_at,Vector2.ONE*size*2.6,ring_material(flash,0.14,1.0))
+ var core=Color(str(params.get("core","#fffaf4")))
+ var palette: Array=params.get("colors",["#ff3b4a","#ffa23a","#ffe45c","#4dff7a","#45d8ff","#4a6dff","#c45cff"])
+ if palette.is_empty():palette=["#ff3b4a"]
+ var stride=maxi(int(params.get("color_stride",3)),1)
+ var color_offset=rng.randi_range(0,palette.size()-1)
+ burst_time=float(params.get("burst_ms",120))/1000.0
  orbs.clear()
  for i in range(n):
   var quad=QuadMesh.new()
   var jitter=rng.randf_range(0.9,1.1)
-  quad.size=Vector2.ONE*float(params.get("orb_size",0.26))*size*1.5*jitter
-  var node=make_orb("Orb%d" % i,quad,red,white,glow)
-  var ghost_a=make_orb("Orb%dGhostA" % i,quad,red,white,glow)
-  var ghost_b=make_orb("Orb%dGhostB" % i,quad,red,white,glow)
+  quad.size=Vector2.ONE*float(params.get("orb_size",0.36))*size*1.5*jitter
+  var tint=Color(str(palette[(color_offset+i*stride)%palette.size()]))
+  var node=make_orb("Orb%d" % i,quad,tint,core)
+  var ghost_a=make_orb("Orb%dGhostA" % i,quad,tint,core)
+  var ghost_b=make_orb("Orb%dGhostB" % i,quad,tint,core)
   var angle=TAU*float(i)/float(n)+rng.randf_range(-0.12,0.12)
-  var spin=rng.randf_range(6.0,9.0)*(1.0 if rng.randf()<0.5 else -1.0)
+  var phase=rng.randf_range(0.0,TAU)
   var side=1.0 if i%2==0 else -1.0
   var dest=null if dests_l.is_empty() else dests_l[i%dests_l.size()]
   var launch=charge*0.85+stagger*i
-  var orb={"node":node,"ghosts":[ghost_a,ghost_b],"angle":angle,"spin":spin,"side":side,"dest":dest,"launch":launch,"arrive":launch+flight}
+  var orb={"node":node,"ghosts":[ghost_a,ghost_b],"angle":angle,"phase":phase,"side":side,"dest":dest,"launch":launch,"arrive":launch+flight}
   orbs.append(orb)
   var start=gather_position(i,launch)
   orb["start"]=start
@@ -132,12 +120,11 @@ func _build() -> bool:
  last=charge*0.85+stagger*(n-1)+flight
  return true
 
-func make_orb(node_name: String,quad: QuadMesh,red: Color,white: Color,glow: Color) -> MeshInstance3D:
+func make_orb(node_name: String,quad: QuadMesh,tint: Color,core: Color) -> MeshInstance3D:
  var mat=ShaderMaterial.new()
  mat.shader=orb_shader
- mat.set_shader_parameter("red",red)
- mat.set_shader_parameter("white",white)
- mat.set_shader_parameter("glow",glow)
+ mat.set_shader_parameter("tint",tint)
+ mat.set_shader_parameter("core",core)
  var node=MeshInstance3D.new()
  node.name=node_name
  node.mesh=quad
@@ -187,21 +174,30 @@ func _frame(_delta: float) -> void:
   var u=clampf((t-launch)/flight,0.0,1.0)
   var scale_value=0.6+0.4*appear if t<launch else 1.0+0.15*sin(PI*u)
   var alpha=appear if t<launch else (1.0 if orb.dest!=null else 1.0-u)
-  if t>=arrive:alpha=0.0;hits+=1
+  var glow_strength=1.0+0.6*smoothstep(0.0,charge,t) if t<launch else 1.6
   var node: MeshInstance3D=orb.node
   node.position=orb_position(i,t)
+  if t>=arrive:
+   if orb.dest!=null:
+    var b=clampf((t-arrive)/maxf(burst_time,0.01),0.0,1.0)
+    node.position=orb.end
+    scale_value=1.0+0.9*b
+    alpha=pow(1.0-b,2.0)
+    glow_strength=2.2
+   else:alpha=0.0
+   hits+=1
   node.scale=Vector3.ONE*scale_value
   var mat: ShaderMaterial=node.material_override
   mat.set_shader_parameter("alpha",alpha)
-  mat.set_shader_parameter("spin",float(orb.spin)*t)
-  mat.set_shader_parameter("glow_strength",1.0+0.6*smoothstep(0.0,charge,t) if t<launch else 1.6)
+  mat.set_shader_parameter("flicker",sin(elapsed*31.0+float(orb.phase)))
+  mat.set_shader_parameter("glow_strength",glow_strength)
   for j in range(2):
    var ghost: MeshInstance3D=orb.ghosts[j]
    ghost.position=orb_position(i,t-trail*(0.5 if j==0 else 1.0))
    ghost.scale=Vector3.ONE*scale_value*(0.85 if j==0 else 0.7)
    var ghost_mat: ShaderMaterial=ghost.material_override
    ghost_mat.set_shader_parameter("alpha",(0.45 if j==0 else 0.2) if flying else 0.0)
-   ghost_mat.set_shader_parameter("spin",float(orb.spin)*t)
+   ghost_mat.set_shader_parameter("flicker",sin(elapsed*31.0+float(orb.phase)))
    ghost_mat.set_shader_parameter("glow_strength",2.0)
   pulse+=exp(-pow((t-arrive)/0.06,2.0))
  pulse=minf(pulse,1.5)
