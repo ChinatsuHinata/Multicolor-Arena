@@ -47,13 +47,13 @@
     },
     "precon_marisa_v1": {
       "favorite": false,
-      "last_game_id": "bc6a7b2dfca101579953496c4a03acaaa7d6c6139bfd7784",
-      "usage_count": 28
+      "last_game_id": "973af6883b622e6977f6a3f11b14c8204f0f517fa426fdc5",
+      "usage_count": 30
     },
     "precon_reimu_v1": {
       "favorite": true,
-      "last_game_id": "bb56d452506a72a3ec441bfd29cf3516b2837d4887a99aa6",
-      "usage_count": 44
+      "last_game_id": "f1227d6fce0d6bfc15ea2fb63f89b194dd0fbea303812932",
+      "usage_count": 52
     }
   },
   "sort_mode": "usage",

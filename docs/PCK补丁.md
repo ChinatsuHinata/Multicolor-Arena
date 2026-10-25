@@ -373,3 +373,13 @@ Windows／Android 的 1.2.7.9 → 1.2.8 相邻签名补丁各为 5,332,604 字�
 服务端程序与数据库备份：`/home/codex/.local/share/multicolor-relay/backups/content-1.2.9.2-20261025T105217Z`。发布和验证证据、清单备份位置见 `work/pck-release-1.2.9.2/release-result.json`。玩家登录或重新登录后下载，完全退出并重启游戏生效。
 
 同日另行生成完整安装包，集中保存在 `builds/releases/1.2.9.2/`：Windows 为 `MulticolorArena-1.2.9.2-win64-setup.exe`（788,533,170 字节），安卓为 `MulticolorArena-1.2.9.2-android.apk`（arm64-v8a／x86_64，沿用现有调试签名）。两端各 2875 个游戏资源均与已上线完整目标一致，安卓额外的启动参数与资源索引单独核验；528 项核心数据一致，APK ZIP CRC 和 v2／v3 签名通过，签名证书与此前安装包一致。Windows 使用当前内嵌蕾米挑战入口和卡组序列化格式的独立运行时夹具完成 16 项检查；旧运行时入口对本地 AI 卡组字段及图库的假设已过时，不据此修改游戏。SHA-256、体积及完整检查记录见同目录 `SHA256SUMS.txt`、`build.json`，构建日志见 `work/installers-1.2.9.2/`。本地玩家文件保持不变，未做安卓真机安装测试。
+
+## 2026-10-26：正式发布 1.2.9.3
+
+发布 Windows／Android 双端 1.2.9.2 → 1.2.9.3 相邻签名补丁，每个平台 230,812 字节（约 225 KiB）。项目及导出预设同步至 1.2.9.3，Android versionCode 为 1020903；双端完整快照保存在 `builds/pck-base/`，成品位于 `builds/pck-patches/1.2.9.2-to-1.2.9.3/`。公开 `chain.json` 保留原有 27 条路径并增加本次相邻路径，共 28 条；历史 `latest.json` 字节保持不变。
+
+包含灵梦「大结界·封魔阵」入场特效、三符疾行状态的回合持续与离场清理、对方表情图标开关，以及赛事末位同分晋级、提前晋级／淘汰状态保持和对应设置说明。赛事后端仅替换 `tournament_rules.py`，程序及数据库备份位于 `/home/codex/.local/share/multicolor-relay/backups/rules-1.2.9.3-20261025T172342Z`。隔离数据库的 32 张既有表保持一致，并验证两场现有赛事；生产数据库完整性、224 个既有账号身份与密码数据检查通过。账号服务重启后四项服务均为 active，中转与网关保持原 PID。
+
+7 个客户端专项入口共 2561 项检查、39 项后端 unittest，以及使用真实回环服务的赛事赛程和双端赛事界面 253 项检查通过。双端补丁挂载后的 2878 个资源均与完整目标一致，发行内容检查、签名更新选路和双端启动通过；公网完整下载、发行签名、大小、SHA-256、Range、HEAD 和 WebSocket 握手通过。打包源文件与本地玩家文件摘要保持一致。Android 验证范围为导出资源及 Godot 运行时，未做真机测试。
+
+清单备份为 `/home/codex/.local/share/multicolor-updates/pck/.release-backup-9f4f42883eb847a680f45f21f49d8010`。发布与验证记录位于 `work/pck-release-1.2.9.3/`，总记录为 `release-result.json`。玩家登录或重新登录后下载，完全退出并重启游戏生效。

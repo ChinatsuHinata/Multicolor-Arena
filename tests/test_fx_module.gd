@@ -174,6 +174,55 @@ func check_stage() -> void:
  stage.advance_all(0.5)
  expect(stage.pending.is_empty() and not stage.active.any(func(module):return is_instance_valid(module) and int(module.ctx.get("uid",-1))==5 and str(module.id)=="probe_entrance"),"a card that leaves before landing drops its after effect")
  stage.stop_all()
+ await check_sustain(stage,host)
  await process_frame
  host.free()
+ await process_frame
+
+## 清单 sustain:"turn"：模块自己 hold 后到 budget 不收尾，回合结束 release 后收尾。
+func check_sustain(stage,host: Node3D) -> void:
+ var base={"id":"probe","category":"entrance","script":"res://fx/modules/reimu_yinyang_gather/effect.gd"}
+ var path="res://fx/definitions/probe.json"
+ var good=base.duplicate();good["sustain"]="turn"
+ expect(Manifest.validate(good,path).is_empty(),"sustain turn passes validation")
+ for bad in [{"sustain":"forever"},{"sustain":true}]:
+  var data=base.duplicate();data.merge(bad,true)
+  expect(not Manifest.validate(data,path).is_empty(),"manifest rejects "+str(bad))
+ var foil=good.duplicate();foil.category="foil"
+ expect(not Manifest.validate(foil,path).is_empty(),"sustain is rejected outside entrance")
+ var held=Fixture.create()
+ held.definitions.probe_entrance["sustain"]="turn"
+ stage.use_registry(held)
+ var card=Node3D.new();host.add_child(card)
+ var started=stage.play("entrance",{"parent":card,"card_size":CARD_SIZE,"uid":6})
+ expect(started.size()==1,"sustain probe starts")
+ if started.is_empty():return
+ var module=started[0]
+ expect(module.hold_until_turn_end(),"a sustain manifest lets the module hold")
+ stage.advance_all(1.5)
+ expect(not module.finished and is_instance_valid(module.holder),"a held entrance outlives its budget")
+ stage.turn_ended()
+ stage.advance_all(module.release_seconds()*0.5)
+ expect(not module.finished,"a released entrance plays its release")
+ stage.advance_all(module.release_seconds())
+ expect(module.finished,"a released entrance finishes after release_seconds")
+ # 单位离场：舞台层上的持续特效按 uid 收尾，别的单位不受影响。
+ var gone=stage.play("entrance",{"parent":card,"card_size":CARD_SIZE,"uid":9})
+ var kept=stage.play("entrance",{"parent":card,"card_size":CARD_SIZE,"uid":10})
+ if gone.size()==1 and kept.size()==1:
+  gone[0].hold_until_turn_end();kept[0].hold_until_turn_end()
+  stage.advance_all(1.0)
+  stage.released(9)
+  stage.advance_all(gone[0].release_seconds()+0.05)
+  expect(gone[0].finished,"a held entrance finishes once its unit leaves")
+  expect(not kept[0].finished,"another unit's held entrance keeps running")
+ else:expect(false,"release probes start")
+ var plain=Fixture.create()
+ stage.use_registry(plain)
+ var other=stage.play("entrance",{"parent":card,"card_size":CARD_SIZE,"uid":8})
+ expect(other.size()==1 and other[0].hold_until_turn_end()==false,"no sustain manifest refuses to hold")
+ stage.advance_all(1.0)
+ expect(other.is_empty() or other[0].finished,"an unheld entrance still stops at its budget")
+ stage.stop_all()
+ card.queue_free()
  await process_frame

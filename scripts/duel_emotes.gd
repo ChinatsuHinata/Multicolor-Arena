@@ -30,6 +30,17 @@ func build(owner_view):
  opponent_button=view.host.button(self,"",Rect2(),toggle_opponent_emotes)
  opponent_button.name="OpponentEmoteToggle";opponent_button.toggle_mode=true
  opponent_button.z_index=90
+ opponent_button.icon=Icon.texture("greeting",48)
+ opponent_button.expand_icon=true
+ opponent_button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ opponent_button.draw.connect(draw_opponent_slash)
+ # The shared text-button margins leave a square icon toggle almost no room.
+ for state in ["normal","hover","pressed","disabled","hover_pressed"]:
+  var box=opponent_button.get_theme_stylebox(state)
+  if box==null:continue
+  box=box.duplicate()
+  box.content_margin_left=6;box.content_margin_right=6;box.content_margin_top=6;box.content_margin_bottom=5
+  opponent_button.add_theme_stylebox_override(state,box)
  refresh()
 
 func enabled() -> bool:
@@ -66,7 +77,7 @@ func opponent_entry_rect() -> Rect2:
  if view.is_android:
   var height=maxf(view.host.ui_metrics.hit,opponent_button.get_combined_minimum_size().y)
   var gap=view.host.ui_metrics.gap
-  var bounds=Rect2(entry.position-Vector2(0,height+gap),Vector2(view.responsive.enemy_life.size.x,height))
+  var bounds=Rect2(entry.position-Vector2(0,height+gap),Vector2(height,height))
   var enemy_status_bottom=view.responsive.enemy_life.end.y+view.host.ui_metrics.hit*2+gap*3+view.host.ui_metrics.body*2.5
   # Dense touch controls can fill the upper rail. Use its separate lower gap
   # without moving the camera, payment, hand or emote-send controls.
@@ -83,7 +94,17 @@ func opponent_entry_rect() -> Rect2:
       return bounds
    bounds.position.y=view.responsive.hand_toggle_rect.end.y+gap
   return bounds
- return Rect2(view.responsive.enemy_life.end.x+10,80,100,60)
+ var life=view.responsive.enemy_life
+ return Rect2(life.end.x+10,roundf(life.position.y+(life.size.y-44.0)*0.5),44,44)
+
+func draw_opponent_slash():
+ if view==null or view.host.show_opponent_emotes:return
+ var s=opponent_button.size
+ var start=Vector2(s.x*0.26,s.y*0.74)
+ var end=Vector2(s.x*0.74,s.y*0.26)
+ var width=maxf(3.0,s.y*0.07)
+ opponent_button.draw_line(start,end,Color("#24110f"),width+2,true)
+ opponent_button.draw_line(start,end,Color("#cf4538"),width,true)
 
 func opponent_emotes_hidden() -> bool:
  return not view.host.show_opponent_emotes and not view.replay_view() and not view.spectator_view()
@@ -109,7 +130,7 @@ func refresh():
  var remaining=ceili(view.engine.emote_remaining(view.local_seat))
  button.text=str(remaining) if remaining>0 else ""
  button.tooltip_text="表情冷却：%d 秒" % remaining if remaining>0 else "表情 · 在我方可响应且没有弹框时使用"
- opponent_button.text="对方表情\n"+("已开启" if view.host.show_opponent_emotes else "已关闭")
+ opponent_button.text=""
  # Reapplying even the same override emits theme_changed on every frame.
  # Keep text/layout caches intact until responsive metrics actually change.
  var opponent_font_size=view.host.ui_metrics.small if view.is_android else 14
@@ -117,6 +138,16 @@ func refresh():
   opponent_button.add_theme_font_size_override("font_size",opponent_font_size)
  var opponent_bounds=opponent_entry_rect()
  opponent_button.position=opponent_bounds.position;opponent_button.size=opponent_bounds.size
+ var opponent_icon_width=roundi(opponent_bounds.size.y*0.56) if view.is_android else 28
+ if opponent_button.get_theme_constant("icon_max_width")!=opponent_icon_width:
+  opponent_button.add_theme_constant_override("icon_max_width",opponent_icon_width)
+ var opponent_icon_color=Color(1,1,1,1.0 if view.host.show_opponent_emotes else 0.55)
+ var icon_changed=false
+ for color_name in ["icon_normal_color","icon_hover_color","icon_pressed_color","icon_focus_color","icon_hover_pressed_color"]:
+  if opponent_button.get_theme_color(color_name)!=opponent_icon_color:
+   opponent_button.add_theme_color_override(color_name,opponent_icon_color)
+   icon_changed=true
+ if icon_changed:opponent_button.queue_redraw()
  opponent_button.visible=not view.replay_view() and not view.spectator_view()
  opponent_button.disabled=other_popup() or view.tutorial_runtime!=null and (not view.tutorial_controls_enabled or view.tutorial_runtime.playing_sequence())
  opponent_button.set_pressed_no_signal(view.host.show_opponent_emotes)

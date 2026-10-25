@@ -70,6 +70,18 @@ func landed(uid: int) -> void:
  for module in active:
   if is_instance_valid(module) and module.category=="entrance" and int(module.ctx.get("uid",0))==uid and module.has_method("card_landed"):module.card_landed()
 
+## 回合结束：持续到回合结束的入场特效开始收尾。
+func turn_ended() -> void:
+ for module in active:
+  if is_instance_valid(module) and module.has_method("release"):module.release()
+
+## 单位离场：该单位的入场特效（含持续到回合结束的）立即进入收尾；
+## 还在等落场的 after 特效直接丢弃。
+func released(uid: int) -> void:
+ pending=pending.filter(func(entry):return int(entry.ctx.get("uid",0))!=uid)
+ for module in active:
+  if is_instance_valid(module) and module.category=="entrance" and int(module.ctx.get("uid",0))==uid and module.has_method("release"):module.release()
+
 func spawn_module(def: Dictionary,ctx: Dictionary) -> Node:
  var module=registry.spawn(def,ctx)
  if module==null:return null

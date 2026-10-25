@@ -65,7 +65,7 @@ def stages_input(value):
             if not integer(amount, 0, 10000):
                 raise ValueError("比分积分须为 0–10000 的整数")
         advance = stage.get("advance", {"mode": "all"})
-        if not isinstance(advance, dict) or advance.get("mode") not in ("all", "rank", "points"):
+        if not isinstance(advance, dict) or advance.get("mode") not in ("all", "rank", "rank_tie", "points"):
             raise ValueError("晋级条件无效")
         advance = {"count": 2, "points": 6, "early": False, "eliminate_losses": 0, **advance}
         if not integer(advance["count"], 1, 128) or not integer(advance["points"], 0, 1000000) or not integer(advance["eliminate_losses"], 0, 127) or type(advance["early"]) is not bool:
@@ -137,6 +137,13 @@ def standings(conn, tid, index=None):
     knockout = stage["kind"] in ("single_elimination", "double_elimination")
     max_losses = 2 if stage["kind"] == "double_elimination" else 1
     eliminations = {}
+    # Early exits are based on whole, settled rounds. Keep their last settled
+    # state while the next round is pending, without counting partial results.
+    settled_rounds = {row[0] for row in conn.execute("""SELECT r.stage_round FROM tournament_rounds r
+        LEFT JOIN tournament_pairings p ON p.tournament_id=r.tournament_id AND p.round_number=r.number
+        WHERE r.tournament_id=? AND r.stage_index=? GROUP BY r.number,r.stage_round
+        HAVING COUNT(p.id)=COUNT(p.result)""", (tid, index))}
+    settled = {id: {"points": 0, "losses": 0} for id in players}
     for a, b, result, sa, sb, round_number in history:
         if a not in players or b is not None and b not in players:
             continue
@@ -144,12 +151,18 @@ def standings(conn, tid, index=None):
             players[a]["byes"] += 1
             if not knockout:
                 players[a]["points"] += stage["points"]["bye"]
+                if round_number in settled_rounds:
+                    settled[a]["points"] += stage["points"]["bye"]
             continue
         for player, other, actor, score, against in ((a, b, 0, sa, sb), (b, a, 1, sb, sa)):
             entry = players[player]
             key = "draw" if result == -1 else "win" if result == actor else "loss"
             entry[{"win": "wins", "draw": "draws", "loss": "losses"}[key]] += 1
-            entry["points"] += stage["points"]["scores"].get(f"{score}:{against}", stage["points"][key])
+            points = stage["points"]["scores"].get(f"{score}:{against}", stage["points"][key])
+            entry["points"] += points
+            if round_number in settled_rounds:
+                settled[player]["points"] += points
+                settled[player]["losses"] += int(key == "loss")
             opponents[player].append(other)
             if knockout and entry["losses"] >= max_losses:
                 entry["state"] = "eliminated"
@@ -167,20 +180,18 @@ def standings(conn, tid, index=None):
         if len(alive) == 1:
             alive[0]["placement"] = 1
     else:
-        completed = conn.execute("SELECT COALESCE(MAX(stage_round),0) FROM tournament_rounds WHERE tournament_id=? AND stage_index=?", (tid, index)).fetchone()[0]
-        unfinished = conn.execute("""SELECT COUNT(*) FROM tournament_pairings p JOIN tournament_rounds r ON r.tournament_id=p.tournament_id AND r.number=p.round_number
-            WHERE p.tournament_id=? AND r.stage_index=? AND p.result IS NULL""", (tid, index)).fetchone()[0]
-        if not unfinished:
-            advance = stage["advance"]
-            if advance["early"]:
-                remaining = max(0, round_count(stage, len(players)) - completed)
-                max_points = max(stage["points"][k] for k in ("win", "draw", "loss", "bye"))
-                max_points = max([max_points, *stage["points"]["scores"].values()])
-                for entry in ordered:
-                    if advance["mode"] == "points" and entry["points"] >= advance["points"]:
-                        entry["state"] = "advanced"
-                    elif advance["eliminate_losses"] and entry["losses"] >= advance["eliminate_losses"] or advance["mode"] == "points" and entry["points"] + remaining * max_points < advance["points"]:
-                        entry["state"] = "eliminated"
+        advance = stage["advance"]
+        if advance["early"]:
+            remaining = max(0, round_count(stage, len(players)) - max(settled_rounds, default=0))
+            max_points = max(stage["points"][k] for k in ("win", "draw", "loss", "bye"))
+            max_points = max([max_points, *stage["points"]["scores"].values()])
+            for entry in ordered:
+                record = settled[entry["player_id"]]
+                if advance["mode"] == "points" and record["points"] >= advance["points"]:
+                    entry["state"] = "advanced"
+                elif (advance["eliminate_losses"] and record["losses"] >= advance["eliminate_losses"]
+                      or advance["mode"] == "points" and record["points"] + remaining * max_points < advance["points"]):
+                    entry["state"] = "eliminated"
     for rank, entry in enumerate(ordered, 1):
         entry["rank"] = rank
     return ordered
@@ -223,7 +234,7 @@ def advance_round(conn, tid, expected, now=None):
         completed = conn.execute("SELECT COUNT(*) FROM tournament_rounds WHERE tournament_id=? AND stage_index=?", (tid, index)).fetchone()[0]
         active = [e for e in entries if e["state"] == "active"]
         knockout = stage["kind"] in ("single_elimination", "double_elimination")
-        cut = stage["advance"]["count"] if index < len(settings["stages"]) - 1 and stage["advance"]["mode"] == "rank" else 1
+        cut = stage["advance"]["count"] if index < len(settings["stages"]) - 1 and stage["advance"]["mode"] in ("rank", "rank_tie") else 1
         finished = len(active) <= cut if knockout else completed >= round_count(stage, len(entries)) or not active
         if not finished:
             break
@@ -232,12 +243,16 @@ def advance_round(conn, tid, expected, now=None):
             award_rewards(conn, tid, entries)
             return "比赛已结束，铜钱奖励已自动发放"
         advance = stage["advance"]
-        if advance["mode"] == "rank":
-            selected = entries[:advance["count"]]
+        eligible = [e for e in entries if e["state"] != "eliminated"]
+        if advance["mode"] in ("rank", "rank_tie"):
+            selected = eligible[:advance["count"]]
+            if advance["mode"] == "rank_tie" and not knockout and selected:
+                cutoff = selected[-1]["points"]
+                selected += [e for e in eligible[advance["count"]:] if e["points"] == cutoff]
         elif advance["mode"] == "points":
-            selected = [e for e in entries if e["points"] >= advance["points"] and (e["state"] != "eliminated" or knockout)]
+            selected = [e for e in eligible if e["points"] >= advance["points"]]
         else:
-            selected = active if knockout else [e for e in entries if e["state"] != "eliminated"]
+            selected = eligible
         if len(selected) < 2:
             raise ValueError("满足晋级条件的选手不足 2 人，请调整下一阶段的晋级门槛")
         index += 1

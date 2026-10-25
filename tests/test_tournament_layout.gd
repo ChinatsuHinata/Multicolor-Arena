@@ -63,7 +63,41 @@ func create_form(mobile: bool,pixels: Vector2i,dpi: float=0,safe: Rect2=Rect2())
  expect(ui.settings_payload().format=="swiss","basic creation keeps the default schedule")
  ui.custom_stages.button_pressed=true;await frames()
  expect(ui.stage_form.visible,"custom creation shows stage controls")
+ check_advancement_modes(ui)
+ await frames()
  return ui
+
+func select_metadata(control: OptionButton,value: String):
+ for index in range(control.item_count):
+  if control.get_item_metadata(index)==value:
+   control.select(index);control.item_selected.emit(index);return
+ expect(false,"advancement option exists: "+value)
+
+func check_advancement_modes(ui):
+ for mode in ["points","rank","rank_tie","all"]:
+  var field=ui.stage_form.fields[0]
+  select_metadata(field.advance,mode)
+  expect(field.threshold.editable==(mode=="points"),"only points advancement enables the score threshold")
+  expect(field.count.editable==(mode in ["rank","rank_tie"]),"only rank advancement enables the player count")
+  field.early.button_pressed=false
+  expect(not field.losses.editable,"early loss limit is inactive when early exits are off")
+  if mode=="points":field.threshold.value=7
+  if mode in ["rank","rank_tie"]:field.count.value=4
+  var saved=ui.settings_payload().stages
+  expect(saved[0].advance.mode==mode and not saved[0].advance.early,"saving the selected advancement mode does not enable early exits")
+  if mode=="points":expect(saved[0].advance.points==7,"points threshold is saved independently of early exits")
+  ui.stage_form.rebuild()
+  field=ui.stage_form.fields[0]
+  expect(field.advance.get_selected_metadata()==mode,"stage rebuild preserves the chosen advancement rule")
+  field.early.button_pressed=true
+  expect(field.losses.editable,"early loss limit becomes editable when explicitly enabled")
+  expect(ui.settings_payload().stages[0].advance.mode==mode,"early exits never switch advancement to all survivors")
+  field.early.button_pressed=false
+ var field=ui.stage_form.fields[0]
+ select_metadata(field.kind,"single_elimination")
+ expect(field.early.disabled and not field.losses.editable,"knockout stages disable the extra early-exit rules")
+ select_metadata(field.kind,"swiss")
+ ui.stage_form.capture()
 
 func check_rebuild_and_settings(ui,caption: String):
  var field=ui.stage_form.fields[0]
@@ -82,6 +116,12 @@ func check_rebuild_and_settings(ui,caption: String):
  expect(ui.custom_stages.button_pressed and ui.stage_form.visible,"management opens the saved custom stages")
  await check_form(ui,caption+"-settings","TournamentSettingsScroll")
  expect(ui.settings_payload().stages==payload.stages,"layout changes preserve the settings payload")
+ var saved=payload.stages
+ ui.stage_form.begin(app,[saved[0],saved[0]],1)
+ expect(ui.stage_form.fields[0].advance.disabled and not ui.stage_form.fields[0].count.editable and not ui.stage_form.fields[0].threshold.editable and ui.stage_form.fields[0].early.disabled,"completed stage advancement stays locked")
+ select_metadata(ui.stage_form.fields[1].advance,"points")
+ expect(ui.stage_form.fields[1].threshold.editable,"current stage can repair its points threshold")
+ ui.stage_form.begin(app,saved)
 
 func run():
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(snapshots))

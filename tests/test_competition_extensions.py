@@ -138,6 +138,107 @@ class StageTests(unittest.TestCase):
         self.assertEqual(answer["tournament"]["stage_index"],1)
         self.assertEqual(len(answer["pairings"]),2)
 
+    def test_points_cut_is_independent_of_early_exits(self):
+        for early in (False, True):
+            with self.subTest(early=early):
+                self.create([{"kind": "swiss", "game_format": 1, "rounds": 1,
+                              "advance": {"mode": "points", "points": 3, "early": early,
+                                          "eliminate_losses": 2}},
+                             {"kind": "single_elimination", "game_format": 1}], 8)
+                self.advance(); self.finish_pairs()
+                entries = rules.standings(self.conn, self.tid)
+                qualified = {e["player_id"] for e in entries if e["points"] >= 3}
+                self.advance()
+                promoted = {e["player_id"] for e in rules.standings(self.conn, self.tid)}
+                self.assertEqual(promoted, qualified)
+                self.assertEqual(len(promoted), 4)
+
+    def test_points_cut_does_not_fill_empty_slots_with_survivors(self):
+        self.create([{"kind": "swiss", "game_format": 1, "rounds": 1,
+                      "advance": {"mode": "points", "points": 6, "early": False,
+                                  "eliminate_losses": 2}},
+                     {"kind": "single_elimination", "game_format": 1}], 4)
+        self.advance(); self.finish_pairs()
+        self.assertTrue(all(e["state"] == "active" for e in rules.standings(self.conn, self.tid)))
+        answer = self.call("start_round", expected_round=1)
+        self.assertFalse(answer["ok"])
+        self.assertEqual(rules.config(self.conn, self.tid)["stage_index"], 0)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM tournament_stage_members WHERE tournament_id=? AND stage_index=1", (self.tid,)).fetchone()[0], 0)
+
+    def test_rank_ties_advance_together_before_knockout(self):
+        for mode, expected_count in (("rank", 2), ("rank_tie", 4)):
+            with self.subTest(mode=mode):
+                self.create([{"kind": "swiss", "game_format": 1, "rounds": 1,
+                              "advance": {"mode": mode, "count": 2}},
+                             {"kind": "single_elimination", "game_format": 1}], 8)
+                self.advance(); self.finish_pairs()
+                entries = rules.standings(self.conn, self.tid)
+                expected = {e["player_id"] for e in entries[:expected_count]}
+                answer = self.advance()
+                self.assertEqual({e["player_id"] for e in rules.standings(self.conn, self.tid)}, expected)
+                self.assertEqual(len(answer["pairings"]), expected_count // 2)
+
+    def test_rank_ties_do_not_revive_knockout_losers(self):
+        self.create([{"kind": "single_elimination", "game_format": 1,
+                      "points": {"win": 0, "loss": 0},
+                      "advance": {"mode": "rank_tie", "count": 2}},
+                     {"kind": "single_elimination", "game_format": 6}], 4)
+        self.advance(); self.finish_pairs()
+        winners = {e["player_id"] for e in rules.standings(self.conn, self.tid) if e["wins"] == 1}
+        self.advance()
+        self.assertEqual({e["player_id"] for e in rules.standings(self.conn, self.tid)}, winners)
+
+    def test_rank_tie_cut_uses_boundary_points_and_respects_elimination(self):
+        for early in (False, True):
+            with self.subTest(early=early):
+                self.create([{"kind": "swiss", "game_format": 3, "rounds": 1,
+                              "points": {"scores": {"2:0": 5, "0:2": 3, "2:1": 3, "1:2": 0}},
+                              "advance": {"mode": "rank_tie", "count": 3, "early": early,
+                                          "eliminate_losses": 1}},
+                             {"kind": "single_elimination", "game_format": 1}], 8)
+                first = self.advance()
+                for i, pair in enumerate(first["pairings"]):
+                    self.assertTrue(self.call("judge_result", pairing_id=pair["id"], revision=pair["revision"],
+                                              result=0, scores=[2, 0] if i < 2 else [2, 1])["ok"])
+                entries = rules.standings(self.conn, self.tid)
+                expected = {e["player_id"] for e in entries if e["points"] >= 3 and e["state"] != "eliminated"}
+                self.assertEqual(len(expected), 4 if early else 6)
+                self.advance()
+                self.assertEqual({e["player_id"] for e in rules.standings(self.conn, self.tid)}, expected)
+
+    def test_early_states_survive_a_partially_settled_next_round(self):
+        self.create([{"kind": "swiss", "game_format": 1, "rounds": 3,
+                      "advance": {"mode": "points", "points": 3, "early": True,
+                                  "eliminate_losses": 1}},
+                     {"kind": "single_elimination", "game_format": 1}], 8)
+        first = self.advance()
+        for i, pair in enumerate(first["pairings"]):
+            self.assertTrue(self.call("judge_result", pairing_id=pair["id"], revision=pair["revision"],
+                                      result=0 if i == 0 else -1, scores=[1, 0] if i == 0 else [0, 0])["ok"])
+        previous = {e["player_id"]: e["state"] for e in rules.standings(self.conn, self.tid)}
+        self.assertEqual(list(previous.values()).count("advanced"), 1)
+        self.assertEqual(list(previous.values()).count("eliminated"), 1)
+        second = self.advance()
+        self.assertEqual({e["player_id"]: e["state"] for e in rules.standings(self.conn, self.tid)}, previous)
+        pair = second["pairings"][0]
+        self.assertTrue(self.call("judge_result", pairing_id=pair["id"], revision=pair["revision"], result=0, scores=[1, 0])["ok"])
+        self.assertEqual({e["player_id"]: e["state"] for e in rules.standings(self.conn, self.tid)}, previous)
+        self.finish_pairs()
+        entries = rules.standings(self.conn, self.tid)
+        self.assertEqual(sum(e["state"] == "advanced" for e in entries), 4)
+        self.assertEqual(sum(e["state"] == "eliminated" for e in entries), 4)
+
+    def test_rank_cut_excludes_early_eliminations(self):
+        self.create([{"kind": "swiss", "game_format": 1, "rounds": 1,
+                      "points": {"win": 1, "loss": 5},
+                      "advance": {"mode": "rank", "count": 2, "early": True,
+                                  "eliminate_losses": 1}},
+                     {"kind": "single_elimination", "game_format": 1}], 4)
+        self.advance(); self.finish_pairs()
+        survivors = {e["player_id"] for e in rules.standings(self.conn, self.tid) if e["losses"] == 0}
+        self.advance()
+        self.assertEqual({e["player_id"] for e in rules.standings(self.conn, self.tid)}, survivors)
+
     def test_roles_revocation_super_management_and_rewards_permissions(self):
         organizer=self.people[1]
         granted=community_store.handle(self.conn,{"action":"set_role","username":"organizer","role":"tournament_admin","enabled":True},self.admin)

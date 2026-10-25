@@ -78,7 +78,7 @@ func advance(delta: float) -> void:
   return
  elapsed+=delta
  _frame(delta)
- if category!="foil" and elapsed>=budget:
+ if category!="foil" and elapsed>=budget and not holds():
   finished=true
   stop()
 
@@ -105,6 +105,8 @@ func count_nodes(node: Node) -> int:
 func _build() -> bool:return true
 func _frame(_delta: float) -> void:pass
 func default_offset() -> Vector3:return Vector3.ZERO
+## 返回 true 时到 budget 也不收尾（入场的 sustain 用）。
+func holds() -> bool:return false
 
 func _process(delta: float) -> void:
  advance(delta)

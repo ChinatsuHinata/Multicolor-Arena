@@ -30,6 +30,7 @@ func configure(def: Dictionary,context: Dictionary) -> void:
  super(def,context)
  timing=str(def.get("timing","after"))
  flight_mode=str(def.get("flight","none"))
+ sustain_mode=str(def.get("sustain","none"))
 
 ## 卡牌从堆叠飞到落点的时长，本体经 ctx.travel 传入；预览与单测没有时取 params.travel_ms。
 func travel_seconds() -> float:
@@ -129,6 +130,37 @@ func pin_to_landing() -> void:
  if not playing or not is_instance_valid(holder) or not holder.is_inside_tree():return
  var landing=ctx.get("landing")
  if landing is Transform3D:holder.global_transform=landing*Transform3D(Basis.IDENTITY,ctx.get("offset",Vector3.ZERO))
+
+## 持续到回合结束（清单 sustain:"turn"）：模块在 _build() 里按 ctx 判断后调用
+## hold_until_turn_end()，到 budget 不收尾、继续 _frame；舞台收到回合结束时
+## 调 release()，再播 release_seconds()（params.release_ms，缺省 450）后收尾。
+## 卡牌离场时 holder 随卡牌释放，基类照常收尾。
+var sustain_mode="none"
+var sustaining=false
+var releasing=false
+var release_started=0.0
+
+func hold_until_turn_end() -> bool:
+ if sustain_mode!="turn":return false
+ sustaining=true
+ return true
+
+func release_seconds() -> float:
+ return maxf(float(params.get("release_ms",450.0))/1000.0,0.05)
+
+func release() -> void:
+ if not sustaining or releasing:return
+ releasing=true
+ release_started=elapsed
+
+## 0（未收尾）→ 1（收尾完毕）。
+func release_progress() -> float:
+ if not releasing:return 0.0
+ return clampf((elapsed-release_started)/release_seconds(),0.0,1.0)
+
+func holds() -> bool:
+ if not sustaining:return false
+ return not releasing or elapsed<release_started+release_seconds()
 
 ## 只给本模块自己的节点用，绝不回写卡面材质。
 func radial_plane(size_scale: Vector2,at_y: float,material: Material=null) -> MeshInstance3D:

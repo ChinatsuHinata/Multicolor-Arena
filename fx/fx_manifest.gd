@@ -8,9 +8,11 @@ const MODULE_ROOT="res://fx/modules/"
 const CATEGORIES=["entrance","foil","spell"]
 ## 入场时间点：before 在单位牌离开堆叠、正飞向战场时开播；after 在卡牌落场后开播。
 const TIMINGS=["before","after"]
+## 入场持续：turn 允许模块自己决定持续到回合结束（hold_until_turn_end）。
+const SUSTAINS=["none","turn"]
 const ORIGINS=["none","character"]
 const DESTINATIONS=["none","spell_target"]
-const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes","cards","timing","flight","flight_ms","flight_ease","character_spell","character","origin","destination","hold_ms"]
+const OPTIONAL_KEYS=["name","description","shop_product","free","priority","budget_ms","asset_dir","params","notes","cards","timing","flight","flight_ms","flight_ease","character_spell","character","origin","destination","hold_ms","sustain"]
 
 static func load_all(root: String=ROOT) -> Dictionary:
  var effects: Dictionary={}
@@ -72,6 +74,9 @@ static func validate(data: Variant,path: String) -> String:
  if data.has("timing"):
   if str(data.category)!="entrance":return "timing only applies to entrance effects"
   if not data.timing is String or not TIMINGS.has(str(data.timing)):return "timing must be one of "+", ".join(TIMINGS)
+ if data.has("sustain"):
+  if str(data.category)!="entrance":return "sustain only applies to entrance effects"
+  if not data.sustain is String or not SUSTAINS.has(str(data.sustain)):return "sustain must be one of "+", ".join(SUSTAINS)
  for key in ["character_spell","character","origin","destination","hold_ms"]:
   if data.has(key) and str(data.category)!="spell":return key+" only applies to spell effects"
  if data.has("character_spell") and not data.character_spell is bool:return "character_spell must be a boolean"

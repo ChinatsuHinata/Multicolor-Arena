@@ -14,10 +14,11 @@ func begin(host,data: Array,current_index: int=-1):
 func default_stage() -> Dictionary:
  return {"name":"第 %d 阶段" % (stages.size()+1),"kind":"swiss","game_format":3,"rounds":0,"points":{"win":3,"draw":1,"loss":0,"bye":3,"scores":{}},"advance":{"mode":"all","count":2,"points":6,"early":false,"eliminate_losses":0}}
 
-func label_text(parent: Node,caption: String):
+func label_text(parent: Node,caption: String) -> Label:
  var label=Label.new();parent.add_child(label);label.text=caption;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  label.add_theme_font_size_override("font_size",app.ui_metrics.small)
+ return label
 
 func spin(parent: Node,caption: String,value: int,limit: int=10000) -> SpinBox:
  var row=HBoxContainer.new();parent.add_child(row);label_text(row,caption)
@@ -53,12 +54,12 @@ func rebuild():
   var score_entries=[]
   for key in stage.points.get("scores",{}):score_entries.append(str(key)+"="+str(int(stage.points.scores[key])))
   scores.text=",".join(score_entries);scores.placeholder_text="2:0=3,2:1=2,1:2=1,0:2=0"
-  var advance=choice(column,"进入下一阶段的条件",{"all":"所有未淘汰选手（淘汰赛仅胜者）","rank":"按本阶段排名","points":"按本阶段积分达标"},stage.advance.mode)
+  var advance=choice(column,"进入下一阶段的条件",{"all":"所有未淘汰选手（淘汰赛仅胜者）","rank":"按本阶段排名","rank_tie":"按排名取人数，末位同分者一起晋级","points":"按本阶段积分达标"},stage.advance.mode)
   var count=spin(column,"按排名：晋级人数",int(stage.advance.get("count",2)),128);count.min_value=1
   var threshold=spin(column,"按积分：最低晋级分数",int(stage.advance.get("points",6)),1000000)
   var early=CheckButton.new();column.add_child(early);early.text="提前晋级 / 提前淘汰";early.button_pressed=stage.advance.get("early",false);app.ui_metrics.button(early)
   var losses=spin(column,"提前淘汰：累计负场（0 关闭）",int(stage.advance.get("eliminate_losses",0)),127)
-  label_text(column,"启用后，达到晋级分数即停止参赛；剩余轮次全取最高分仍不能达标则提前淘汰。各阶段积分独立计算。末阶段按成绩发奖。")
+  var advance_hint=label_text(column,"")
   for control in [kind,game]:control.disabled=locked;control.set_meta("page_disabled",locked)
   for control in [rounds,point_fields.win,point_fields.draw,point_fields.loss,point_fields.bye]:control.editable=not locked
   scores.editable=not locked
@@ -74,11 +75,31 @@ func rebuild():
     var up=app.button(controls,"上移阶段",Rect2(),func():
      if capture():var previous=stages[index-1];stages[index-1]=stages[index];stages[index]=previous;rebuild())
     app.ui_metrics.button(up)
-  fields.append({"title":title,"kind":kind,"game":game,"rounds":rounds,"points":point_fields,"scores":scores,"advance":advance,"count":count,"threshold":threshold,"early":early,"losses":losses})
+  fields.append({"title":title,"kind":kind,"game":game,"rounds":rounds,"points":point_fields,"scores":scores,"advance":advance,"count":count,"threshold":threshold,"early":early,"losses":losses,"advance_hint":advance_hint})
+  advance.item_selected.connect(func(_value):update_advance_fields(index))
+  kind.item_selected.connect(func(_value):update_advance_fields(index))
+  early.toggled.connect(func(_value):update_advance_fields(index))
+  update_advance_fields(index)
  var add=app.button(self,"＋ 添加下一阶段",Rect2(),func():if capture():stages.append(default_stage());rebuild())
  app.ui_metrics.button(add);add.disabled=stages.size()>=12
  add.set_meta("page_disabled",stages.size()>=12)
  relayout()
+
+func update_advance_fields(index: int):
+ var field=fields[index]
+ var mode=field.advance.get_selected_metadata()
+ var knockout=field.kind.get_selected_metadata() in ["single_elimination","double_elimination"]
+ var editable=index>=locked_through
+ field.count.editable=editable and mode in ["rank","rank_tie"]
+ field.threshold.editable=editable and mode=="points"
+ field.early.disabled=not editable or knockout
+ field.early.set_meta("page_disabled",field.early.disabled)
+ field.losses.editable=editable and not knockout and field.early.button_pressed
+ var hint={"all":"当前按未淘汰选手晋级，积分线不生效。需要积分达标才晋级时，请选择“按本阶段积分达标”。","rank":"按本阶段排名取指定人数；同分仍按对手分、胜场及抽签序号排序。","rank_tie":"先取指定人数，再纳入末位同积分的选手，人数可能超过名额；淘汰赛按胜负晋级，不因同分增加人数。","points":"仅本阶段积分达到门槛的合资格选手晋级；关闭提前判定仍须达标，不以“未淘汰”代替积分条件。"}.get(mode,"")
+ if not knockout:
+  hint+=" 提前判定只控制本阶段是否继续参赛；积分模式下达标停赛、已不可能达标者淘汰，设置负场线后达到负场线者淘汰。"
+ hint+=" 各阶段积分独立计算。末阶段按成绩发奖。"
+ field.advance_hint.text=hint
 
 func relayout():
  add_theme_constant_override("separation",int(app.ui_metrics.gap))

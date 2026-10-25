@@ -112,6 +112,8 @@ var fx_seen: Dictionary={}
 var fx_face_seen: Dictionary={}
 ## 已在飞行起点播过"进入前"入场特效的单位；落场 sync 时只补"进入后"。
 var fx_departed: Dictionary={}
+## 上次同步时的回合数；变化时通知特效层回合结束。
+var fx_turn=-1
 
 ## 一次性接线。products 是冻结的对战商品快照，入场与闪卡据此决定跑哪些特效。
 func attach_fx(products: Dictionary={}) -> void:
@@ -137,12 +139,22 @@ func unit_departing(uid: int,travel: float,source: Dictionary={}) -> float:
  fx_departed[uid]=true
  var landing=global_transform*Transform3D(Basis.from_euler(d.rotation).scaled(d.scale),d.at)
  var extra={"parent":null,"uid":uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel,"timings":["before"]}
+ extra.merge(fx_unit_state(uid),true)
  if source.has("point") and source.has("pixel_height") and (source.get("texture") is Texture2D):
   extra["flight"]={"from":flight_source(source.point,float(source.pixel_height),landing),"to":landing,"seconds":travel,"ease":"cubic_in_out","texture":source.texture}
  var started=fx.unit_entered(null,CARD_SIZE,extra)
  if not fx.owns_flight(started):return 0.0
  var seconds=fx.flight_seconds(started)
  return seconds if seconds>0.0 else travel
+
+## 入场上下文里的单位状态：角色名、己方颜色盘中该角色的角色符卡数、是否疾行。
+func fx_unit_state(uid: int) -> Dictionary:
+ var c=duel.find_card(uid)
+ if c.is_empty() or not duel.cards.has(str(c.card_id)):return {}
+ var character=str(duel.cards[c.card_id].get("character",""))
+ var count=0
+ if not character.is_empty():count=duel.players[int(c.owner)].palette.filter(func(p):return str(duel.cards[p.card_id].get("requires_character",""))==character).size()
+ return {"character":character,"owner_character_spells":count,"haste":duel.has_haste(c)}
 
 ## SubViewport 像素投向相机前方，起点卡面正对相机并保持屏幕高度。
 func flight_source(point: Vector2,pixel_height: float,landing: Transform3D) -> Transform3D:
@@ -694,6 +706,9 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   animate_combat_resolution()
   return
  reserved=payment_reservations; chosen=selection; highlighted=available
+ if fx!=null and fx_turn!=duel.turn:
+  if fx_turn>=0:fx.turn_ended()
+  fx_turn=duel.turn
  if page_change_pending and only_id.is_empty():animate=false;page_change_pending=false
  var now=card_snapshot()
  var next=layout()
@@ -736,6 +751,7 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
     var travel=0.0 if presented_moves.has(d.uid) else animation_duration
     var extra={"uid":d.uid,"card_id":d.card_id,"owner":d.owner,"landing":landing,"travel":travel}
     if departed:extra["timings"]=["after"]
+    extra.merge(fx_unit_state(d.uid),true)
     fx.unit_entered(node,CARD_SIZE,extra)
   # 闪卡：卡面建立或换异画时挂一次，卡牌节点释放时随之消失。
   if fx!=null and d.uid>0:
@@ -772,7 +788,9 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
    if now[d.uid].damage>old_cards[d.uid].damage: pulse(node,Color("#f17b73"))
  # 离开战场（含新一局 uid 重置回牌库）的单位不再算"已入场"，下次进场重播。
  for uid in fx_seen.keys():
-  if now.get(uid,{}).get("zone","")!="field":fx_seen.erase(uid)
+  if now.get(uid,{}).get("zone","")!="field":
+   fx_seen.erase(uid)
+   if fx!=null:fx.card_released(uid)
  for uid in fx_departed.keys():
   if now.get(uid,{}).get("zone","")!="field":fx_departed.erase(uid)
  for key in visuals.keys():

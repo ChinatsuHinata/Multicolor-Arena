@@ -2,7 +2,7 @@
 
 完整方法论见 [`docs/特效开发方法论.md`](../docs/特效开发方法论.md)。这里只放速查。
 
-当前内置灵梦入场「阴阳玉·聚散」和符卡「梦想妙珠」两个特效，均为香霖堂的免费商品。登录领取后默认启用，可在「我的商品」关闭，下一场对战生效；联机按服务器核验的双方装备分别播放。清单中的 `free` 表示无需领取即可播放，与商品的免费价格不同。
+当前内置灵梦入场「阴阳玉·聚散」「大结界·封魔阵」和符卡「梦想妙珠」三个特效，均为香霖堂的免费商品。登录领取后默认启用，可在「我的商品」关闭，下一场对战生效；联机按服务器核验的双方装备分别播放。清单中的 `free` 表示无需领取即可播放，与商品的免费价格不同。
 
 ## 加一个特效
 
@@ -11,6 +11,7 @@
 1. `fx/definitions/<id>.json` —— 按方法论中的清单示例填写 `id` / `category` / `script` / `params`，目录不存在时先创建。
    - 只给部分卡用：加 `"cards": ["<卡牌id>", …]`，省略即所有卡。
    - 入场时间点：`"timing": "before"`（单位牌出堆叠、飞向战场时开播）或 `"after"`（缺省，落场后开播）。
+   - 持续到回合结束（仅 `entrance`）：`"sustain": "turn"`，模块在 `_build()` 里按 ctx 判断后调 `hold_until_turn_end()`，到 budget 不收尾；本体回合切换时经 `fx.turn_ended()` 让它 `release()`，再播 `release_seconds()`（`params.release_ms`）后收尾，`release_progress()` 0→1。入场 ctx 另带 `character`、`owner_character_spells`（己方颜色盘中该角色的角色符卡数）与 `haste`。
    - 角色符卡（仅 `spell`）：`"character_spell": true`、`"character": "<角色名>"`、`"origin": "character"|"none"`、`"destination": "spell_target"|"none"`；起点排序：套牌自机 > 自机单位 > 颜色值高 > 卡牌 id 小（再按 uid 小）。
    - 演出占用（仅 `spell`）：`"hold_ms"` 0–5000，缺省为整段 `budget_ms`。特效播到这个时刻之前公开演出队列停住，目标死亡、区域移动要等动画结算后才显示。
 2. `fx/modules/<id>/effect.gd` —— 继承对应品类基类，实现 `_build()` 与 `_frame(delta)`。

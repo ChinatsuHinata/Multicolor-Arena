@@ -719,7 +719,13 @@ func points_caption(stage: Dictionary) -> String:
  var value="胜 %d / 平 %d / 负 %d / 轮空 %d 分" % [int(points.win),int(points.draw),int(points.loss),int(points.bye)]
  for key in points.get("scores",{}):value+=" · %s=%d分" % [key,int(points.scores[key])]
  var advance=stage.advance
- value+=" · 达到 %d 分晋级" % int(advance.points) if advance.mode=="points" else " · 前 %d 名晋级" % int(advance.count) if advance.mode=="rank" else " · 未淘汰选手晋级"
+ if advance.mode=="points":value+=" · 达到 %d 分晋级" % int(advance.points)
+ elif advance.mode=="rank_tie":value+=" · 前 %d 名晋级，末位同分者一起晋级（淘汰赛不扩招）" % int(advance.count)
+ elif advance.mode=="rank":value+=" · 前 %d 名晋级" % int(advance.count)
+ else:value+=" · 未淘汰选手晋级"
+ if advance.get("early",false) and stage.kind not in ["single_elimination","double_elimination"]:
+  if advance.mode=="points":value+=" · 达标提前晋级，无望达标提前淘汰"
+  if int(advance.get("eliminate_losses",0))>0:value+=" · 累计 %d 负提前淘汰" % int(advance.eliminate_losses)
  return value
 
 func build_reward_fields(parent: Node):

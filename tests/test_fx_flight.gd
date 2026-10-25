@@ -185,17 +185,19 @@ func check_reimu() -> void:
  var bridge=Bridge.new()
  var stage=bridge.attach(host)
  stage.auto_step=true;stage.set_process(false)
- var registry=Registry.new();registry.allow_all=true
+ # 按真实对局走卡牌筛选：只让 70 号灵梦的入场特效参与，别的灵梦入场不抢代理卡。
+ var registry=Registry.new()
  var def=registry.get_effect("reimu_yinyang_gather")
+ var products={str(def.get("shop_product","reimu_yinyang_gather")):{}}
  expect(not def.is_empty() and registry.errors.is_empty(),"real Reimu manifest loads")
  if def.is_empty():host.free();return
  stage.use_registry(registry)
  var landing=Transform3D(Basis.IDENTITY,Vector3(1.0,0.0,-1.0))
  var from=Transform3D(Basis.from_euler(Vector3(0.8,0.2,0.1)).scaled(Vector3.ONE*0.8),landing.origin+Vector3(-3.0,2.0,2.0))
- var ctx={"uid":77,"card_size":CARD_SIZE,"landing":landing,"travel":0.3,"flight":{"from":from,"to":landing,"seconds":0.3,"color":Color("#8a6d80")}}
+ var ctx={"uid":77,"card_id":"70","card_size":CARD_SIZE,"landing":landing,"travel":0.3,"flight":{"from":from,"to":landing,"seconds":0.3,"color":Color("#8a6d80")}}
  var positions: Array[Vector3]=[]
  for run_index in range(2):
-  var started=stage.play("entrance",ctx)
+  var started=stage.play("entrance",ctx,products)
   var matches=started.filter(func(module):return module.id==def.id)
   expect(matches.size()==1,"Reimu starts once, run %d" % run_index)
   if matches.is_empty():continue
@@ -244,7 +246,7 @@ func check_reimu() -> void:
   stage.stop_all()
   await process_frame
  ctx.erase("flight");ctx.travel=0.0
- var fallback=stage.play("entrance",ctx).filter(func(module):return module.id==def.id)
+ var fallback=stage.play("entrance",ctx,products).filter(func(module):return module.id==def.id)
  expect(fallback.size()==1 and not fallback[0].owns_flight(),"zero travel without flight starts the fallback")
  for module in fallback:
   var holder=weakref(module.holder)

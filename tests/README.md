@@ -13,7 +13,7 @@
 | Limitless 快速导入、进行中赛事网页读取、账号 ID 保存与持久化、来源选手资格门控、管理员审核／拒绝／撤回、重复身份冲突与过期审核保护、桌面与安卓入口 | `test_limitless_admission.py`、`test_limitless_ui.gd`、`test_account_ui.gd`、`run_tournaments.py --limitless-only`（隔离临时数据库与回环中转；示例为好奇杯极彩十月月赛） |
 | Limitless 来源签表与排名、用户账号对应、缺少上轮结果／下轮签表／完整选手／新鲜数据时禁止开轮、原桌号与签位、游戏结束等待来源确认、禁止本地裁定、异步同步与缓存持久化、限流和来源改签保护、来源最终排名奖励；历轮浏览和双端界面 | `test_limitless_tournaments.py`、`test_limitless_ui.gd`（离线临时数据；有界面运行时截图输出 `work/limitless-ui/`） |
 | 桌面／安卓设置与对战内 60／120／自定义帧率档位、仅自定义可输入、无上下调节按钮、自定义数值记忆、0 不限帧、即时生效及保存重启 | `test_frame_rate_limit.gd`（有界面运行时保存截图） |
-| 赛事创建与管理的自定义阶段表单、数值行文字换行与输入框高度、增删阶段及内容保留、桌面／安卓高 DPI 和安全区变化 | `test_tournament_layout.gd`（离线运行；有界面运行时截图输出 `work/tournament-layout-tests/`） |
+| 赛事创建与管理的自定义阶段表单、积分／排名／末位同分晋级独立保存与参数联动、数值行文字换行与输入框高度、增删阶段及内容保留、桌面／安卓高 DPI 和安全区变化 | `test_tournament_layout.gd`（离线运行；有界面运行时截图输出 `work/tournament-layout-tests/`） |
 | 多阶段瑞士／单败／双败／循环赛、BO5／BO2、大比分一致确认、积分提前晋级淘汰、跨阶段四强奖励及超管权限；线上教程提交审核与匿名同步、权限撤销、公告并发领取；bigcake 固定绑定超级管理员组、按账号／数字玩家 ID 赠予铜钱、越权拦截、金额校验、并发幂等与持久化、桌面鼠标／安卓触摸提交及余额同步、赠予离页后恢复重试不重复发放及账号隔离 | `test_competition_extensions.py`、`test_community_store.py`、`run_tournaments.py --formats-only`、`run_tournaments.py --community-only --render`（独立临时数据库与回环中转；截图输出 `work/tournament-tests/`） |
 | 「永夜归还-待宵-」先确认双方套牌自机去向、完整复活名单、横置进场与结束阶段移除；夺取操控权、区域实例有效性、移除替代、衍生物及存档恢复 | `test_eternal_night_return.gd` |
 | 颜色盘取消一张／多张选牌后重新分配已选牌颜色、合法替代牌与实际扣费、混色／减费备选费用、成对产色／红薯／保留色及双座位联机视图；桌面／安卓选目标与确认支付阶段 | `test_payment_reselection.gd`、`test_payment_reselection_ui.gd` |

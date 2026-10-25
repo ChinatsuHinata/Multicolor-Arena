@@ -5,7 +5,8 @@ extends SceneTree
 ##   Godot --path . --script fx/fx_showcase.gd
 ##   Godot --path . --script fx/fx_showcase.gd -- --only=<id>
 ##   Godot --path . --script fx/fx_showcase.gd -- --only=<id> --png=work/fx/preview.png
-##   --count=<n> 设置模拟双方颜色盘中的角色符卡数，缺省 6。
+##   --count=<n> 设置模拟双方颜色盘中的角色符卡数，缺省 6；入场特效同时以它作己方同角色符卡数（≥3 视为疾行）。
+##   --release=<秒> 到该时刻模拟回合结束，让持续到回合结束的入场特效收尾。
 ## 无 --only 时轮流播放全部特效。--png 需要非 headless 的渲染后端。
 
 const Registry=preload("res://fx/fx_registry.gd")
@@ -21,6 +22,8 @@ var clock=0.0
 var capture_path=""
 var capture_at=-1.0
 var showcase_count=6
+var release_at=-1.0
+var released=false
 var capturing=false
 var only=""
 var camera: Camera3D
@@ -31,6 +34,7 @@ func _initialize() -> void:
   if arg.begins_with("--png="):capture_path=arg.trim_prefix("--png=")
   if arg.begins_with("--at="):capture_at=float(arg.trim_prefix("--at="))
   if arg.begins_with("--count="):showcase_count=int(arg.trim_prefix("--count="))
+  if arg.begins_with("--release="):release_at=float(arg.trim_prefix("--release="))
  registry=Registry.new()
  registry.allow_all=true
  registry.reload(true)
@@ -87,6 +91,7 @@ func play_index(value: int) -> void:
  stage.stop_all()
  modules.clear()
  clock=0.0
+ released=false
  card.visible=true
  var all: Array=[]
  for category in ["entrance","foil","spell"]:
@@ -107,6 +112,8 @@ func play_index(value: int) -> void:
   if Registry.flight(def) in ["track","proxy"]:
    ctx["flight"]={"from":showcase_flight_source(),"to":card.global_transform,"seconds":ctx.travel,"ease":str(def.get("flight_ease","cubic_in_out")),"color":Color("#8a6d80")}
   card.visible=false
+ if str(def.category)=="entrance":
+  ctx.merge({"owner":0,"character":"博丽灵梦","owner_character_spells":showcase_count,"haste":showcase_count>=3},true)
  if str(def.category)=="spell":
   ctx.merge({
    "owner":0,"requires_character":str(def.get("character","")),
@@ -147,6 +154,9 @@ func _process(delta: float) -> bool:
  clock+=step
  for module in modules:
   if is_instance_valid(module):module.advance(step)
+ if release_at>=0.0 and not released and clock>=release_at:
+  released=true
+  stage.turn_ended()
  if not card.visible:
   for module in modules:
    if is_instance_valid(module) and module.category=="entrance" and clock>=float(module.ctx.get("travel",0.0)):

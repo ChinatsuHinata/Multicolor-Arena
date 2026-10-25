@@ -6,6 +6,7 @@ extends RefCounted
 ##   flight_seconds()    已接管模块中的最长飞行秒数
 ##   card_face_built()   卡面材质建立或切换异画后（闪卡）
 ##   spell_resolved()    符卡结算、未被反制且目标未失效时（符卡）
+##   turn_ended()        回合切换时，持续到回合结束的入场特效收尾
 ## 除此之外本体不认识任何特效 id、材质或节点名。
 ##
 ## 接线示例（各一行，只在首次接入时加）：
@@ -81,10 +82,13 @@ func spell_resolved(node: Node3D,card_size: Vector2,extra: Dictionary={}) -> Arr
  ctx.merge(extra,true)
  return stage.play("spell",ctx,products_for(int(ctx.get("owner",-1))))
 
-## 单张卡离场：入场与闪卡都挂在卡牌节点下，节点释放即消失，这里只需收尾
-## 那些以舞台为父节点的（符卡）特效。
-func card_released(_uid: int) -> void:
- pass
+func turn_ended() -> void:
+ if is_instance_valid(stage):stage.turn_ended()
+
+## 单位离场：挂在卡牌节点下的特效随节点释放；"飞行前"入场特效挂在舞台层、
+## 钉在落点，不会随卡牌消失，这里让它们收尾。
+func card_released(uid: int) -> void:
+ if is_instance_valid(stage):stage.released(uid)
 
 func clear() -> void:
  if is_instance_valid(stage):stage.clear()
