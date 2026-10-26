@@ -1,13 +1,13 @@
 # 极彩 TTS 组卡器移植
 
-这里有两个可直接由 Tabletop Simulator 载入的存档：
+这里保留组卡器的 Lua 模板、构建与验证脚本。构建后可生成两个由 Tabletop Simulator 载入的存档；生成的存档、报告和本机卡图清单只保存在本地，不提交到 Git：
 
 - `Multicolour_Deck_Builder.json`：以 Workshop `2629086384` 原版极彩 mod 为底本。
-- `Multicolour_Deck_Builder_CurrentSave.json`：以本机最后一个手动存档 `TS_Save_90.json` 为底本，保留其中全部 635 个桌面物件。
+- `Multicolour_Deck_Builder_CurrentSave.json`：以自己选择的本机存档为底本，保留原存档的桌面物件。
 
 两者均在原有全局 Lua 上加入组卡器；原 mod 的桌面物件和各物件脚本保持不变。影之诗 mod 的卡库搜索、按卡牌数据生成实体牌与整副卡组的做法用于实现参考，没有复制它的卡牌数据库或外部牌组网站接口。
 
-本机已把后一版本安装为 TTS 的新存档 **91 - 极彩组卡器移植**，并备份原 `SaveFileInfos.json`。原 Workshop 文件、存档 90 均未改动。
+请将生成的存档自行导入 TTS；构建脚本不会修改原 Workshop 文件或个人存档。`deck_builder.lua` 是维护源码模板，必须保留，不属于生成产物。
 
 ## 使用
 
@@ -25,6 +25,16 @@
 
 ## 重新生成与验证
 
-`build_tts_deckbuilder.py` 从项目的 `card_database.gd`、`cards/*.json`、已整理的 TTS 卡牌映射及极彩 mod 存档生成 Lua 目录和两个目标存档。默认输入路径适配本机环境，可用 `--mod`、`--asset-mod`、`--mapping-source` 和 `--output` 指定其他路径。
+`build_tts_deckbuilder.py` 从项目的 `card_database.gd`、`cards/*.json`、已整理的 TTS 卡牌映射及极彩 mod 存档生成嵌入 Lua 的目标存档。每次执行生成一个目标存档及报告。
 
-`verify_build.py` 检查 513 张卡牌、67 套卡图配置、四副预组和底本物件完全保留。使用 TTS 安装目录中的 MoonSharp 解释器检查过 Lua 解析，并在隔离环境执行过界面生成、自机选取、同名四张限制、预组导入和 50 张实体卡组数据生成；生成的界面 XML 可解析。
+构建前须自行准备本机的原版 Workshop 存档、TTS 卡牌映射 JSON；若要生成个人存档版本，还须提供自己的 TTS 存档。它们不随此仓库提供。默认输入路径仅适配原开发环境，其他电脑应显式传入 `--mod`、`--asset-mod`、`--mapping-source`、`--output` 和 `--report`。例如，在仓库根目录执行（将示例路径替换为自己已有的文件）：
+
+```powershell
+python tts_mod/build_tts_deckbuilder.py --mod "C:/TTS-input/2629086384.json" --asset-mod "C:/TTS-input/2629086384.json" --mapping-source "C:/TTS-input/multicolour_cards_database.json" --output tts_mod/Multicolour_Deck_Builder.json --report tts_mod/build_report.json
+python tts_mod/build_tts_deckbuilder.py --mod "C:/TTS-input/MySave.json" --asset-mod "C:/TTS-input/2629086384.json" --mapping-source "C:/TTS-input/multicolour_cards_database.json" --output tts_mod/Multicolour_Deck_Builder_CurrentSave.json --report tts_mod/current_save_report.json
+python tts_mod/verify_build.py
+```
+
+`verify_build.py` 检查已生成的存档、当前已登记卡牌、卡图配置、维护预组和底本物件是否保留。未构建时会提示先生成产物；不要将缺少本机输入误判为游戏运行失败。预组验证和 `make_ui_fixture.py` 的界面夹具均读取 `data/preset_decks.json`，不读取玩家的 `deck/` 目录。`make_ui_fixture.py` 须在生成默认 `Multicolour_Deck_Builder.json` 后运行，输出的 `ui_fixture.lua` 仅供本机 MoonSharp 测试使用。
+
+历史版本曾使用 TTS 安装目录中的 MoonSharp 解释器检查 Lua 解析，并在隔离环境执行界面生成、自机选取、同名四张限制、预组导入和 50 张实体卡组数据生成；这不替代每次修改后的重新构建与验证。

@@ -17,10 +17,11 @@ def embedded_json(lua: str, name: str):
 
 
 def main():
-    reports = [HERE / "build_report.json", HERE / "current_save_report.json"]
+    reports = [path for path in (HERE / "build_report.json", HERE / "current_save_report.json")
+               if path.is_file()]
+    if not reports:
+        raise SystemExit("No generated TTS build reports found. Run build_tts_deckbuilder.py with your local source inputs first.")
     for report_path in reports:
-        if not report_path.is_file():
-            continue
         report = read_json(report_path)
         source = read_json(Path(report["source_mod"]))
         output = read_json(Path(report["output"]))
@@ -29,7 +30,7 @@ def main():
         catalog = embedded_json(output["LuaScript"], "cards")
         assets = embedded_json(output["LuaScript"], "assets")
         by_id = {card["id"]: card for card in catalog}
-        assert len(catalog) == len(by_id) == len(registered_ids()) == 513
+        assert len(catalog) == len(by_id) == len(registered_ids())
         assert set(by_id) == set(registered_ids())
         assert report["existing_tts_faces"] + report["local_faces"] == len(catalog)
         assert report["local_faces"] == len(read_json(HERE / "local_art_manifest.json"))
@@ -45,14 +46,14 @@ def main():
                 assert asset["FaceURL"].startswith(("http://", "https://")), card["id"]
 
     # The shipped preconstructed decks exercise JSON import and physical face coverage.
-    precons = list((ROOT / "deck/预设卡组").glob("*.mdeck"))
-    assert precons
-    for path in precons:
-        deck = read_json(path)["deck"]
-        assert len(deck["main"]) == 50, path
-        assert len(deck["side"]) <= 10, path
-        assert deck["leader"] in by_id, path
-        assert all(card_id in by_id for card_id in deck["main"] + deck["side"]), path
+    precons = read_json(ROOT / "data/preset_decks.json")["decks"]
+    assert precons, "No maintained preset deck fixtures found"
+    for deck in precons:
+        name = deck["name"]
+        assert len(deck["main"]) == 50, name
+        assert len(deck["side"]) <= 10, name
+        assert deck["leader"] in by_id, name
+        assert all(card_id in by_id for card_id in deck["main"] + deck["side"]), name
 
     print(f"Verified {len(reports)} save variants, {len(catalog)} registered cards, "
           f"{len(assets)} image sheets, {len(precons)} preconstructed decks, "

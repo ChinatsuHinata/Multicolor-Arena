@@ -26,14 +26,11 @@ func _initialize():
  base=ProjectSettings.globalize_path("res://work/bundled-deck-updates/"+str(Time.get_ticks_usec()))
  DirAccess.make_dir_recursive_absolute(base)
  bundle_path=base.path_join("bundle.json")
- var portable=[]
- for source in Store.scan_files("res://deck"):
-  var parsed=Store.read_file(source)
-  if parsed.has("deck"):portable.append(parsed.deck)
- var release=Policy.select_decks(Store.load_decks(Store.SAVE_PATH).decks,portable)
+ var release=Policy.select_decks(Store.load_decks(Store.PRESET_DECKS_PATH).decks,[])
  expect(not release.has("error"),"real release decks are available")
  if release.has("error"):quit(1);return
- remilia=release.decks[-1]
+ # Portable files keep canonical deck fields; AI selection is derived from ID/name.
+ remilia=Store.clean_deck(release.decks[-1])
  write_json(bundle_path,{"version":1,"decks":release.decks,"upgrade_deck_ids":[Policy.REMILIA_ID]})
 
  installed_root("upgrade")

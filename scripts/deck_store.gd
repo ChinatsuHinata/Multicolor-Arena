@@ -2,6 +2,7 @@ extends RefCounted
 const SAVE_PATH = "res://saves/decks.json"
 const USER_SAVE_PATH = "user://decks.json"
 const BUNDLED_DECKS_PATH = "res://data/bundled_decks.json"
+const PRESET_DECKS_PATH = "res://data/preset_decks.json"
 const LEGACY_BUNDLED_NAMES = {"1790434714.661_943735096":"蕾米速攻（ai）"}
 const Paths=preload("res://scripts/portable_paths.gd")
 const EXTENSION="mdeck"
@@ -358,13 +359,19 @@ static func scan_files(directory: String,depth: int=0) -> Array:
   name=dir.get_next()
  dir.list_dir_end();result.sort()
  return result
+static func initial_decks_path() -> String:
+ if not OS.has_feature("editor"):return BUNDLED_DECKS_PATH
+ # Existing source-project saves are migration input, never release content.
+ var legacy=Paths.root().path_join("saves/decks.json")
+ return legacy if FileAccess.file_exists(legacy) else PRESET_DECKS_PATH
+
 static func initialize_portable() -> String:
  migration_warnings.clear()
  var error=Paths.initialize()
  if not error.is_empty():return error
  var marker=folder().path_join(".initialized")
  if FileAccess.file_exists(marker):return "" if OS.has_feature("editor") else install_bundled_updates()
- var seed=load_decks(SAVE_PATH if OS.has_feature("editor") else BUNDLED_DECKS_PATH)
+ var seed=load_decks(initial_decks_path())
  if seed.has("error"):return seed.error
  if seed.decks.is_empty():return "发行包缺少预设卡组。"
  var defaults=folder().path_join("预设卡组")

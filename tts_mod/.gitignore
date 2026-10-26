@@ -1,2 +1,9 @@
 ui_fixture.lua
 __pycache__/
+
+# Generated local TTS saves and reports (may contain personal objects and paths).
+/Multicolour_Deck_Builder.json
+/Multicolour_Deck_Builder_CurrentSave.json
+/build_report.json
+/current_save_report.json
+/local_art_manifest.json

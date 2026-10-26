@@ -10,7 +10,7 @@ func check(ok: bool,title: String):
  if not ok:failures.append(title);push_error(title)
 
 func _initialize():
- var presets=Store.load_decks(Store.SAVE_PATH)
+ var presets=Store.load_decks(Store.PRESET_DECKS_PATH)
  check(not presets.has("error"),"Preset collection loads")
  var portable=[presets.decks[0].duplicate(true)]
  portable[0].id="local_fixture";portable[0].name="本地卡组"

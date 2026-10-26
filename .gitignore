@@ -1,95 +1,87 @@
-# Godot 4+ specific ignores
+# Godot caches and machine-local export toolchain (keep .uid and .import sources).
 .godot/
 /android/
 /.godot-toolchain/
 /builds/
-__pycache__/
-
-# Generated PCK packages and local test/run artifacts
-*.pck
-*.log
-/work/
-/replay/
-/saves/
-
-# 编辑器本地设置
-.vscode/*
-!.vscode/tasks.json
-
-# 本地 Inno Setup 制作套件（98 个文件 / 约 50 MB，含 exe+dll，不入库）
-MulticolorArena-Installer-Tool/
-
-# 当前功能测试与公共辅助脚本
-tests/
-!tests/
-tests/*
-!tests/*.gd
-!tests/*.gd.uid
-!tests/test_account_store.py
-!tests/test_deck_plaza_store.py
-!tests/test_cloud_deck_store.py
-!tests/run_cloud_decks.py
-!tests/test_tournament_store.py
-!tests/test_tournament_competition.py
-!tests/test_limitless_tournaments.py
-!tests/test_limitless_admission.py
-!tests/test_competition_extensions.py
-!tests/test_community_store.py
-!tests/run_tournaments.py
-!tests/test_match_store.py
-!tests/test_rank_progression.py
-!tests/test_tasks_store.py
-!tests/run_tasks.py
-!tests/test_shop_store.py
-!tests/run_shop.py
-!tests/run_cloud_matchmaking.py
-!tests/run_cloud_directory_refresh.py
-!tests/test_match_preparation_sync.gd
-!tests/test_match_room_exit_ui.gd
-!tests/run_password_change.py
-!tests/README.md
-!tests/AGENTS.md
-!tests/support/
-!tests/support/*.gd
-!tests/support/*.gd.uid
-!tests/test_rematch.gd
-!tests/test_dream_copy_targets.gd
-!tests/test_unit_order_ui.gd
-!tests/test_fairy_habitat.gd
-!tests/test_fairy_habitat_ui.gd
-!tests/test_fairy_habitat_keywords.gd
-!tests/test_disconnect_wait_ui.gd
-!tests/test_relay.gd
-!tests/test_momiji.gd
-!tests/test_momiji_ui.gd
-!tests/test_spell_damage_preview.gd
-!tests/test_spell_damage_preview_ui.gd
-!tests/test_card_condition_hints.gd
-!tests/test_card_condition_hints_ui.gd
-!tests/test_rain_fire_mill.gd
-!tests/test_ran_discount.gd
-!tests/test_ran_discount_ui.gd
-!tests/test_sisters_support.gd
-!tests/test_auto_pay_keep_ui.gd
-
-# Installer packages and local packaging automation
-*-setup.exe
 /installer/
-/tools/build-installer.ps1
+/MulticolorArena-Installer-Tool/
 /tools/installer-toolkit/
 
-# Local Git upload automation
-/tools/auto-commit-push.ps1
+# Test code, documentation and intentional fixtures are retained.
+/tests/*
+!/tests/*.gd
+!/tests/*.gd.uid
+!/tests/*.py
+!/tests/*.md
+!/tests/support/
+!/tests/support/**
 
-# Cloud account signing material and player database stay only on the deployment host.
-/relay/account_private.pem
-/relay/data/
-/relay/.ssh-deploy-key
-
-# Local external-mod selection (contains machine-specific paths).
+# Player data and local experiments; keep import guards for generated resources.
+/deck/
+/replay/
+/training/
+/saves/*
+!/saves/.gdignore
+/work/*
+!/work/.gdignore
+/models/
+/experiments/
 /mods.json
 /mod/
 
-# Local generated artwork and packaging output.
-output/
-outputs/
+# Generated packages, reports, attachments and previous Unity distributions.
+/output/
+/outputs/
+/tmp/
+/.codex-remote-attachments/
+/recourse/MulticolourOnline/
+/recourse/MulticolourOnline2.0/
+*.exe
+*.msi
+*.apk
+*.aab
+*.pck
+*-setup.exe
+*.log
+*.bak
+*.bak.*
+*.tmp
+*.temp
+*.swp
+*.swo
+~$*
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Python caches and local virtual environments.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Shared editor tasks are source; editor/session preferences stay local.
+.vscode/*
+!.vscode/tasks.json
+.idea/
+*.code-workspace
+
+# Machine-specific packaging/upload helpers.
+/tools/build-installer.ps1
+/tools/auto-commit-push.ps1
+
+# Deployment secrets and player databases (data/*_public.pem are required).
+/relay/account_private.pem
+/relay/update_private.pem
+/relay/data/
+/relay/.ssh-deploy-key
+*.keystore
+*.jks
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+!.env.sample

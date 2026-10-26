@@ -46,8 +46,6 @@ function Copy-PckTestProject {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $Destination $_.Name)
     }
     Copy-Item -LiteralPath (Join-Path $Root 'export_presets.cfg') -Destination $Destination
-    New-Item -ItemType Directory -Force -Path (Join-Path $Destination 'saves') | Out-Null
-    Copy-Item -LiteralPath (Join-Path $Root 'saves/decks.json') -Destination (Join-Path $Destination 'saves/decks.json')
     $project = [IO.File]::ReadAllText((Join-Path $Root 'project.godot'), [Text.Encoding]::UTF8)
     $project = [regex]::Replace($project, '(?m)^config/version="[^"]+"', ('config/version="' + $Version + '"'))
     [IO.File]::WriteAllText((Join-Path $Destination 'project.godot'), $project, [Text.UTF8Encoding]::new($false))

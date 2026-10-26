@@ -42,8 +42,11 @@ spawned_data={}
 spawnObjectData=function(p) spawned_data[#spawned_data+1]=p.data; return {setLock=function() end, setName=function() end,
     addTag=function() end, isDestroyed=function() return false end, destruct=function() end} end
 """ + lua + "\nonLoad('')\nonDeckClick({getPointerPosition=function() return {x=0,y=0,z=0} end}, nil, 'toggle')\n"
-    precon_path = sorted((HERE.parent / "deck/预设卡组").glob("*.mdeck"))[0]
-    precon = json.loads(precon_path.read_text(encoding="utf-8"))["deck"]
+    precon_path = HERE.parent / "data/preset_decks.json"
+    precons = json.loads(precon_path.read_text(encoding="utf-8"))["decks"]
+    if not precons:
+        raise SystemExit("No maintained preset deck fixtures found in data/preset_decks.json.")
+    precon = precons[0]
     fixture += "\nprecon=" + lua_literal(precon) + "\n"
     fixture += """p={getPointerPosition=function() return {x=0,y=0,z=0} end}
 JSON.decode=function(s) return precon end
