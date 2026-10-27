@@ -8,10 +8,10 @@ func shown_units(who: int=0) -> Array:
  return view.table.descriptors.values().filter(func(d):return d.zone=="field" and d.get("group","")=="unit" and d.owner==who).map(func(d):return d.uid)
 
 func capacity() -> String:
- return view.hud.get_node("FieldCapacity/FieldCapacityValue").text
+ return view.table.field_capacity_labels[view.local_seat].text
 
 func enemy_capacity() -> String:
- return view.hud.get_node("FieldCapacity/FieldCapacityEnemyValue").text
+ return view.table.field_capacity_labels[1-view.local_seat].text
 
 func next_page(who: int=0,group: String="unit"):
  var button=view.zone_pagers[group+str(who)].button
@@ -83,7 +83,7 @@ func verify_board(android: bool):
  view.table.zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
  view.table.unit_order={0:[],1:[]}
  view.render();await frames()
- expect(capacity()=="0/6" and view.field_capacity_badge.is_visible_in_tree(),"empty battlefield shows 0/6")
+ expect(capacity()=="0/6" and view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"empty battlefield shows 0/6")
  var units=[]
  for i in range(6):units.append(put("53","field"))
  view.render();await frames()
@@ -97,12 +97,16 @@ func verify_board(android: bool):
  view.render();await frames()
  expect(shown_units()==units.slice(0,6).map(func(c):return c.uid),"first page displays units one through six")
  expect(capacity()=="6/6","six extra units that do not occupy slots keep the count at 6/6")
- expect(enemy_capacity()=="敌 7/6","enemy slot count is shown beside the local count")
- expect(view.field_capacity_badge.get_global_rect().grow(0.1).encloses(view.hud.get_node("FieldCapacity/FieldCapacityValue").get_global_rect()) and view.field_capacity_badge.get_global_rect().grow(0.1).encloses(view.hud.get_node("FieldCapacity/FieldCapacityEnemyValue").get_global_rect()),"both slot counts stay inside their panel")
+ expect(enemy_capacity()=="7/6","enemy slot count is shown above the right melody zone")
+ for who in range(2):
+  var label=view.table.field_capacity_labels[who]
+  expect(label.get_parent()==view.table and label is Label3D,"capacity belongs to the battlefield world")
+  expect(label.position.x>9 and (label.position.z>1.05 if who==view.local_seat else label.position.z< -1.05),"capacity sits below/above the right melody zone")
+  expect(not label.no_depth_test and label.billboard==BaseMaterial3D.BILLBOARD_DISABLED,"capacity stays on the board plane")
  expect(view.zone_pagers.unit0.button.text.begins_with("1/2") and view.zone_pagers.unit1.button.text.begins_with("1/2"),"both unit rows paginate after six units")
  expect(view.table.descriptors.values().filter(func(d):return d.zone=="palette" and d.owner==0 and d.uid>0).size()==10,"color palette still displays ten cards per page")
  await settle();view.update_badge_positions();view.banner.hide()
- expect(view.zone_pagers.values().all(func(parts):return not parts.root.visible or not parts.root.get_global_rect().intersects(view.field_capacity_badge.get_global_rect())),"page controls leave the slot count clear")
+
  var visible_pagers=view.zone_pagers.values().filter(func(parts):return parts.root.is_visible_in_tree())
  var unit_rects=view.table.descriptors.values().filter(func(d):return d.zone=="field" and d.get("group","")=="unit").map(func(d):return view.projected_card_rect(view.table.visuals[d.key]))
  expect(visible_pagers.all(func(parts):return unit_rects.all(func(rect):return not rect.intersects(parts.root.get_global_rect()))),"page arrows leave every visible unit card clear")
@@ -110,6 +114,18 @@ func verify_board(android: bool):
  expect(visible_pagers.all(func(parts):return palette_rects.all(func(rect):return not rect.intersects(parts.root.get_global_rect()))),"page arrows leave color cards clear")
  for i in range(visible_pagers.size()):
   for j in range(i):expect(not visible_pagers[i].root.get_global_rect().intersects(visible_pagers[j].root.get_global_rect()),"unit and palette page arrows stay separate")
+ # Unit arrows must not follow transient card transforms during an attack.
+ var fixed={}
+ for who in range(2):fixed[who]=view.zone_pagers["unit"+str(who)].root.position
+ var saved={}
+ for descriptor in view.table.descriptors.values():
+  if descriptor.zone!="field" or descriptor.get("group","")!="unit":continue
+  var node=view.table.visuals[descriptor.key];saved[descriptor.key]=node.position
+  node.position+=Vector3(2.0,0.7,-2.0)
+ view.update_badge_positions()
+ for who in range(2):expect(view.zone_pagers["unit"+str(who)].root.position.is_equal_approx(fixed[who]),"unit pager stays fixed while cards lunge or reorder")
+ for key in saved:view.table.visuals[key].position=saved[key]
+ view.update_badge_positions()
  await capture("battlefield-page-one-"+("android" if android else "desktop"))
  await next_page()
  expect(shown_units()==units.slice(6,12).map(func(c):return c.uid) and capacity()=="6/6","second page displays units seven through twelve with the total slot count")
@@ -135,9 +151,9 @@ func verify_board(android: bool):
  expect(capacity()=="5/6","removing battlefield expansion restores the normal limit")
  var before=snapshot()
  view.table.set_top_down_view(true);view.render();await frames()
- expect(view.field_capacity_badge.is_visible_in_tree() and app.ui_metrics.safe.encloses(view.field_capacity_badge.get_global_rect()),"slot count stays visible in the safe area in 2D view")
+ expect(view.table.field_capacity_labels[view.local_seat].is_visible_in_tree() and app.ui_metrics.safe.has_point(view.project(view.table.field_capacity_labels[view.local_seat].position)),"slot count stays visible in the safe area in 2D view")
  view.set_hand_display(false);await frames()
- expect(capacity()=="5/6" and view.field_capacity_badge.is_visible_in_tree(),"hiding hands preserves the slot count")
+ expect(capacity()=="5/6" and view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"hiding hands preserves the slot count")
  expect(snapshot()==before,"paging and display controls do not mutate game state")
  view.local_seat=1;view.table.local_seat=1;view.render();await frames()
  expect(capacity()=="7/6","slot counter follows the local player's seat")
@@ -145,15 +161,15 @@ func verify_board(android: bool):
  view.set_hand_display(true)
  if android:
   view.set_android_camera_focus(view.local_seat);await frames()
-  expect(not view.field_capacity_badge.visible,"palette focus hides the battlefield counter")
+  expect(not view.table.field_capacity_labels[view.local_seat].visible,"palette focus hides the battlefield counter")
   view.set_android_camera_focus(-1);await frames()
-  expect(view.field_capacity_badge.is_visible_in_tree(),"returning to battlefield focus restores the counter")
+  expect(view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"returning to battlefield focus restores the counter")
  await capture("battlefield-capacity-"+("android" if android else "desktop"))
 
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/battlefield-paging-tests/"+str(Time.get_ticks_usec()))
  root.size=Vector2i(1600,900);root.gui_embed_subwindows=true
- app=load("res://main.tscn").instantiate();app.tutorial_local_directory="res://work/battlefield-paging-tutorials";root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate();app.settings_path=Store.Paths.root_override.path_join("settings.json");app.account_session_path=Store.Paths.root_override.path_join("account.json");app.tutorial_local_directory="res://work/battlefield-paging-tutorials";root.add_child(app);await frames()
  app.load_legacy_test_decks();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
  await verify_board(false)
  await verify_palette_cameras(false)

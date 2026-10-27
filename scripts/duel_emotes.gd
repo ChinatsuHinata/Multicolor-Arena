@@ -89,8 +89,16 @@ func opponent_entry_rect() -> Rect2:
     var phase=toolbar.get_node_or_null("BattlePhase")
     if phase!=null:
      var text_width=phase.get_theme_font("font").get_string_size(phase.text,HORIZONTAL_ALIGNMENT_LEFT,-1,phase.get_theme_font_size("font_size")).x
-     if phase.size.x-text_width>=bounds.size.x+gap*2:
-      bounds.position=Vector2(phase.global_position.x+phase.size.x-bounds.size.x-gap,toolbar.position.y)
+     # The HUD is rebuilt before HBoxContainer's deferred sort. Derive its
+     # only expanding child's width from fixed geometry, not phase.size=0
+     # during that transient frame, which made this toggle jump twice.
+     var phase_width=view.responsive.toolbar_rect.size.x
+     var separation=toolbar.get_theme_constant("separation")
+     for control in toolbar.get_children():
+      if control is Control and control!=phase and control.visible:
+       phase_width-=control.get_combined_minimum_size().x+separation
+     if phase_width-text_width>=bounds.size.x+gap*2:
+      bounds.position=Vector2(view.responsive.toolbar_rect.position.x+phase_width-bounds.size.x-gap,view.responsive.toolbar_rect.position.y)
       return bounds
    bounds.position.y=view.responsive.hand_toggle_rect.end.y+gap
   return bounds

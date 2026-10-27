@@ -150,6 +150,7 @@ var sideboard_info: Label
 var sideboard_leader_card: Control
 var sideboard_done: Button
 var replay_controller
+var android_replay_inbox
 var account_name=""
 var account_nickname=""
 var account_limitless_id=""
@@ -291,6 +292,7 @@ func _ready():
  elif not loaded.get("warnings",[]).is_empty():
   call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
  if not patch_manager().startup_error.is_empty():call_deferred("alert",patch_manager().startup_error,"补丁加载失败")
+ call_deferred("start_android_replay_inbox")
 
 func _notification(what):
  if is_android and what==NOTIFICATION_WM_GO_BACK_REQUEST:
@@ -2749,6 +2751,51 @@ func offer_replay(archive):
   dialog.queue_free())
  dialog.canceled.connect(dialog.queue_free);add_child(dialog);dialog.popup_centered()
 
+func start_android_replay_inbox():
+ if not OS.has_feature("android") or is_instance_valid(android_replay_inbox):return
+ android_replay_inbox=load("res://scripts/android_replay_inbox.gd").new()
+ android_replay_inbox.replay_received.connect(receive_external_replay)
+ android_replay_inbox.import_failed.connect(func(message):alert(message,"无法打开回放"))
+ add_child(android_replay_inbox)
+ android_replay_inbox.start()
+
+func external_replay_can_open() -> bool:
+ # File-manager intents must not abandon a battle, room, or unsaved deck.
+ if dirty or page in ["sideboard","tutorial_scene"]:return false
+ if is_instance_valid(lan_session) and (not lan_session.room_id.is_empty() or lan_session.joining or lan_session.matchmaking):return false
+ if page=="battle" and not (is_instance_valid(replay_controller) and replay_controller.get_parent()==screen):return false
+ return not get_children().any(func(child):return child is AcceptDialog and child.visible)
+
+func receive_external_replay(path: String,display_name: String):
+ var result=preload("res://scripts/replay_archive.gd").read(path)
+ if result.has("error"):
+  if is_instance_valid(android_replay_inbox):android_replay_inbox.acknowledge(path)
+  alert(result.error,"无法打开回放");return
+ var basename=display_name.get_file().get_basename().validate_filename().left(64)
+ if basename.is_empty():basename="导入回放"
+ var filename=basename+"_"+Time.get_datetime_string_from_system().replace(":","-")+"_"+str(Time.get_ticks_usec())+".mreply"
+ var destination=Store.Paths.root().path_join("replay").path_join(filename)
+ # Persist the validated archive before acknowledging the temporary URI copy.
+ var saved=result.archive.save(destination)
+ if saved.has("error"):
+  alert(saved.error,"回放导入失败");return
+ if is_instance_valid(android_replay_inbox):android_replay_inbox.acknowledge(path)
+ if not external_replay_can_open():
+  alert("回放已导入。请先结束当前操作，再到主菜单的“对局回放”中查看。","回放已导入");return
+ play_replay(result.archive,destination)
+
+func open_replay(path: String) -> bool:
+ var result=preload("res://scripts/replay_archive.gd").read(path)
+ if result.has("error"):alert(result.error,"无法播放");return false
+ play_replay(result.archive,path)
+ return true
+
+func play_replay(archive,path: String):
+ clear_page("battle")
+ replay_controller=preload("res://scripts/replay_player.gd").new();screen.add_child(replay_controller)
+ replay_controller.error_raised.connect(func(error):alert(error))
+ replay_controller.build(self,archive,path)
+
 func replays():
  clear_page("replays");header("对局回放",menu)
  var folder=Store.Paths.root().path_join("replay");Store.Paths.initialize()
@@ -2774,13 +2821,7 @@ func replays():
    row.custom_minimum_size.x=0
    row.tooltip_text=row.text
   else:row.custom_minimum_size.x=1380
-  row.pressed.connect(func():
-   var result=preload("res://scripts/replay_archive.gd").read(folder.path_join(filename))
-   if result.has("error"):alert(result.error,"无法播放");return
-   clear_page("battle")
-   replay_controller=preload("res://scripts/replay_player.gd").new();screen.add_child(replay_controller)
-   replay_controller.error_raised.connect(func(error):alert(error))
-   replay_controller.build(self,result.archive,folder.path_join(filename)))
+  row.pressed.connect(func():open_replay(folder.path_join(filename)))
  if list.get_child_count()==0:
   var empty=Label.new();empty.text="暂无回放";list.add_child(empty)
   if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)

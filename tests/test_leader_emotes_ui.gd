@@ -104,7 +104,11 @@ func battle_button_layout() -> Dictionary:
  var result={}
  for control in view.ui.find_children("*","Button",true,false):
   if control==view.emotes.opponent_button or not control.is_visible_in_tree():continue
-  result[str(view.ui.get_path_to(control))]=control.get_global_rect()
+  # Rebuilding the HUD changes Godot's generated numeric node names, not roles.
+  var parts=[]
+  for part in str(view.ui.get_path_to(control)).split("/"):
+   parts.append(part.get_slice("@",1) if part.begins_with("@") else part)
+  result["/".join(parts)+":"+control.text]=control.get_global_rect()
  return result
 
 func check_opponent_toggle_refresh(label: String):
@@ -123,12 +127,18 @@ func check_opponent_toggle_refresh(label: String):
  toggle.resized.connect(resized)
  var stable=true
  for frame in range(60):
+  if frame%6==0:
+   # A game-state refresh rebuilds the HBox before its deferred layout runs.
+   # Check both sides of that frame, not only the settled idle position.
+   view.render()
+   stable=stable and toggle.get_global_rect().is_equal_approx(bounds)
   await process_frame
   stable=stable and toggle.get_global_rect().is_equal_approx(bounds)
  toggle.theme_changed.disconnect(themed)
  toggle.minimum_size_changed.disconnect(minimum)
  toggle.resized.disconnect(resized)
  view.set_process(false);view.debug_mode=debug_mode
+ view.render();await frames()
  expect(stable,label+" 连续刷新保持对方表情开关位置和大小稳定")
  expect(counts.theme==0 and counts.minimum==0 and counts.resize==0,label+" 空闲帧不重复触发主题及尺寸更新 "+str(counts))
  expect(toggle.get_theme_font_size("font_size")== (app.ui_metrics.small if app.is_android else 14),label+" 字号随当前设备 DPI 正确适配")
@@ -223,6 +233,15 @@ func check_opponent_toggle_high_dpi():
  expect(battle_button_layout()==original_layout,"android 高 DPI 开启对方表情不移动现有按钮")
  await check_opponent_toggle_refresh("android 高 DPI 开启后")
  await capture("leader-emotes-opponent-high-dpi-android")
+ var original_caption=view.phase_names.main
+ view.phase_names.main="很长的阶段说明".repeat(12)
+ view.render();await frames()
+ expect(toggle.position.y>=view.responsive.hand_toggle_rect.end.y,"android 长阶段文字时表情开关稳定使用下方空位")
+ await check_opponent_toggle_refresh("android 长阶段文字")
+ view.phase_names.main=original_caption
+ for dimensions in [Vector2i(2340,1080),Vector2i(1280,720)]:
+  root.size=dimensions;await frames();app.refresh_responsive_layout();await frames()
+  await check_opponent_toggle_refresh("android 调整分辨率 "+str(dimensions))
 
 func check_bubble_positions(label: String):
  await prepare()

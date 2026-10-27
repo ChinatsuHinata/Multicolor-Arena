@@ -38,6 +38,10 @@ window/stretch/aspect="expand"
 
 enabled=PackedStringArray("res://addons/share_export/plugin.cfg")
 
+[gui]
+
+common/swap_cancel_ok=2
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

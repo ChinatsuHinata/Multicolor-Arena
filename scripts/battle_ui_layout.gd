@@ -42,6 +42,9 @@ func measure(owner_view):
   choice_rect=Rect2(1358,148,224,510)
   measure_hand_controls()
   return
+ # Replay transport owns a bottom gutter, so it never covers cards or HUD controls.
+ if view.replay_view() and view.network_session.has_method("android_bottom_inset"):
+  safe.size.y=maxf(1,safe.size.y-view.network_session.android_bottom_inset())
  var life_width=maxf(160,metrics.body*5.5)
  var curse_count=0 if view.engine==null else clampi(maxi(view.ConditionHints.curse_count(view.engine,0),view.ConditionHints.curse_count(view.engine,1)),0,view.CurseWarning.MAX_VISIBLE)
  if curse_count>0:
@@ -240,6 +243,18 @@ func add_phase_action(control: Button):
   control.custom_minimum_size.y=maxf(metrics.hit,text_height+margins.y)
  else:control.custom_minimum_size=Vector2(237,49)
 
+func inspection_rect() -> Rect2:
+ # Restore the wide reading panel inside the central lane, leaving life bars,
+ # left-side controls, the toolbar, hands and right-side actions unobstructed.
+ var left=maxf(enemy_life.end.x,own_life.end.x)+metrics.gap
+ var right=back_rect.position.x-metrics.gap
+ var available=maxf(1,right-left)
+ var board_reserve=minf(maxf(240,metrics.hit*2),available*0.45)
+ var width=minf(minf(620,safe.size.x*0.42),available-board_reserve-metrics.gap)
+ var top=maxf(toolbar_rect.end.y,log_rect.end.y)+metrics.gap
+ var bottom=view.HAND.position.y-metrics.gap
+ return Rect2(left,top,maxf(1,width),maxf(1,bottom-top))
+
 func camera_focus_rect() -> Rect2:
  if not view.is_android:
   var top=210.0
@@ -260,6 +275,10 @@ func camera_focus_rect() -> Rect2:
     if is_instance_valid(card):bottom=minf(bottom,view.hand_scroll.position.y+card.get_meta("target",card.position).y-metrics.gap)
  var height=maxf(1,bottom-top) if view.android_palette_view else maxf(metrics.hit*2,bottom-top)
  var area=Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
+ if is_instance_valid(view.inspection) and view.inspection.visible:
+  var preview=inspection_rect()
+  var left=maxf(area.position.x,preview.end.x+metrics.gap)
+  area=Rect2(left,area.position.y,maxf(1,area.end.x-left),area.size.y)
  if view.android_palette_view:
   # Target panels can sit beside the stack, inside the board's normal focus area.
   # Fit the palette into the largest usable part of that area after HUD layout.

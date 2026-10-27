@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$OutputPath = 'builds/Android-debug/MulticolorArena-debug.apk',
     [string]$JavaSdkPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path '.godot-toolchain/jdk-17')
 )
@@ -137,6 +137,9 @@ $env:ANDROID_HOME = $sdk
 $env:ANDROID_SDK_ROOT = $sdk
 $env:Path = "$(Join-Path $JavaSdkPath 'bin');$(Join-Path $sdk 'platform-tools');$(Join-Path $sdk 'build-tools/35.0.1');$env:Path"
 
+& (Join-Path $PSScriptRoot 'build-android-replay-template.ps1') -JavaSdkPath $JavaSdkPath
+if (-not $?) { throw 'Replay import template preparation failed.' }
+
 $importLog = Join-Path $logDir 'android-import.log'
 $importConsoleLog = Join-Path $logDir 'android-import-console.log'
 Write-Host "Importing with $version"
@@ -179,6 +182,22 @@ try {
     }
 } finally {
     $apk.Dispose()
+}
+
+$aapt = Join-Path $sdk 'build-tools/35.0.1/aapt.exe'
+$manifestLog = Join-Path $logDir 'android-apk-manifest.log'
+& $aapt dump xmltree $output AndroidManifest.xml *> $manifestLog
+if ($LASTEXITCODE -ne 0) { throw "APK manifest verification failed. See $manifestLog" }
+$manifest = Get-Content -LiteralPath $manifestLog -Raw -Encoding UTF8
+if ($manifest -notmatch 'org\.multicolorarena\.replay\.ReplayOpenActivity' -or
+    $manifest -notmatch 'application/octet-stream' -or
+    $manifest -notmatch 'android\.intent\.action\.MAIN') {
+    throw "APK is missing replay file associations or its launcher. See $manifestLog"
+}
+$expectedPackage = [regex]::Match($androidOptions, '(?m)^package/unique_name="([^"]+)"').Groups[1].Value
+$badging = @(& $aapt dump badging $output)
+if ($LASTEXITCODE -ne 0 -or -not ($badging | Where-Object { $_.StartsWith("package: name='$expectedPackage'") })) {
+    throw 'Final APK package ID does not match the export preset.'
 }
 
 $signatureLog = Join-Path $logDir 'android-apk-signature.log'

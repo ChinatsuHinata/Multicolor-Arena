@@ -21,7 +21,8 @@ func icons_fit(icons: Array, card_size: Vector2) -> bool:
  return true
 
 func run():
- app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ Store.Paths.root_override=ProjectSettings.globalize_path("res://work/unit-order-tests/"+str(Time.get_ticks_usec()))
+ app=load("res://main.tscn").instantiate();app.settings_path=Store.Paths.root_override.path_join("settings.json");app.account_session_path=Store.Paths.root_override.path_join("account.json");root.add_child(app);await process_frame
  app.load_legacy_test_decks();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
  clean()
  view.table.set_top_down_view(true)

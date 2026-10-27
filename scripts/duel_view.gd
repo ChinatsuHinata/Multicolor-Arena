@@ -128,6 +128,7 @@ var deck_cast_tiles={}
 var deck_peek_tile
 var badges: Control
 var inspection: Control
+var android_inspection_camera_restore={}
 var android_inspection_dismiss: Control
 var android_inspection_dismiss_until=0
 var android_inspection_dismiss_point=Vector2.ZERO
@@ -201,7 +202,6 @@ var android_palette_touch_dragged=false
 var android_palette_scroll_x=0
 var zone_pagers={}
 const PAGER_Z=103
-var field_capacity_badge: Panel
 var zone_page_touch_index=-1
 var zone_page_touch_key=""
 var zone_page_touch_start=Vector2.ZERO
@@ -1319,61 +1319,12 @@ func render_zone_pagers():
  update_zone_pager_positions()
 
 func render_field_capacity():
- var used=engine.field_slots(local_seat)
- var limit=engine.Cat.field_limit(engine,local_seat)
- var enemy_used=engine.field_slots(1-local_seat)
- var enemy_limit=engine.Cat.field_limit(engine,1-local_seat)
- var caption="%d/%d" % [used,limit]
- var enemy_caption="敌 %d/%d" % [enemy_used,enemy_limit]
- var font_size=host.ui_metrics.body if is_android else 20
- var font=host.get_theme_font("font")
- # Lay the two counts out by their own minimum widths. Splitting the panel in half
- # let a longer enemy count overflow its half, because Label snaps back to its
- # minimum size whenever the assigned width is smaller.
- var gutter=font.get_string_size(" · ",HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
- var own_width=font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
- var enemy_width=font.get_string_size(enemy_caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
- var dimensions=Vector2(maxf(96,own_width+enemy_width+gutter+16),maxf(32,font.get_height(font_size)+8))
- field_capacity_badge=host.box(hud,Rect2(Vector2.ZERO,dimensions),Color("#101e2b"),host.GOLD)
- field_capacity_badge.name="FieldCapacity"
- field_capacity_badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var left=maxf(4,(dimensions.x-(own_width+enemy_width+gutter))*0.5)
- var value=board_badge_label(caption,font_size,host.GOLD,field_capacity_badge)
- value.size=Vector2(own_width+2,dimensions.y)
- value.position=Vector2(left,0)
- value.name="FieldCapacityValue"
- value.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
- var enemy_value=board_badge_label(enemy_caption,font_size,Color("#ef5350"),field_capacity_badge)
- enemy_value.name="FieldCapacityEnemyValue"
- enemy_value.position=Vector2(left+own_width+gutter,0);enemy_value.size=Vector2(enemy_width+2,dimensions.y)
- enemy_value.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;enemy_value.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
- field_capacity_badge.tooltip_text="我方战场格：已用 %d / 上限 %d；敌方战场格：已用 %d / 上限 %d。不占战场格的单位不计入。" % [used,limit,enemy_used,enemy_limit]
+ table.update_field_capacity(host.get_theme_font("font"),host.GOLD,Color("#ef5350"))
+ update_field_capacity_position()
 
 func update_field_capacity_position():
- if not is_instance_valid(field_capacity_badge):return
- var size=field_capacity_badge.size
- var safe=host.ui_metrics.safe
- var row=pager_row(local_seat,"unit")
- var anchor=row.end if row.has_area() else projected_android_focus(table.zone_page_bounds(local_seat,"unit")).end
- var gap=host.ui_metrics.gap
- var blocked=palette_pager_obstacles()
- for parts in zone_pagers.values():
-  if is_instance_valid(parts.root) and parts.root.visible:blocked.append(parts.root.get_global_rect().grow(gap))
- if is_instance_valid(hand_scroll) and hand_scroll.is_visible_in_tree():blocked.append(hand_scroll.get_global_rect().grow(gap))
- var candidates=[
-  Vector2(minf(anchor.x+gap,SIDEBAR.position.x-size.x-gap),anchor.y-size.y*0.5),
-  Vector2(anchor.x-size.x-gap,anchor.y-size.y*0.5),
-  Vector2(anchor.x+gap,anchor.y-size.y-gap),
-  Vector2(anchor.x+gap,anchor.y+gap)]
- var chosen=Vector2.INF
- for at in candidates:
-  var rect=Rect2(at,size)
-  if safe.encloses(rect) and not blocked.any(func(other):return rect.intersects(other)):chosen=at;break
- if not chosen.is_finite():
-  var solved=clear_palette_pager_position(candidates[0],size,safe,blocked)
-  chosen=solved if solved.is_finite() else candidates[0].clamp(safe.position,safe.end-size)
- field_capacity_badge.position=chosen
- field_capacity_badge.visible=not (is_android and android_palette_view)
+ for label in table.field_capacity_labels.values():
+  label.visible=not (is_android and android_palette_view)
 
 func next_zone_page(who: int,group: String):
  if table.combat_animating or revealing() or modal or history_open:return
@@ -1424,10 +1375,10 @@ func pager_row(who: int,group: String) -> Rect2:
   row=row.merge(rect) if row.has_area() else rect
  return row
 
-func palette_pager_obstacles() -> Array:
+func pager_hud_obstacles() -> Array:
  var blocked=[]
  for control in hud.get_children():
-  if not control is Control or control==field_capacity_badge or control.name.begins_with("ZonePager"):continue
+  if not control is Control or control.name.begins_with("ZonePager"):continue
   blocked.append_array(palette_control_obstacles(control))
  for control in [hand_scroll,stack_panel,stack_panel.toggle_button,android_back_button,android_choice_panel,android_choice_restore]:
   if is_instance_valid(control):blocked.append_array(palette_control_obstacles(control))
@@ -1437,6 +1388,10 @@ func palette_pager_obstacles() -> Array:
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.is_visible_in_tree():
   for button in android_zone_shortcuts.buttons.values():
    blocked.append_array(palette_control_obstacles(button))
+ return blocked
+
+func palette_pager_obstacles() -> Array:
+ var blocked=pager_hud_obstacles()
  for descriptor in table.descriptors.values():
   if descriptor.zone not in ["field","palette","leader"] and not (descriptor.zone=="exile" and descriptor.has("castle_uid")):continue
   var node=table.visuals[descriptor.key]
@@ -1474,6 +1429,7 @@ func update_zone_pager_positions():
  var palette_pagers=zone_pagers.values().filter(func(parts):return parts.group=="palette")
  var unit_pagers=zone_pagers.values().filter(func(parts):return parts.group=="unit")
  var palette_blocked=palette_pager_obstacles() if not palette_pagers.is_empty() else []
+ var fixed_hud=pager_hud_obstacles().map(func(rect):return rect.grow(host.ui_metrics.gap))
  var card_rects=[]
  if not palette_pagers.is_empty():
   for descriptor in table.descriptors.values():
@@ -1511,22 +1467,11 @@ func update_zone_pager_positions():
    continue
   if is_android and android_palette_view:pager.hide();continue
   var unit_safe=host.ui_metrics.safe.grow(-1) if is_android else host.ui_metrics.safe
-  var unit_row=pager_row(parts.owner,"unit")
-  var unit_preferred=Vector2(unit_row.end.x+host.ui_metrics.gap,unit_row.get_center().y-pager.size.y*0.5) if unit_row.has_area() else Vector2(bounds.end.x-pager.size.x-4,bounds.get_center().y-pager.size.y*0.5)
-  var unit_at=Vector2.INF
-  if unit_row.has_area():
-   var gap=host.ui_metrics.gap
-   for candidate in [unit_preferred,Vector2(unit_row.position.x-gap-pager.size.x,unit_preferred.y)]:
-    var clamped=candidate.clamp(unit_safe.position,unit_safe.end-pager.size)
-    if not (palette_blocked+occupied+card_rects).any(func(r):return Rect2(clamped,pager.size).intersects(r)):unit_at=clamped;break
-  if not unit_at.is_finite():
-   var unit_slack=host.ui_metrics.gap+pager.size.y*0.5
-   var unit_band=Rect2(unit_safe.position.x,clampf(unit_preferred.y-unit_slack,unit_safe.position.y,unit_safe.end.y-pager.size.y),unit_safe.size.x,pager.size.y+unit_slack*2).intersection(unit_safe)
-   var unit_blocked=palette_blocked+occupied+card_rects
-   unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_band,unit_blocked)
-  if not unit_at.is_finite():
-   var unit_blocked=palette_blocked+occupied+card_rects
-   unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_safe,unit_blocked)
+  var anchor=project(table.unit_pager_position(parts.owner))
+  var unit_preferred=anchor-pager.size*0.5
+  # Only stationary HUD controls may displace this anchor. Animated cards are
+  # deliberately excluded, including during attack lunges and a page switch.
+  var unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_safe,fixed_hud+occupied)
   pager.position=unit_at if unit_at.is_finite() else unit_preferred.clamp(unit_safe.position,unit_safe.end-pager.size)
   pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
  update_field_capacity_position()
@@ -2157,6 +2102,9 @@ func update_inspection():
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
  inspection.visible=(is_android or host.show_card_inspection or tutorial_runtime!=null and not tutorial_controls_enabled) and not inspect_id.is_empty()
  if is_instance_valid(android_inspection_dismiss):android_inspection_dismiss.visible=inspection.visible
+ if is_android:
+  if inspection.visible:remember_inspection_camera()
+  else:restore_inspection_camera()
  var counters=counter_lines(current)
  var shown_id=current.card_id if not current.is_empty() and inspect_id not in ["back","potato"] else inspect_id
  var info=engine.cards.get(shown_id,{})
@@ -2535,6 +2483,7 @@ func tutorial_blocker_input(event: InputEvent,point: Vector2):
   tutorial_blocker_finger=-1;android_card_touch.cancel_ring()
 
 func _input(event: InputEvent):
+ if replay_view() and network_session.has_method("handle_controls_input") and network_session.handle_controls_input(event):return
  if is_instance_valid(emotes) and emotes.handle(event):return
  if is_android and event is InputEventScreenTouch:
   if event.index==android_inspection_dismiss_finger:
@@ -5030,38 +4979,58 @@ func player_caption(who: int) -> String:
  if tutorial_runtime!=null:return PlayerNameDisplay.caption(engine.player_names[who])
  return PlayerNameDisplay.caption(engine.player_names[who]) if network_session!=null else ("你" if who==0 else "试验 AI" if experiment_agent.enabled else "人机")
 
+func remember_inspection_camera():
+ if not android_inspection_camera_restore.is_empty() or not is_instance_valid(table):return
+ if is_instance_valid(android_camera_tween):android_camera_tween.kill()
+ android_inspection_camera_restore={"offset":table.camera_offset,"scale":table.camera_frame_scale,"distance":table.camera_distance,"size":table.top_down_camera_size,"top_down":table.top_down_view,"safe":responsive.safe,"restored":android_camera_restored}
+
+func restore_inspection_camera():
+ if android_inspection_camera_restore.is_empty() or not is_instance_valid(table):return
+ var saved=android_inspection_camera_restore
+ android_inspection_camera_restore={}
+ if is_instance_valid(android_camera_tween):android_camera_tween.kill()
+ if saved.safe==responsive.safe and saved.top_down==table.top_down_view:
+  table.camera_offset=saved.offset;table.camera_frame_scale=saved.scale
+  table.camera_distance=saved.distance;table.top_down_camera_size=saved.size
+  android_camera_restored=saved.restored
+  android_camera_area=responsive.camera_focus_rect();android_camera_bounds=android_focus_bounds()
+  table.set_camera();update_badge_positions()
+ else:focus_android_camera(false)
+
 func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Dictionary):
  if not is_android:return
  var m=host.ui_metrics
- # Keep the panel beside the play area, while using a little of its empty gutter.
- var width=clampf(responsive.palette_rect.position.x-m.safe.position.x+minf(48.0,m.hit*0.55),160.0,m.safe.size.x*0.45)
- inspection.position=Vector2(m.safe.position.x,m.safe.position.y+m.hit+m.gap)
- inspection.size=Vector2(width,m.safe.end.y-inspection.position.y)
+ var bounds=responsive.inspection_rect()
+ inspection.position=bounds.position;inspection.size=bounds.size
  inspection.clip_contents=true
  bg.size=inspection.size
  bg.clip_contents=true
  bg.mouse_filter=Control.MOUSE_FILTER_STOP
  var backing=host.box(bg,Rect2(Vector2.ZERO,inspection.size),Color("#101c28"))
  bg.move_child(backing,0)
+ var width=inspection.size.x
  var padding=12.0
  var landscape=host.landscape_card(inspect_id)
- var image_width=minf(width-padding*2,216.0 if landscape else 190.0)
- var image_height=minf(image_width*(156.0/218.0 if landscape else 305.0/218.0),inspection.size.y*0.36)
- image.position=Vector2((width-image_width)*0.5,padding)
- image.size=Vector2(image_width,image_height)
+ var aspect=156.0/218.0 if landscape else 305.0/218.0
+ var image_width=minf(minf(width*0.34,216.0 if landscape else 190.0),inspection.size.y*0.42/aspect)
+ image.position=Vector2(padding,padding)
+ image.size=Vector2(image_width,image_width*aspect)
  var title_size=maxi(20,mini(28,roundi(m.title*0.72)))
- title.position=Vector2(padding,image.position.y+image.size.y+m.gap)
+ var text_left=image.position.x+image.size.x+m.gap
+ var text_width=maxf(1,width-text_left-padding)
+ title.position=Vector2(text_left,padding)
  title.name="InspectionTitle"
  title.add_theme_font_size_override("font_size",title_size)
- var title_height=title.get_theme_font("font").get_multiline_string_size(title.text,HORIZONTAL_ALIGNMENT_LEFT,width-padding*2,title_size).y
- title.size=Vector2(width-padding*2,maxf(title_size*1.4,title_height+4))
+ var title_height=title.get_theme_font("font").get_multiline_string_size(title.text,HORIZONTAL_ALIGNMENT_LEFT,text_width,title_size).y
+ title.size=Vector2(text_width,maxf(title_size*1.4,title_height+4))
  var cost_bottom=title.position.y+title.size.y
  for child in bg.get_children():
   if child.get_script()==HexCost:
-   child.configure(CostDisplay.for_card(info),false,width-padding*2,minf(34.0,width*0.18),info.get("variable_cost",""),info.get("variable_multiplier",1))
-   child.position=Vector2(padding,cost_bottom+m.gap)
+   child.configure(CostDisplay.for_card(info),false,text_width,minf(34.0,text_width*0.18),info.get("variable_cost",""),info.get("variable_multiplier",1))
+   child.position=Vector2(text_left,cost_bottom+m.gap)
    cost_bottom=child.position.y+child.size.y
- inspection_text.position=Vector2(padding,cost_bottom+m.gap)
+ inspection_text.position=Vector2(padding,maxf(image.position.y+image.size.y,cost_bottom)+m.gap)
  inspection_text.size=Vector2(width-padding*2,maxf(0,inspection.size.y-inspection_text.position.y-padding))
  inspection_text.add_theme_font_size_override("normal_font_size",maxi(18,mini(24,m.body-2)))
  inspection_text.scroll_active=true
+ focus_android_camera(false)

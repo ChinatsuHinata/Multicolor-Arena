@@ -23,6 +23,16 @@ var progress: Label
 var play_button: Button
 var slider: HSlider
 var updating=false
+var collapsed=false
+var restore_button: Button
+var speed_button: Button
+var control_finger=-1
+var control_touch_button: Button
+var control_touch_origin=Vector2.ZERO
+var control_touch_cancelled=false
+var control_scrubbing=false
+var control_mouse_down=false
+var control_mouse_suppressed_until=0
 var training
 var training_button: Button
 var training_editor
@@ -58,58 +68,146 @@ func build(parent,data,path: String=""):
 func build_android_controls():
  var m=app.ui_metrics
  dock=PanelContainer.new();dock.name="ReplayDock";controls.add_child(dock)
- dock.add_theme_stylebox_override("panel",m.panel_style(true))
- var column=VBoxContainer.new();dock.add_child(column)
- column.add_theme_constant_override("separation",int(m.gap))
- var progress_row=HBoxContainer.new();column.add_child(progress_row)
- progress_row.add_theme_constant_override("separation",int(m.gap))
- progress=Label.new();progress.name="ReplayProgress";progress_row.add_child(progress)
+ var row=HBoxContainer.new();row.name="ReplayActions";dock.add_child(row)
+ progress=Label.new();progress.name="ReplayProgress";row.add_child(progress)
  progress.add_theme_color_override("font_color",app.GOLD)
- progress.add_theme_font_size_override("font_size",m.body)
- progress.clip_text=true
- progress.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
- slider=HSlider.new();slider.name="ReplaySlider";progress_row.add_child(slider)
- slider.custom_minimum_size.y=m.hit
+ progress.clip_text=true;progress.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ slider=HSlider.new();slider.name="ReplaySlider";row.add_child(slider)
  slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  slider.min_value=0;slider.max_value=archive.frames.size()-1;slider.step=1
- slider.value_changed.connect(func(value):if not updating:seek(int(value)))
- var actions=HBoxContainer.new();actions.name="ReplayActions";column.add_child(actions)
- actions.add_theme_constant_override("separation",int(m.gap))
- var add_action=func(caption: String,action: Callable,accent: bool=false) -> Button:
-  var result=app.button(actions,caption,Rect2(),action,accent)
+ slider.value_changed.connect(func(value):if not updating and not control_scrubbing:seek(int(value)))
+ var add_action=func(caption: String,node_name: String,action: Callable,accent: bool=false) -> Button:
+  var result=app.button(row,caption,Rect2(),action,accent)
+  result.name=node_name
   m.button(result)
-  result.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   return result
- add_action.call("上一步",func():seek(maxi(0,index-1)))
- play_button=add_action.call("播放",func():playing=not playing;update_controls(),true)
- add_action.call("下一步",func():seek(mini(archive.frames.size()-1,index+1)))
- var rates=OptionButton.new();rates.name="ReplaySpeed";actions.add_child(rates)
- for title in ["0.5 倍速","1 倍速","2 倍速","4 倍速"]:rates.add_item(title)
- rates.selected=1;rates.item_selected.connect(func(i):speed=[0.5,1.0,2.0,4.0][i])
- m.button(rates);rates.custom_minimum_size.x=maxf(m.hit,m.body*5)
- rates.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- add_action.call("返回回放列表",func():app.replays())
+ var previous=add_action.call("上步","ReplayPrevious",func():seek(maxi(0,index-1)))
+ previous.tooltip_text="上一条回放记录"
+ play_button=add_action.call("播放","ReplayPlay",func():playing=not playing;update_controls(),true)
+ var next=add_action.call("下步","ReplayNext",func():seek(mini(archive.frames.size()-1,index+1)))
+ next.tooltip_text="下一条回放记录"
+ speed_button=add_action.call("1×","ReplaySpeed",cycle_speed)
+ speed_button.tooltip_text="切换速度：0.5 / 1 / 2 / 4 倍"
+ var leave=add_action.call("回放列表","ReplayReturn",func():app.replays())
+ leave.tooltip_text="返回回放列表"
+ add_action.call("收起","ReplayCollapse",toggle_controls)
+ restore_button=app.button(controls,"展开回放",Rect2(),toggle_controls,true)
+ restore_button.name="ReplayRestore"
+ layout_controls()
+
+func cycle_speed():
+ var rates=[0.5,1.0,2.0,4.0]
+ speed=rates[(rates.find(speed)+1)%rates.size()]
+ speed_button.text=str(speed).trim_suffix(".0")+"×"
+
+func android_bottom_inset() -> float:
+ if not app.is_android or collapsed:return 0.0
+ return app.ui_metrics.hit+app.ui_metrics.gap*3
+
+func toggle_controls():
+ collapsed=not collapsed
+ if is_instance_valid(app.duel_view):app.duel_view.resize_world()
  layout_controls()
 
 func layout_controls():
  if not app.is_android or not is_instance_valid(dock) or not is_instance_valid(app.duel_view):return
  var m=app.ui_metrics
- var battle=app.duel_view.responsive
- var left=battle.toolbar_rect.position.x
- var width=battle.back_rect.position.x-m.gap-left
- dock.add_theme_stylebox_override("panel",m.panel_style(true))
- var column=dock.get_child(0) as VBoxContainer
- column.add_theme_constant_override("separation",int(m.gap))
- (column.get_child(0) as HBoxContainer).add_theme_constant_override("separation",int(m.gap))
- (column.get_child(1) as HBoxContainer).add_theme_constant_override("separation",int(m.gap))
- progress.add_theme_font_size_override("font_size",m.body)
- progress.custom_minimum_size.x=minf(width*0.42,m.body*17.0)
- slider.custom_minimum_size.y=m.hit
- for control in dock.find_children("*","BaseButton",true,false):
+ var compact=m.panel_style(true)
+ compact.set_content_margin_all(m.gap)
+ dock.add_theme_stylebox_override("panel",compact)
+ var row=dock.get_child(0) as HBoxContainer
+ row.add_theme_constant_override("separation",int(m.gap))
+ progress.add_theme_font_size_override("font_size",m.small)
+ progress.custom_minimum_size.x=m.small*7.0
+ slider.custom_minimum_size=Vector2(m.hit*2,m.hit)
+ for control in row.get_children():
+  if not control is Button:continue
   m.button(control)
-  if control is OptionButton:control.custom_minimum_size.x=maxf(m.hit,m.body*5)
- dock.position=Vector2(left,battle.log_rect.end.y+m.gap)
- dock.size=Vector2(maxf(1,width),m.padding*2+m.hit*2+m.gap)
+  control.custom_minimum_size.x=maxf(m.hit,control.get_theme_font("font").get_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,-1,m.small).x+m.gap*2)
+  control.add_theme_font_size_override("font_size",m.small)
+  control.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
+ var height=m.hit+m.gap*2
+ dock.position=Vector2(m.safe.position.x,m.safe.end.y-height)
+ dock.size=Vector2(m.safe.size.x,height)
+ dock.visible=not collapsed
+ m.button(restore_button)
+ restore_button.size=Vector2(maxf(m.hit*2.5,restore_button.get_combined_minimum_size().x),m.hit)
+ restore_button.position=m.safe.end-restore_button.size
+ restore_button.visible=collapsed
+
+func controls_at(point: Vector2) -> bool:
+ if not is_instance_valid(controls) or not controls.is_visible_in_tree():return false
+ for control in [dock,restore_button]:
+  if is_instance_valid(control) and control.is_visible_in_tree() and control.get_global_rect().has_point(point):return true
+ return false
+
+func scrub_to(point: Vector2):
+ var rect=slider.get_global_rect()
+ var inset=slider.get_theme_icon("grabber").get_width()*0.5
+ var fraction=clampf((point.x-rect.position.x-inset)/maxf(1,rect.size.x-inset*2),0.0,1.0)
+ updating=true;slider.value=roundi(lerpf(slider.min_value,slider.max_value,fraction));updating=false
+ progress.text="%d/%d" % [int(slider.value)+1,archive.frames.size()]
+
+func android_controls_blocked() -> bool:
+ if not is_instance_valid(app.duel_view):return true
+ var view=app.duel_view
+ if view.modal or view.history_open or view.debug_open or app.menu_popup_open():return true
+ if is_instance_valid(view.android_battle_menu_root) and view.android_battle_menu_root.is_visible_in_tree():return true
+ for child in app.get_children():
+  if child is AcceptDialog and child.visible:return true
+ return false
+
+func cancel_controls_touch():
+ control_finger=-1;control_touch_button=null;control_mouse_down=false
+ if control_scrubbing:
+  control_scrubbing=false;update_controls()
+
+func handle_controls_input(event: InputEvent) -> bool:
+ if not app.is_android or not is_instance_valid(controls):return false
+ # Check live overlay state as well as visibility: a menu can open before the
+ # next process frame, and its touch must never reach controls beneath it.
+ if android_controls_blocked():
+  controls.hide();cancel_controls_touch();return false
+ if not controls.is_visible_in_tree():return false
+ if event is InputEventMouse:
+  if event.device==-1 and Time.get_ticks_msec()<control_mouse_suppressed_until:
+   get_viewport().set_input_as_handled();return true
+  var owned=control_mouse_down or controls_at(event.position)
+  if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+   if event.pressed and owned:control_mouse_down=true
+   elif not event.pressed:control_mouse_down=false
+  # Real mouse events continue into native GUI; only the battlefield skips them.
+  return owned
+ if event is InputEventScreenTouch and event.pressed:
+  if control_finger>=0:
+   if controls_at(event.position):get_viewport().set_input_as_handled();return true
+   return false
+  if not controls_at(event.position):return false
+  control_finger=event.index;control_touch_origin=event.position;control_touch_cancelled=false
+  control_touch_button=null;control_scrubbing=not collapsed and slider.get_global_rect().has_point(event.position)
+  if control_scrubbing:
+   playing=false;scrub_to(event.position);play_button.text="播放"
+  else:
+   for control in [restore_button]+dock.find_children("*","Button",true,false):
+    if control.is_visible_in_tree() and not control.disabled and control.get_global_rect().has_point(event.position):control_touch_button=control;break
+  control_mouse_suppressed_until=Time.get_ticks_msec()+300
+  get_viewport().set_input_as_handled();return true
+ if event is InputEventScreenDrag and event.index==control_finger:
+  if control_scrubbing:scrub_to(event.position)
+  elif event.position.distance_to(control_touch_origin)>app.ui_metrics.hit*0.3:control_touch_cancelled=true
+  control_mouse_suppressed_until=Time.get_ticks_msec()+300
+  get_viewport().set_input_as_handled();return true
+ if event is InputEventScreenTouch and not event.pressed and event.index==control_finger:
+  control_finger=-1;control_mouse_suppressed_until=Time.get_ticks_msec()+300
+  var action=control_touch_button;control_touch_button=null
+  var scrubbing=control_scrubbing;control_scrubbing=false
+  get_viewport().set_input_as_handled()
+  if scrubbing:
+   if event.canceled:update_controls()
+   else:seek(int(slider.value))
+  elif not event.canceled and not control_touch_cancelled and is_instance_valid(action) and action.is_visible_in_tree() and not action.disabled and action.get_global_rect().has_point(event.position):action.pressed.emit()
+  return true
+ return false
 func can_act(_in_match: bool=false) -> bool:return false
 func ended() -> bool:return false
 func submit(_command: Dictionary) -> String:return "回放只供查看"
@@ -134,15 +232,19 @@ func seek(value: int):
  layout_controls()
 func update_controls():
  if not is_instance_valid(progress):return
- progress.text=("回放 · 第 %d 局 · 第 %d 回合 · %d / %d" if app.is_android else "回放 · 第 %d 局\n第 %d 回合 · %d / %d") % [archive.frames[index].round,archive.frames[index].turn,index+1,archive.frames.size()]
+ var detail="回放 · 第 %d 局 · 第 %d 回合 · %d / %d" % [archive.frames[index].round,archive.frames[index].turn,index+1,archive.frames.size()]
+ progress.text=("%d/%d" % [index+1,archive.frames.size()]) if app.is_android else "回放 · 第 %d 局\n第 %d 回合 · %d / %d" % [archive.frames[index].round,archive.frames[index].turn,index+1,archive.frames.size()]
  if room.get("status","")=="complete":
-  progress.text="整场结束 · %d : %d\n%s获胜" % [room.scores[0],room.scores[1],PlayerNameDisplay.caption(room.names[room.winner])] if room.get("winner",-1)>=0 else "对局结束"
-  progress.tooltip_text=PlayerNameDisplay.in_text(room.get("end_reason",progress.text),room.get("names",[]))
- else:progress.tooltip_text=""
+  var outcome="整场结束 · %d : %d\n%s获胜" % [room.scores[0],room.scores[1],PlayerNameDisplay.caption(room.names[room.winner])] if room.get("winner",-1)>=0 else "对局结束"
+  if not app.is_android:progress.text=outcome
+  detail=outcome+"\n"+PlayerNameDisplay.in_text(room.get("end_reason",""),room.get("names",[]))
+ progress.tooltip_text=detail if app.is_android else PlayerNameDisplay.in_text(room.get("end_reason",""),room.get("names",[])) if room.get("status","")=="complete" else ""
  play_button.text="暂停" if playing else "播放"
  updating=true;slider.value=index;updating=false
 func _process(delta):
- if is_instance_valid(controls) and is_instance_valid(app.duel_view):controls.visible=not app.duel_view.history_open and not app.duel_view.modal
+ if is_instance_valid(controls) and is_instance_valid(app.duel_view):
+  controls.visible=not android_controls_blocked() if app.is_android else not app.duel_view.history_open and not app.duel_view.modal
+  if app.is_android and not controls.visible:cancel_controls_touch()
  if training_editor!=null and training_editor.is_open():playing=false;return
  if not playing or not snapshots.is_empty() or not is_instance_valid(app.duel_view):return
  if app.duel_view.revealing() or app.duel_view.table.is_animating() or app.duel_view.history_open:return

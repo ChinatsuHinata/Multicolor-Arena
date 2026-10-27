@@ -88,6 +88,12 @@ func verify_focus(android: bool,seat: int,spectator: bool):
  view.selection=[];view.local={};resolve();sync_table()
  expect(e.stack.is_empty() and shown(0,"field")[0]==source.uid and shown(1,"field")[0]==target.uid,prefix+" resolved ability keeps source and target first after highlights clear")
  var after_ability=Codec.capture(e)
+ var stable_own=shown(0,"field");var stable_enemy=shown(1,"field")
+ e.priority=0
+ expect(e.commit_ability(0,attacker.uid,0,e.ref_target(blocker),[]).is_empty(),prefix+" first-page permanents can confirm another ability")
+ sync_table()
+ expect(shown(0,"field")==stable_own and shown(1,"field")==stable_enemy,prefix+" already-first-page source and target keep all six positions")
+ resolve();sync_table()
  view.table.next_zone_page(0,"unit");view.table.next_zone_page(1,"unit");sync_table()
  expect(view.table.zone_pages[0].unit==1 and view.table.zone_pages[1].unit==1,prefix+" old confirmed ability does not trap manual paging")
  e.priority=0
@@ -154,6 +160,55 @@ func verify_focus(android: bool,seat: int,spectator: bool):
  expect(first_token.has("page_priority") and not second_token.has("page_priority") and token_members.has(first_token.uid) and token_members.has(second_token.uid),prefix+" display priority never separates otherwise identical stackable permanents")
  e.cards["53"]=original_model;view.network_session=null
 
+func verify_stable_first_page():
+ clean();view.local_seat=0;view.table.local_seat=0
+ view.table.unit_order={0:[],1:[]};view.table.zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}}
+ var units=[]
+ for index in range(13):units.append(put("53","field"))
+ view.table.zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}};sync_table()
+ var first=shown(0,"field")
+ e.Roster.New.on_target(e,e.ref_target(units[1]));sync_table()
+ expect(shown(0,"field")==first,"unmarked first-page target preserves original six-card order")
+ e.Roster.New.on_target(e,{"parts":[e.ref_target(units[8]),e.ref_target(units[5])]});sync_table()
+ expect(shown(0,"field")==[units[8].uid]+first.slice(0,5),"batch classifies original first-page targets before inserting an off-page target")
+ for index in range(6,13):e.Roster.New.on_target(e,e.ref_target(units[index]))
+ sync_table()
+ expect(units[8].uid not in shown(0,"field"),"later moves can displace an earlier promoted unit")
+ e.Roster.New.on_target(e,e.ref_target(units[8]));sync_table()
+ expect(shown(0,"field")[0]==units[8].uid,"displaced promoted unit can move to page one again")
+ var expected=shown(0,"field");var state=Codec.capture(e)
+ view.table.zone_pages[0].unit=2;sync_table()
+ expect(Codec.restore(e,state).is_empty(),"stable movement ranks round-trip through a snapshot")
+ view.table.zone_focus={0:{"unit":[],"palette":[]},1:{"unit":[],"palette":[]}};sync_table()
+ expect(shown(0,"field")==expected,"snapshot retains stable movement order")
+
+func verify_manual_page_order():
+ clean();view.local_seat=0;view.table.local_seat=0
+ view.table.unit_order={0:[],1:[]};view.table.manual_page_order={}
+ var units=[]
+ for index in range(13):units.append(put("53","field"))
+ var sorted=units.duplicate();sorted.reverse()
+ view.table.unit_order[0]=sorted.map(func(card):return card.uid)
+ view.table.remember_unit_page_order(0,sorted)
+ view.table.zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}};sync_table()
+ var original=shown(0,"field")
+ expect(original==sorted.slice(0,6).map(func(card):return card.uid),"manual unit order determines the actual first page")
+ e.Roster.New.on_target(e,e.ref_target(units[9]));sync_table()
+ expect(shown(0,"field")==original,"manually placed first-page target does not jump even when authority considers it off-page")
+ e.Roster.New.on_target(e,e.ref_target(units[0]));sync_table()
+ expect(shown(0,"field")[0]==units[0].uid,"manual off-page target moves forward even when authority considers it already first-page")
+ var stable=shown(0,"field")
+ e.Roster.New.on_target(e,e.ref_target(units[11]));sync_table()
+ expect(shown(0,"field")==stable,"a second manual first-page action preserves all visible positions")
+ var before_sort=Codec.capture(e)
+ view.table.auto_sort_units();sync_table()
+ var auto_first=shown(0,"field")
+ e.Roster.New.on_target(e,e.ref_target(units[2]));sync_table()
+ expect(shown(0,"field")==auto_first,"automatic sorting also preserves first-page target position")
+ expect(Codec.restore(e,before_sort).is_empty(),"manual order test can undo the last target action")
+ sync_table()
+ expect(not view.table.manual_page_order.has(0),"undo invalidates private page history and restores snapshot ordering")
+
 func verify_pagers():
  clean();view.local_seat=0;view.table.local_seat=0
  for who in range(2):
@@ -213,8 +268,10 @@ func verify_sparse_hand_pagers(android: bool):
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/battle-page-focus-fixtures/"+str(Time.get_ticks_usec()))
  root.size=Vector2i(1600,900);root.gui_embed_subwindows=true
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate();app.settings_path=Store.Paths.root_override.path_join("settings.json");app.account_session_path=Store.Paths.root_override.path_join("account.json");root.add_child(app);await frames()
  app.load_legacy_test_decks();app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
+ verify_stable_first_page()
+ verify_manual_page_order()
  for seat in range(2):
   for spectator in [false,true]:await verify_focus(false,seat,spectator)
  await verify_sparse_hand_pagers(false)

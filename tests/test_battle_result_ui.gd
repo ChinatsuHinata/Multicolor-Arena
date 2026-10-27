@@ -14,17 +14,37 @@ func check_return(title: String):
  var rect=button.get_global_rect();var safe=app.ui_metrics.safe
  expect(safe.grow(1).encloses(rect) and rect.get_center().x>safe.get_center().x and rect.get_center().y>safe.get_center().y,"return button fits at the bottom right: "+str(rect)+" safe="+str(safe))
  expect(not is_instance_valid(view.modal_root),"result navigation leaves the battlefield free of a modal blocker")
+func replay_count() -> int:
+ var count=0
+ for filename in DirAccess.get_files_at(Store.Paths.root().path_join("replay")):
+  if filename.ends_with(".mreply"):count+=1
+ return count
+func activate_dialog_button(prompt: Window,button: Button):
+ var point=Vector2(prompt.position)+button.get_global_rect().get_center()
+ if not app.is_android:await click(point);return
+ var event=InputEventScreenTouch.new();event.index=0;event.position=point;event.pressed=true
+ root.push_input(event,true);await process_frame
+ event=event.duplicate();event.pressed=false;root.push_input(event,true);await frames()
 func finish_replay(save: bool):
  await frames()
  var prompt=dialog("保存回放")
  expect(prompt!=null,"finished battle offers replay saving")
  if prompt==null:return
+ var yes=prompt.get_ok_button();var no=prompt.get_cancel_button()
+ expect(yes.text=="保存" and no.text=="不保存","replay choices have unambiguous labels")
+ expect(yes.get_global_rect().end.x<=no.get_global_rect().position.x,"desktop and Android both place Save on the left and Don't Save on the right")
+ var bounds=Rect2(Vector2.ZERO,Vector2(prompt.size)).grow(1)
+ expect(bounds.encloses(yes.get_global_rect()) and bounds.encloses(no.get_global_rect()),"both replay choices fit inside the dialog")
+ var before=replay_count()
+ await activate_dialog_button(prompt,yes if save else no);await frames()
+ expect(not is_instance_valid(prompt),"tapping either replay choice closes the prompt")
  if save:
-  prompt.confirmed.emit();await frames()
   var saved=dialog("回放已保存")
   expect(saved!=null,"replay is saved successfully")
-  if saved!=null:saved.confirmed.emit()
- else:prompt.hide();prompt.canceled.emit()
+  expect(replay_count()==before+1,"left Save button writes exactly one replay")
+  if saved!=null:await activate_dialog_button(saved,saved.get_ok_button())
+ else:
+  expect(dialog("回放已保存")==null and replay_count()==before,"right Don't Save button does not write a replay")
  await frames()
 func run():
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(fixture+"/tutorials"))

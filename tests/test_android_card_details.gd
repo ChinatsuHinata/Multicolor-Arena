@@ -29,7 +29,9 @@ func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/android-card-details/"+str(Time.get_ticks_usec()))
  root.size=Vector2i(1280,720) if OS.get_cmdline_user_args().has("--phone") else Vector2i(1600,900)
  root.gui_embed_subwindows=true
- app=load("res://main.tscn").instantiate();root.add_child(app);await process_frame
+ app=load("res://main.tscn").instantiate()
+ app.settings_path=Store.Paths.root_override+"/settings.json";app.account_session_path=Store.Paths.root_override+"/account.json";app.tutorial_local_directory=Store.Paths.root_override+"/tutorials"
+ root.add_child(app);await process_frame
  app.is_android=true;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
  if OS.get_cmdline_user_args().has("--phone"):app.layout_dpi_override=240
  app.refresh_ui_metrics();app.load_legacy_test_decks();app.clear_page("battle")
@@ -55,7 +57,7 @@ func run():
  expect(snapshot()==before and view.local.is_empty(),"holding a hand card does not play or select it")
  var title=view.inspection.find_child("InspectionTitle",true,false)
  expect(title!=null and title.get_theme_font_size("font_size")>=20,"card details keep a readable title font")
- expect(view.inspection.get_global_rect().end.x>view.responsive.palette_rect.position.x and view.inspection.get_global_rect().end.x<=view.responsive.palette_rect.position.x+50,"card details use the empty gutter beside the battlefield")
+ expect(view.inspection.size.x>=380 and view.responsive.camera_focus_rect().position.x>view.inspection.get_global_rect().end.x,"wide card details reserve a separate lane beside the battlefield")
  expect(view.inspection.find_child("关闭详情",true,false)==null and find_button(view.inspection,"关闭详情")==null,"card details have no close button")
  expect(view.inspection_text.scroll_active and view.inspection_text.size.x<=view.inspection.size.x-20 and view.inspection_text.size.y>200,"long card rules have a readable scrolling area")
  await shot("android-hand-long-press")

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.multicolorarena.replay.fragment">
+ <application>
+  <activity android:name="org.multicolorarena.replay.ReplayOpenActivity" android:exported="true" android:excludeFromRecents="true" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode" android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+   <!-- Opaque provider URIs do not expose DISPLAY_NAME to Android's resolver.
+        Only generic binary content is accepted here; the receiver validates its name/header. -->
+   <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="content" android:mimeType="application/octet-stream" />
+   </intent-filter>
+   <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="content" android:mimeType="application/x-multicolorarena-replay" />
+    <data android:scheme="file" />
+   </intent-filter>
+   <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="content" android:host="*" android:mimeType="*/*" />
+    <data android:scheme="file" />
+    <data android:pathPattern=".*\\.mreply" />
+    <data android:pathPattern=".*\\.replay" />
+    <data android:pathPattern=".*\\..*\\.mreply" />
+    <data android:pathPattern=".*\\..*\\.replay" />
+    <data android:pathPattern=".*\\..*\\..*\\.mreply" />
+    <data android:pathPattern=".*\\..*\\..*\\.replay" />
+   </intent-filter>
+   <intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="content" android:host="*" />
+    <data android:scheme="file" />
+    <data android:pathPattern=".*\\.mreply" />
+    <data android:pathPattern=".*\\.replay" />
+    <data android:pathPattern=".*\\..*\\.mreply" />
+    <data android:pathPattern=".*\\..*\\.replay" />
+    <data android:pathPattern=".*\\..*\\..*\\.mreply" />
+    <data android:pathPattern=".*\\..*\\..*\\.replay" />
+   </intent-filter>
+  </activity>
+ </application>
+</manifest>

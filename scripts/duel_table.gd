@@ -53,6 +53,7 @@ const MAT_SLOTS={"exile":Vector2(124.0/1200.0,1027.0/1200.0),"deck":Vector2(1070
 const CARD_SIZE=Vector2(1.95,2.72)
 const UNIT_PAGE_SIZE=6
 const PALETTE_PAGE_SIZE=10
+var field_capacity_labels={}
 var camera: Camera3D
 var board: MeshInstance3D
 var wide_playmat=false
@@ -97,6 +98,7 @@ var deferred_sync={}
 var collision_count=0
 var last_collision_targets=[]
 var unit_order={0:[],1:[]}
+var manual_page_order={}
 var zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
 var page_change_pending=false
 const PageOrder=preload("res://scripts/battle_page_order.gd")
@@ -547,12 +549,7 @@ func paged_zone_cards(who: int,group: String,cards: Array) -> Array:
   if not focused.is_empty() and pages>1:
    zone_pages[who][group]=0
    page_change_pending=true
- var original_order={}
- for index in range(cards.size()):original_order[cards[index].uid]=index
- focused.sort_custom(func(a,b):
-  var a_priority=PageOrder.priority(a);var b_priority=PageOrder.priority(b)
-  return a_priority>b_priority if a_priority!=b_priority else original_order[a.uid]<original_order[b.uid])
- var ordered=focused+cards.filter(func(card):return card.uid not in page_focus_uids) if pages>1 else cards
+ var ordered=local_unit_page_order(who,cards) if group=="unit" and manual_page_order.has(who) else PageOrder.ordered(cards) if pages>1 else cards
  var page=clampi(zone_pages[who][group],0,pages-1)
  zone_pages[who][group]=page
  return ordered.slice(page*page_size,(page+1)*page_size)
@@ -565,6 +562,27 @@ func zone_page_bounds(who: int,group: String) -> Rect2:
  var bounds=WIDE_ZONES[group] if wide_playmat else Rect2(-7.5,0.1,15.0,(2.4 if top_down_view else 3.1)-0.1)
  if group=="palette" and not wide_playmat:bounds=Rect2(-7.9,zone_position("palette",local_seat).z-1.2,15.8,2.4)
  return bounds if who==local_seat else Rect2(-bounds.end,bounds.size)
+
+func unit_pager_position(who: int) -> Vector3:
+ # This reserved lane belongs to the board, not to an animated card or to the
+ # number of units on the current page. Attack and page transitions leave it fixed.
+ var row=field_position("unit",0,UNIT_PAGE_SIZE,who)
+ return Vector3(7.7 if wide_playmat else board_x(6.8),0.08,row.z)
+
+func update_field_capacity(font: Font,own_color: Color,enemy_color: Color):
+ for who in range(2):
+  if not field_capacity_labels.has(who):
+   var label=Label3D.new();label.name="FieldCapacity"+str(who)
+   label.rotation_degrees.x=-90;label.font_size=96;label.pixel_size=0.008
+   label.outline_size=12;label.outline_modulate=Color("#101e2b")
+   label.no_depth_test=false;label.billboard=BaseMaterial3D.BILLBOARD_DISABLED
+   add_child(label);field_capacity_labels[who]=label
+  var label=field_capacity_labels[who]
+  label.font=font;label.modulate=own_color if who==local_seat else enemy_color
+  label.text="%d/%d" % [duel.field_slots(who),duel.Cat.field_limit(duel,who)]
+  # Both totals flank the right melody slot in the player's current board view.
+  # They are real board-layer text, so panning/zooming cannot detach them.
+  label.position=Vector3(10.15 if wide_playmat else 9.2,0.09,1.7 if who==local_seat else -1.7)
 
 func field_group(c: Dictionary) -> String:
  if duel.is_unit(c):return "unit"
@@ -582,6 +600,42 @@ func ordered_units(who: int,units: Array) -> Array:
  unit_order[who]=next
  var result=units.duplicate()
  result.sort_custom(func(a,b):return next.find(a.uid)<next.find(b.uid))
+ return result
+
+func unit_instance_key(card: Dictionary) -> String:
+ return "%d:%d" % [card.uid,card.epoch]
+
+func remember_unit_page_order(who: int,cards: Array):
+ var actions={}
+ for card in cards:actions[unit_instance_key(card)]=PageOrder.priority(card)
+ manual_page_order[who]={"ids":cards.map(unit_instance_key),"actions":actions,"serial":duel.page_priority_serial,"revision":duel.revision}
+
+func local_unit_page_order(who: int,cards: Array) -> Array:
+ # Manual drag/auto-sort is private to this view. Respect its actual first page
+ # even when the authority has a different base order; no game state is changed.
+ var state=manual_page_order[who]
+ var reset=duel.page_priority_serial<state.serial or duel.revision<state.revision
+ for card in cards:
+  if PageOrder.priority(card)<state.actions.get(unit_instance_key(card),0):reset=true
+ if reset:
+  manual_page_order.erase(who)
+  return PageOrder.ordered(cards)
+ var by_id={};var ids=[];var events={}
+ for card in cards:by_id[unit_instance_key(card)]=card
+ for id in state.ids:
+  if by_id.has(id):ids.append(id)
+ for id in by_id:
+  if id not in ids:ids.append(id)
+  var serial=PageOrder.priority(by_id[id])
+  if serial>state.actions.get(id,0):
+   if not events.has(serial):events[serial]=[]
+   events[serial].append(id)
+ var serials=events.keys();serials.sort()
+ for serial in serials:
+  var moving=ids.filter(func(id):return id in events[serial] and ids.find(id)>=UNIT_PAGE_SIZE)
+  ids=moving+ids.filter(func(id):return id not in moving)
+ var result=ids.map(func(id):return by_id[id])
+ remember_unit_page_order(who,result)
  return result
 
 func unit_family_name(c: Dictionary) -> String:
@@ -617,6 +671,7 @@ func auto_sort_units():
    if a.get("token",false)!=b.get("token",false):return not a.get("token",false)
    return a.uid<b.uid)
   unit_order[who]=units.map(func(c):return c.uid)
+  remember_unit_page_order(who,units)
 
 func reorder_unit(uid: int,point: Vector2) -> bool:
  var c=duel.find_card(uid)
@@ -629,6 +684,7 @@ func reorder_unit(uid: int,point: Vector2) -> bool:
  var bounds=WIDE_ZONES.unit if wide_playmat else Rect2(-7.5,0.1,15.0,(2.4 if top_down_view else 3.1)-0.1)
  if not bounds.has_point(local):return false
  var ordered=ordered_units(c.owner,duel.players[c.owner].field.filter(func(u):return duel.is_unit(u)))
+ ordered=local_unit_page_order(c.owner,ordered) if manual_page_order.has(c.owner) else PageOrder.ordered(ordered)
  var signature=duel.stackable_signature(c)
  var moving=ordered.filter(func(u):return u.uid==uid or not signature.is_empty() and duel.stackable_signature(u)==signature)
  var remaining=ordered.filter(func(u):return u not in moving)
@@ -642,8 +698,9 @@ func reorder_unit(uid: int,point: Vector2) -> bool:
    break
  for i in range(moving.size()):remaining.insert(target_index+i,moving[i])
  var next=remaining.map(func(u):return u.uid)
- if next==unit_order.get(c.owner,[]):return false
+ if next==ordered.map(func(unit):return unit.uid):return false
  unit_order[c.owner]=next
+ remember_unit_page_order(c.owner,remaining)
  return true
 func back_row_bounds(group: String) -> Rect2:
  if wide_playmat:return WIDE_ZONES[group]
