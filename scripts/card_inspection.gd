@@ -2,6 +2,7 @@ extends RefCounted
 ## Shared card artwork and rules used by plaza details and teaching scenes.
 const Store=preload("res://scripts/deck_store.gd")
 const Art=preload("res://scripts/card_art.gd")
+const KeywordGlossary=preload("res://scripts/keyword_glossary.gd")
 
 static func expand(control: Control,vertical: bool=false):
  control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -29,5 +30,5 @@ static func rules(app,parent: Node,id: String,width: float) -> ScrollContainer:
  text(app,column,str(info.name),app.ui_metrics.title,app.GOLD)
  var costs=app.HexCost.new();column.add_child(costs)
  costs.configure(app.CostDisplay.for_card(info),false,width,app.ui_metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
- text(app,column,app.card_description(id),app.ui_metrics.body,Color("#e8edf0")).name="CardInspectionRules"
+ KeywordGlossary.rich_text(app,column,app.card_description(id),app.ui_metrics.body,Color("#e8edf0")).name="CardInspectionRules"
  return scroll

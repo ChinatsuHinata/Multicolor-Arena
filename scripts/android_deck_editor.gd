@@ -731,7 +731,7 @@ func update_preview():
  var title=text(body,info.name,detail_metrics.title);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.add_theme_color_override("font_color",app.GOLD)
  var width=maxf(100,(detail_popup_size.x-detail_metrics.padding*2-detail_metrics.gap)*0.52)
  var costs=app.HexCost.new();body.add_child(costs);costs.configure(app.CostDisplay.for_card(info),false,width-20,detail_metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
- var description=text(body,app.card_description(app.selected),detail_metrics.body);description.name="CardDescription";description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ KeywordGlossary.rich_text(app,body,app.card_description(app.selected),detail_metrics.body,app.WHITE).name="CardDescription"
  var allowed=app.RuleSet.allowed(app.selected,info,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))
  if not allowed:
   var notice=text(left,"此规则集仅供查看",detail_metrics.small);notice.name="CardDetailsReadOnly";expand(notice)

@@ -70,6 +70,88 @@
       "problemMatcher": []
     },
     {
+      "label": "安卓布局原型: 运行",
+      "detail": "独立运行 experiments/android_layout_sim/sim_main.tscn；F12 截图到当前版本目录。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "Run"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "安卓布局原型: 无头测试",
+      "detail": "headless 运行 tests/test_android_layout_sim.gd，要求退出码 0 且 failures=0。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "Test"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "安卓布局原型: 生成截图",
+      "detail": "窗口模式跑完整交互测试，把全部截图点写入 work/android-layout-sim/v<N>/。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "Screenshots"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "安卓布局原型: 工作区校验",
+      "detail": "运行 verify_workspace.ps1：缩进检查 + 基线 M 集合不变。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "Verify"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "安卓布局原型: 打开截图目录",
+      "detail": "在资源管理器中打开当前版本截图目录。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "OpenShots"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "安卓布局原型: 全部验收",
+      "detail": "依次执行无头测试、截图测试和工作区校验，任一失败即停止。",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        "${workspaceFolder}/tools/android-layout-sim.ps1", "-Action", "All"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
       "label": "Android: 配置开源模拟器",
       "type": "process",
       "command": "powershell.exe",

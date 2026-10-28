@@ -215,13 +215,22 @@ func latency_text() -> String:return ""
 func connection_status() -> String:return "回放 · "+("双方手牌可见" if archive.metadata.get("hands","")=="both" else "公开视角" if int(archive.metadata.get("seat",0))<0 else PlayerNameDisplay.caption(room.get("names",["玩家","玩家"])[seat])+"视角")
 func pop_snapshot() -> Dictionary:
  var packet=snapshots.pop_front();local_game_id=packet.game_id;return packet
+func playback_frame(value: int) -> Dictionary:
+ var packet=archive.frame(value)
+ if not preload("res://scripts/replay_archive.gd").valid_frame(packet,archive.definitions):
+  playing=false
+  error_raised.emit("录像在第 %d 步无法继续：该步骤的数据已损坏或状态尚不兼容。" % (value+1))
+  update_controls()
+  return {}
+ return packet
 func seek(value: int):
  if training_editor!=null and training_editor.is_open():
   training_editor.close()
   if training_editor!=null:return
+ value=clampi(value,0,archive.frames.size()-1)
+ var packet=playback_frame(value)
+ if packet.is_empty():return
  playing=false;elapsed=0;index=value
- var packet=archive.frame(index)
- if packet.is_empty():error_raised.emit("回放片段损坏");return
  packet.recovery=true;packet.projection.state.presentation_events=[]
  room=packet.room;latest_snapshot=packet;snapshots=[packet]
  if is_instance_valid(app.duel_view) and not app.duel_view.is_queued_for_deletion():app.duel_view.get_parent().remove_child(app.duel_view);app.duel_view.queue_free()
@@ -252,9 +261,9 @@ func _process(delta):
  elapsed+=delta*speed
  var delay=clampf(float(archive.frames[index+1].time-archive.frames[index].time)/1000.0,0.25,3.0)
  if elapsed<delay:return
+ var packet=playback_frame(index+1)
+ if packet.is_empty():return
  elapsed=0;index+=1
- var packet=archive.frame(index)
- if packet.is_empty():playing=false;error_raised.emit("回放片段损坏");return
  if packet.game_id!=latest_snapshot.game_id:
   seek(index);playing=true
  else:

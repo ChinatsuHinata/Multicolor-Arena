@@ -45,22 +45,30 @@ func run():
  check(host.room.status=="playing" and guest.room.status=="playing","two matching sessions reach the same battlefield")
  host.authority.damage_context={"source":host.authority.players[0].leader,"combat":false}
  host.authority.damage_target({"player":1},7)
+ var item=host.authority.make_card("item-ucs-013",1,"field")
+ host.authority.players[1].field.append(item);host.authority.move_to(item,"exile")
  host.authority.damage_context={}
+ host.authority.players[0].deck=host.authority.players[0].deck.slice(0,5)
+ host.authority.players[1].deck=host.authority.players[1].deck.slice(0,6)
  host.handle_command(1,{"id":"TEST_ONLY_task_surrender","room_id":host.room_id,"game_id":host.series.state.game_id,"expected":host.sequence,"command":{"name":"surrender","args":[]}})
  synchronize(host,guest)
  check(host.room.status=="complete" and guest.room.status=="complete","actual surrender command synchronizes a completed result")
  check(host.room.get("task_evidence",{})==guest.room.get("task_evidence",{}) and host.room.has("task_evidence"),"both players receive the same final evidence")
  check(int(guest.room.get("task_evidence",{}).get("players",[{},{}])[0].get("player_damage",0))==7,"actual engine damage reaches the guest's task evidence")
+ check(int(guest.room.task_evidence.players[0].get("items_barriers_removed",0))==1,"actual item removal reaches the guest's task evidence")
+ check(int(guest.room.task_evidence.players[0].get("enemy_final_deck",-1))==6 and int(guest.room.task_evidence.players[1].get("enemy_final_deck",-1))==5,"both seats receive the opponent's final deck size")
  host.transport.online=true;guest.transport.online=true
  host.report_match_result(true);guest.report_match_result(true)
  check(not host.transport.results.is_empty() and not guest.transport.results.is_empty() and host.transport.results.back()==guest.transport.results.back(),"both clients report the same winner and evidence to the relay")
  var saved=Session.Journal.load_from(host.storage+"/host.bin")
  check(saved.get("series",{}).get("task_evidence",{})==host.room.task_evidence,"host recovery journal retains the final task summary")
  var series=Series.new()
- series.record_task_evidence({"version":1,"players":[{"player_damage":8,"royal_flare_damage":0,"royal_flare_kill":false,"cast_cards":{"121":1},"final_life":10},{}]})
- series.record_task_evidence({"version":1,"players":[{"player_damage":20,"royal_flare_damage":20,"royal_flare_kill":true,"cast_cards":{"121":2},"final_life":32},{}]})
+ series.record_task_evidence({"version":1,"players":[{"enemy_final_deck":6,"items_barriers_removed":1,"player_damage":8,"royal_flare_damage":0,"royal_flare_kill":false,"cast_cards":{"121":1},"final_life":10},{}]})
+ series.record_task_evidence({"version":1,"players":[{"enemy_final_deck":5,"items_barriers_removed":3,"player_damage":20,"royal_flare_damage":20,"royal_flare_kill":true,"cast_cards":{"121":2},"final_life":32},{}]})
  var stats=series.state.task_evidence.players[0]
  check(stats.player_damage==28 and stats.cast_cards["121"]==3 and stats.final_life==32,"drawn games accumulate counters while final life stays per game")
+ check(stats.items_barriers_removed==4,"drawn and decisive games accumulate the combined removal counter")
+ check(stats.enemy_final_deck==5 and stats.final_game.enemy_final_deck==5,"final deck size stays per game instead of adding drawn games")
  check(stats.final_game.player_damage==20 and stats.final_game.royal_flare_damage==20,"victory conditions retain only the decisive game's damage sources")
  check(stats.royal_flare_kill is bool and stats.royal_flare_kill and stats.final_game.royal_flare_kill,"royal killing-blow proof stays boolean through series aggregation")
  series.state.status="playing"

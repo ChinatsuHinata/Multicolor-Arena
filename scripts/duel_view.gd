@@ -1,5 +1,6 @@
 extends Control
 const Palette=preload("res://scripts/ui_palette.gd")
+const KeywordGlossary=preload("res://scripts/keyword_glossary.gd")
 const Duel=preload("res://scripts/rules/duel_engine.gd")
 const RevealReview=preload("res://scripts/duel_reveal_review.gd")
 const History=preload("res://scripts/duel_history.gd")
@@ -167,6 +168,7 @@ var android_card_touch=preload("res://scripts/android_card_touch.gd").new()
 var android_back_button: Button
 var android_battle_menu_root: Control
 var android_zone_shortcuts: Control
+var android_board: Control
 var android_back_swipe_index=-1
 var android_back_swipe_start=Vector2.ZERO
 var android_back_swipe_active=false
@@ -320,6 +322,11 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
    browse_zone(who,"exile" if "exile" in zone else "grave")
   elif zone in ["pdeck","adeck"]: browse_zone(0 if zone=="pdeck" else 1,"deck"))
  ui=layer(self); badges=layer(ui)
+ if is_android and host.get("android_experimental_battle_ui")==true:
+  stage.visible=false;stage.mouse_filter=MOUSE_FILTER_IGNORE
+  viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED
+  android_board=preload("res://scripts/android_board/board.gd").new();android_board.view=self
+  ui.add_child(android_board);ui.move_child(android_board,0)
  arrow_layer=preload("res://scripts/stack_arrows.gd").new(); arrow_layer.view=self; arrow_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE; ui.add_child(arrow_layer)
  deck_cast_layer=layer(ui)
  hand_scroll=ScrollContainer.new();hand_scroll.name="ResponsiveHandScroll";ui.add_child(hand_scroll)
@@ -355,13 +362,15 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
  banner=layer(ui)
  ui.move_child(banner,0)
+ if android_board!=null:ui.move_child(android_board,0)
  observe_button=btn("观察战场",Rect2(1248,12,152,40),toggle_observation,false,ui)
  observe_button.visible=false
  if is_android:
   android_back_button=host.button(ui,"取消",Rect2(1516,ANDROID_ACTION_FOOTER_Y,68,ANDROID_ACTION_FOOTER_HEIGHT),android_back)
   android_back_button.z_index=102
-  android_zone_shortcuts=preload("res://scripts/android_zone_shortcuts.gd").new()
-  ui.add_child(android_zone_shortcuts);android_zone_shortcuts.build(self)
+  if android_board==null:
+   android_zone_shortcuts=preload("res://scripts/android_zone_shortcuts.gd").new()
+   ui.add_child(android_zone_shortcuts);android_zone_shortcuts.build(self)
 
  if debug_mode:
   debug_controls=layer(ui)
@@ -473,6 +482,7 @@ func project(at: Vector3) -> Vector2:
 func stage_point(at: Vector2) -> Vector2:
  return (at-STAGE.position)/STAGE.size*Vector2(viewport.size)
 func camera_drag_input(event: InputEvent) -> bool:
+ if android_board!=null:return false
  if is_android and not host.android_manual_camera:return false
  if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_MIDDLE:
   if not event.pressed:
@@ -549,6 +559,7 @@ func required_camera_focus() -> int:
  return -1
 
 func sync_automatic_camera_focus():
+ if android_board!=null:return
  android_camera_restored=false
  var who=required_camera_focus()
  if android_manual_focus_override>=0:
@@ -593,10 +604,12 @@ func projected_android_focus(bounds: Rect2) -> Rect2:
  return rect
 
 func focus_android_camera(animate: bool):
+ if android_board!=null:return
  if not is_android:return
  focus_palette_camera(animate)
 
 func focus_palette_camera(animate: bool):
+ if android_board!=null:return
  if not is_instance_valid(table):return
  if is_instance_valid(android_camera_tween):android_camera_tween.kill()
  var area=responsive.camera_focus_rect()
@@ -640,6 +653,7 @@ func focus_palette_camera(animate: bool):
   android_camera_tween.tween_method(func(scale_value):table.camera_frame_scale=scale_value;table.set_camera();update_badge_positions(),start_scale,target_scale,0.3)
  update_badge_positions()
 func touch_card_at(point: Vector2) -> int:
+ if android_board!=null:return 0
  var exact=table.card_at(stage_point(point))
  if exact!=0:return exact
  # Exact hits retain priority. Give the small potato payment card an edge
@@ -785,6 +799,7 @@ func touch_battle_choice_scroll(event: InputEvent) -> bool:
    return true
  return false
 func touch_camera_input(event: InputEvent) -> bool:
+ if android_board!=null:return false
  if not is_android or not (event is InputEventScreenTouch or event is InputEventScreenDrag):return false
  var point=make_input_local(event).position
  if event is InputEventScreenTouch and event.pressed:
@@ -1154,6 +1169,7 @@ func toggle_android_palette(who: int):
  set_android_camera_focus(-1 if android_palette_view and android_palette_focus_owner()==who else who)
 
 func keep_button_rect() -> Rect2:
+ if android_board!=null and android_board.keep_colors_rect.has_area():return android_board.keep_colors_rect
  if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.enemy_life.size.x,host.ui_metrics.hit)
  return Rect2(INSPECTION.position.x,100,108 if debug_mode else INSPECTION.size.x,44)
 
@@ -1293,6 +1309,7 @@ func render_android_palette(_available: Array):
  responsive.camera_focus_toggle()
 
 func render_zone_pagers():
+ if android_board!=null:return
  zone_pagers={}
  render_field_capacity()
  var hit=host.ui_metrics.hit if is_android else 36.0
@@ -1319,6 +1336,7 @@ func render_zone_pagers():
  update_zone_pager_positions()
 
 func render_field_capacity():
+ if android_board!=null:return
  table.update_field_capacity(host.get_theme_font("font"),host.GOLD,Color("#ef5350"))
  update_field_capacity_position()
 
@@ -1483,6 +1501,7 @@ func zone_page_button_at(point: Vector2) -> String:
  return ""
 
 func touch_zone_pagers(event: InputEvent) -> bool:
+ if android_board!=null:return false
  var touch=event is InputEventScreenTouch or event is InputEventScreenDrag
  var mouse=event is InputEventMouseButton or event is InputEventMouseMotion
  if not touch and not mouse:return false
@@ -1589,6 +1608,7 @@ func render():
   if not stack_target_sources({"stack_id":entry.id}).is_empty() and entry.id not in table.selected_stacks:table.selected_stacks.append(entry.id)
  table.stack_target_uids=interactive_stack_target_uids()
  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
+ if android_board!=null:android_board.sync()
  render_deck_casts()
  render_hands(available)
  refresh_stage_tooltip()
@@ -1666,6 +1686,7 @@ func render():
 func render_hands(available: Array):
  hand_scroll.visible=hand_display_enabled
  opponent_layer.visible=hand_display_enabled
+ if android_board!=null:opponent_layer.visible=hand_display_enabled and (debug_mode or replay_view())
  if hand_display_enabled:render_hand_zone_tabs()
  sync_hand_nodes(local_seat,hand_nodes,hand_layer,available)
  sync_hand_nodes(1-local_seat,enemy_nodes,opponent_layer,available if debug_mode else [])
@@ -1786,6 +1807,7 @@ func update_deck_cast_positions():
   indices[c.owner]+=1
 
 func projected_deck_rect(key: String) -> Rect2:
+ if android_board!=null:return android_board.zone_rect(0 if key=="pdeck" else 1,"deck")
  var top=table.piles[key].get_node("Top")
  var half=table.CARD_SIZE*table.SLOT_SCALE/2.0
  var rect=Rect2(project(top.to_global(Vector3(-half.x,0,-half.y))),Vector2.ZERO)
@@ -1841,8 +1863,9 @@ func layout_stat_badge(parts: Dictionary,card_rect: Rect2):
 
 func rebuild_badges():
  clear_children(badges); card_badges={}
- for key in table.descriptors:
-  var d=table.descriptors[key]
+ var badge_descriptors=android_board.descriptors if android_board!=null else table.descriptors
+ for key in badge_descriptors:
+  var d=badge_descriptors[key]
   if d.zone=="stack":
    for entry in engine.stack:
     if entry.id!=d.stack_id or entry.kind!="ability" and not entry.has("ability_text"): continue
@@ -1967,12 +1990,13 @@ func update_badge_positions():
  var stack_rects=[]
  var caption_rects=[]
  for key in table.descriptors:
-  if table.descriptors[key].zone=="stack": stack_rects.append(projected_card_rect(table.visuals[key]).grow(6))
+  if table.descriptors[key].zone=="stack": stack_rects.append(card_screen_rect(key).grow(6))
  for key in card_badges:
   var parts=card_badges[key]; var root=parts.root
-  if table.visuals.has(key):
-   var node=table.visuals[key]
-   var rect=projected_card_rect(node)
+  if android_board!=null and (card_screen_rect(key)==Rect2() or not android_board.card_visible(key)):
+   root.hide();continue
+  if android_board!=null or table.visuals.has(key):
+   var rect=card_screen_rect(key)
    root.position=rect.get_center()
    if parts.has("stats"):layout_stat_badge(parts,rect)
    var info_top=parts.stats.position.y if parts.has("stats") else rect.size.y/2+1
@@ -1997,7 +2021,7 @@ func update_badge_positions():
     caption_rects.append(occupied)
   elif table.piles.has(key):
    root.position=project(table.piles[key].position+Vector3(0,0.03,1.3))
-  root.visible=STAGE.grow(5).has_point(root.position) or parts.zone=="stack" and root.position.y<790
+  root.visible=card_screen_rect(key)!=Rect2() if android_board!=null else STAGE.grow(5).has_point(root.position) or parts.zone=="stack" and root.position.y<790
   if parts.zone!="stack" and stack_rects.any(func(r): return r.has_point(root.position)): root.visible=false
 
 func show_phase_banner():
@@ -2168,6 +2192,7 @@ func update_inspection():
  inspection_text.add_theme_font_size_override("normal_font_size",17); inspection_text.add_theme_color_override("default_color",host.WHITE)
  inspection_text.add_theme_color_override("font_outline_color",Color("#081019")); inspection_text.add_theme_constant_override("outline_size",3)
  inspection_text.scroll_active=true; bg.add_child(inspection_text)
+ inspection_text.mouse_filter=Control.MOUSE_FILTER_STOP;KeywordGlossary.connect_links(host,inspection_text)
  var rules="未公开" if inspect_id=="back" else "任选一种颜色支付 1 点，使用后消失。" if inspect_id=="potato" else info.rules_text
  if rules.strip_edges().is_empty():rules="无能力。"
  if not declared.is_empty():
@@ -2176,11 +2201,12 @@ func update_inspection():
  if not attributes.is_empty():inspection_text.add_text(attributes+"\n")
  elif info.get("fast",false):inspection_text.add_text("高速\n")
  var at=rules.find("自机能力：")
- if at>=0:
-  inspection_text.add_text(rules.left(at))
+ if inspect_id in ["back","potato"]:inspection_text.add_text(rules)
+ elif at>=0:
+  KeywordGlossary.append(inspection_text,rules.left(at),host.GOLD)
   inspection_text.push_color(host.WHITE if enabled else Color("#78818b"))
-  inspection_text.add_text(rules.substr(at)); inspection_text.pop()
- else: inspection_text.add_text(rules)
+  KeywordGlossary.append(inspection_text,rules.substr(at),host.GOLD if enabled else Color("#78818b").lerp(host.GOLD,0.35)); inspection_text.pop()
+ else: KeywordGlossary.append(inspection_text,rules,host.GOLD)
  if not inherited_keywords.is_empty():inspection_text.add_text("\n继承词条："+"、".join(inherited_keywords))
  if not inherited_abilities.is_empty():inspection_text.add_text("\n继承能力：\n"+"\n".join(inherited_abilities))
  for line in counters:inspection_text.add_text("\n"+line)
@@ -2543,6 +2569,7 @@ func _input(event: InputEvent):
  if keep_popup_input(event):return
  if keep_popup_open and (event is InputEventScreenDrag or event is InputEventMouse):return
  if is_instance_valid(android_zone_shortcuts) and android_zone_shortcuts.handle(event):return
+ if android_board!=null and android_board.handle(event):return
  if is_instance_valid(trigger_order_list) and trigger_order_list.handle(event):return
  if is_android and android_card_touch.handle(event,self):return
  if is_android and event is InputEventScreenTouch and event.pressed and event.double_tap and event.index==0 and android_double_tap(make_input_local(event).position):
@@ -2763,6 +2790,7 @@ func open_android_help():
  var back=btn("返回对局",Rect2(28,panel.size.y-m.hit-20,panel.size.x-56,m.hit),close_overlay,false,panel)
  m.button(back)
 func android_double_tap(point: Vector2) -> bool:
+ if android_board!=null:return false
  if not is_android or not TOUCH_CAMERA_AREA.has_point(point):return false
  if not zone_page_button_at(point).is_empty():return false
  if inspection.visible and inspection.get_global_rect().has_point(point):return false
@@ -3398,14 +3426,20 @@ func build_battle_settings_options(column: VBoxContainer):
  for entry in [["3D 斜视",false],["2D 上方俯视",true]]:
   var choice=btn(entry[0],Rect2(),func():set_card_view(entry[1]),table.top_down_view==entry[1],views)
   m.button(choice);choice.custom_minimum_size.x=0;choice.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  if android_board!=null:choice.disabled=true
  toolkit.check(column,"显示左侧卡牌效果说明栏",host.show_card_inspection,func(value):host.set_show_card_inspection(value);update_inspection())
  toolkit.check(column,"延迟回合结束（长按 1 秒）",host.delay_turn_end,host.set_delay_turn_end).name="DelayTurnEnd"
  var auto_focus=toolkit.check(column,"自动跳转视角",host.auto_camera_focus,host.set_auto_camera_focus)
  auto_focus.name="AutoCameraFocus"
+ if android_board!=null:auto_focus.disabled=true
  auto_focus.tooltip_text="自动聚焦需要操作的颜色盘；对方回合的凭依阶段保持当前视角。"
  if is_android:
   toolkit.check(column,"允许手动拖动和缩放视角",host.android_manual_camera,host.set_android_manual_camera).name="AndroidManualCamera"
   toolkit.check(column,"显示墓地与除外区悬浮按钮",host.android_zone_shortcuts,host.set_android_zone_shortcuts).name="AndroidZoneShortcutsSetting"
+  toolkit.check(column,"试验对战界面（侧栏布局，下一局生效）",host.android_experimental_battle_ui,host.set_android_experimental_battle_ui).name="AndroidExperimentalBattleUI"
+  if android_board!=null:
+   column.get_node("AndroidManualCamera").disabled=true
+   column.get_node("AndroidZoneShortcutsSetting").disabled=true
  toolkit.check(column,"显示手牌",hand_display_enabled,set_hand_display)
  if debug_mode:toolkit.check(column,"允许调试拖动放入战场",host.debug_drag_to_field,host.set_debug_drag_to_field)
  if replay_view() and host.is_test_build and not is_android:toolkit.check(column,"回放训练模式：标注步骤与推荐招法",host.replay_training_mode,host.set_replay_training_mode)
@@ -3521,12 +3555,20 @@ func combat_marker(uid: int) -> String:
  if engine.pending.get("kind","")=="block" and uid in selection: return "shield"
  return ""
 func show_combat_impact(attacker_uid: int,blocker_uid: int):
- var attacker=table.visuals.get("card_"+str(attacker_uid))
- if not is_instance_valid(attacker): return
- var at=attacker.global_position
- var blocker=table.visuals.get("card_"+str(blocker_uid))
- if is_instance_valid(blocker): at=(at+blocker.global_position)*0.5
- var point=project(at)
+ var point=Vector2.ZERO
+ if android_board!=null:
+  var rect=card_screen_rect("card_"+str(attacker_uid))
+  if rect==Rect2():return
+  point=rect.get_center()
+  var block_rect=card_screen_rect("card_"+str(blocker_uid))
+  if block_rect!=Rect2():point=(point+block_rect.get_center())*0.5
+ else:
+  var attacker=table.visuals.get("card_"+str(attacker_uid))
+  if not is_instance_valid(attacker): return
+  var at=attacker.global_position
+  var blocker=table.visuals.get("card_"+str(blocker_uid))
+  if is_instance_valid(blocker): at=(at+blocker.global_position)*0.5
+  point=project(at)
  var flash=board_badge_label("✦",72,Color("#fff0bc"),effects)
  flash.position=point-flash.size*0.5
  flash.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -4406,13 +4448,14 @@ func battle_rank_font_size() -> int:
  return clampi(host.ui_metrics.small-2,16,22) if is_android else 13
 
 func battle_life_height(who: int,minimum: float) -> float:
- if battle_rank(who).is_empty():return minimum
  var font=host.get_theme_font("font")
- return maxf(minimum,font.get_height(host.ui_metrics.body if is_android else 18)+font.get_height(battle_rank_font_size())+20)
+ var name_height=font.get_height(host.ui_metrics.body if is_android else 18)
+ if battle_rank(who).is_empty():return maxf(minimum,name_height+20)
+ return maxf(minimum,name_height+font.get_height(battle_rank_font_size())+20)
 
+# Name and life are separate clipped labels so long nicknames never widen the panel.
 func render_life_rank(who: int,button: Button,bar: ProgressBar,warning_width: float):
  var rank=battle_rank(who)
- if rank.is_empty():return
  button.text=""
  bar.position.y=button.size.y-12
  var font=button.get_theme_font("font")
@@ -4420,13 +4463,15 @@ func render_life_rank(who: int,button: Button,bar: ProgressBar,warning_width: fl
  var rank_size=battle_rank_font_size()
  var name_height=font.get_height(name_size)
  var rank_height=font.get_height(rank_size)
+ var name_y=3.0 if not rank.is_empty() else maxf(2.0,(bar.position.y-2-name_height)*0.5)
  var width=button.size.x-20-warning_width-(4 if warning_width>0 else 0)
  var value=str(engine.players[who].life)
- var value_width=maxf(name_size*1.5,font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,name_size).x+6)
+ var value_width=minf(maxf(name_size*1.5,font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,name_size).x+6),maxf(1,width-name_size))
  var captions=[
-  ["BattlePlayerName",player_caption(who),Rect2(10,3,maxf(1,width-value_width-4),name_height),name_size,host.WHITE],
-  ["BattleLifeValue",value,Rect2(10+width-value_width,3,value_width,name_height),name_size,host.WHITE],
-  ["BattleRank",RankBadge.caption(rank),Rect2(10,3+name_height,button.size.x-20,rank_height),rank_size,RankBadge.COLORS[clampi(int(rank.get("tier",0)),0,4)]]]
+  ["BattlePlayerName",player_caption(who),Rect2(10,name_y,maxf(1,width-value_width-4),name_height),name_size,host.WHITE],
+  ["BattleLifeValue",value,Rect2(10+width-value_width,name_y,value_width,name_height),name_size,host.WHITE]]
+ if not rank.is_empty():
+  captions.append(["BattleRank",RankBadge.caption(rank),Rect2(10,3+name_height,button.size.x-20,rank_height),rank_size,RankBadge.COLORS[clampi(int(rank.get("tier",0)),0,4)]])
  for caption in captions:
   var label=Label.new();label.name=caption[0];label.text=caption[1]
   label.clip_text=true;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -4436,7 +4481,7 @@ func render_life_rank(who: int,button: Button,bar: ProgressBar,warning_width: fl
   button.add_child(label)
   label.position=caption[2].position;label.size=caption[2].size
   life_widgets[who][str(label.name)]=label
- button.tooltip_text=player_caption(who)+" · "+RankBadge.caption(rank)+"\n"+button.tooltip_text
+ button.tooltip_text=player_caption(who)+(" · "+RankBadge.caption(rank) if not rank.is_empty() else "")+"\n"+button.tooltip_text
 
 func render_life(who: int,rect: Rect2):
  var current_life=int(engine.players[who].life)
@@ -4458,7 +4503,7 @@ func render_life(who: int,rect: Rect2):
  var selected=picker.selected_refs().any(func(t): return t.get("player",-1)==who) or not stack_target_sources({"player":who}).is_empty()
  var legal=picker_active() and picker.available_refs().any(func(t): return t.get("player",-1)==who)
  var color=Color("#ffd65c") if selected else Color("#359bff") if legal else Color("#486376")
- var button=btn(player_caption(who)+"  %d" % engine.players[who].life,rect,func(): choose_target({"player":who}))
+ var button=btn("",rect,func(): choose_target({"player":who}))
  var curse=ConditionHints.curse_caption(engine,who)
  var warning_count=clampi(ConditionHints.curse_count(engine,who),0,CurseWarning.MAX_VISIBLE)
  var warning_width=warning_count*CurseWarning.ICON_SIZE.x+maxi(0,warning_count-1)*CurseWarning.GAP
@@ -4487,7 +4532,8 @@ func render_life(who: int,rect: Rect2):
   life_widgets[who].curse_warnings=[]
   for i in range(warning_count):
    var warning=CurseWarning.new();warning.name="CurseWarning"+str(i+1);warning.size=CurseWarning.ICON_SIZE
-   var warning_y=3+(life_widgets[who].BattlePlayerName.size.y-CurseWarning.ICON_SIZE.y)*0.5 if life_widgets[who].has("BattleRank") else (rect.size.y-CurseWarning.ICON_SIZE.y)*0.5-4
+   var name_label=life_widgets[who].BattlePlayerName
+   var warning_y=name_label.position.y+(name_label.size.y-CurseWarning.ICON_SIZE.y)*0.5
    warning.position=Vector2(rect.size.x-4-warning_width+i*(CurseWarning.ICON_SIZE.x+CurseWarning.GAP),warning_y)
    warning.tooltip_text=curse
    button.add_child(warning);life_widgets[who].curse_warnings.append(warning)
@@ -4496,6 +4542,10 @@ func render_life(who: int,rect: Rect2):
  var status=txt(player_buffs_compact(who),buff_rect,16,host.GOLD)
  status.mouse_filter=Control.MOUSE_FILTER_IGNORE;status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  life_widgets[who].buffs=status
+func card_screen_rect(key: String) -> Rect2:
+ if android_board!=null:return android_board.card_rect(key)
+ return projected_card_rect(table.visuals[key]) if table.visuals.has(key) else Rect2()
+
 func target_rect(target: Dictionary) -> Rect2:
  if target.has("player") and life_widgets.has(int(target.player)): return life_widgets[int(target.player)].button.get_global_rect()
  if target.has("stack_id"): return stack_panel.arrow_rect(int(target.stack_id))
@@ -4515,12 +4565,15 @@ func target_rect(target: Dictionary) -> Rect2:
    return clipped_arrow_rect(tile.get_global_rect(),tile.get_meta("target_scroll").get_global_rect())
   if c.zone=="stack": return stack_panel.card_rect(c.uid)
   var key="card_"+str(c.uid)
-  if table.visuals.has(key): return projected_card_rect(table.visuals[key])
+  if android_board!=null or table.visuals.has(key):
+   var rect=card_screen_rect(key)
+   if rect!=Rect2():return rect
   for group_key in table.descriptors:
-   if c.uid in table.descriptors[group_key].get("members",[]) and table.visuals.has(group_key):return projected_card_rect(table.visuals[group_key])
+   if c.uid in table.descriptors[group_key].get("members",[]) and table.visuals.has(group_key):return card_screen_rect(group_key)
   var nodes=hand_nodes if c.owner==local_seat else enemy_nodes
   if c.zone=="hand" and nodes.has(c.uid): return nodes[c.uid].get_global_rect()
   if c.zone in ["deck","grave","exile"]:
+   if android_board!=null:return android_board.zone_rect(c.owner,c.zone)
    return Rect2(project(table.zone_position(c.zone,c.owner))-Vector2(25,30),Vector2(50,60))
  return Rect2()
 func arrow_targets(target: Dictionary) -> Array:

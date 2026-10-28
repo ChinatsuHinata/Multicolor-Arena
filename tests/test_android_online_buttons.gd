@@ -7,6 +7,7 @@ class PreviewSession:
  var read_only=false
  var connected=true
  var paused=false
+ var local_game_id="preview"
  var last_action={}
  func ended() -> bool:return false
  func can_act(_in_match: bool=false) -> bool:return room.undo_request.is_empty()
@@ -100,12 +101,12 @@ func run():
  view.render();await process_frame
  var archive=view.replay_recording
  expect(not archive.frames.is_empty(),"finished match has replay frames to save")
+ archive.finish(preview.room)
  app.offer_replay(archive);await process_frame
  var save_dialog=app.get_children().filter(func(child):return child is ConfirmationDialog and child.title=="保存回放")
- expect(save_dialog.size()==1,"finished match offers replay saving")
- if not save_dialog.is_empty():save_dialog[0].confirmed.emit()
+ expect(save_dialog.is_empty(),"finished match does not ask to save")
  await process_frame
- expect(DirAccess.get_files_at(Store.Paths.root().path_join("replay")).size()==1,"replay save creates an mreply file")
+ expect(preload("res://scripts/replay_library.gd").entries(true).size()==1,"finished match automatically creates a history recording")
  for child in app.get_children():
   if child is AcceptDialog:child.queue_free()
  await process_frame

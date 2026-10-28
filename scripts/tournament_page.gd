@@ -40,6 +40,11 @@ var time_input: LineEdit
 var result_input: OptionButton
 var result_pairing: Dictionary={}
 var my_pairing: Dictionary={}
+var decklist: Dictionary={}
+var decklist_rules: Array=[]
+var decklist_round_input: OptionButton
+var fixed_deck_input: CheckButton
+var decklist_deadline_input: LineEdit
 var pairings: Array=[]
 var standings: Array=[]
 var schedules: Array=[]
@@ -96,7 +101,7 @@ func _ready():
  relayout();call_deferred("fetch_list",0)
  var timer=Timer.new();add_child(timer);timer.wait_time=5.0
  timer.timeout.connect(func():
-  if mode!="detail" or detail_tab=="manage" or busy or app.menu_popup_open():return
+  if mode!="detail" or detail_tab=="manage" or busy or app.menu_popup_open() or app.deck_picker_open():return
   if app.get_children().any(func(node):return node is Window and node.visible):return
   silent_request=true;fetch_detail(int(current.id)))
  timer.start()
@@ -167,17 +172,20 @@ func show_detail():
  mode="detail";clear_body();heading.text="比赛详情"
  if current.phase in ["registration","checkin","locked"]:
   var my_state=text(body,"我的状态："+my_status(current),app.ui_metrics.small,app.GOLD);my_state.name="TournamentMyStatus"
- var controls=HFlowContainer.new();controls.name="TournamentActions";body.add_child(controls)
+ var controls=HFlowContainer.new();controls.name="TournamentActions"
+ if current.joined and current.phase!="complete":build_decklist_status(body,controls)
+ body.add_child(controls)
  if detail_tab=="group" and current.get("limitless_admission",{}).get("status","")=="pending":action(controls,"撤回加入申请",func():mutate("leave"),false,"TournamentWithdrawJoin")
  if current.phase in ["registration","checkin"]:
   if current.joined:
    if current.phase=="checkin" and not current.checked_in:action(controls,"赛前签到",func():mutate("checkin"),true,"TournamentCheckin")
-   action(controls,"退出群组",func():app.confirm_action("退出群组会取消本次签到，是否退出？",func():mutate("leave")),false,"TournamentLeave")
+   action(controls,"退出群组",func():app.confirm_action("退出群组会取消本次签到，已交付牌表仍保留，重新加入后可在截止前更改。是否退出？",func():mutate("leave")),false,"TournamentLeave")
  if current.owned:
   if current.phase=="checkin":action(controls,"结束签到",confirm_close_checkin,false,"TournamentCloseCheckin")
   elif current.phase in ["locked","running"]:action(controls,advance_caption(),advance_round,true,"TournamentAdvanceRound")
  if current.phase=="running" and not my_pairing.is_empty() and my_pairing.result==null and not my_pairing.bye and my_pairing.source!="awaiting_limitless":
-  action(controls,"游戏对战",func():enter_game(my_pairing),true,"TournamentEnterGame")
+  var enter=action(controls,"游戏对战",func():enter_game(my_pairing),true,"TournamentEnterGame")
+  enter.set_meta("page_disabled",not decklist.get("can_enter",not decklist.get("required",true) or decklist.get("submitted",false)))
   if not my_pairing.game_active and current.get("pairing_source","local")!="limitless":
    action(controls,"填结果表",func():show_result_form(my_pairing,false),false,"TournamentReportResult")
    var other=my_pairing.reports[1-int(my_pairing.actor)]
@@ -192,6 +200,9 @@ func show_detail():
  if current.owned:
   action(tabs,"管理",func():detail_tab="manage";show_detail(),detail_tab=="manage","TournamentTab_manage")
  var column=scroll_body("TournamentDetailScroll")
+ if current.joined and current.phase!="complete" and decklist.get("required",false):
+  if int(decklist.get("deadline_at",0))>0:text(column,"交表截止：%s（北京时间）%s" % [china_time(int(decklist.deadline_at))," · 已截止" if decklist.get("closed",false) else " · 截止后开放游戏对战"],app.ui_metrics.small,app.GOLD)
+  text(column,"牌表按本场无限制构筑规则检查：主牌 50 张、备牌最多 10 张及同名牌限制。截止前可重复提交，以最后一次成功提交为准；截止后本轮自机、主牌与备牌锁定，局间仍按赛制换备。",app.ui_metrics.small,app.MUTED)
  if detail_tab=="pairings":text(column,round_caption(),app.ui_metrics.small,app.GOLD);build_pairings(column);set_busy(busy);return
  if detail_tab=="standings":build_standings(column);set_busy(busy);return
  if detail_tab=="manage":build_management(column);set_busy(busy);return
@@ -343,6 +354,8 @@ func receive(answer: Dictionary):
    detail_tab="pairings";retained_scroll=0
   if mode in ["list","create","import"]:detail_tab="group";retained_scroll=0
   current=answer.tournament;members=answer.get("members",[])
+  decklist=answer.get("decklist",{})
+  decklist_rules=answer.get("decklist_rules",[])
   limitless=answer.get("limitless",{});viewed_round=int(answer.get("pairing_round",0));round_info=answer.get("round_info",{})
   join_requests=answer.get("join_requests",{});request_page=int(join_requests.get("page",0))
   if limitless.get("view","")==external_view:external_page=int(limitless.get("page",0))
@@ -477,6 +490,7 @@ func build_management(parent: Node):
   action(parent,"账号权限与教程群组",app.community_management)
   if not current.get("rewards_paid",false):build_reward_fields(parent)
  if current.phase!="complete":
+  action(parent,"每轮固定卡组与交表截止",show_decklist_rules,false,"TournamentDecklistRules")
   if current.get("pairing_source","local")!="limitless":action(parent,"比赛设置",show_settings,false,"TournamentSettings")
   action(parent,"安排定时任务",show_schedule,false,"TournamentSchedule")
  text(parent,"自动轮次："+("手动推进" if int(current.get("round_interval",0))==0 else "每 %d 分钟检查并推进" % int(current.round_interval/60)),app.ui_metrics.body)
@@ -487,6 +501,41 @@ func build_management(parent: Node):
   text(parent,"%s · %s · %s" % [china_time(int(task.due_at)),TASKS.get(task.action,""),status],app.ui_metrics.small)
   if not str(task.message).is_empty():text(parent,str(task.message),app.ui_metrics.small,app.MUTED)
   if task.status in ["scheduled","waiting"]:action(parent,"取消此定时任务",func():send_request({"action":"cancel_schedule","id":int(current.id),"schedule_id":int(task.id)}),false,"TournamentCancelSchedule_"+str(int(task.id)))
+
+func show_decklist_rules():
+ if busy or not current.owned:return
+ mode="decklist_rules";clear_body();heading.text="每轮牌表规则"
+ var column=scroll_body("TournamentDecklistRulesScroll")
+ text(column,"轮次",app.ui_metrics.body,app.GOLD)
+ decklist_round_input=OptionButton.new();decklist_round_input.name="TournamentDecklistRound";column.add_child(decklist_round_input);expand(decklist_round_input);app.ui_metrics.button(decklist_round_input)
+ for rule in decklist_rules:decklist_round_input.add_item("第 %d 轮" % int(rule.round_number),int(rule.round_number))
+ fixed_deck_input=CheckButton.new();fixed_deck_input.name="TournamentFixedDeck";column.add_child(fixed_deck_input);fixed_deck_input.text="该轮需要固定卡组";app.ui_metrics.button(fixed_deck_input)
+ text(column,"交表截止时间（北京时间，YYYY-MM-DD HH:MM）",app.ui_metrics.body,app.GOLD)
+ decklist_deadline_input=LineEdit.new();decklist_deadline_input.name="TournamentDecklistDeadline";column.add_child(decklist_deadline_input);expand(decklist_deadline_input);decklist_deadline_input.custom_minimum_size.y=app.ui_metrics.hit
+ text(column,"开启后，选手须在截止前提交牌表，可反复更改；截止后才能进入本轮游戏对战，并固定最后一次成功提交的卡组。关闭时无需交表，可自行选组。每轮独立设置，不沿用上一轮；娱乐模式仍使用系统固定卡组。",app.ui_metrics.small,app.MUTED)
+ text(column,"可预设下一轮。牌表截止或本轮已有对局开始后，不能更改该轮规则。",app.ui_metrics.small,app.MUTED)
+ decklist_round_input.item_selected.connect(func(_index):load_decklist_rule())
+ fixed_deck_input.toggled.connect(func(enabled):decklist_deadline_input.editable=enabled)
+ decklist_deadline_input.text_changed.connect(func(_value):say(""))
+ load_decklist_rule()
+ action(body,"保存牌表规则",submit_decklist_rules,true,"TournamentSaveDecklistRules")
+
+func load_decklist_rule():
+ if decklist_round_input.selected<0:return
+ var rule=decklist_rules[decklist_round_input.selected]
+ fixed_deck_input.set_pressed_no_signal(rule.get("fixed_deck",false))
+ decklist_deadline_input.editable=fixed_deck_input.button_pressed
+ var stamp=int(rule.get("deadline_at",0))
+ decklist_deadline_input.text=china_time(stamp if stamp>0 else int(Time.get_unix_time_from_system())+600)
+
+func submit_decklist_rules():
+ if busy or decklist_round_input.selected<0:return
+ var fixed=fixed_deck_input.button_pressed
+ var stamp=parse_china_time(decklist_deadline_input.text) if fixed else 0
+ var rule=decklist_rules[decklist_round_input.selected]
+ if fixed and int(rule.get("deadline_at",0))>0 and decklist_deadline_input.text==china_time(int(rule.deadline_at)):stamp=int(rule.deadline_at)
+ if fixed and stamp<=0:say("请输入有效交表截止时间，格式为 YYYY-MM-DD HH:MM（北京时间）");return
+ send_request({"action":"configure_decklist","id":int(current.id),"round_number":decklist_round_input.get_selected_id(),"fixed_deck":fixed,"deadline_at":stamp})
 
 func china_time(unix_time: int) -> String:
  return Time.get_datetime_string_from_unix_time(unix_time+8*3600).replace("T"," ").left(16)
@@ -607,9 +656,51 @@ func enter_game(pairing: Dictionary):
  if app.lan_session.ranked_match_pending() or app.lan_session.matchmaking:say("请先结束或恢复当前云端对局");return
  var game_format=int(current.get("game_format",Series.BO1_SIDEBOARD))
  if Series.is_entertainment(game_format):start_game(Series.entertainment_deck(game_format),pairing,game_format)
- else:app.open_deck_picker(func(index):start_game(app.decks[index],pairing,game_format),"","选择本轮比赛卡组")
+ elif not decklist.get("required",true):
+  app.open_deck_picker(func(index):start_game(app.decks[index],pairing,game_format),"","选择本轮比赛卡组",func(deck):return not Series.deck_has_mods(deck) and Series.Store.validate(deck,true,Series.RuleSet.UNRESTRICTED).is_empty())
+ else:
+  if not decklist.get("submitted",false):say("请先提交本轮牌表，合规检查通过后才能进入比赛");return
+  if not decklist.get("can_enter",true):say("本轮牌表尚未截止，请在截止后进入比赛");return
+  var submitted=decklist.get("deck",{}).duplicate(true)
+  app.open_deck_picker(func(index):start_game(app.decks[index],pairing,game_format),"","选择已交付牌表的卡组",func(deck):return Series.Store.same_cards(deck,submitted))
+  app.deck_picker_ui.empty_message="无一致卡组，请返回比赛页恢复牌表卡组。"
+  app.deck_picker_ui.apply_search()
+
+func build_decklist_status(parent: Node,controls: Node):
+ if decklist.is_empty():
+  text(parent,"请刷新比赛页面以获取牌表交付状态。",app.ui_metrics.small,app.MUTED);return
+ if not decklist.get("required",true):
+  text(parent,"本轮使用赛事固定卡组，入场时由服务器核验。" if Series.is_entertainment(int(current.get("game_format",0))) else "本轮无需固定卡组，不用交表，可自行选择合规卡组。",app.ui_metrics.small,app.MUTED);return
+ var number=int(decklist.get("round_number",1))
+ if decklist.get("submitted",false):
+  text(parent,"第 %d 轮牌表%s：%s" % [number,"已提交，可更改" if decklist.get("can_submit",false) else "已锁定",str(decklist.deck.name)],app.ui_metrics.small,app.GOLD)
+  action(controls,"恢复牌表卡组",restore_submitted_deck,false,"TournamentRestoreDeck")
+ elif decklist.get("can_submit",false):
+  text(parent,"第 %d 轮牌表待交付，截止前可随时更改。" % number,app.ui_metrics.small,app.MUTED)
+ else:text(parent,"本轮交表已截止，未提交牌表，无法进入游戏对战。" if decklist.get("closed",false) else "本轮没有可交付牌表的对局，请等待下一轮编排。",app.ui_metrics.small,app.MUTED)
+ if decklist.get("can_submit",false):action(controls,"更改本轮牌表" if decklist.get("submitted",false) else "提交本轮牌表",choose_submission,true,"TournamentSubmitDeck")
+
+func choose_submission():
+ if busy or not decklist.get("can_submit",false):return
+ var tid=int(current.id);var number=int(decklist.round_number)
+ app.open_deck_picker(func(index):
+  var deck=Series.Store.clean_deck(app.decks[index]).duplicate(true)
+  var error=Series.Store.validate(deck,true,Series.RuleSet.UNRESTRICTED)
+  if not error.is_empty():app.alert(error,"牌表不合规");return
+  app.confirm_action("提交「%s」作为第 %d 轮牌表？截止前可继续更改，以最后一次成功提交为准。" % [str(deck.name),number],func():send_request({"action":"submit_decklist","id":tid,"round_number":number,"deck":deck})),"","选择赛前交付卡组",func(deck):return not Series.deck_has_mods(deck) and Series.Store.validate(deck,true,Series.RuleSet.UNRESTRICTED).is_empty())
+ app.deck_picker_ui.empty_message="没有符合比赛规则的卡组，请先检查构筑。"
+ app.deck_picker_ui.apply_search()
+
+func restore_submitted_deck():
+ if busy or not decklist.get("submitted",false):return
+ var result=Series.Store.download_to_local(decklist.deck)
+ if result.has("error"):app.alert(str(result.error),"恢复牌表");return
+ app.reload_decks();say("已将交付牌表另存为本地卡组，可选择它进入比赛。")
 
 func start_game(deck: Dictionary,pairing: Dictionary,game_format: int):
+ if decklist.get("required",true) and not Series.is_entertainment(game_format) and (not decklist.get("submitted",false) or not Series.Store.same_cards(deck,decklist.get("deck",{}))):
+  app.alert("本地卡组与已交付牌表不一致，请恢复已交付卡组。","无法进入比赛对局");return
+ if decklist.get("required",true) and not decklist.get("can_enter",true):say("本轮牌表尚未截止，请在截止后进入比赛");return
  app.lan_session.cloud_token=app.account_token;app.lan_session.cloud_nickname=app.account_nickname;app.lan_session.cloud_account=app.account_name
  var match_mode="exploration_random" if game_format==Series.EXPLORATION_RANDOM else "exploration" if game_format==Series.EXPLORATION else "casual"
  var error=app.lan_session.start_matchmaking(app.tournament_server_url,deck,true,match_mode,str(pairing.match_id),game_format)

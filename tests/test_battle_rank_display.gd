@@ -8,6 +8,7 @@ class PreviewSession:
  var replay_mode=false
  var connected=true
  var paused=false
+ var local_game_id="rank-preview"
  var latency_caption="42 ms"
  func ended() -> bool:return false
  func can_act(_in_match: bool=false) -> bool:return not read_only
@@ -89,6 +90,6 @@ func run():
  view.network_session=null
  view.engine=offline;view.table.duel=offline
  view.render();await frames()
- expect(view.life_widgets.values().all(func(widget):return not widget.has("BattleRank") and not widget.button.text.is_empty()),"offline battle keeps the existing life display")
+ expect(view.life_widgets.values().all(func(widget):return not widget.has("BattleRank") and not widget.BattlePlayerName.text.is_empty() and not widget.BattleLifeValue.text.is_empty()),"offline battle keeps the existing life display")
  print("BATTLE RANK DISPLAY: %d checks; %d failures" % [checks,failures.size()])
  app.queue_free();await frames();quit(0 if failures.is_empty() else 1)

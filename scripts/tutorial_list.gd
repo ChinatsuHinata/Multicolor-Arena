@@ -20,6 +20,7 @@ var page_size=1
 var layout_pending=false
 var online_notice: Label
 var editor_button: Button
+var glossary_button: Button
 var group_button: Button
 
 func action(parent: Node,caption: String,callback: Callable) -> Button:
@@ -34,6 +35,7 @@ func _ready():
  var header=HBoxContainer.new();body.add_child(header)
  heading=Label.new();heading.text="游戏教程";header.add_child(heading)
  heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_color_override("font_color",app.GOLD)
+ glossary_button=action(header,"词条百科",app.keyword_glossary);glossary_button.name="OpenKeywordGlossary"
  editor_button=action(header,"教程编辑器",app.tutorial_editor);editor_button.name="OpenTutorialEditor";editor_button.visible=app.tutorial_editor_available()
  group_button=action(header,"教程群组 / 管理",app.community_management);group_button.visible=app.tutorial_editor_available()
  action(header,"返回",app.menu).name="TutorialBack"
@@ -85,7 +87,7 @@ func refresh_metrics():
  heading.add_theme_font_size_override("font_size",app.ui_metrics.title)
  empty.add_theme_font_size_override("font_size",app.ui_metrics.body)
  page_label.add_theme_font_size_override("font_size",app.ui_metrics.small)
- for button in [previous_button,next_button,find_child("TutorialBack",true,false)]:app.ui_metrics.button(button)
+ for button in [previous_button,next_button,glossary_button,find_child("TutorialBack",true,false)]:app.ui_metrics.button(button)
  queue_layout()
 
 func pages() -> int:

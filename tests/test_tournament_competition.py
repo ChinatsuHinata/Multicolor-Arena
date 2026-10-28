@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "relay"))
 import account_store as accounts
 import tournament_store as competitions
 from tournament_pairing import perfect_matching
+from support.tournament_decks import admit, deck
 
 
 class CompetitionTests(unittest.TestCase):
@@ -270,7 +271,7 @@ class CompetitionTests(unittest.TestCase):
         ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (pairing[0],)).fetchone()[0]
         self.assertFalse(competitions.handle_game(self.conn, {"action": "lookup", "match_id": ticket, "player_id": self.players["bigcake"]["player_id"]})["ok"])
         before = self.conn.execute("SELECT id,elo,rank_step,rank_stars,rank_streak FROM players").fetchall()
-        self.assertTrue(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "mode": "casual", "players": list(pairing[1:3])})["ok"])
+        self.assertTrue(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "mode": "casual", "players": list(pairing[1:3]), "deck_signatures": admit(self.conn, self.competition_id, pairing[1:3])})["ok"])
         self.assertFalse(self.call("report_result", self.player_name(pairing[1]), pairing_id=pairing[0], result=0, revision=1)["ok"])
         self.assertTrue(accounts.handle_match(self.conn, {"action": "start", "match_id": ticket})["ok"])
         self.assertTrue(accounts.handle_match(self.conn, {"action": "settle", "match_id": ticket, "winner": 1})["ok"])
@@ -279,7 +280,7 @@ class CompetitionTests(unittest.TestCase):
         self.assertEqual(self.conn.execute("SELECT id,elo,rank_step,rank_stars,rank_streak FROM players").fetchall(), before)
         second = self.pairs()[1]
         ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (second[0],)).fetchone()[0]
-        accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "mode": "casual", "players": list(second[1:3])})
+        accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "mode": "casual", "players": list(second[1:3]), "deck_signatures": admit(self.conn, self.competition_id, second[1:3])})
         competitions.tick(self.conn, int(time.time()) + 91)
         new_ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (second[0],)).fetchone()[0]
         self.assertNotEqual(ticket, new_ticket)
@@ -313,14 +314,15 @@ class CompetitionTests(unittest.TestCase):
                 self.assertFalse(self.call("configure", game_format=1 if game_format != 1 else 3, swiss_rounds=1)["ok"])
                 pair = self.pairs()[0]
                 ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (pair[0],)).fetchone()[0]
-                lookup = competitions.handle_game(self.conn, {"action": "lookup", "match_id": ticket, "player_id": pair[1]})
+                signatures = admit(self.conn, self.competition_id, pair[1:3])
+                lookup = competitions.handle_game(self.conn, {"action": "lookup", "match_id": ticket, "player_id": pair[1], "deck": deck(game_format)})
                 self.assertEqual(lookup["game_format"], game_format)
                 expected_mode = competitions.game_mode(game_format)
                 self.assertEqual(lookup["mode"], expected_mode)
                 for bad_mode in ("ranked", "casual" if game_format in (4, 5) else "exploration"):
                     self.assertFalse(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": bad_mode})["ok"])
                 before = self.conn.execute("SELECT id,elo,rank_step,rank_stars FROM players").fetchall()
-                self.assertTrue(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": expected_mode})["ok"])
+                self.assertTrue(accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": expected_mode, "deck_signatures": signatures})["ok"])
                 accounts.handle_match(self.conn, {"action": "start", "match_id": ticket})
                 self.assertTrue(accounts.handle_match(self.conn, {"action": "settle", "match_id": ticket, "winner": 1})["ok"])
                 self.assertEqual(self.pairs()[0][3], 1)
@@ -331,7 +333,7 @@ class CompetitionTests(unittest.TestCase):
         self.call("start_round", expected_round=0)
         pair = self.pairs()[0]
         ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (pair[0],)).fetchone()[0]
-        accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": "casual"})
+        accounts.handle_match(self.conn, {"action": "create", "match_id": ticket, "players": list(pair[1:3]), "mode": "casual", "deck_signatures": admit(self.conn, self.competition_id, pair[1:3])})
         accounts.handle_match(self.conn, {"action": "start", "match_id": ticket})
         self.call("schedule", task="start_round", due_at=int(time.time()) + 100, expected_round=1)
         self.assertTrue(self.call("update_description", description="比赛中也可修改")["ok"])

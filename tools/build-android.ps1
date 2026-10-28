@@ -186,8 +186,14 @@ try {
 
 $aapt = Join-Path $sdk 'build-tools/35.0.1/aapt.exe'
 $manifestLog = Join-Path $logDir 'android-apk-manifest.log'
-& $aapt dump xmltree $output AndroidManifest.xml *> $manifestLog
-if ($LASTEXITCODE -ne 0) { throw "APK manifest verification failed. See $manifestLog" }
+$relativeApk = $output.Substring($root.Length + 1)
+Push-Location $root
+try {
+    & $aapt dump xmltree $relativeApk AndroidManifest.xml *> $manifestLog
+    if ($LASTEXITCODE -ne 0) { throw "APK manifest verification failed. See $manifestLog" }
+    $badging = @(& $aapt dump badging $relativeApk)
+    $badgingExit = $LASTEXITCODE
+} finally { Pop-Location }
 $manifest = Get-Content -LiteralPath $manifestLog -Raw -Encoding UTF8
 if ($manifest -notmatch 'org\.multicolorarena\.replay\.ReplayOpenActivity' -or
     $manifest -notmatch 'application/octet-stream' -or
@@ -195,8 +201,7 @@ if ($manifest -notmatch 'org\.multicolorarena\.replay\.ReplayOpenActivity' -or
     throw "APK is missing replay file associations or its launcher. See $manifestLog"
 }
 $expectedPackage = [regex]::Match($androidOptions, '(?m)^package/unique_name="([^"]+)"').Groups[1].Value
-$badging = @(& $aapt dump badging $output)
-if ($LASTEXITCODE -ne 0 -or -not ($badging | Where-Object { $_.StartsWith("package: name='$expectedPackage'") })) {
+if ($badgingExit -ne 0 -or -not ($badging | Where-Object { $_.StartsWith("package: name='$expectedPackage'") })) {
     throw 'Final APK package ID does not match the export preset.'
 }
 

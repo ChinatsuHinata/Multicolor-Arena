@@ -137,9 +137,17 @@ func check_opponent_toggle_refresh(label: String):
  toggle.theme_changed.disconnect(themed)
  toggle.minimum_size_changed.disconnect(minimum)
  toggle.resized.disconnect(resized)
+ # render() rebuilds the HUD and refreshes emotes before containers sort.
+ var render_stable=true
+ for i in range(4):
+  view.render()
+  render_stable=render_stable and toggle.get_global_rect().is_equal_approx(bounds)
+  await process_frame
+  render_stable=render_stable and toggle.get_global_rect().is_equal_approx(bounds)
  view.set_process(false);view.debug_mode=debug_mode
  view.render();await frames()
  expect(stable,label+" 连续刷新保持对方表情开关位置和大小稳定")
+ expect(render_stable,label+" 重建界面时对方表情开关不跳动")
  expect(counts.theme==0 and counts.minimum==0 and counts.resize==0,label+" 空闲帧不重复触发主题及尺寸更新 "+str(counts))
  expect(toggle.get_theme_font_size("font_size")== (app.ui_metrics.small if app.is_android else 14),label+" 字号随当前设备 DPI 正确适配")
 
@@ -229,6 +237,8 @@ func check_opponent_toggle_high_dpi():
  await tap(toggle.get_global_rect().get_center())
  expect(battle_button_layout()==original_layout,"android 高 DPI 关闭对方表情不移动现有按钮")
  await check_opponent_toggle_refresh("android 高 DPI 关闭后")
+ # The refresh check re-renders the HUD, renaming its auto-named containers.
+ original_layout=battle_button_layout()
  await tap(toggle.get_global_rect().get_center())
  expect(battle_button_layout()==original_layout,"android 高 DPI 开启对方表情不移动现有按钮")
  await check_opponent_toggle_refresh("android 高 DPI 开启后")
@@ -296,8 +306,8 @@ func check_bubble_positions(label: String):
   Emotes.emit_event(e,0,kind);e.presentation_events.back().text=paired_line;e.presentation_events.back().leader_id="character-fdn-026"
   view.render();await frames()
   var text=view.emotes.bubbles[0].text_label
-  expect(text.text==paired_line and text.get_line_count()>=(2 if kind!="surprise" else 1),label+" 觉恋台词完整分行显示 "+kind)
-  expect(view.emotes.bubbles[0].distort_reply==(kind!="surprise"),label+" 仅觉恋双句启用恋恋的文字特效 "+kind)
+  expect(text.text==paired_line and text.get_line_count()>=2,label+" 觉恋台词完整分行显示 "+kind)
+  expect(view.emotes.bubbles[0].distort_reply,label+" 觉恋各类双句均启用恋恋的文字特效 "+kind)
   expect(view.emotes.bubbles[0].red_reply==(kind=="threat"),label+" 仅觉恋威胁的后半句显示红色 "+kind)
   expect(text.size.y>=text.get_content_height()-2,label+" 觉恋双句气泡容纳全部文字 "+kind)
   expect(app.ui_metrics.safe.grow(1).encloses(view.emotes.bubbles[0].get_global_rect()),label+" 觉恋双句气泡位于安全区域 "+kind)

@@ -175,7 +175,7 @@ def main():
         print('Replay Android templates are up to date.'); return
     env = dict(os.environ, JAVA_HOME=str(jdk))
     env['PATH'] = str(jdk / 'bin') + os.pathsep + env.get('PATH', '')
-    def run(command): subprocess.run([str(value) for value in command], check=True, env=env)
+    def run(command): subprocess.run([str(value) for value in command], check=True, env=env, cwd=root)
     with tempfile.TemporaryDirectory(prefix='replay-', dir=out) as directory:
         temp = Path(directory)
         classes, dexdir = temp / 'classes', temp / 'dex'
@@ -185,11 +185,12 @@ def main():
         run([jdk / 'bin/jar.exe', 'cf', jar, '-C', classes, '.'])
         run([build / 'd8.bat', '--min-api', '24', '--lib', android, '--output', dexdir, jar])
         fragment = temp / 'manifest.apk'
-        run([build / 'aapt.exe', 'package', '-f', '-M', source / 'AndroidManifest.xml', '-I', android, '-F', fragment])
+        # aapt's Windows ZIP reader cannot open non-ASCII absolute paths.
+        run([build / 'aapt.exe', 'package', '-f', '-M', (source / 'AndroidManifest.xml').relative_to(root), '-I', android.relative_to(root), '-F', fragment.relative_to(root)])
         for mode in ('debug', 'release'):
             destination = out / f'android_{mode}.apk'
             build_template(stocks / destination.name, fragment, dexdir / 'classes.dex', destination)
-            dump = subprocess.run([str(build / 'aapt.exe'), 'dump', 'xmltree', str(destination), 'AndroidManifest.xml'], check=True, capture_output=True, text=True).stdout
+            dump = subprocess.run([str(build / 'aapt.exe'), 'dump', 'xmltree', str(destination.relative_to(root)), 'AndroidManifest.xml'], check=True, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=root).stdout
             if 'org.multicolorarena.replay.ReplayOpenActivity' not in dump or 'android.intent.action.MAIN' not in dump:
                 raise ValueError('Template manifest verification failed')
     stampfile.write_text(stamp)

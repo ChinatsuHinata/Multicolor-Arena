@@ -161,7 +161,7 @@ func record_task_evidence(current: Dictionary):
   stats.final_game=current.players[actor].duplicate(true)
   if previous.size()!=2:continue
   for key in stats.keys():
-   if key in ["final_life","enemy_final_life","overkill"]:continue
+   if key in ["final_life","enemy_final_life","enemy_final_deck","overkill"]:continue
    if stats[key] is int:stats[key]+=int(previous[actor].get(key,0))
   for card in previous[actor].get("cast_cards",{}):
    if not stats.has("cast_cards"):stats.cast_cards={}

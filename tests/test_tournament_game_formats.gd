@@ -4,6 +4,7 @@ var fixture: Dictionary
 var endpoint="ws://127.0.0.1:48065"
 var competition_id=0
 var sessions=[]
+var admission_checked=false
 
 func api(payload: Dictionary,user: String="bigcake") -> Dictionary:
  var client=Client.new();root.add_child(client);client.server_url=endpoint
@@ -26,6 +27,14 @@ func make_session(user: String,game_format: int):
 func choose_game() -> bool:
  if not await until(func():return host.can_act() and guest.can_act()):return false
  if host.room.status in ["sideboarding","between"]:
+  if int(host.room.format)==2 and not host.series.state.decks[0].side.is_empty():
+   var swapped=host.series.state.decks[0].duplicate(true)
+   var card=swapped.main[0];swapped.main[0]=swapped.side[0];swapped.side[0]=card
+   host.room_action({"name":"deck","deck":swapped})
+   if not await until(func():return host.can_act() and guest.can_act()):return false
+   check(Store.same_cards(host.series.state.decks[0],swapped),"submitted deck still supports legal BO1 sideboarding")
+   var original=await call_action("detail",host.cloud_account)
+   check(Store.same_cards(original.decklist.deck,host.series.state.registered[0]),"sideboarding preserves the server's pre-match list")
   host.room_action({"name":"ready"})
   if not await until(func():return host.can_act() and guest.can_act()):return false
   guest.room_action({"name":"ready"})
@@ -47,13 +56,37 @@ func create_round(game_format: int,with_guest: bool=true):
  await call_action("close_checkin")
  var started=await call_action("start_round","bigcake",{"expected_round":0})
  check(started.get("ok",false),"organizer starts the assigned round")
+ if game_format not in [4,5]:
+  check((await call_action("configure_decklist","bigcake",{"round_number":1,"fixed_deck":true,"deadline_at":int(Time.get_unix_time_from_system())+3600})).get("ok",false),"organizer enables fixed decks for this round")
  var assigned=await call_action("detail","first_player")
  var ticket=str(assigned.my_pairing.match_id)
  var first="first_player" if assigned.my_pairing.actor==0 else "second_player"
  var second="second_player" if first=="first_player" else "first_player"
  host=make_session(first,game_format);guest=make_session(second,game_format)
  var decks=JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks
+ if game_format==2:
+  for card in decks[1].main:
+   var candidate=decks[0].duplicate(true);candidate.side=[card]
+   if Store.validate(candidate,true,"unrestricted").is_empty():decks[0]=candidate;break
+  check(decks[0].side.size()==1,"sideboarding fixture has a legal reserve card")
  var mode="exploration_random" if game_format==5 else "exploration" if game_format==4 else "casual"
+ var probe=game_format==1 and not admission_checked
+ if probe:
+  check(host.start_matchmaking(endpoint,decks[0],true,mode,ticket,game_format).is_empty(),"unsubmitted client reaches server validation")
+  check(await until(func():return not host.matchmaking and host.notice.contains("请先提交本轮比赛牌表"),12),"relay rejects a missing submitted decklist")
+  host.leave(false)
+ if game_format not in [4,5]:
+  for entry in [[first,decks[0]],[second,decks[1]]]:
+   var submitted=await call_action("submit_decklist",entry[0],{"round_number":1,"deck":Store.clean_deck(entry[1])})
+   check(submitted.get("ok",false) and submitted.decklist.can_submit,"server validates a list and allows replacement before cutoff")
+ if probe:
+  check(host.start_matchmaking(endpoint,decks[1],true,mode,ticket,game_format).is_empty(),"changed but legal local deck reaches server validation")
+  check(await until(func():return not host.matchmaking and host.notice.contains("本地卡组与服务器已交付牌表不一致"),12),"relay rejects a different legal deck even with its valid client hash")
+  host.leave(false)
+  admission_checked=true
+ if game_format not in [4,5]:
+  check((await call_action("configure_decklist","bigcake",{"round_number":1,"fixed_deck":true,"deadline_at":int(Time.get_unix_time_from_system())+2})).get("ok",false),"organizer sets round submission cutoff")
+  await create_timer(2.6).timeout
  check(host.start_matchmaking(endpoint,decks[0],true,mode,ticket,game_format).is_empty(),"first assigned player enters format %d" % game_format)
  check(await until(func():return host.match_queued==1),"first player waits for the assigned opponent")
  if not with_guest:return true

@@ -1845,7 +1845,7 @@ func mill_cards(top_cards: Array):
   move_to(c,"grave",true,true,false)
   if c.zone=="grave":amounts[who]=int(amounts.get(who,0))+1
  for who in amounts:Cat.milled(self,who,amounts[who])
-func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacement: bool=true,notify_mill: bool=true):
+func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacement: bool=true,notify_mill: bool=true,removal_owner: int=-1):
  if c.is_empty() or c.zone=="return_pending": return
  if c.get("stack_copy",false) and c.zone=="stack" and zone!="field":detach(c);shift(c,"void");return
  if allow_replacement and c.zone=="grave" and zone=="hand" and not grave_replacement_sources(c).is_empty():
@@ -1853,6 +1853,8 @@ func move_to(c: Dictionary,zone: String,offer_return: bool=true,allow_replacemen
   return
  if zone=="grave" and c.card_id in ["new-eto-008","new-eto-010","new-eto-012"]:zone="outside"
  if zone=="grave" and (c.get("exile_on_grave",false) or c.card_id=="new-loc-002" or (c.card_id=="new-eto-005" and c.zone=="stack")):zone="exile"
+ # Count once after replacements, before tokens vanish or control returns to the owner.
+ TaskProbes.removed(self,c,zone,removal_owner)
  var before=c.duplicate(true)
  var return_death_observers=[]
  if before.zone=="field" and not Mods.bindings(self,before).is_empty():
@@ -1904,7 +1906,7 @@ func destroy(c: Dictionary):
  if c.is_empty() or Extra.keyword(self,c,"不会被消灭"): return
  TaskProbes.destroyed(self,c)
  if resolving_spell: c.spell_damage=true
- move_to(c,"grave")
+ move_to(c,"grave",true,true,true,int(damage_context.get("source",{}).get("owner",-1)))
 func can_possess(c: Dictionary) -> bool:
  return not Extra.has(cards[c.card_id],"no_possession") and c.get("poverty",0)==0
 func push_trigger(t: Dictionary,target: Dictionary) -> int:
@@ -2339,7 +2341,7 @@ func can_sacrifice(c: Dictionary) -> bool:
 func sacrifice(c: Dictionary):
  if not can_sacrifice(c):return
  task_probe(c.owner,"sacrifices")
- var before=c.duplicate(true);move_to(c,"grave");Cat.Units.on_sacrifice_or_exile(self,before)
+ var before=c.duplicate(true);move_to(c,"grave",true,true,true,c.owner);Cat.Units.on_sacrifice_or_exile(self,before)
  if is_unit(before):
   for u in players[before.owner].grave:
    if Cat.has(self,u,"spell-fdf-047") and units(before.owner).any(func(v):return Cat.character(self,v,"西行寺幽幽子")):Cat.events(self,u,"cat:sacrifice_recover",true)

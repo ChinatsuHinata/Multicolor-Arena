@@ -8,7 +8,7 @@ case "$staging_dir" in "$relay_dir"/incoming-tournaments-*) ;; *) exit 2 ;; esac
 backup_dir="$relay_dir/backups/tournaments-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$backup_dir"
 chmod 700 "$backup_dir"
-programs=(server.gd account_store.py task_store.py shop_store.py tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py)
+programs=(server.gd account_store.py task_store.py shop_store.py tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py deck_plaza_catalogue.json)
 services=(multicolor-account-user.service multicolor-relay-user.service multicolor-relay-ws-user.service)
 if [ "$install_mode" = account-only ]; then
     # The existing relay forwards the value field as nickname; the new account
@@ -17,7 +17,7 @@ if [ "$install_mode" = account-only ]; then
         echo 'The installed relay does not support the required account/tournament envelope.' >&2
         exit 1
     fi
-    programs=(account_store.py task_store.py shop_store.py tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py)
+    programs=(account_store.py task_store.py shop_store.py tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py deck_plaza_catalogue.json)
     services=(multicolor-account-user.service)
     cp "$relay_dir/server.gd" "$staging_dir/server.gd"
     # Use live content for migration checks, without publishing local content.
@@ -34,15 +34,21 @@ if [ "$install_mode" = store-only ]; then
         echo 'The community/competition upgrade requires a full deployment first.' >&2
         exit 1
     fi
-    programs=(tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py)
+    programs=(tournament_store.py tournament_pairing.py tournament_rules.py tournament_limitless.py tournament_limitless_web.py community_store.py deck_plaza_catalogue.json)
     services=(multicolor-account-user.service)
     # Validate against the actual deployed account and relay programs.
     for file in server.gd account_store.py; do
         cp "$relay_dir/$file" "$staging_dir/$file"
     done
 fi
-# Use the server's existing dependencies and card catalogue for migration checks.
-for file in project.godot match_queue.gd match_character_log.gd deck_plaza_store.py cloud_deck_store.py deck_plaza_catalogue.json; do
+if [ "$install_mode" != full ]; then
+    if ! grep -q 'deck_signatures' "$relay_dir/server.gd" || ! grep -q 'deck_signatures' "$relay_dir/account_store.py"; then
+        echo 'Competition decklists require a full deployment of relay, account service and catalogue first.' >&2
+        exit 1
+    fi
+fi
+# Use the server's existing dependencies; deploy the current rule catalogue.
+for file in project.godot match_queue.gd match_character_log.gd deck_plaza_store.py cloud_deck_store.py; do
     cp "$relay_dir/$file" "$staging_dir/$file"
 done
 python3 -m py_compile "$staging_dir/account_store.py" "$staging_dir/task_store.py" "$staging_dir/shop_store.py" "$staging_dir/tournament_store.py" "$staging_dir/tournament_pairing.py" "$staging_dir/tournament_rules.py" "$staging_dir/tournament_limitless.py" "$staging_dir/tournament_limitless_web.py" "$staging_dir/community_store.py"

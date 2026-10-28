@@ -1,4 +1,5 @@
 extends RefCounted
+const KeywordGlossary=preload("res://scripts/keyword_glossary.gd")
 ## Container-owned editor layout; the host retains all deck operations/rules.
 var app
 var metrics
@@ -187,7 +188,7 @@ func update_preview():
  var body=column(scroll)
  var title=text(body,info.name,metrics.body+2);title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;title.add_theme_color_override("font_color",app.GOLD)
  var costs=app.HexCost.new();body.add_child(costs);costs.configure(app.CostDisplay.for_card(info),false,width-12,metrics.body*1.5,info.get("variable_cost",""),info.get("variable_multiplier",1))
- var description=text(body,app.card_description(app.selected));description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ KeywordGlossary.rich_text(app,body,app.card_description(app.selected),metrics.body,app.WHITE)
  if app.sideboard_session==null:
   if not app.RuleSet.allowed(app.selected,info,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL))):
    var notice=text(app.preview,"此规则集仅供查看",metrics.small);notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART

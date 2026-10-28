@@ -95,13 +95,14 @@ func run():
   expect(app.page=="settings",prefix+" About returns to settings")
   await activate(find_button(app.screen,"返回"))
   await activate(find_button(app.screen,"游戏教程"))
-  expect(app.page=="tutorials" and app.tutorial_ui.rows.get_child_count()==0,prefix+" tutorial entry opens an empty list")
+  expect(app.page=="tutorials" and app.tutorial_ui.rows.get_child_count()>0,prefix+" tutorial entry loads the current configured lessons")
+  app.tutorial_entries=[];app.tutorial_ui.render_rows();await frames()
   expect(app.tutorial_ui.empty.visible and app.tutorial_ui.previous_button.disabled and app.tutorial_ui.next_button.disabled,prefix+" empty tutorial list disables both page arrows")
   check_list_geometry(prefix);await shot(prefix+"-tutorial-empty")
   for id in ["advanced","leader","beginner"]:
    await activate(app.tutorial_ui.category_buttons[id])
    expect(app.tutorial_ui.category==id and app.tutorial_ui.empty.visible,prefix+" empty category is selectable")
-  add_lessons();app.tutorials();await frames()
+  add_lessons();app.tutorial_ui.render_rows();await frames()
   var ui=app.tutorial_ui
   expect(ui.pages()>1 and ui.previous_button.disabled and not ui.next_button.disabled,prefix+" authored lessons can paginate")
   await activate(ui.next_button)

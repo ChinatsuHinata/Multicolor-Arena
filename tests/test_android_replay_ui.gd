@@ -124,10 +124,27 @@ func run():
   app.layout_dpi_override=float(dimensions.y)/3.0
   app.layout_safe_override=Rect2(60,0,dimensions.x-84,dimensions.y-24)
   await frames()
+  app.replay_history_tab=true
   app.replays();await frames()
+  expect(find_button(app.screen,"最近历史")!=null and find_button(app.screen,"已保留")!=null,"history and saved tabs are available")
+  var keep=find_button(app.screen,"保留")
+  if keep!=null:keep.pressed.emit();await frames()
+  expect(find_button(app.screen,"已保留").button_pressed==false and app.screen.find_child("ReplayKeep",true,false).disabled,"keeping history creates a saved copy and updates the action")
+  app.screen.find_child("ReplayExport",true,false).pressed.emit();await frames()
+  var picker=app.find_child("ReplayExportPicker",true,false) as FileDialog
+  expect(picker!=null and picker.file_mode==FileDialog.FILE_MODE_SAVE_FILE and picker.use_native_dialog,"history export opens a native save picker")
+  if picker!=null:
+   var export_path=Store.Paths.root().path_join("export-"+str(dimensions.x)+".mreply")
+   picker.file_selected.emit(export_path);await frames()
+   expect(FileAccess.file_exists(export_path),"history export writes the selected file")
+   for child in app.get_children():
+    if child is AcceptDialog:child.queue_free()
+   await frames()
+  find_button(app.screen,"已保留").pressed.emit();await frames()
+  expect(not app.replay_history_tab and app.screen.find_child("ReplayKeep",true,false)==null,"saved tab keeps the export action without a keep action")
   var safe=app.ui_metrics.safe
   var scroll=app.screen.get_node("ReplayScroll") as ScrollContainer
-  var row=scroll.get_child(0).get_child(0) as Button
+  var row=scroll.get_child(0).get_child(0).get_node("ReplayPlay") as Button
   expect(inside(scroll.get_global_rect(),safe),str(dimensions)+" replay list stays in safe area")
   expect(row.size.y>=app.ui_metrics.hit and scroll.get_global_rect().encloses(row.get_global_rect()),str(dimensions)+" replay row is reachable and touch sized")
   expect(scroll.get_child(0).get_children().all(func(entry):return entry.get_global_rect().end.x<=scroll.get_global_rect().end.x+2),str(dimensions)+" long replay names stay within list width")
@@ -136,6 +153,7 @@ func run():
   await tap(row.get_global_rect().get_center());await frames(8)
   var player=app.replay_controller
   view=app.duel_view
+  safe=app.ui_metrics.safe
   expect(is_instance_valid(player) and is_instance_valid(player.dock),str(dimensions)+" playback opens responsive controls")
   if not is_instance_valid(player) or not is_instance_valid(player.dock):continue
   await check_controls(player,str(dimensions.x))
@@ -145,15 +163,15 @@ func run():
   for caption in ["己方手牌 ","对手手牌 "]:
    var hand_button=find_button(view.hud,caption+str(view.engine.players[view.local_seat].hand.size()))
    if caption=="对手手牌 ":hand_button=find_button(view.hud,caption+str(view.engine.players[1-view.local_seat].hand.size()))
-   expect(hand_button!=null and inside(hand_button.get_global_rect(),safe) and not hand_button.get_global_rect().intersects(dock_rect),str(dimensions)+" "+caption+"button stays separate")
+   expect(hand_button!=null and inside(hand_button.get_global_rect(),safe) and not hand_button.get_global_rect().intersects(dock_rect),str(dimensions)+" "+caption+"button stays separate: "+str(hand_button.get_global_rect() if hand_button!=null else null)+" safe="+str(safe)+" dock="+str(dock_rect))
   app.set_replay_training_mode(true)
   player.open_training();await frames()
   expect(not app.replay_training_mode and not is_instance_valid(player.training_button) and player.training_editor==null,str(dimensions)+" Android replay training is unavailable")
   player.seek(archive.frames.size()-1);view=app.duel_view;await frames()
   expect(not view.modal and player.controls.visible,str(dimensions)+" replay end keeps playback controls available")
-  archive.prompted=false
   app.offer_replay(archive);await frames()
   expect(app.get_children().all(func(child):return not child is ConfirmationDialog or child.title!="保存回放"),str(dimensions)+" replay end does not ask to save again")
+  expect(preload("res://scripts/replay_library.gd").entries(true).size()==1,"viewing and repeated callbacks never duplicate history")
   await capture("android-replay-"+str(dimensions.x))
   player.seek(0);await frames()
   expect(inside(player.dock.get_global_rect(),safe),str(dimensions)+" seeking keeps controls aligned")
@@ -175,7 +193,7 @@ func run():
   await tap(return_button.get_global_rect().get_center())
   expect(app.page=="replays",str(dimensions)+" actual touch returns to the replay list")
   await frames()
-  var reopened_row=app.screen.get_node("ReplayScroll").get_child(0).get_child(0)
+  var reopened_row=app.screen.get_node("ReplayScroll").get_child(0).get_child(0).get_node("ReplayPlay")
   await tap(reopened_row.get_global_rect().get_center());await frames()
   expect(app.page=="battle" and is_instance_valid(app.replay_controller),str(dimensions)+" a replay can be opened again after returning")
   app.settings();await frames()

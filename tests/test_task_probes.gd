@@ -66,6 +66,51 @@ func destructions():
  expect(stats(1).death_triggers==1,"被禁止触发的死去时能力不计数")
  e.move_to(suppressed,"exile")
 
+func permanent_removals():
+ for who in range(2):
+  prepare()
+  var source=put("96","hand",who)
+  e.damage_context={"source":source,"combat":false,"single":true}
+  e.sacrifice(put("item-ucs-013","field",who))
+  e.sacrifice(put("field-smm-004","field",who))
+  e.move_to(put("item-ucs-013","field",1-who),"exile")
+  e.destroy(put("field-smm-004","field",1-who))
+  expect(stats(who).items_barriers_removed==4 and stats(1-who).items_barriers_removed==0,"两种类别三种操作合计四个，仅归属执行玩家")
+  var saved=Codec.capture(e)
+  var snapshot=e.task_evidence()
+  e.sacrifice(put("53","field",who));e.move_to(put("53","field",1-who),"exile");e.destroy(put("53","field",1-who))
+  var protected=put("item-ucs-013","field",1-who);protected.extra_keywords=["不会被消灭"];e.destroy(protected)
+  e.sacrifice(put("field-smm-004","hand",who))
+  e.move_to(put("item-ucs-013","field",1-who),"hand")
+  e.move_to(put("field-smm-004","hand",who),"grave")
+  e.move_to(put("field-smm-004","field",who),"grave")
+  expect(stats(who).items_barriers_removed==4 and protected.zone=="field","单位、回手、弃牌、普通入墓和操作失败不增加合并进度")
+  for kind in ["item-ucs-013","field-smm-004"]:
+   for action in ["sacrifice","destroy","exile"]:
+    var token=put(kind,"field",who);token.token=true
+    if action=="exile":e.move_to(token,"exile")
+    else:e.call(action,token)
+    expect(token.zone=="void","道具或结界衍生物离场后消失")
+  expect(stats(who).items_barriers_removed==10,"衍生物的三种离场各计一次")
+  for action in ["sacrifice","destroy"]:
+   var replaced=put("item-ucs-013","field",who);replaced.exile_on_grave=true
+   var before=stats(who).items_barriers_removed
+   e.call(action,replaced)
+   expect(replaced.zone=="exile" and stats(who).items_barriers_removed==before+1,"入墓替代为移除不会重复计数")
+  for zone in ["grave","hand","deck"]:
+   var exiled=put("field-smm-004",zone,1-who)
+   var before=stats(who).items_barriers_removed
+   e.move_to(exiled,"exile");e.move_to(exiled,"exile")
+   expect(stats(who).items_barriers_removed==before+1,"其他区域实际移除计一次，重复移除不计")
+  var before=stats(who).items_barriers_removed
+  var controlled=put("item-ucs-013","field",who);controlled.original_owner=1-who
+  e.damage_context={};e.sacrifice(controlled)
+  e.move_to(put("field-smm-004","field",who),"exile")
+  expect(stats(who).items_barriers_removed==before+2 and stats(1-who).items_barriers_removed==0,"牺牲受控道具及无来源的自身移除归属操控者")
+  e.damage_context={"source":source};e.sacrifice(put("field-smm-004","field",1-who))
+  expect(stats(1-who).items_barriers_removed==1,"令对方牺牲时由实际牺牲方获得进度")
+  expect(Codec.restore(e,saved).is_empty() and e.task_evidence()==snapshot,"存档恢复及悔棋还原合并任务计数")
+
 func casts_and_tokens():
  prepare()
  announce("129");one()
@@ -173,6 +218,22 @@ func royal_kills():
  e.damage_target({"player":1},3);e.judge()
  expect(e.winner==-1 and not stats().royal_flare_kill,"双方生命归零平局不算皇家烈焰击杀获胜")
 
+func final_deck_sizes():
+ for who in range(2):
+  prepare()
+  var own_size=e.players[who].deck.size()
+  e.players[1-who].deck=e.players[1-who].deck.slice(0,6)
+  var saved=Codec.capture(e);var snapshot=e.task_evidence()
+  e.draw(1-who)
+  expect(stats(who).enemy_final_deck==5 and stats(1-who).enemy_final_deck==own_size,"双方牌库余量按对手实际剩余张数记录")
+  expect(snapshot.players[who].enemy_final_deck==6,"抽牌不会改变已取得的数量快照")
+  e.players[1-who].life=1;e.damage_context={"source":put("96","hand",who),"combat":false}
+  e.damage_target({"player":1-who},1);e.judge()
+  expect(e.winner==who and stats(who).enemy_final_deck==5 and stats(who).win_reason=="normal","普通伤害胜利同样记录对方剩余五张牌")
+  expect(Codec.restore(e,saved).is_empty() and stats(who).enemy_final_deck==6,"恢复与悔棋后重新读取实际牌库数量")
+  e.players[1-who].deck=[];e.draw(1-who)
+  expect(e.winner==who and stats(who).enemy_final_deck==0,"磨空牌库胜利记录零张")
+
 func victories():
  prepare();e.players[1].deck=[];e.draw(1)
  expect(e.winner==0 and stats().win_reason=="mill","磨牌胜因来自真实抓空牌库")
@@ -197,6 +258,6 @@ func victories():
   expect(stats().cast_cards.get(id,0)==1 and stats().character_spells==1,"指定大符实际宣告即计数："+id)
 
 func run():
- damage_and_life();destructions();casts_and_tokens();counterplay();royal_kills();victories()
+ damage_and_life();destructions();permanent_removals();casts_and_tokens();counterplay();royal_kills();final_deck_sizes();victories()
  print("TASK PROBES: %d checks, %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

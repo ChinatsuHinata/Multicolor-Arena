@@ -43,6 +43,14 @@ func run():
  var first_player=app.replay_controller
  app.receive_external_replay(path,"warm.mreply");await frames()
  expect(app.page=="battle" and app.replay_controller!=first_player and replay_files().size()==2,"warm delivery replaces playback and preserves both imports")
+ app.replays();await frames()
+ expect(not app.replay_history_tab and find_button(app.screen,"已保留").button_pressed,"returning from an external replay selects the saved library")
+ var imported_row=app.screen.find_child("ReplayPlay",true,false)
+ expect(imported_row!=null,"imported recordings appear in the shared replay browser")
+ if imported_row!=null:
+  imported_row.pressed.emit();await frames()
+  expect(app.page=="battle" and is_instance_valid(app.replay_controller),"saved browser reopens external recordings through the shared player")
+ expect(preload("res://scripts/replay_library.gd").entries(true).is_empty(),"importing and viewing replays does not add completed-match history")
  app.menu();await frames();app.dirty=true
  var draft=app.draft.duplicate(true)
  app.receive_external_replay(path,"draft.mreply")

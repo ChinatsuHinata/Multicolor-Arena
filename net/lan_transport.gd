@@ -40,8 +40,10 @@ func relay_host(address: String,port: int,code: String,websocket: bool=false,tok
 func relay_join(address: String,port: int,code: String,websocket: bool=false,token: String="",options: Dictionary={},watch: bool=false) -> Error:
  return connect_relay(address,port,code,"watch" if watch else "guest",websocket,token,options)
 
-func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="",public_room: bool=true,mode: String="ranked",competition: String="") -> Error:
- return connect_relay(address,port,"","match",true,token,{"version":version,"deck_hash":deck_hash,"public":public_room,"mode":mode,"tournament_match":competition,"series_scores":true})
+func relay_match(address: String,port: int,token: String,version: String,deck_hash: String="",public_room: bool=true,mode: String="ranked",competition: String="",deck_json: String="") -> Error:
+ var options={"version":version,"deck_hash":deck_hash,"public":public_room,"mode":mode,"tournament_match":competition,"series_scores":true}
+ if not competition.is_empty():options.tournament_deck=deck_json
+ return connect_relay(address,port,"","match",true,token,options)
 
 func relay_result(match_id: String,winner: int,evidence: Dictionary={},scores: Array=[]):
  if peer==null or peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:return
@@ -71,6 +73,7 @@ func relay_control(kind: String,extra: Dictionary={}):
  peer.set_target_peer(1);peer.transfer_channel=0;peer.transfer_mode=MultiplayerPeer.TRANSFER_MODE_RELIABLE
  var payload={"kind":kind,"room":relay_code,"token":relay_token}
  payload.merge(relay_options,true)
+ if kind!="match":payload.erase("tournament_deck")
  payload.merge(extra,true)
  peer.put_packet(("MCR1"+JSON.stringify(payload)).to_utf8_buffer())
 func relay_update(status: String,name: String,ready: Array=[false,false],round_number: int=0,format_value: int=0):

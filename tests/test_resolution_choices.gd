@@ -3,6 +3,7 @@ const SeatView=preload("res://net/seat_projection.gd")
 const Observer=preload("res://net/observer_projection.gd")
 const Remote=preload("res://net/remote_duel.gd")
 const AI=preload("res://scripts/rules/remilia_aggro_ai.gd")
+const Codec=preload("res://net/state_codec.gd")
 
 func selection(options: Array,groups: Array) -> Dictionary:
  var choice=options[0].duplicate(true);choice.erase("selection");choice.picks=groups
@@ -45,6 +46,41 @@ func crystal():
  fresh();fairy=put("2");e.move_to(fairy,"grave");e.pump_choices();e.choose_effect({"none":true})
  resource=put("164","palette");resource.tapped=true;e.move_to(fairy,"exile");one()
  expect(e.pending.is_empty() and resource.zone=="palette","crystal stops if its graveyard card was removed in response")
+
+func nonowner_crystal():
+ for who in [0,1]:
+  for restore in [false,true]:
+   for accept in [false,true]:
+    fresh();e.active=who;e.priority=who
+    var fairy=put("2","field",1-who)
+    for owner in [0,1]:
+     var resource=put("164","palette",owner);resource.tapped=true
+    for id in ["165","165","167","167"]:put(id,"palette",who)
+    var spell=put("140","hand",who)
+    var error=e.commit_cast(who,spell.uid,e.ref_target(fairy),e.payment(who,e.cast_cost(who,spell)).plan)
+    expect(error.is_empty(),"nonowner crystal setup casts control spell: "+error)
+    one()
+    expect(fairy.owner==who and fairy.original_owner==1-who,"control spell changes the crystal unit's controller without its owner")
+    e.destroy(fairy);e.pump_choices()
+    expect(fairy.zone=="grave" and fairy in e.players[1-who].grave,"controlled crystal unit dies into its owner's graveyard")
+    expect(e.pending.get("kind","")=="effect_choice" and e.pending.get("owner",-1)==who and e.pending.get("trigger",{}).get("effect","")=="crystal","last controller still receives the crystal trigger")
+    expect(e.pending.get("options",[])==[{"none":true}] and e.pending.get("trigger",{}).get("optional",false),"nonowner crystal remains an optional announcement without palette targets")
+    if restore:
+     var restored=Duel.new()
+     expect(Codec.restore(restored,Codec.capture(e)).is_empty(),"nonowner crystal trigger survives save and restore")
+     e=restored;fairy=e.find_card(fairy.uid)
+    var palettes=e.players.map(func(p):return p.palette.duplicate(true))
+    e.choose_effect({"none":true} if accept else {})
+    if accept:
+     expect(e.stack.size()==1 and e.stack.back().owner==who and e.stack.back().effect=="crystal","accepted nonowner crystal allows the normal response window")
+     if restore:
+      var restored=Duel.new()
+      expect(Codec.restore(restored,Codec.capture(e)).is_empty(),"announced nonowner crystal survives save and restore")
+      e=restored;fairy=e.find_card(fairy.uid)
+     one()
+    expect(e.pending.is_empty() and e.stack.is_empty(),"nonowner crystal finishes without offering a palette exchange")
+    expect(fairy.zone=="grave" and fairy.owner==1-who and fairy in e.players[1-who].grave,"nonowner crystal leaves the dead unit in its owner's graveyard")
+    expect(e.players.map(func(p):return p.palette)==palettes,"nonowner crystal preserves both palettes and their tapped state")
 
 func palette_triggers():
  fresh()
@@ -158,7 +194,7 @@ func non_target_distribution():
  expect(options.any(func(o):return o.get("selection_id","")=="spell-fdn-003"),"Phoenix's explicitly targeted damage retains declaration-time target selection")
 
 func run():
- crystal();palette_triggers();palette_activations();palette_spell_and_branch();sacrifices_and_ward();non_target_distribution()
+ crystal();nonowner_crystal();palette_triggers();palette_activations();palette_spell_and_branch();sacrifices_and_ward();non_target_distribution()
  fresh()
  var counter=put("100","palette",1);e.move_to(counter,"hand");put("70","field",1)
  put("164","palette",1);put("164","palette",1)

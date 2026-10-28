@@ -12,7 +12,7 @@ var bytes_used=0
 var raw_bytes_used=0
 var failure=""
 var finished=false
-var prompted=false
+var history_path=""
 var capture_path=""
 var capture_warning=""
 var frame_lookup={}
@@ -113,6 +113,7 @@ func finish(room: Dictionary):
 func frame(index: int) -> Dictionary:
  if index<0 or index>=frames.size():return {}
  var entry=frames[index]
+ if not entry is Dictionary or not entry.get("bytes") is PackedByteArray or entry.bytes.is_empty() or not entry.get("size") is int or entry.size<4 or entry.size>MAX_FRAME:return {}
  var data=entry.bytes.decompress(int(entry.size),FileAccess.COMPRESSION_ZSTD)
  if data.size()!=int(entry.size) or data.size()<4 or data[0]!=TYPE_DICTIONARY:return {}
  var packet=bytes_to_var(data)
@@ -160,15 +161,16 @@ func refresh_capture():
  if out==null:capture_warning="无法保存完整手牌回放恢复记录";return
  out.store_string("MCAP1\n");out.close()
  for i in range(frames.size()):append_capture({"frame":frames[i],"definitions":definitions if i==0 else {},"metadata":metadata,"key":last_key if i==frames.size()-1 else ""})
+func title() -> String:
+ var names=" vs ".join(metadata.get("room",{}).get("names",["对局"]).map(func(name):return PlayerNameDisplay.caption(name)))
+ return (str(metadata.get("created","录像")).replace(":","-")+" "+names).validate_filename().left(120)
 func save(path: String="") -> Dictionary:
  if not failure.is_empty():return {"error":failure}
  if frames.is_empty():return {"error":"没有可保存的对局记录"}
  var error=Paths.initialize()
  if not error.is_empty():return {"error":error}
  if path.is_empty():
-  var names=" vs ".join(metadata.room.get("names",["对局"]).map(func(name):return PlayerNameDisplay.caption(name)))
-  var title=(metadata.created.replace(":","-")+" "+names).validate_filename().left(120)
-  path=Paths.root().path_join("replay").path_join(title+"_"+str(Time.get_ticks_usec())+".mreply")
+  path=Paths.root().path_join("replay").path_join(title()+"_"+str(Time.get_ticks_usec())+".mreply")
  var shared_metadata=metadata.duplicate(true);shared_metadata.erase("_rewind_seen")
  var payload=var_to_bytes({"metadata":shared_metadata,"definitions":definitions,"frames":frames})
  if payload.size()+40>MAX_FILE:return {"error":"回放文件过大"}
@@ -188,7 +190,8 @@ static func read(path: String) -> Dictionary:
  if not data is Dictionary or not data.get("metadata") is Dictionary or not data.get("definitions") is Dictionary or not data.get("frames") is Array:return {"error":"回放结构无效"}
  if data.metadata.get("format")!="multicolor:arena/replay" or data.metadata.get("version")!=1:return {"error":"不支持的回放版本"}
  if int(data.metadata.get("seat",-9)) not in [-1,0,1]:return {"error":"回放视角无效"}
- if data.metadata.get("rules")!=FileAccess.get_file_as_string("res://net/rules_manifest.json").sha256_text():return {"error":"请使用录制这场回放时的游戏版本播放"}
+ # Snapshots contain their recorded definitions and values; a rules fingerprint
+ # change alone cannot make them unplayable. Validate the actual data instead.
  if data.frames.is_empty() or data.frames.size()>50000:return {"error":"回放步数无效"}
  var raw_total=0
  for entry in data.frames:
@@ -199,10 +202,13 @@ static func read(path: String) -> Dictionary:
  archive.metadata=data.metadata;archive.frames=data.frames;archive.definitions=data.definitions;archive.finished=true
  for i in range(archive.frames.size()):
   var packet=archive.frame(i)
-  if not valid_frame(packet,data.definitions):return {"error":"回放状态无效"}
+  if not valid_frame(packet,data.definitions):return {"error":"录像第 %d 步的状态无法读取，数据已损坏或该状态尚不兼容。" % (i+1)}
+  # Earlier containers did not always include the display turn in their index.
+  if not archive.frames[i].get("turn") is int:archive.frames[i].turn=packet.projection.state.turn
  return {"archive":archive}
 static func valid_frame(packet: Dictionary,known: Dictionary) -> bool:
- if packet.is_empty() or not packet.get("room") is Dictionary or not packet.projection.get("state") is Dictionary or not packet.projection.get("queries") is Dictionary:return false
+ if packet.is_empty() or not packet.get("game_id") is String or not packet.get("sequence") is int or not packet.get("room") is Dictionary or not packet.get("projection") is Dictionary:return false
+ if not packet.projection.get("state") is Dictionary or not packet.projection.get("queries") is Dictionary:return false
  var state=packet.projection.state;var room=packet.room
  if not room.get("names") is Array or room.names.size()!=2 or not room.get("scores") is Array or room.scores.size()!=2 or not room.get("format") is int:return false
  if not state.get("players") is Array or state.players.size()!=2:return false

@@ -14,37 +14,11 @@ func check_return(title: String):
  var rect=button.get_global_rect();var safe=app.ui_metrics.safe
  expect(safe.grow(1).encloses(rect) and rect.get_center().x>safe.get_center().x and rect.get_center().y>safe.get_center().y,"return button fits at the bottom right: "+str(rect)+" safe="+str(safe))
  expect(not is_instance_valid(view.modal_root),"result navigation leaves the battlefield free of a modal blocker")
-func replay_count() -> int:
- var count=0
- for filename in DirAccess.get_files_at(Store.Paths.root().path_join("replay")):
-  if filename.ends_with(".mreply"):count+=1
- return count
-func activate_dialog_button(prompt: Window,button: Button):
- var point=Vector2(prompt.position)+button.get_global_rect().get_center()
- if not app.is_android:await click(point);return
- var event=InputEventScreenTouch.new();event.index=0;event.position=point;event.pressed=true
- root.push_input(event,true);await process_frame
- event=event.duplicate();event.pressed=false;root.push_input(event,true);await frames()
-func finish_replay(save: bool):
+func finish_replay(archive):
  await frames()
  var prompt=dialog("保存回放")
- expect(prompt!=null,"finished battle offers replay saving")
- if prompt==null:return
- var yes=prompt.get_ok_button();var no=prompt.get_cancel_button()
- expect(yes.text=="保存" and no.text=="不保存","replay choices have unambiguous labels")
- expect(yes.get_global_rect().end.x<=no.get_global_rect().position.x,"desktop and Android both place Save on the left and Don't Save on the right")
- var bounds=Rect2(Vector2.ZERO,Vector2(prompt.size)).grow(1)
- expect(bounds.encloses(yes.get_global_rect()) and bounds.encloses(no.get_global_rect()),"both replay choices fit inside the dialog")
- var before=replay_count()
- await activate_dialog_button(prompt,yes if save else no);await frames()
- expect(not is_instance_valid(prompt),"tapping either replay choice closes the prompt")
- if save:
-  var saved=dialog("回放已保存")
-  expect(saved!=null,"replay is saved successfully")
-  expect(replay_count()==before+1,"left Save button writes exactly one replay")
-  if saved!=null:await activate_dialog_button(saved,saved.get_ok_button())
- else:
-  expect(dialog("回放已保存")==null and replay_count()==before,"right Don't Save button does not write a replay")
+ expect(prompt==null and dialog("回放已保存")==null,"finished battle saves without prompting")
+ expect(not archive.history_path.is_empty() and FileAccess.file_exists(archive.history_path),"finished battle is saved in history")
  await frames()
 func run():
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(fixture+"/tutorials"))
@@ -57,13 +31,13 @@ func run():
   app.is_android=mobile;app.layout_dpi_override=240 if mobile else 0
   root.size=Vector2i(1280,720) if mobile else Vector2i(1600,900)
   await frames();app.refresh_responsive_layout()
-  for save in [true,false]:
+  for match_index in range(2):
    app.begin_battle(true);view=app.duel_view;view.set_process(false);e=view.engine
-   view.replay_recording.prompted=false;e.surrender(1);view.reveal_player.reset();view.render()
-   await finish_replay(save);check_return("退出对局")
+   e.surrender(match_index);view.reveal_player.reset();view.render()
+   await finish_replay(view.replay_recording);check_return("退出对局")
    var button=view.find_child("BattleResultReturn",true,false)
    if button!=null:await click(button.get_global_rect().get_center())
-   expect(app.page=="setup","saving or declining replay allows returning to offline setup")
+   expect(app.page=="setup","automatic recording allows returning to offline setup")
    await frames()
   var session=Session.new();app.add_child(session);session.initialize(fixture+"/network");session.set_process(false)
   session.series.setup(1,true);session.series.state.status="complete";session.series.state.game_id="TEST_ONLY_RESULT";session.series.state.scores=[1,0];session.series.state.winner=0
@@ -72,9 +46,9 @@ func run():
   session.room=session.series.public_state(0);session.latest_snapshot=session.make_snapshot(0)
   app.lan_session=session;app.return_network_battle();view=app.duel_view;view.set_process(false);await frames()
   expect(view.find_child("DecisionClock",true,false)==null,"network battlefield contains no decision countdown")
-  # Exercise the same prompt after the relay closes the settled room.
+  # Recording also completes after the relay closes the settled room.
   var archive=preload("res://scripts/replay_archive.gd").new();archive.record(session.latest_snapshot);archive.finish(session.room)
-  app.offer_replay(archive);await finish_replay(true);check_return("回到联机房间")
+  app.offer_replay(archive);await finish_replay(archive);check_return("回到联机房间")
   await capture("battle-result-"+("android" if mobile else "pc"))
   var button=view.find_child("BattleResultReturn",true,false)
   if button!=null:await click(button.get_global_rect().get_center())

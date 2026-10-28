@@ -412,7 +412,7 @@ def handle_match(conn, data):
                     or conn.execute("SELECT COUNT(*) FROM players WHERE id IN (?,?)", players).fetchone()[0] != 2):
                 return {"ok": False, "message": "匹配玩家无效"}
             if conn.execute("SELECT 1 FROM tournament_pairings WHERE match_id=?", (match_id,)).fetchone():
-                claim = tournament_store.handle_game(conn, {"action": "claim", "match_id": match_id, "players": players, "mode": mode})
+                claim = tournament_store.handle_game(conn, {"action": "claim", "match_id": match_id, "players": players, "mode": mode, "deck_signatures": data.get("deck_signatures")})
                 if not claim["ok"]:
                     return claim
             conn.execute("""INSERT OR IGNORE INTO rating_matches(match_id,player_a,player_b,created_at,mode)
@@ -493,7 +493,7 @@ class Handler(BaseHTTPRequestHandler):
             length = 0
         # Match results carry both players' aggregate probes and final-game
         # facts. Keep the larger envelope exclusive to the loopback match API.
-        limit = 8 * 1024 * 1024 if self.path == "/community" else 65536 if self.path == "/match" else 16384 if self.path in ("/deck-plaza", "/cloud-decks", "/tournaments") else 2048
+        limit = 8 * 1024 * 1024 if self.path == "/community" else 65536 if self.path == "/match" else 16384 if self.path in ("/deck-plaza", "/cloud-decks", "/tournaments", "/tournament-game") else 2048
         if not 0 < length <= limit:
             self.send_error(413)
             return

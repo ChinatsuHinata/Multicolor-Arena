@@ -16,6 +16,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "relay"))
 import account_store as accounts
 import task_store as tasks
+from support.tournament_decks import admit
 
 NOW = int(datetime(2026, 10, 24, 8, tzinfo=tasks.CHINA_TIME).timestamp())
 
@@ -69,10 +70,10 @@ class DailyTasks(unittest.TestCase):
         row = self.row(slot)
         return accounts.handle(self.conn, {"action": action, "token": self.token, "day": tasks.today(), "slot": slot, "task_id": row["id"], **extra})
 
-    def match(self, winner=0, mode="ranked", stats=None, evidence=None, settle=True):
+    def match(self, winner=0, mode="ranked", stats=None, evidence=None, settle=True, deck_signatures=None):
         self.number += 1
         base = {"match_id": f"{self.number:032x}"}
-        self.assertTrue(accounts.handle_match(self.conn, {**base, "action": "create", "players": [1, 2], "mode": mode})["ok"])
+        self.assertTrue(accounts.handle_match(self.conn, {**base, "action": "create", "players": [1, 2], "mode": mode, "deck_signatures": deck_signatures})["ok"])
         self.assertTrue(accounts.handle_match(self.conn, {**base, "action": "start"})["ok"])
         if not settle:
             return base
@@ -246,7 +247,7 @@ class DailyTasks(unittest.TestCase):
                 self.assertTrue(definition["conditions"]["won"])
 
     def test_every_catalogue_counter_and_variant(self):
-        counts = {"player_damage": 40, "units_destroyed": 10, "items_destroyed": 5, "barriers_destroyed": 4,
+        counts = {"player_damage": 40, "units_destroyed": 10, "items_barriers_removed": 4,
                   "fast_spells": 15, "non_spells": 10, "character_spells": 12, "unit_cards": 24,
                   "tokens_created": 20, "spell_counters": 8, "death_triggers": 10, "life_recovered": 20}
         for group, value in counts.items():
@@ -278,13 +279,135 @@ class DailyTasks(unittest.TestCase):
             self.match(stats={"win_reason": reason})
             self.assertTrue(self.row(2)["completed"], reason)
         self.assign(2, "mill_win")
-        self.match(winner=1, stats={"win_reason": "mill"})
-        self.match(mode="casual", stats={"win_reason": "mill"})
-        self.match(stats={"win_reason": "normal"})
+        self.match(winner=1, stats={"enemy_final_deck": 0})
+        self.match(mode="casual", stats={"enemy_final_deck": 5})
+        self.match(stats={"enemy_final_deck": 6})
         self.assertEqual(self.row(2)["progress"], 0)
-        self.match(stats={"win_reason": "mill"})
+        self.match(stats={"win_reason": "normal", "enemy_final_deck": 5})
         self.assertEqual(self.row(2)["progress"], 1)
         self.assertTrue(self.row(2)["completed"])
+
+    def test_low_enemy_deck_win_boundaries_and_decisive_game(self):
+        self.assign(2, "mill_win")
+        for size in (6, 50, -1, 1.5, True, "5", None):
+            self.match(stats={"enemy_final_deck": size})
+        self.match(stats={"win_reason": "mill"})
+        self.match(stats={"enemy_final_deck": 0, "final_game": {"enemy_final_deck": 6}})
+        self.match(stats={"enemy_final_deck": 0, "final_game": {}})
+        self.match(stats={"enemy_final_deck": 0, "final_game": None})
+        for mode in ("casual", "exploration", "exploration_random"):
+            self.match(mode=mode, stats={"enemy_final_deck": 0})
+        self.match(winner=1, stats={"enemy_final_deck": 0})
+        self.assertEqual(self.row(2)["progress"], 0)
+        for size, reason in ((0, "mill"), (4, "normal"), (5, "surrender")):
+            with self.subTest(size=size, reason=reason):
+                self.assign(2, "mill_win")
+                self.match(stats={"enemy_final_deck": 50, "final_game": {"enemy_final_deck": size, "win_reason": reason}})
+                self.assertEqual(self.row(2)["progress"], 1)
+                self.assertTrue(self.row(2)["completed"])
+        self.assertEqual(self.row(2)["reward"], 3)
+        self.assertTrue(self.request("task_claim", 2)["ok"])
+        self.assertTrue(self.request("task_claim", 2)["ok"])
+        self.assertEqual(self.state()["coins"], 3)
+
+    def test_low_enemy_deck_win_upgrades_unclaimed_tasks(self):
+        legacy = self.definition("mill_win")
+        legacy.update(version=4, title="段位匹配磨牌胜利 1 次")
+        legacy["conditions"] = {"mode": "ranked", "won": True, "win_reason": "mill"}
+        for progress in (0, 1):
+            self.assign(2, "mill_win", progress=progress)
+            current = self.row(2)
+            with self.conn:
+                self.conn.execute("UPDATE task_daily_assignments SET definition=?,rerolled=1,previous_id=? WHERE player_id=1 AND day=? AND slot=2",
+                                  (json.dumps(legacy), "c" * 16, tasks.today()))
+            upgraded = self.row(2)
+            self.assertEqual(upgraded["id"], current["id"])
+            self.assertEqual(upgraded["progress"], progress)
+            self.assertEqual(upgraded["completed"], progress == 1)
+            self.assertTrue(upgraded["rerolled"])
+            frozen, previous = self.conn.execute("SELECT definition,previous_id FROM task_daily_assignments WHERE player_id=1 AND day=? AND slot=2", (tasks.today(),)).fetchone()
+            self.assertEqual(json.loads(frozen)["conditions"], {"mode": "ranked", "won": True, "enemy_deck_max": 5})
+            self.assertEqual(previous, "c" * 16)
+            self.assertEqual(upgraded, self.row(2), "Migration is idempotent")
+        self.assertTrue(self.request("task_claim", 2)["ok"])
+        self.assertEqual(self.state()["coins"], 3)
+        with self.conn:
+            self.conn.execute("UPDATE task_daily_assignments SET definition=? WHERE player_id=1 AND day=? AND slot=2", (json.dumps(legacy), tasks.today()))
+        self.assertEqual(self.row(2)["title"], legacy["title"], "Claimed tasks stay frozen")
+
+    def test_combined_removal_task_progress_and_legacy_evidence(self):
+        groups = [entry["group"] for entry in tasks.CATALOGUE]
+        self.assertEqual(groups.count("items_barriers_removed"), 1)
+        self.assertNotIn("items_destroyed", groups)
+        self.assertNotIn("barriers_destroyed", groups)
+        self.assign(1, "items_barriers_removed")
+        self.assertEqual(self.row(1)["target"], 4)
+        self.assertEqual(self.row(1)["reward"], 1)
+        for mode in ("ranked", "casual", "exploration", "exploration_random"):
+            self.match(mode=mode, winner=1, stats={"items_barriers_removed": 1, "items_destroyed": 1, "barriers_destroyed": 1})
+        self.assertEqual(self.row(1)["progress"], 4, "Do not add legacy counters to the new aggregate")
+        self.assertTrue(self.row(1)["completed"])
+        self.assertTrue(self.request("task_claim", 1)["ok"])
+        self.assertTrue(self.request("task_claim", 1)["ok"])
+        self.assertEqual(self.state()["coins"], 1)
+        self.assign(1, "items_barriers_removed")
+        for stats in ({}, {"items_destroyed": 3}, {"items_barriers_removed": -1, "items_destroyed": 4, "barriers_destroyed": 4},
+                      {"items_destroyed": True, "barriers_destroyed": 4}):
+            self.match(stats=stats)
+        self.assertEqual(self.row(1)["progress"], 0, "Missing or malformed evidence must not fabricate progress")
+        self.match(stats={"items_destroyed": 1, "barriers_destroyed": 2})
+        self.assertEqual(self.row(1)["progress"], 3)
+        self.assertFalse(self.row(1)["completed"])
+        self.match(stats={"items_barriers_removed": 1})
+        self.assertTrue(self.row(1)["completed"])
+
+    def test_existing_removal_tasks_upgrade_without_losing_slot_state(self):
+        originals = []
+        for slot, group in enumerate(("items_destroyed", "barriers_destroyed")):
+            legacy = self.definition("items_barriers_removed")
+            legacy.update(group=group, key=group, metric=group, target=5 if slot == 0 else 4, version=3)
+            with self.conn:
+                identity = tasks.put_assignment(self.conn, 1, tasks.today(), slot, legacy, rerolled=True, previous_id="b" * 16)
+                self.conn.execute("UPDATE task_daily_assignments SET progress=? WHERE player_id=1 AND day=? AND slot=?", (slot + 2, tasks.today(), slot))
+            originals.append(identity)
+        rows = self.state()["daily"]["tasks"]
+        for slot in range(2):
+            self.assertEqual(rows[slot]["id"], originals[slot])
+            self.assertEqual(rows[slot]["group"], "items_barriers_removed")
+            self.assertEqual(rows[slot]["progress"], slot + 2)
+            self.assertEqual(rows[slot]["target"], 4)
+            self.assertTrue(rows[slot]["rerolled"])
+            self.assertEqual(self.conn.execute("SELECT group_id,previous_id FROM task_daily_assignments WHERE player_id=1 AND day=? AND slot=?", (tasks.today(), slot)).fetchone(), ("items_barriers_removed", "b" * 16))
+        self.assertEqual(rows, self.state()["daily"]["tasks"], "Migration is idempotent")
+        self.match(stats={"items_barriers_removed": 1})
+        self.assertFalse(self.row(0)["completed"])
+        self.assertTrue(self.row(1)["completed"])
+        self.match(stats={"items_barriers_removed": 1})
+        for slot in range(2):
+            self.assertTrue(self.request("task_claim", slot)["ok"])
+            self.assertTrue(self.request("task_claim", slot)["ok"])
+        self.assertEqual(self.state()["coins"], 2)
+
+    def test_claimed_removal_task_stays_frozen_and_excludes_merged_rerolls(self):
+        legacy = self.definition("items_barriers_removed")
+        legacy.update(group="items_destroyed", key="items_destroyed", metric="items_destroyed", target=5, version=3)
+        with self.conn:
+            tasks.put_assignment(self.conn, 1, tasks.today(), 0, legacy)
+            self.conn.execute("UPDATE task_daily_assignments SET claimed=1,progress=5 WHERE player_id=1 AND day=? AND slot=0", (tasks.today(),))
+        self.assertEqual(self.row(0)["group"], "items_destroyed")
+        self.assertEqual(self.row(0)["target"], 5)
+        candidates = []
+        def choose(values):
+            candidates.extend(values)
+            return values[0]
+        with patch.object(tasks.secrets, "choice", side_effect=choose):
+            self.assertTrue(self.request("task_reroll", 1)["ok"])
+        self.assertNotIn("items_barriers_removed", [entry.get("group") for entry in candidates])
+        with patch("time.time", return_value=tasks.reset_at(tasks.today())):
+            groups = [row["group"] for row in self.state()["daily"]["tasks"]]
+            self.assertEqual(len(groups), len(set(groups)))
+            self.assertNotIn("items_destroyed", groups)
+            self.assertNotIn("barriers_destroyed", groups)
 
     def test_signature_spell_requires_cast_in_same_ranked_win(self):
         for card in ("118", "121", "spell-fdf-008"):
@@ -388,7 +511,7 @@ class DailyTasks(unittest.TestCase):
         tournament = self.conn.execute("INSERT INTO tournaments(owner_id,title,description,phase,created_at,round_number) VALUES(1,'TEST_ONLY_tasks','','running',?,1)", (NOW,)).lastrowid
         self.conn.execute("INSERT INTO tournament_pairings(tournament_id,round_number,table_number,player_a,player_b,match_id) VALUES(?,1,1,1,2,?)", (tournament, f"{self.number + 1:032x}"))
         self.conn.commit()
-        self.match(mode="casual", stats={"player_damage": 99})
+        self.match(mode="casual", stats={"player_damage": 99}, deck_signatures=admit(self.conn, tournament, [1, 2]))
         self.assertEqual(self.row(1)["progress"], 0)
         pending = self.match(settle=False)
         before, rank = self.state(), accounts.player_rank(self.conn, 1)

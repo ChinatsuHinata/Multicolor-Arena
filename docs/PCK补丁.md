@@ -383,3 +383,17 @@ Windows／Android 的 1.2.7.9 → 1.2.8 相邻签名补丁各为 5,332,604 字�
 7 个客户端专项入口共 2561 项检查、39 项后端 unittest，以及使用真实回环服务的赛事赛程和双端赛事界面 253 项检查通过。双端补丁挂载后的 2878 个资源均与完整目标一致，发行内容检查、签名更新选路和双端启动通过；公网完整下载、发行签名、大小、SHA-256、Range、HEAD 和 WebSocket 握手通过。打包源文件与本地玩家文件摘要保持一致。Android 验证范围为导出资源及 Godot 运行时，未做真机测试。
 
 清单备份为 `/home/codex/.local/share/multicolor-updates/pck/.release-backup-9f4f42883eb847a680f45f21f49d8010`。发布与验证记录位于 `work/pck-release-1.2.9.3/`，总记录为 `release-result.json`。玩家登录或重新登录后下载，完全退出并重启游戏生效。
+
+## 2026-10-29：正式发布 1.2.9.4
+
+Windows／Android 双端发布 1.2.9.3 → 1.2.9.4 相邻签名补丁，每个平台 975,832 字节。Android versionCode 为 1020904，完整快照保存在 `builds/pck-base/`，补丁位于 `builds/pck-patches/1.2.9.3-to-1.2.9.4/`。公网 `chain.json` 保留历史路径并增加至 29 条，旧累计补丁的 `latest.json` 保持不变。
+
+本版汇总自上一版以来的录像自动归档、最近 20 场历史与长期保留、旧录像兼容、词条百科、安卓试验侧栏战场、生命与段位显示、赛事逐轮固定牌表与截止时间、11 组新增自机对话，以及任务统计和结算选择修正。安卓试验界面默认关闭，在设置中开启后下一局生效。安卓从文件管理器打开录像需要新版 APK，单独下载 PCK 无法更新原生文件关联。
+
+更新公告 ID 为 `release-1.2.9.4-replays-decklists`，附带 10 铜钱，每账号限领一次。公告已部署至线上并核对正文、金额和旧公告保留；在生产数据库的隔离副本中重复领取两次，只增加 10 铜钱且仅产生一条奖励记录。公告备份为 `/home/codex/.local/share/multicolor-relay/backups/content-1.2.9.4-20261028T193821Z`。
+
+服务端同步 `server.gd`、`account_store.py`、`task_store.py`、`tournament_store.py` 和牌表目录，程序与数据库备份为 `/home/codex/.local/share/multicolor-relay/backups/tournaments-20261028T193130Z`。迁移副本与既有账号数据保留检查通过，四项服务为 active，数据库完整性为 ok；下载网关保持原 PID。公告追加发布仅重启账号服务，两个对战中转进程保持不变。
+
+客户端专项回归、93 项后端／安卓模板测试、368 项赛事真实回环检查及 226 项任务界面与领取检查通过。双端各 2,897 个资源与完整目标快照一致，签名更新选路、双端启动、公网完整补丁下载、SHA-256、Range、HEAD 与 WebSocket 检查通过。117 份原有本地玩家文件摘要保持不变。测试夹具已适配当前赛事牌表验证与教程目录加载；安卓模板构建与 APK 检查改用项目相对路径，以支持中文工作目录。
+
+完整安装包已上传，并保存于 `builds/releases/1.2.9.4/`：[Windows 安装包](http://8.137.122.187:47862/updates/1.2.9.4/MulticolorArena-1.2.9.4-win64-setup.exe)为 788,620,952 字节，[Android APK](http://8.137.122.187:47862/updates/1.2.9.4/MulticolorArena-1.2.9.4-android.apk)为 823,854,099 字节。远端 SHA-256 校验后激活签名完整包清单；两端游戏资源逐项核对与已发布快照一致，公告字节一致。APK ZIP CRC、签名及原有安装证书检查通过，Windows 导出程序在隔离用户目录启动通过。Android 验证范围为导出资源、原生模板与签名，未做真机安装测试。详细证据保存在 `work/pck-release-1.2.9.4/`，总记录为 `release-result.json`，完整包摘要见同目录的 `build.json` 与 `SHA256SUMS.txt`。

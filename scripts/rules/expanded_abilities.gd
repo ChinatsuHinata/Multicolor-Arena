@@ -272,6 +272,8 @@ static func resolve_trigger(e,t: Dictionary):
   "spell_rebirth":
    if dead_valid: e.delayed.append({"owner":who,"phase":"prepare","effect":"return_grave","ref":e.ref_target(dead),"zone":"grave","origin_name":e.cards[source.card_id].name})
   "crystal":
+   # Control grants the trigger, but only the card's owner can crystallize it.
+   if source.get("original_owner",source.owner)!=who:return
    if not t.get("continuation",false):
     if dead_valid:
      var choice=t.duplicate(true);choice.continuation=true

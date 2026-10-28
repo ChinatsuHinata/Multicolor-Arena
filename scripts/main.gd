@@ -1,6 +1,7 @@
 extends Control
 # Replace this with a res:// image path to change the battlefield background.
 @export_file("*.png", "*.jpg", "*.webp") var battlefield_background: String = "res://recourse/垫子3.png"
+const KeywordGlossary=preload("res://scripts/keyword_glossary.gd")
 const CARD_BACK_PATH = "res://recourse/卡背.jpg"
 const Store = preload("res://scripts/deck_store.gd")
 const CardArt=preload("res://scripts/card_art.gd")
@@ -58,6 +59,7 @@ var ui_metrics=UILayout.new()
 var editor_ui
 var menu_popup
 var tutorial_ui
+var keyword_glossary_ui
 var tutorial_directory_ui
 var tutorial_progress=preload("res://scripts/tutorial/progress.gd").new()
 # Entries are discovered from the tutorial catalog; progress uses stable IDs.
@@ -129,6 +131,7 @@ var delay_turn_end = true
 var auto_camera_focus = true
 var android_manual_camera = false
 var android_zone_shortcuts = true
+var android_experimental_battle_ui=false
 var android_card_preview_seconds = CardPreviewHold.DEFAULT_SECONDS
 var android_zone_shortcut_positions: Dictionary = {}
 var room_join_volume=RoomJoinSound.DEFAULT_VOLUME
@@ -151,6 +154,7 @@ var sideboard_leader_card: Control
 var sideboard_done: Button
 var replay_controller
 var android_replay_inbox
+var replay_history_tab=true
 var account_name=""
 var account_nickname=""
 var account_limitless_id=""
@@ -258,6 +262,7 @@ func _ready():
    auto_camera_focus = saved_settings.get("auto_camera_focus", true) == true
    android_manual_camera = saved_settings.get("android_manual_camera", false) == true
    android_zone_shortcuts = saved_settings.get("android_zone_shortcuts", true) == true
+   android_experimental_battle_ui = saved_settings.get("android_experimental_battle_ui", false) == true
    android_card_preview_seconds = CardPreviewHold.load_saved(saved_settings)
    room_join_volume=RoomJoinSound.normalize_volume(saved_settings.get("room_join_volume",RoomJoinSound.DEFAULT_VOLUME))
    match_room_public=saved_settings.get("match_room_public",true)==true
@@ -407,10 +412,11 @@ func close_deck_picker():
 func refresh_editor_after_cloud():
  if page=="editor" and not deck_picker_open():editor()
 
-func open_deck_picker(callback: Callable,current_id: String="",title: String="选择套牌"):
+func open_deck_picker(callback: Callable,current_id: String="",title: String="选择套牌",deck_filter: Callable=Callable()):
  close_deck_picker();close_menu_popup();reload_decks()
  deck_picker_ui=preload("res://scripts/deck_picker.gd").new()
  deck_picker_ui.app=self;deck_picker_ui.callback=callback;deck_picker_ui.selected_id=current_id;deck_picker_ui.caption=title
+ deck_picker_ui.deck_filter=deck_filter
  var focus=get_viewport().gui_get_focus_owner()
  if focus!=null:deck_picker_ui.previous_focus=weakref(focus)
  screen.add_child(deck_picker_ui)
@@ -1253,6 +1259,12 @@ func tutorials():
  community_service.sync_tutorials()
  if not tutorial_catalog_errors.is_empty():alert("\n".join(tutorial_catalog_errors),"教程目录错误")
 
+func keyword_glossary():
+ clear_page("keyword_glossary")
+ keyword_glossary_ui=preload("res://scripts/keyword_glossary_page.gd").new()
+ keyword_glossary_ui.app=self
+ screen.add_child(keyword_glossary_ui)
+
 func tutorial_editor_available() -> bool:
  return is_instance_valid(community_service) and community_service.allowed("tutorial_editor")
 
@@ -1527,7 +1539,7 @@ func set_sakura_ui(value: bool):
 func save_settings():
  var f = FileAccess.open(settings_path,FileAccess.WRITE)
  if f:
-  f.store_string(JSON.stringify({"fullscreen":fullscreen,"frame_rate_limit":frame_rate_limit,"frame_rate_preset":frame_rate_preset,"custom_frame_rate_limit":custom_frame_rate_limit,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"show_opponent_emotes":show_opponent_emotes,"auto_pay_keep_colors":auto_pay_keep_colors,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
+  f.store_string(JSON.stringify({"fullscreen":fullscreen,"frame_rate_limit":frame_rate_limit,"frame_rate_preset":frame_rate_preset,"custom_frame_rate_limit":custom_frame_rate_limit,"top_down_view":top_down_view,"show_card_inspection":show_card_inspection,"show_opponent_emotes":show_opponent_emotes,"auto_pay_keep_colors":auto_pay_keep_colors,"delay_turn_end":delay_turn_end,"auto_camera_focus":auto_camera_focus,"android_manual_camera":android_manual_camera,"android_zone_shortcuts":android_zone_shortcuts,"android_experimental_battle_ui":android_experimental_battle_ui,"android_card_preview_seconds":android_card_preview_seconds,"android_card_preview_default":CardPreviewHold.DEFAULT_SECONDS,"android_zone_shortcut_positions":android_zone_shortcut_positions,"room_join_volume":room_join_volume,"match_room_public":match_room_public,"match_mode":match_mode,"entertainment_mode":entertainment_mode,"debug_drag_to_field":debug_drag_to_field,"sakura_ui":sakura_ui,"replay_training_mode":replay_training_mode,"completed_tutorials":completed_tutorials}))
   f.close()
  else: alert("无法保存设置。")
 
@@ -1612,6 +1624,13 @@ func set_android_zone_shortcuts(value: bool):
  if is_instance_valid(duel_view) and is_instance_valid(duel_view.android_zone_shortcuts):
   duel_view.android_zone_shortcuts.refresh_visibility()
  save_settings()
+
+func set_android_experimental_battle_ui(value: bool):
+ android_experimental_battle_ui=value
+ save_settings()
+ if is_instance_valid(duel_view):
+  duel_view.message="试验对战界面将在下一局生效"
+  duel_view.render()
 
 func set_android_card_preview_seconds(value: float):
  android_card_preview_seconds=CardPreviewHold.normalize(value)
@@ -2735,21 +2754,11 @@ func reload_decks():
  if not loaded.get("warnings",[]).is_empty():call_deferred("alert","卡组加载提示：\n"+"\n".join(loaded.warnings))
 
 func offer_replay(archive):
- if archive.prompted or archive.frames.is_empty():return
- if page=="battle" and is_instance_valid(replay_controller) and replay_controller.get_parent()==screen:return
- if get_children().any(func(child):return child is AcceptDialog and child.visible):
-  await get_tree().create_timer(0.3).timeout
-  offer_replay(archive);return
- archive.prompted=true
- var dialog=ConfirmationDialog.new();dialog.title="保存回放";dialog.dialog_text="对局已结束，是否保存回放？"
- dialog.min_size=Vector2i(520,180);dialog.get_ok_button().text="保存";dialog.get_cancel_button().text="不保存"
- dialog.confirmed.connect(func():
-  dialog.hide()
-  var result=archive.save()
-  if result.has("error"):alert(result.error,"回放保存失败")
-  else:alert("已保存至：\n"+result.path,"回放已保存")
-  dialog.queue_free())
- dialog.canceled.connect(dialog.queue_free);add_child(dialog);dialog.popup_centered()
+ if archive.frames.is_empty() or not archive.history_path.is_empty():return
+ var result=preload("res://scripts/replay_library.gd").record_finished(archive)
+ if result.has("error"):alert(result.error,"历史录像保存失败")
+ elif result.has("warning"):alert(result.warning,"历史录像清理失败")
+ if page=="replays":replays()
 
 func start_android_replay_inbox():
  if not OS.has_feature("android") or is_instance_valid(android_replay_inbox):return
@@ -2780,6 +2789,7 @@ func receive_external_replay(path: String,display_name: String):
  if saved.has("error"):
   alert(saved.error,"回放导入失败");return
  if is_instance_valid(android_replay_inbox):android_replay_inbox.acknowledge(path)
+ replay_history_tab=false
  if not external_replay_can_open():
   alert("回放已导入。请先结束当前操作，再到主菜单的“对局回放”中查看。","回放已导入");return
  play_replay(result.archive,destination)
@@ -2793,41 +2803,15 @@ func open_replay(path: String) -> bool:
 func play_replay(archive,path: String):
  clear_page("battle")
  replay_controller=preload("res://scripts/replay_player.gd").new();screen.add_child(replay_controller)
- replay_controller.error_raised.connect(func(error):alert(error))
+ replay_controller.error_raised.connect(func(error):alert(error,"录像播放中断"))
  replay_controller.build(self,archive,path)
 
 func replays():
- clear_page("replays");header("对局回放",menu)
- var folder=Store.Paths.root().path_join("replay");Store.Paths.initialize()
- var scroll=ScrollContainer.new();scroll.name="ReplayScroll";screen.add_child(scroll)
- if is_android:
-  var margin=ui_metrics.padding
-  var top=ui_metrics.hit+ui_metrics.gap*3+ui_metrics.title+margin
-  scroll.position=Vector2(margin,top)
-  scroll.size=Vector2(screen.size.x-margin*2,maxf(ui_metrics.hit,screen.size.y-top-margin))
-  scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-  label(screen,"replay / .mreply",Rect2(margin,top-ui_metrics.body-ui_metrics.gap,scroll.size.x,ui_metrics.body+4),18,GOLD)
- else:
-  label(screen,"replay / .mreply",Rect2(80,151,1350,42),22,GOLD)
-  scroll.position=Vector2(80,217);scroll.size=Vector2(1440,630)
- var list=VBoxContainer.new();list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.add_theme_constant_override("separation",16);scroll.add_child(list)
- var files=DirAccess.get_files_at(folder);files.reverse()
- for filename in files:
-  if filename.get_extension().to_lower()!="mreply":continue
-  var row=Button.new();row.text=PlayerNameDisplay.replay_filename(filename);row.custom_minimum_size=Vector2(0,ui_metrics.hit if is_android else 64);list.add_child(row)
-  row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-  if is_android:
-   ui_metrics.button(row)
-   row.custom_minimum_size.x=0
-   row.tooltip_text=row.text
-  else:row.custom_minimum_size.x=1380
-  row.pressed.connect(func():open_replay(folder.path_join(filename)))
- if list.get_child_count()==0:
-  var empty=Label.new();empty.text="暂无回放";list.add_child(empty)
-  if is_android:empty.add_theme_font_size_override("font_size",ui_metrics.body)
+ clear_page("replays")
+ preload("res://scripts/replay_browser.gd").show(self)
 
 func uses_responsive_layout() -> bool:
- return is_android and page in ["","menu","editor","sideboard","setup","settings","mods","about","tutorials","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
+ return is_android and page in ["","menu","editor","sideboard","setup","settings","mods","about","tutorials","keyword_glossary","tutorial_directory","tutorial_scene","battle","online","account","account_password","deck_plaza","tournaments","replays"]
 
 func refresh_ui_metrics():
  ui_metrics.measure(self,is_android,layout_dpi_override,layout_safe_override,page=="battle")
@@ -2862,6 +2846,7 @@ func refresh_responsive_layout():
  elif page=="mods":mod_settings()
  elif page=="about":about()
  elif page=="tutorials" and is_instance_valid(tutorial_ui):tutorial_ui.refresh_metrics()
+ elif page=="keyword_glossary" and is_instance_valid(keyword_glossary_ui):keyword_glossary_ui.refresh_metrics()
  elif page=="tutorial_directory" and is_instance_valid(tutorial_directory_ui):tutorial_directory_ui.refresh_metrics()
  elif page=="online":online()
  elif page=="account":account_page()
@@ -3143,6 +3128,9 @@ func desktop_update_preview():
   if index==1:
    var cost_icons=HexCost.new();column.add_child(cost_icons);cost_icons.configure(CostDisplay.for_card(info),false,252,34,info.get("variable_cost",""),info.get("variable_multiplier",1))
   var value=preview_lines[index]
+  if index==1:
+   KeywordGlossary.rich_text(self,column,value,17,WHITE).name="CardDescription"
+   continue
   var text=Label.new()
   text.text=value
   text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART

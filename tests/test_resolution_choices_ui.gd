@@ -35,6 +35,18 @@ func check_surface(android: bool):
  expect(e.pending.trigger.get("continuation",false),label+" crystal selection is part of resolution")
  choose_palette(resource,label+" crystal")
  expect(fairy.zone=="palette" and resource.zone=="grave",label+" crystal exchanges the selected palette card")
+ clean(true)
+ fairy=put("2","field",1);e.detach(fairy);fairy.owner=0;e.players[0].field.append(fairy)
+ resource=put("164","palette");resource.tapped=true
+ var enemy_resource=put("164","palette",1);enemy_resource.tapped=true
+ e.destroy(fairy);e.pump_choices();await refresh()
+ expect(view.picker.ready() and view.picker.available_refs().is_empty(),label+" nonowner can still announce crystal")
+ view.confirm_trigger()
+ expect(e.pending.is_empty() and e.stack.size()==1,label+" nonowner crystal permits the normal response window")
+ resolve();await refresh()
+ expect(e.pending.is_empty() and e.stack.is_empty(),label+" nonowner crystal finishes without palette selection")
+ expect(fairy.zone=="grave" and fairy in e.players[1].grave,label+" nonowner crystal leaves the card in its owner's graveyard")
+ expect(resource.zone=="palette" and resource.tapped and enemy_resource.zone=="palette" and enemy_resource.tapped,label+" nonowner crystal preserves both palettes")
 
 func run():
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/resolution-choices-ui/"+str(Time.get_ticks_usec()))

@@ -408,6 +408,11 @@ func store_url(path: String) -> String:
 func join_tournament_match(id: int,msg: Dictionary):
  var ticket=str(msg.get("tournament_match",""))
  if ticket.length()!=32 or not ticket.is_valid_hex_number():reject(id,"比赛对局标识无效");return
+ var deck_json=msg.get("tournament_deck","")
+ if not deck_json is String or deck_json.to_utf8_buffer().size()>12000:reject(id,"比赛牌表数据无效，请更新游戏后重试");return
+ var deck=JSON.parse_string(deck_json)
+ if not deck is Dictionary:reject(id,"请先提交牌表并使用对应卡组进入比赛");return
+ if deck_json.sha256_text()!=str(msg.get("deck_hash","")):reject(id,"比赛卡组与入队登记不一致");return
  clients[id].role="tournament_queue";clients[id].cloud_active=true
  var request=HTTPRequest.new();root.add_child(request);request.timeout=10.0
  request.request_completed.connect(func(result: int,status: int,_headers: PackedStringArray,body: PackedByteArray):
@@ -416,6 +421,10 @@ func join_tournament_match(id: int,msg: Dictionary):
   var answer=JSON.parse_string(body.get_string_from_utf8())
   if result!=HTTPRequest.RESULT_SUCCESS or status!=200 or not answer is Dictionary:reject(id,"比赛服务暂不可用");return
   if not answer.get("ok",false):reject(id,str(answer.get("message","无法进入比赛")));return
+  var signature=str(answer.get("deck_signature",""))
+  if signature.length()!=64:reject(id,"比赛服务未确认牌表，请更新服务端");return
+  clients[id].deck_signature=signature
+  clients[id].match_deck_hash=deck_json.sha256_text()
   clients[id].series_scores=msg.get("series_scores",false)==true
   if answer.get("requires_scores",false) and not clients[id].series_scores:reject(id,"此赛事使用新局制或大比分计分，请更新游戏后进入");return
   var game_format=int(answer.get("game_format",2))
@@ -440,7 +449,7 @@ func join_tournament_match(id: int,msg: Dictionary):
    reject(first,"双方游戏版本不同，请更新后重新进入比赛");reject(second,"双方游戏版本不同，请更新后重新进入比赛");return
   if rooms.size()>=MAX_ROOMS:reject(first,"云端房间已满");reject(second,"云端房间已满");return
   pair_match(first,second,ticket,str(answer.get("name","比赛"))+" · 第%d轮" % int(answer.get("round_number",0)),game_format))
- if request.request(store_url("tournament-game"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"lookup","match_id":ticket,"player_id":clients[id].player_id}))!=OK:
+ if request.request(store_url("tournament-game"),["Content-Type: application/json"],HTTPClient.METHOD_POST,JSON.stringify({"action":"lookup","match_id":ticket,"player_id":clients[id].player_id,"deck":deck}))!=OK:
   request.queue_free();reject(id,"无法连接比赛服务")
 
 func check_tournament_queue(ticket: String):
@@ -494,6 +503,7 @@ func pair_match(first: int,second: int,competition: String="",title: String="",c
  rooms[code].ranks=[clients[first].get("rank",{}).duplicate(true),clients[second].get("rank",{}).duplicate(true)] if rooms[code].mode=="ranked" else []
  rooms[code].public=clients[first].get("match_public",true) and clients[second].get("match_public",true)
  if not competition.is_empty():
+  rooms[code].deck_signatures=[clients[first].get("deck_signature",""),clients[second].get("deck_signature","")]
   rooms[code].tournament=true;rooms[code].name=title;rooms[code].tournament_checked_at=0;rooms[code].tournament_check_busy=false
   rooms[code].format=competition_format;rooms[code].rule_set="unrestricted"
   rooms[code].series_scores=clients[first].get("series_scores",false) and clients[second].get("series_scores",false)
@@ -600,6 +610,7 @@ func match_store_request(code: String,action: String):
  room.store_busy=true
  var payload={"action":action,"match_id":room.match_id}
  if action=="create":payload.players=room.players;payload.mode=room.get("mode","ranked")
+ if action=="create" and room.get("tournament",false):payload.deck_signatures=room.get("deck_signatures",[])
  if action=="settle":
   payload.winner=room.outcome
   if room.get("tournament",false):
@@ -878,7 +889,7 @@ func handle_packet(id: int,data: PackedByteArray,channel: int):
   var msg=JSON.parse_string(data.slice(4).get_string_from_utf8())
   if not msg is Dictionary:return
   var kind=msg.get("kind","")
-  if data.size()>2048 and kind!="match_result":reject(id,"控制消息过长");return
+  if data.size()>(16384 if kind=="match" else 2048) and kind!="match_result":reject(id,"控制消息过长");return
   if kind=="auth":verify_client(id,str(msg.get("token","")))
   elif kind=="match_result":report_match(id,msg)
   elif kind=="link_pong":

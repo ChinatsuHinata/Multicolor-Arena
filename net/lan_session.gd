@@ -382,7 +382,7 @@ func start_matchmaking(server_address: String,deck: Dictionary={},public_room: b
  competition_format=game_format
  match_room_public=public_room
  matchmaking=true;match_connect_started=maxi(1,Time.get_ticks_msec());match_wait_seconds=0;match_rank_gap=0;match_settled=false
- var error=transport.relay_match(resolved,port,cloud_token,fingerprint,JSON.stringify(match_deck).sha256_text(),match_room_public,match_mode,competition_match_id)
+ var error=transport.relay_match(resolved,port,cloud_token,fingerprint,JSON.stringify(match_deck).sha256_text(),match_room_public,match_mode,competition_match_id,JSON.stringify(match_deck) if not competition_match_id.is_empty() else "")
  if error!=OK:leave(false);return "无法连接匹配服务器："+error_string(error)
  notice="正在加入自动匹配队列";changed.emit();return ""
 

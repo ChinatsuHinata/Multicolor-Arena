@@ -16,6 +16,7 @@ import account_store
 import tournament_store as store
 import tournament_limitless as limitless
 from tournament_pairing import knockout_pairs
+from support.tournament_decks import admit
 
 EXTERNAL = "636bf4efa527ff22cbbd82ae"
 
@@ -109,7 +110,7 @@ class LimitlessTests(unittest.TestCase):
             self.assertFalse(self.call(action, pairing_id=pair["id"], revision=0, result=0, scores=[2, 0])["ok"])
         players = [self.accounts[n]["player_id"] for n in ("alice", "bob")]
         ticket = self.conn.execute("SELECT match_id FROM tournament_pairings WHERE id=?", (pair["id"],)).fetchone()[0]
-        self.assertTrue(store.handle_game(self.conn, {"action": "claim", "match_id": ticket, "players": players})["ok"])
+        self.assertTrue(store.handle_game(self.conn, {"action": "claim", "match_id": ticket, "players": players, "deck_signatures": admit(self.conn, self.tid, players)})["ok"])
         self.assertTrue(store.handle_game(self.conn, {"action": "settle", "match_id": ticket, "winner": 0, "scores": [2, 0]})["ok"])
         result = self.conn.execute("SELECT result,source FROM tournament_pairings WHERE id=?", (pair["id"],)).fetchone()
         self.assertEqual(result, (None, "awaiting_limitless"))

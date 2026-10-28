@@ -10,6 +10,7 @@
 
 | 功能 | 测试 |
 | --- | --- |
+| 每轮固定卡组开关与独立截止时间、截止前反复交表与到点锁定、服务端构筑检查和实际卡组比对、并发覆盖／持久化／本人可见、跨轮次与重入、自由选组与固定娱乐卡组、双端规则设置／更改牌表／限定选卡及本地恢复 | `test_tournament_decklists.py`、`test_tournament_decklist_ui.gd`（有界面运行时截图输出 `work/tournament-decklist-ui/`）、`run_tournaments.py --formats-only`（隔离回环对局，包含未交表与换卡组拒绝） |
 | Limitless 快速导入、进行中赛事网页读取、账号 ID 保存与持久化、来源选手资格门控、管理员审核／拒绝／撤回、重复身份冲突与过期审核保护、桌面与安卓入口 | `test_limitless_admission.py`、`test_limitless_ui.gd`、`test_account_ui.gd`、`run_tournaments.py --limitless-only`（隔离临时数据库与回环中转；示例为好奇杯极彩十月月赛） |
 | Limitless 来源签表与排名、用户账号对应、缺少上轮结果／下轮签表／完整选手／新鲜数据时禁止开轮、原桌号与签位、游戏结束等待来源确认、禁止本地裁定、异步同步与缓存持久化、限流和来源改签保护、来源最终排名奖励；历轮浏览和双端界面 | `test_limitless_tournaments.py`、`test_limitless_ui.gd`（离线临时数据；有界面运行时截图输出 `work/limitless-ui/`） |
 | 桌面／安卓设置与对战内 60／120／自定义帧率档位、仅自定义可输入、无上下调节按钮、自定义数值记忆、0 不限帧、即时生效及保存重启 | `test_frame_rate_limit.gd`（有界面运行时保存截图） |
@@ -18,6 +19,7 @@
 | 「永夜归还-待宵-」先确认双方套牌自机去向、完整复活名单、横置进场与结束阶段移除；夺取操控权、区域实例有效性、移除替代、衍生物及存档恢复 | `test_eternal_night_return.gd` |
 | 颜色盘取消一张／多张选牌后重新分配已选牌颜色、合法替代牌与实际扣费、混色／减费备选费用、成对产色／红薯／保留色及双座位联机视图；桌面／安卓选目标与确认支付阶段 | `test_payment_reselection.gd`、`test_payment_reselection_ui.gd` |
 | 自机表情五分饼图的桌面／安卓实际输入、响应权与弹框限制、十秒冷却、自机区／战场／离场锚点、双方座位的气泡方向、敌方未开通显示、投降及重复事件隔离、联机同步；真实第三方观战接收双方表情、双端两种视角显示全部台词及未开通的投降气泡，观战入口只读 | `test_leader_emotes.gd`、`test_leader_emotes_network.gd`、`test_leader_emotes_ui.gd`（有界面运行时保存截图） |
+| 自机对话商品与台词一一对应、六类文字完整且不截断、商品图片及裁剪有效、购买装备门控、特殊问候匹配不同称号及异画、摩多罗同卡异版共用授权、双人台词与觉恋及幽幽子文案修订 | `test_leader_emotes_catalogue.gd` |
 | 香霖堂开业酬宾醒目横幅、付费商品进入特价分类、商品图案右下角红色 5 折标、固定半价向上取整、北京时间 11 月 2 日零时自动结束、原价恢复与过期确认保护、账号购买与装备隔离、原子扣款与重复购买、灵梦入场与梦想妙珠免费领取及按座位播放、匿名授权及购买后联机发送 | `test_shop_store.py`、`test_shop_inventory.gd`、`test_shop_products.gd`、`test_shop_effects.gd`、`test_shop_ui.gd`、`test_shop_preview.gd`、`run_shop.py`（仅本机回环及临时数据库；商店 UI 有界面运行时保存截图） |
 | 蕾米 AI 四个合法阻挡者停攻与夜王强化豁免、大量单位的阻挡组合上限、32／64 位移边界、双方共享截止时间、嵌套预算与模拟继承、80 单位真实决策及超时后的威吓阻挡回退 | `test_remilia_ai_budget.gd` |
 | 辉光城两种卡牌的关押与释放：出鞘整批移除后释放、双方座位与单位控制方、满战场腾格、双方城堡同时离场、失效关押关系及普通离场进场触发；双端叠放显示与联机视角 | `test_castle_release.gd`、`test_castle_exile_display.gd` |
@@ -46,7 +48,7 @@
 | 天火人进场／死亡／攻击／阻挡的目标丢失、离场返回、防伤与来源离场；响子全部与部分目标丢失、至多一个目标继续结算、牺牲／弃牌费用隔离 | `test_ability_target_validity.gd` |
 | 房主加入提醒：局域网申请与观战、云端入座及重复握手／换座去重，双端音量设置、试听、静音和重启保存 | `test_room_join_sound.gd` |
 | BO1 换备牌：赛前公开自机、最多换入三张、重复提交与重连防绕过、单局结算和重开；桌面／安卓编辑器及本机云端中转同步 | `test_bo1_sideboard.gd`、`test_bo1_sideboard_ui.gd`、`test_bo1_sideboard_cloud.gd`（云端测试先启动 `support/cloud_resume_relay.gd -- --test-resume --bind 127.0.0.1 --port 48035 --transport websocket`） |
-| 无目标牺牲、结晶、颜色盘选牌、伤害分配及给予防避的结算选择；响应中候选变化、费用区别、联机与观战同步 | `test_resolution_choices.gd`、`test_resolution_choices_ui.gd` |
+| 无目标牺牲、结晶（含非拥有者操控时可触发但不执行结晶、双方座位及存档恢复）、颜色盘选牌、伤害分配及给予防避的结算选择；响应中候选变化、费用区别、联机与观战同步 | `test_resolution_choices.gd`、`test_resolution_choices_ui.gd` |
 | 红薯支付：桌面／安卓、2D／3D 及两种桌垫的真实点击、边缘容差、手指抖动、手牌开关避让、相邻卡牌优先与确认后消费 | `test_potato_payment_ui.gd`（加 `-- --android` 验证安卓界面；有界面运行时保存截图） |
 | 青花结算：桌面／安卓仅从堆叠点选符卡，无其他符卡（含仅剩能力或符卡已离开）时显示反制自身按钮及实际结算 | `test_blue_flower.gd`、`test_blue_flower_ui.gd` |
 | 双端主菜单两列排序、设置内关于及返回、教程三分类筛选与分页、完成状态持久化与横屏安全区域 | `test_main_menu_tutorial.gd`、`test_android_menu.gd` |

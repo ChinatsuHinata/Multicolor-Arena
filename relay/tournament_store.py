@@ -3,6 +3,10 @@ import math
 import secrets
 import time
 import json
+import hashlib
+from collections import Counter
+from pathlib import Path
+import deck_plaza_store
 import community_store
 import tournament_rules
 import tournament_limitless
@@ -60,6 +64,14 @@ def initialize(conn):
         due_at INTEGER NOT NULL, expected_round INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled',
         message TEXT NOT NULL DEFAULT '')""")
     conn.execute("CREATE INDEX IF NOT EXISTS tournament_schedules_due ON tournament_schedules(status,due_at)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS tournament_decklists (
+        tournament_id INTEGER NOT NULL, round_number INTEGER NOT NULL, player_id INTEGER NOT NULL,
+        game_format INTEGER NOT NULL, deck_json TEXT NOT NULL, signature TEXT NOT NULL,
+        submitted_at INTEGER NOT NULL, PRIMARY KEY(tournament_id,round_number,player_id))""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS tournament_decklist_rules (
+        tournament_id INTEGER NOT NULL, round_number INTEGER NOT NULL,
+        fixed_deck INTEGER NOT NULL DEFAULT 0, deadline_at INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(tournament_id,round_number))""")
     tournament_rules.initialize(conn)
     tournament_limitless.initialize(conn)
 
@@ -83,6 +95,126 @@ def error(message):
 
 def integer(value, minimum=0):
     return type(value) in (int, float) and minimum <= value <= 2**53 - 1 and int(value) == value
+
+
+def checked_deck(deck, game_format):
+    """Validate actual cards using exported game rules, never a client hash."""
+    if not isinstance(deck, dict) or set(deck) - {"id", "name", "leader", "main", "side", "rule_set", "art_overrides"}:
+        raise ValueError("牌表格式无效")
+    if not isinstance(deck.get("id"), str) or not 1 <= len(deck["id"]) <= 128:
+        raise ValueError("卡组标识无效")
+    if not deck_plaza_store.visible_text(deck.get("name"), 40):
+        raise ValueError("卡组名称须为 1–40 个可见字符")
+    if deck.get("rule_set", "unrestricted") not in deck_plaza_store.RULES:
+        raise ValueError("比赛不接受模组或未知规则集卡组")
+    if not isinstance(deck.get("leader"), str) or any(not isinstance(deck.get(zone), list) for zone in ("main", "side")):
+        raise ValueError("自机或主副卡组格式无效")
+    if len(deck["main"]) != 50 or len(deck["side"]) > 10:
+        raise ValueError("比赛主卡组需要 50 张，备牌最多 10 张")
+    ids = [deck["leader"], *deck["main"], *deck["side"]]
+    cards = deck_plaza_store.catalogue()
+    if any(not isinstance(card, str) or card not in cards for card in ids):
+        raise ValueError("牌表包含未知卡牌")
+    arts = deck.get("art_overrides", {})
+    if not isinstance(arts, dict) or len(arts) > 256 or any(
+            card not in cards or cards[card]["canonical"] != card or not isinstance(art, str) or art not in cards[card]["arts"]
+            for card, art in arts.items()):
+        raise ValueError("异画编号无效")
+    if game_format in (4, 5):
+        fixed = json.loads(Path(deck_plaza_store.__file__).with_name("deck_plaza_catalogue.json").read_text(encoding="utf-8"))["fixed_decks"][str(game_format)]
+        if deck["leader"] != fixed["leader"] or Counter(deck["main"]) != Counter(fixed["main"]) or deck["side"] or arts:
+            raise ValueError("娱乐赛制只能使用指定固定卡组")
+    else:
+        if not cards[deck["leader"]]["leader"] or any(not cards[card].get("match_allowed", False) for card in ids):
+            raise ValueError("牌表包含不能用于本比赛的自机或卡牌")
+        names = Counter(cards[card]["name_key"] for card in deck["main"] + deck["side"])
+        if cards[deck["leader"]]["name_key"] in names:
+            raise ValueError("主副卡组不能包含所选自机的同名牌")
+        for card in deck["main"] + deck["side"]:
+            limit = cards[card]["match_limit"]
+            if limit >= 0 and names[cards[card]["name_key"]] > limit:
+                raise ValueError(f"同名牌超过 {limit} 张上限：{cards[card]['name_key']}")
+    normalized = [cards[deck["leader"]]["canonical"],
+                  *[sorted(Counter(cards[card]["canonical"] for card in deck[zone]).items()) for zone in ("main", "side")]]
+    signature = hashlib.sha256(json.dumps(normalized, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
+    return signature
+
+
+def decklist_rule(conn, tid, number):
+    row = conn.execute("SELECT fixed_deck,deadline_at FROM tournament_decklist_rules WHERE tournament_id=? AND round_number=?",
+                       (tid, max(1, number))).fetchone()
+    return {"round_number": max(1, number), "fixed_deck": bool(row and row[0]), "deadline_at": row[1] if row else 0}
+
+
+def configure_decklist(conn, tid, data):
+    conn.execute("UPDATE tournaments SET id=id WHERE id=?", (tid,))
+    phase, current = conn.execute("SELECT phase,round_number FROM tournaments WHERE id=?", (tid,)).fetchone()
+    number, fixed, deadline = data.get("round_number"), data.get("fixed_deck"), data.get("deadline_at", 0)
+    if not integer(number, 1) or not max(1, current) <= number <= max(1, current + 1):
+        raise ValueError("只能设置本轮或下一轮的牌表规则，请刷新比赛页面")
+    if type(fixed) is not bool or not integer(deadline):
+        raise ValueError("牌表规则或截止时间无效")
+    if phase == "complete":
+        raise ValueError("比赛已结束")
+    deadline = int(deadline) if fixed else 0
+    previous = decklist_rule(conn, tid, number)
+    if previous["fixed_deck"] == fixed and previous["deadline_at"] == deadline:
+        return "本轮牌表规则未改变"
+    if previous["fixed_deck"] and int(time.time()) >= previous["deadline_at"]:
+        raise ValueError("牌表已截止，不能更改本轮固定卡组规则或截止时间")
+    if conn.execute("""SELECT 1 FROM tournament_pairings WHERE tournament_id=? AND round_number=?
+        AND player_b IS NOT NULL AND (game_claimed=1 OR game_heartbeat>0 OR result IS NOT NULL OR source='awaiting_limitless')""", (tid, number)).fetchone():
+        raise ValueError("本轮已有对局开始或结果，不能更改固定卡组规则")
+    if fixed and not int(time.time()) < deadline <= int(time.time()) + 366 * 86400:
+        raise ValueError("请设置未来一年内的牌表截止时间")
+    conn.execute("""INSERT INTO tournament_decklist_rules VALUES(?,?,?,?)
+        ON CONFLICT(tournament_id,round_number) DO UPDATE SET fixed_deck=excluded.fixed_deck,deadline_at=excluded.deadline_at""",
+        (tid, int(number), int(fixed), deadline))
+    return "本轮牌表规则已保存"
+
+
+def decklist_view(conn, tid, player):
+    phase, number, game_format = conn.execute("SELECT phase,round_number,game_format FROM tournaments WHERE id=?", (tid,)).fetchone()
+    member = conn.execute("SELECT in_roster FROM tournament_members WHERE tournament_id=? AND player_id=?", (tid, player)).fetchone()
+    pair = conn.execute("SELECT player_b,result,source,game_claimed FROM tournament_pairings WHERE tournament_id=? AND round_number=? AND (player_a=? OR player_b=?)", (tid, number, player, player)).fetchone()
+    available = bool(member and (phase in ("registration", "checkin") or phase == "locked" and member[0] or
+                     phase == "running" and member[0] and pair and pair[0] is not None and pair[1] is None and pair[2] != "awaiting_limitless" and not pair[3]))
+    number = max(1, number)
+    rule = decklist_rule(conn, tid, number)
+    required = rule["fixed_deck"] and game_format not in (4, 5)
+    closed = required and int(time.time()) >= rule["deadline_at"]
+    row = conn.execute("SELECT deck_json,submitted_at,game_format FROM tournament_decklists WHERE tournament_id=? AND round_number=? AND player_id=?", (tid, number, player)).fetchone()
+    return {**rule, "game_format": game_format, "required": required, "closed": closed,
+            "can_submit": available and required and not closed,
+            "can_enter": not required or closed and row is not None,
+            "submitted": row is not None, "deck": json.loads(row[0]) if row else {},
+            "submitted_at": row[1] if row else 0}
+
+
+def submit_decklist(conn, tid, player, data):
+    # Serialize submissions so each successful update stores a complete, validated list.
+    with conn:
+        conn.execute("UPDATE tournaments SET id=id WHERE id=?", (tid,))
+        view = decklist_view(conn, tid, player)
+        if not integer(data.get("round_number"), 1) or data["round_number"] != view["round_number"]:
+            raise ValueError("牌表轮次已变化，请刷新比赛页面")
+        signature = checked_deck(data.get("deck"), view["game_format"])
+        if not view["required"]:
+            raise ValueError("本轮无需提交牌表")
+        existing = conn.execute("SELECT signature FROM tournament_decklists WHERE tournament_id=? AND round_number=? AND player_id=?", (tid, view["round_number"], player)).fetchone()
+        now = int(time.time())
+        if not view["can_submit"] or now >= view["deadline_at"]:
+            if existing and existing[0] == signature:
+                return "本轮牌表已提交并锁定"
+            if now >= view["deadline_at"]:
+                raise ValueError("本轮牌表已截止，不能提交或更改")
+            raise ValueError("当前不能提交牌表，请确认参赛资格和本轮对阵")
+        conn.execute("""INSERT INTO tournament_decklists VALUES(?,?,?,?,?,?,?)
+            ON CONFLICT(tournament_id,round_number,player_id) DO UPDATE SET
+            game_format=excluded.game_format,deck_json=excluded.deck_json,
+            signature=excluded.signature,submitted_at=excluded.submitted_at""",
+            (tid, view["round_number"], player, view["game_format"], json.dumps(data["deck"], ensure_ascii=False), signature, now))
+    return "牌表合规检查通过，已保存本轮卡组；截止前可继续更改"
 
 
 def record(conn, row, account):
@@ -134,6 +266,8 @@ def detail(conn, row, account, page=0, roster_only=False, message="", pairing_pa
     public_standings = [{key: value for key, value in entry.items() if key not in ("player_id",)}
                         for entry in standings[standing_page * MEMBER_PAGE_SIZE:(standing_page + 1) * MEMBER_PAGE_SIZE]]
     return {"ok": True, "message": message, "tournament": competition,
+            "decklist": decklist_view(conn, row[0], account["player_id"]),
+            "decklist_rules": [decklist_rule(conn, row[0], number) for number in range(max(1, competition["round_number"]), max(1, competition["round_number"] + 1) + 1)],
             "pairing_round": selected_round, "round_info": dict(zip(("number", "stage", "stage_index", "stage_round"), round_row)) if round_row else {},
             "limitless": tournament_limitless.view(conn, row[0], {**(query or {}), "owned": competition["owned"]}),
             "join_requests": tournament_limitless.requests_view(conn, row[0], int((query or {}).get("request_page", 0))) if competition["owned"] else {},
@@ -548,6 +682,12 @@ def handle(conn, data, account):
             return error("所选轮次尚未开始")
         return detail(conn, row, account, int(values[0]), data.get("roster_only", False), pairing_page=int(values[1]), standing_page=int(values[2]), pairing_round=int(values[3]), query=data)
     owned = can_manage(conn, account, row[1])
+    if action == "submit_decklist":
+        try:
+            message = submit_decklist(conn, row[0], account["player_id"], data)
+            return detail(conn, row, account, message=message)
+        except ValueError as exc:
+            return error(str(exc))
     if action in ("report_result", "confirm_result", "judge_result"):
         with conn:
             answer = handle_result(conn, data, account, row)
@@ -596,7 +736,7 @@ def handle(conn, data, account):
         with conn:
             conn.execute("""UPDATE rating_matches SET status='cancelled' WHERE status IN ('pending','playing')
                 AND match_id IN (SELECT match_id FROM tournament_pairings WHERE tournament_id=?)""", (row[0],))
-            for table in ("tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members", "tournament_stage_members", "tournament_limitless", "tournament_limitless_players", "tournament_limitless_rounds", "tournament_limitless_requests"):
+            for table in ("tournament_decklists", "tournament_decklist_rules", "tournament_schedules", "tournament_pairings", "tournament_rounds", "tournament_members", "tournament_stage_members", "tournament_limitless", "tournament_limitless_players", "tournament_limitless_rounds", "tournament_limitless_requests"):
                 conn.execute(f"DELETE FROM {table} WHERE tournament_id=?", (row[0],))
             # Keep an ID tombstone so stale clients cannot act on a newly created competition with the same ID.
             conn.execute("UPDATE tournaments SET phase='deleted',title='',description='',timer_notice='',round_interval=0 WHERE id=?", (row[0],))
@@ -605,7 +745,9 @@ def handle(conn, data, account):
         return answer
     try:
         with conn:
-            if action == "configure":
+            if action == "configure_decklist":
+                message = configure_decklist(conn, row[0], data)
+            elif action == "configure":
                 if tournament_limitless.bound(conn, row[0]):
                     raise ValueError("Limitless 比赛的轮次与局制由来源签表决定")
                 format_name, rounds, interval = settings_input(data)
@@ -741,6 +883,15 @@ def tick(conn, now=None):
 
 def handle_game(conn, data):
     """Trusted loopback relay API; never dispatched by the player's endpoint."""
+    if isinstance(data, dict) and data.get("action") == "claim" and isinstance(data.get("match_id"), str):
+        # Re-read the rules and lists under the same write lock used by submissions/settings.
+        with conn:
+            conn.execute("UPDATE tournaments SET id=id WHERE id=(SELECT tournament_id FROM tournament_pairings WHERE match_id=?)", (data["match_id"],))
+            return _handle_game(conn, data)
+    return _handle_game(conn, data)
+
+
+def _handle_game(conn, data):
     if not isinstance(data, dict) or not isinstance(data.get("match_id"), str):
         return error("比赛对局标识无效")
     row = conn.execute("""SELECT p.id,p.tournament_id,p.round_number,p.player_a,p.player_b,p.result,p.game_claimed,
@@ -756,6 +907,8 @@ def handle_game(conn, data):
                 conn.execute("UPDATE tournament_pairings SET game_heartbeat=? WHERE id=?", (int(time.time()), row[0]))
         return {"ok": True, "closed": not active, "result": row[5]}
     if action in ("lookup", "claim"):
+        rule = decklist_rule(conn, row[1], row[2])
+        required = rule["fixed_deck"] and config(conn, row[1])["game_format"] not in (4, 5)
         if conn.execute("SELECT source FROM tournament_pairings WHERE id=?", (row[0],)).fetchone()[0] == "awaiting_limitless":
             return error("游戏已结束，请在 Limitless 登记赛果并同步后继续")
         if not active:
@@ -764,18 +917,41 @@ def handle_game(conn, data):
             player = data.get("player_id")
             if type(player) is not int or player not in row[3:5]:
                 return error("此对局仅限当前编排的两位选手进入")
+            try:
+                signature = checked_deck(data.get("deck"), config(conn, row[1])["game_format"])
+            except ValueError as exc:
+                return error(str(exc))
+            if required:
+                submitted = conn.execute("SELECT signature FROM tournament_decklists WHERE tournament_id=? AND round_number=? AND player_id=?", (row[1], row[2], player)).fetchone()
+                if not submitted:
+                    return error("请先提交本轮比赛牌表")
+                if submitted[0] != signature:
+                    return error("本地卡组与服务器已交付牌表不一致，请恢复提交的卡组")
+                if int(time.time()) < rule["deadline_at"]:
+                    return error("本轮牌表尚未截止，请在截止后进入比赛")
         else:
             if data.get("players") != list(row[3:5]):
                 return error("比赛对局选手与编排不一致")
             expected_mode = game_mode(config(conn, row[1])["game_format"])
             if data.get("mode", expected_mode) != expected_mode:
                 return error("比赛对局模式与指定赛制不一致")
+            signatures = data.get("deck_signatures")
+            if not isinstance(signatures, list) or len(signatures) != 2 or any(not isinstance(s, str) or len(s) != 64 for s in signatures):
+                return error("双方尚未通过服务器牌表验证")
+            if required:
+                if int(time.time()) < rule["deadline_at"]:
+                    return error("本轮牌表尚未截止，请在截止后进入比赛")
+                for player, signature in zip(row[3:5], signatures):
+                    submitted = conn.execute("SELECT signature FROM tournament_decklists WHERE tournament_id=? AND round_number=? AND player_id=?", (row[1], row[2], player)).fetchone()
+                    if not submitted or submitted[0] != signature:
+                        return error("比赛牌表未提交或已变化，请重新进入")
             with conn:
                 conn.execute("UPDATE tournament_pairings SET game_claimed=1,game_heartbeat=?,report_a=NULL,report_b=NULL,revision=revision+1 WHERE id=? AND game_claimed=0",
                              (int(time.time()), row[0]))
         game_format = config(conn, row[1])["game_format"]
         stage = tournament_rules.active_stage(conn, row[1])
         return {"ok": True, "players": list(row[3:5]), "name": row[9], "round_number": row[2],
+                **({"deck_signature": signature} if action == "lookup" else {}),
                 "game_format": game_format, "mode": game_mode(game_format),
                 "requires_scores": game_format in (6, 7) or bool(stage and stage["points"]["scores"])}
     if action == "cancel":

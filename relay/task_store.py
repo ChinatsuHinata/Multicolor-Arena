@@ -9,7 +9,9 @@ from datetime import datetime, timedelta, timezone
 CHINA_TIME = timezone(timedelta(hours=8))
 SEASON_REWARDS = ((1, 80), (3, 60), (10, 40))
 FIRST_SEASON_END = int(datetime(2026, 12, 1, tzinfo=CHINA_TIME).timestamp())
-CATALOGUE_VERSION = 3
+CATALOGUE_VERSION = 5
+REMOVAL_GROUP = "items_barriers_removed"
+LEGACY_REMOVAL_GROUPS = ("items_destroyed", "barriers_destroyed")
 MAX_COUNTER = 1_000_000
 TASK_CARD_NAMES = {
     "spell-fdn-069": "「青ノ花」",
@@ -44,8 +46,7 @@ CATALOGUE = [
         {"key": color, "title": f"使用{color}色自机在任意匹配获得胜利", "leader_color": color}
         for color in ("黑", "绿", "红", "蓝", "黄")]},
     task("units_destroyed", "任意匹配累计消灭 10 个单位", "units_destroyed", 10),
-    task("items_destroyed", "任意匹配累计消灭 5 个道具", "items_destroyed", 5),
-    task("barriers_destroyed", "任意匹配累计消灭 4 个结界", "barriers_destroyed", 4),
+    task(REMOVAL_GROUP, "任意匹配累计牺牲、移除、消灭 4 个道具或结界", REMOVAL_GROUP, 4),
     task("exploration_win", "探索幻想乡模式匹配获得 1 场胜利（两种亚种皆可）", "matches", mode="exploration_any", won=True),
     task("fast_spells", "任意匹配累计使用 15 次高速符卡", "fast_spells", 15),
     task("non_spells", "任意匹配累计使用 10 次非符", "non_spells", 10),
@@ -64,7 +65,7 @@ CATALOGUE = [
          cards=("character-kmo-001", "spell-fdf-068", "spell-ucs-041"),
          card_labels={"character-kmo-001": "投钱"},
          any_of=[{"win_reason": "coin"}, {"win_reason": "gate"}, {"royal_kill": True}]),
-    task("mill_win", "段位匹配磨牌胜利 1 次", "matches", tier="advanced", mode="ranked", won=True, win_reason="mill"),
+    task("mill_win", "段位匹配获胜 1 次，胜利时对方牌库不多于 5 张", "matches", tier="advanced", mode="ranked", won=True, enemy_deck_max=5),
     task("leader_win", "段位匹配使用香霖堂的谜之妖怪「朱鹭子」／活力四射的冰之勇者「琪露诺」／魔神复诵「圣白莲」／八坂的神风「八坂神奈子」自机胜利 1 次（玩家任选一）",
          "matches", tier="advanced", mode="ranked", won=True,
          cards=("character-htk-002", "character-lof-001", "character-fdf-ex03", "82"),
@@ -133,6 +134,7 @@ def reset_at(day):
 
 
 def choose_definition(tier, excluded=()):
+    excluded = {REMOVAL_GROUP if group in LEGACY_REMOVAL_GROUPS else group for group in excluded}
     eligible = [entry for entry in CATALOGUE if entry["tier"] == tier and entry["group"] not in excluded]
     if not eligible:
         raise ValueError("当前没有可更换的任务")
@@ -169,6 +171,16 @@ def ensure_daily(conn, player_id, day):
     # First statement obtains SQLite's writer lock before reading or drawing.
     # Two processes cannot draw different tasks for the same account/day.
     conn.execute("INSERT OR IGNORE INTO task_daily(player_id,day) VALUES(?,?)", (player_id, day))
+    # Upgrade each existing slot without discarding progress, rewards or reroll state.
+    # If both legacy tasks were drawn today, both slots remain claimable today.
+    if any(entry["group"] == REMOVAL_GROUP for entry in CATALOGUE):
+        for slot, frozen in conn.execute("SELECT slot,definition FROM task_daily_assignments WHERE player_id=? AND day=? AND claimed=0", (player_id, day)).fetchall():
+            old = json.loads(frozen)
+            if old["group"] not in LEGACY_REMOVAL_GROUPS:
+                continue
+            replacement = choose_definition("basic", [entry["group"] for entry in CATALOGUE if entry["group"] != REMOVAL_GROUP])
+            conn.execute("UPDATE task_daily_assignments SET group_id=?,definition=? WHERE player_id=? AND day=? AND slot=?",
+                         (REMOVAL_GROUP, json.dumps(replacement, ensure_ascii=False), player_id, day, slot))
     existing = dict(conn.execute("SELECT slot,group_id FROM task_daily_assignments WHERE player_id=? AND day=?", (player_id, day)))
     for slot, tier in enumerate(("basic", "basic", "advanced")):
         if slot not in existing:
@@ -176,10 +188,12 @@ def ensure_daily(conn, player_id, day):
             put_assignment(conn, player_id, day, slot, definition)
             existing[slot] = definition["group"]
     # Broaden today's affected, unclaimed tasks too; retain identity and earned progress.
-    choices = {entry["group"] for entry in CATALOGUE if entry["conditions"].get("any_of")}
+    upgrades = {entry["group"]: 3 for entry in CATALOGUE if entry["conditions"].get("any_of")}
+    if any(entry["group"] == "mill_win" for entry in CATALOGUE):
+        upgrades["mill_win"] = 5
     for slot, frozen in conn.execute("SELECT slot,definition FROM task_daily_assignments WHERE player_id=? AND day=? AND claimed=0", (player_id, day)).fetchall():
         old = json.loads(frozen)
-        if old["group"] not in choices or old.get("version", 0) >= 3:
+        if old["group"] not in upgrades or old.get("version", 0) >= upgrades[old["group"]]:
             continue
         replacement = choose_definition(old["tier"], [entry["group"] for entry in CATALOGUE if entry["group"] != old["group"]])
         conn.execute("UPDATE task_daily_assignments SET definition=? WHERE player_id=? AND day=? AND slot=?",
@@ -239,6 +253,10 @@ def measurement(definition, mode, won, stats):
             return None
     if "leader_color" in filters and (not isinstance(final.get("leader_colors"), list) or filters["leader_color"] not in final["leader_colors"]):
         return None
+    if "enemy_deck_max" in filters:
+        deck_size = counter(final, "enemy_final_deck")
+        if deck_size is None or deck_size > filters["enemy_deck_max"]:
+            return None
     if filters.get("royal_kill") and final.get("royal_flare_kill") is not True:
         return None
     if filters.get("no_unit_combat_damage") and counter(final, "unit_combat_player_damage") != 0:
@@ -250,6 +268,10 @@ def measurement(definition, mode, won, stats):
     if filters.get("exact_zero") and (counter(final, "unit_combat_player_damage") != 0 or counter(final, "enemy_final_life", signed=True) != 0):
         return None
     metric = definition["metric"]
+    if metric == REMOVAL_GROUP and metric not in stats:
+        # Older clients can still prove destructions, but not sacrifices or exiles.
+        counts = [counter(stats, name) for name in LEGACY_REMOVAL_GROUPS]
+        return min(MAX_COUNTER, sum(counts)) if all(value is not None for value in counts) else None
     if metric == "matches":
         return 1
     if metric == "streak":

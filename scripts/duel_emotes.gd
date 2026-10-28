@@ -75,35 +75,45 @@ func entry_rect() -> Rect2:
 func opponent_entry_rect() -> Rect2:
  var entry=entry_rect()
  if view.is_android:
-  var height=maxf(view.host.ui_metrics.hit,opponent_button.get_combined_minimum_size().y)
+  # Only measured layout rects here: render() rebuilds the toolbar and calls
+  # refresh() before its labels are sized, so live widths make the toggle jump.
+  # Its size must not read its own minimum size either, which icon_max_width
+  # derives from this rect.
+  var height=view.host.ui_metrics.hit
   var gap=view.host.ui_metrics.gap
+  # Beside the send button when the left rail is wide enough.
+  if entry.size.x+gap+height<=view.responsive.enemy_life.size.x:
+   return Rect2(entry.end.x+gap,entry.position.y+(entry.size.y-height)*0.5,height,height)
   var bounds=Rect2(entry.position-Vector2(0,height+gap),Vector2(height,height))
   var enemy_status_bottom=view.responsive.enemy_life.end.y+view.host.ui_metrics.hit*2+gap*3+view.host.ui_metrics.body*2.5
   # Dense touch controls can fill the upper rail. Use its separate lower gap
   # without moving the camera, payment, hand or emote-send controls.
   if bounds.position.y<enemy_status_bottom+gap:
-   # The phase caption expands into unused toolbar space. Float in that blank
-   # space when it fits, keeping both players' status text clear as well.
-   var toolbar=view.responsive.toolbar
-   if is_instance_valid(toolbar):
-    var phase=toolbar.get_node_or_null("BattlePhase")
-    if phase!=null:
-     var text_width=phase.get_theme_font("font").get_string_size(phase.text,HORIZONTAL_ALIGNMENT_LEFT,-1,phase.get_theme_font_size("font_size")).x
-     # The HUD is rebuilt before HBoxContainer's deferred sort. Derive its
-     # only expanding child's width from fixed geometry, not phase.size=0
-     # during that transient frame, which made this toggle jump twice.
-     var phase_width=view.responsive.toolbar_rect.size.x
-     var separation=toolbar.get_theme_constant("separation")
-     for control in toolbar.get_children():
-      if control is Control and control!=phase and control.visible:
-       phase_width-=control.get_combined_minimum_size().x+separation
-     if phase_width-text_width>=bounds.size.x+gap*2:
-      bounds.position=Vector2(view.responsive.toolbar_rect.position.x+phase_width-bounds.size.x-gap,view.responsive.toolbar_rect.position.y)
-      return bounds
+   var slot=toolbar_slot(height,gap)
+   if slot.has_area():return slot
    bounds.position.y=view.responsive.hand_toggle_rect.end.y+gap
   return bounds
  var life=view.responsive.enemy_life
  return Rect2(life.end.x+10,roundf(life.position.y+(life.size.y-44.0)*0.5),44,44)
+
+## Blank space after the phase caption, from minimum sizes rather than the
+## caption's sorted width, which is still zero right after a HUD rebuild.
+func toolbar_slot(extent: float,gap: float) -> Rect2:
+ var toolbar=view.responsive.toolbar
+ if not is_instance_valid(toolbar):return Rect2()
+ var phase=toolbar.get_node_or_null("BattlePhase")
+ if phase==null:return Rect2()
+ var phase_width=view.responsive.toolbar_rect.size.x
+ var shown=0
+ for child in toolbar.get_children():
+  if not child is Control or not child.visible:continue
+  shown+=1
+  if child!=phase:phase_width-=child.get_combined_minimum_size().x
+ phase_width-=toolbar.get_theme_constant("separation")*maxi(0,shown-1)
+ var text_width=phase.get_theme_font("font").get_string_size(phase.text,HORIZONTAL_ALIGNMENT_LEFT,-1,phase.get_theme_font_size("font_size")).x
+ if phase_width-text_width<extent+gap*2:return Rect2()
+ var rect=view.responsive.toolbar_rect
+ return Rect2(rect.position.x+phase_width-extent-gap,rect.position.y,extent,extent)
 
 func draw_opponent_slash():
  if view==null or view.host.show_opponent_emotes:return

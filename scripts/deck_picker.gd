@@ -11,6 +11,7 @@ var selected_id=""
 var caption="选择套牌"
 var empty_message="还没有保存的套牌。请先在组卡器保存。"
 var show_favorites=true
+var deck_filter: Callable
 var previous_focus: WeakRef
 var entries=[]
 var matches=[]
@@ -105,6 +106,7 @@ func source_decks() -> Array:return app.decks
 func reload_entries():
  entries.clear()
  for deck in source_decks():
+  if deck_filter.is_valid() and not deck_filter.call(deck):continue
   var counts=Store.deck_color_counts(deck.main+deck.side+[deck.leader])
   entries.append({"deck":deck.duplicate(true),"colors":Search.COLORS.filter(func(color):return counts[color]>0)})
  apply_search()
@@ -272,6 +274,7 @@ func choose(id: String):
  for i in range(app.decks.size()):
   if str(app.decks[i].id)==id:index=i;break
  if index<0:return
+ if deck_filter.is_valid() and not deck_filter.call(app.decks[index]):return
  app.close_deck_picker()
  if result.is_valid():result.call(index)
 

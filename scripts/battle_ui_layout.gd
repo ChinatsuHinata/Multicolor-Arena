@@ -14,6 +14,8 @@ var palette_rect=Rect2()
 var choice_rect=Rect2()
 var hand_toggle_rect=Rect2()
 var hand_cards_rect=Rect2()
+var board_rect=Rect2()
+var left_column_rect=Rect2()
 var action_column: VBoxContainer
 var action_scroll: ScrollContainer
 var notice_scroll: ScrollContainer
@@ -90,6 +92,8 @@ func measure(owner_view):
  var choice_top=view.OPPONENT_HAND_COUNT.end.y+g
  if view.network_session!=null:choice_top+=view.network_latency_layout(view.SIDEBAR.size.x).height+g
  choice_rect=Rect2(view.SIDEBAR.position.x,choice_top,view.SIDEBAR.size.x,back_rect.position.y-g-choice_top)
+ board_rect=view.TOUCH_CAMERA_AREA
+ left_column_rect=Rect2(safe.position.x,enemy_life.end.y+g,enemy_life.size.x,own_life.position.y-enemy_life.end.y-g*2)
  measure_hand_controls()
 
 func measure_hand_controls():
@@ -111,6 +115,7 @@ func render_hand_controls():
  toggle.tooltip_text="隐藏双方手牌区域" if view.hand_display_enabled else "显示双方手牌区域"
  var badge=view.host.box(view.hud,view.OPPONENT_HAND_COUNT,Color("#101e2b"),view.host.GOLD)
  badge.name="OpponentHandCount"
+ if view.android_board!=null:badge.hide()
  badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
  if not view.is_android:
   var history_rect=Rect2(badge.position.x-144,badge.position.y+10,132,42)
@@ -312,6 +317,7 @@ func hand_zone_selector(caption: String,action: Callable) -> Button:
  return result
 
 func camera_focus_toggle() -> Button:
+ if view.android_board!=null:return null
  var rect=Rect2(safe.position.x,enemy_life.end.y+metrics.gap,enemy_life.size.x,metrics.hit)
  var caption=("我方颜色盘视角" if view.android_palette_focus_owner()==view.local_seat else "敌方颜色盘视角") if view.android_palette_view else "战场视角"
  var result=view.host.button(view.hud,caption,rect,view.toggle_android_camera_focus,view.android_palette_view)

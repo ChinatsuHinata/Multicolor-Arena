@@ -116,7 +116,7 @@ func verify_card_links():
   expect(popup.inspected_card==ref.id and is_instance_valid(popup.card_overlay),"clicking full card name opens matching card "+ref.id)
   if not is_instance_valid(popup.card_overlay):continue
   var rules=popup.card_overlay.find_child("CardInspectionRules",true,false)
-  expect(rules!=null and rules.text==app.card_description(ref.id),"card hyperlink shows shared complete card rules")
+  expect(rules!=null and rules.get_parsed_text()==app.card_description(ref.id),"card hyperlink shows shared complete card rules")
   await click(popup.card_overlay.find_child("CloseTaskCardDetails",true,false).get_global_rect().get_center());await frames()
   expect(app.menu_popup==popup and popup.selected==0 and popup.scroll.scroll_vertical==saved_scroll,"return from card details preserves task page and scroll")
  var title=popup.find_child("DailyTask2",true,false).find_child("TaskTitle",true,false)
