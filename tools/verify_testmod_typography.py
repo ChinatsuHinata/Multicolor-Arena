@@ -31,6 +31,10 @@ def main():
     profile=json.loads(profile_path.read_text(encoding='utf8')) if profile_path.exists() else None
     title_profile_path=OUT/'title-profile.json'
     title_profile=json.loads(title_profile_path.read_text(encoding='utf8')) if title_profile_path.exists() else None
+    frames_output=OUT==ROOT/'output/testmod-frames'
+    baseline_cards={}
+    if frames_output and title_profile:
+        baseline_cards={r['id']:r for r in json.loads((ROOT/title_profile['baseline_revision']/'render-report.json').read_text(encoding='utf8'))}
     if title_profile:
         for entry in [*title_profile['fonts'].values(), *title_profile['templates'].values()]:
             path=Path(entry.get('path',entry.get('source')))
@@ -60,6 +64,7 @@ def main():
         assert all(r['attrs']['font-family']==title_font for r in title)
         if card['kind']!='spell':assert all(float(r['attrs']['font-size'])<=75 for r in title)
         title_bounds=None
+        preserve_non_title=True
         if title_profile:
             assert all(r.get('nativeCache') and r['attrs'].get('data-title-calibration')=='native' and not r['attrs'].get('stroke') for r in title)
             expected_title=definition['名称'].replace('【','「').replace('】','」').replace('の','ノ')
@@ -76,7 +81,9 @@ def main():
             assert all(Image.open(OUT/'layers'/identifier/r['nativeCache']['file']).getbbox() for r in title),(identifier,'invisible title glyph')
             region=(1716,37,1944,1455) if card['kind']=='spell' else (205,101,1313,242)
             assert title_bounds[0]>=region[0] and title_bounds[1]>=region[1] and title_bounds[2]<=region[2] and title_bounds[3]<=region[3],(identifier,'title outside capsule',title_bounds)
-            if title_profile.get('preserve_non_title_pixels',True):
+            same_item_rules=card['kind']=='item' and baseline_cards.get(identifier,{}).get('rules')==card['rules']
+            preserve_non_title=not frames_output or title_profile.get('preserve_non_title_pixels',True) or same_item_rules
+            if preserve_non_title:
                 current=np.asarray(Image.open(OUT/'cards'/f'{identifier}.png').convert('RGB'))
                 before=np.asarray(Image.open(ROOT/title_profile['baseline_revision']/'cards'/f'{identifier}.png').convert('RGB'))
                 changed=np.any(current!=before,axis=2)
@@ -144,7 +151,10 @@ def main():
             'choice_reference':card.get('choiceReference')})
         if title_profile:
             result[-1].update(title_native_styles_verified=True,title_bounds=title_bounds,
-                              non_title_pixels_unchanged=True if title_profile.get('preserve_non_title_pixels',True) else None)
+                              non_title_pixels_unchanged=True if preserve_non_title else None)
+            if not preserve_non_title:
+                reason='current JSON rules differ from historical testmod-spacing; item rendering path is unchanged' if card['kind']=='item' else 'frame, race, stats and footer changes are expected'
+                result[-1]['relaxed_checks']=['non-title pixels equal testmod-spacing; '+reason]
     (OUT/'typography-validation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
     print(f'PASS: {len(result)} cards; exact rules, native faces, panel bounds, left underlines, separator clearance.')
 

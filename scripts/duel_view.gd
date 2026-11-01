@@ -542,7 +542,10 @@ func android_palette_focus_owner() -> int:
 
 func required_camera_focus() -> int:
  if not tutorial_camera_view.is_empty():return -1
- if not host.auto_camera_focus or network_locked() or observing or engine.winner!=-2:return -1
+ if android_board!=null and engine.winner==-2:
+  if is_instance_valid(reveal_player) and reveal_player.palette_owner>=0:return reveal_player.palette_owner
+  if engine.phase=="possession" and engine.pending.get("kind","") in ["possession","network_wait"] and engine.pending.get("owner",-1)==1-local_seat:return 1-local_seat
+ if (android_board==null and not host.auto_camera_focus) or network_locked() or observing or engine.winner!=-2:return -1
  if not is_android:return -1
  if engine.pending.get("kind","")=="possession" and engine.pending.get("owner",-1)==local_seat:return local_seat
  if not local.is_empty() and local.mode=="payment":return local_seat
@@ -559,7 +562,20 @@ func required_camera_focus() -> int:
  return -1
 
 func sync_automatic_camera_focus():
- if android_board!=null:return
+ if android_board!=null:
+  var who=required_camera_focus()
+  if android_manual_focus_override>=0:
+   if who==android_manual_focus_override:return
+   android_manual_focus_override=-1
+  if who>=0:
+   if android_camera_restore.is_empty():
+    android_camera_restore={"palette_view":android_palette_view,"owner":android_focus_owner}
+   if android_auto_focus_owner==who and android_palette_view and android_palette_focus_owner()==who:return
+   android_auto_focus_owner=who;android_palette_view=true;android_focus_owner=who
+  elif not android_camera_restore.is_empty():
+   android_palette_view=android_camera_restore.palette_view;android_focus_owner=android_camera_restore.owner
+   android_camera_restore={};android_auto_focus_owner=-1
+  return
  android_camera_restored=false
  var who=required_camera_focus()
  if android_manual_focus_override>=0:
@@ -1142,13 +1158,20 @@ func android_choice_box(title: String,key: String,centered: bool=false,avoid_sta
  panel.set_meta("avoid_stack",avoid_stack)
  android_choice_panel=panel
  var title_font=host.ui_metrics.body if is_android else 20
- var title_height=minf(title_font*2.8,maxf(title_font*1.4,responsive.wrapped_height(title,rect.size.x-24,title_font)))
- var heading=txt(title,Rect2(12,10,rect.size.x-24,title_height),title_font,host.GOLD,panel)
+ var payment_width=minf(rect.size.x*0.5,host.ui_metrics.small*4+28) if android_payment_panel_available() else 0.0
+ var title_width=rect.size.x-24-(payment_width+host.ui_metrics.gap if payment_width>0 else 0.0)
+ var title_text=responsive.compact_choice_caption(title,title_width,title_font) if payment_width>0 else title
+ var title_height=minf(title_font*2.8,maxf(title_font*1.4,responsive.wrapped_height(title_text,title_width,title_font)))
+ if payment_width>0:
+  title_height=maxf(title_height,host.ui_metrics.hit)
+  render_android_payment_toggle(panel,Rect2(rect.size.x-12-payment_width,10,payment_width,host.ui_metrics.hit))
+ var heading=txt(title_text,Rect2(12,10,title_width,title_height),title_font,host.GOLD,panel)
  heading.name="ChoiceTitle"
  heading.add_theme_font_size_override("font_size",title_font)
  heading.clip_text=true
- heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;heading.tooltip_text=title
+ heading.autowrap_mode=TextServer.AUTOWRAP_OFF if payment_width>0 else TextServer.AUTOWRAP_WORD_SMART;heading.tooltip_text=title
  heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ if payment_width>0:heading.size=Vector2(title_width,title_height)
  panel.set_meta("choice_content_top",title_height+22)
  var rule=ColorRect.new();rule.name="ChoiceRule";rule.color=Color("#314b5a");rule.position=Vector2(12,title_height+15);rule.size=Vector2(rect.size.x-24,1);panel.add_child(rule)
  var hide_width=minf(126,maxf(86,host.ui_metrics.body*2+28))
@@ -1168,8 +1191,25 @@ func android_choice_on_top():
 func toggle_android_palette(who: int):
  set_android_camera_focus(-1 if android_palette_view and android_palette_focus_owner()==who else who)
 
+func android_payment_panel_available() -> bool:
+ return android_board!=null and local.get("mode","") in ["target","payment"]
+
+func render_android_payment_toggle(parent: Control=null,rect: Rect2=Rect2()):
+ var opened=android_palette_view and android_palette_focus_owner()==local_seat
+ var caption="隐藏支付" if opened else "继续支付"
+ var action=func():toggle_android_palette(local_seat)
+ var button=btn(caption,rect,action,opened,parent) if parent!=null else battle_button(caption,Rect2(1330,740,237,49),ANDROID_ACTION_CONFIRM_Y,action,opened)
+ button.name="PaymentPanelToggle";button.toggle_mode=true;button.set_pressed_no_signal(opened)
+ button.tooltip_text="隐藏或恢复支付面板，保留已选目标和支付方案"
+ button.clip_text=true
+ var font=host.get_theme_font("font");var font_size=host.ui_metrics.small if parent!=null else host.ui_metrics.body
+ var width=(rect.size.x if parent!=null else ANDROID_ACTION_WIDTH)-button.get_theme_stylebox("normal").get_minimum_size().x
+ while font_size>12 and font.get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x>width:font_size-=1
+ button.add_theme_font_size_override("font_size",font_size)
+ if parent!=null:button.size=rect.size
+
 func keep_button_rect() -> Rect2:
- if android_board!=null and android_board.keep_colors_rect.has_area():return android_board.keep_colors_rect
+ if android_board!=null:return android_board.keep_colors_rect
  if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.enemy_life.size.x,host.ui_metrics.hit)
  return Rect2(INSPECTION.position.x,100,108 if debug_mode else INSPECTION.size.x,44)
 
@@ -1181,6 +1221,11 @@ func keep_popup_rect() -> Rect2:
   var rect=Rect2(Vector2(keep_button_rect().end.x+gap,keep_button_rect().position.y),Vector2(pad*2+sw*5+8*4,pad*2+keep_title_height()+8+sw))
   rect.position.x=minf(rect.position.x,host.ui_metrics.safe.end.x-rect.size.x)
   rect.position.y=minf(rect.position.y,host.ui_metrics.safe.end.y-rect.size.y)
+  if android_board!=null:
+   var safe=host.ui_metrics.safe
+   rect.size=rect.size.round()
+   rect.position.x=clampf(roundf(rect.position.x),ceilf(safe.position.x),floorf(safe.end.x-rect.size.x))
+   rect.position.y=clampf(roundf(rect.position.y),ceilf(safe.position.y),floorf(safe.end.y-rect.size.y))
   return rect
  # The left column below y=156 is the inspection panel, so the desktop popup
  # opens to the right of the button instead of over the card art.
@@ -1207,6 +1252,7 @@ func keep_title_height() -> float:
 
 func keep_caption() -> String:
  var colors=host.auto_pay_keep_colors
+ if android_board!=null and android_board.left_single_row:return "保留"+("无" if colors.is_empty() else "".join(colors))
  if debug_mode and not is_android:return "保留色："+("无" if colors.is_empty() else str(colors.size())+"色")
  return ("保留色：" if is_android or debug_mode else "自动支付保留：")+("无" if colors.is_empty() else "".join(colors))
 
@@ -1238,6 +1284,7 @@ func render_keep_color():
  while size>floor_size and font.get_string_size(button.text,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x>room:size-=1
  button.add_theme_font_size_override("font_size",size)
  button.custom_minimum_size=rect.size;button.size=rect.size
+ if android_board!=null:android_board.place_left_button(button,rect)
  if not keep_popup_open:return
  var popup_rect=keep_popup_rect()
  keep_popup=host.box(hud,popup_rect,Color("#101e2b"),host.GOLD)
@@ -2279,7 +2326,9 @@ func render_prompt():
   elif local.mode=="payment":
    if payment_ready():battle_button("发动",Rect2(1330,799,237,49),ANDROID_ACTION_CONFIRM_Y,commit_local,true)
   if local.mode!="target" and not is_android:battle_button("取消使用",Rect2(1330,853,237,36),ANDROID_ACTION_FOOTER_Y,cancel_cast)
-  if local.mode in ["target","payment"]:render_floating_resources()
+  if local.mode in ["target","payment"]:
+   if android_payment_panel_available() and not is_instance_valid(android_choice_panel):render_android_payment_toggle()
+   render_floating_resources()
  elif engine.phase=="mulligan" and not engine.players[acting_player()].mulligan_done:
   text="选择要调度的手牌"
   battle_button("保留" if selection.is_empty() else "调度 %d 张" % selection.size(),Rect2(1330,770,237,55),ANDROID_ACTION_CONFIRM_Y,func():
@@ -2762,7 +2811,9 @@ func android_back():
   if is_instance_valid(history_detail_root):close_history_entry()
   else:close_history()
   return
+ if had_details:return
  if debug_open:close_debug();return
+ if android_board!=null and android_board.close_expansion():return
  if observing:toggle_observation();return
  if is_instance_valid(android_choice_panel):
   if android_action_uid>0:android_action_uid=0;action_menu_open=false;render()
@@ -3177,6 +3228,8 @@ func reserve_resource(uid: int):
  if observing or local.is_empty() or local.mode not in ["target","payment"]:return
  for reservation in local.plan:
   if reservation.uid==uid:
+   if android_board!=null and reservation.color=="黄/绿" and PaymentDraft.solve_costs(engine,acting_player(),local_cost_options(),[],payment_excluded()+[uid],host.auto_pay_keep_colors).ways==0:
+    message="没有不使用该单位的合法支付方案";render();return
    local.plan.erase(reservation);message="";render();return
  for source in payment_sources():
   if source.uid==uid and source.has("reservation"):
@@ -3582,6 +3635,7 @@ func refresh_observation():
   debug_free_checkbox.disabled=modal or not local.is_empty() or not engine.pending.is_empty()
  var obscured=is_instance_valid(modal_root) and modal_root.visible or is_instance_valid(android_choice_panel) and android_choice_panel.visible or debug_open and is_instance_valid(browser_panel) and browser_panel.visible or is_instance_valid(android_battle_menu_root) and android_battle_menu_root.visible
  observe_button.visible=not is_android or (observing or obscured) and not history_open
+ if android_board!=null and android_board.payment.visible and not observing and not modal and not debug_open:observe_button.hide()
  observe_button.text="返回选择" if observing else "观察战场"
  ui.move_child(inspection,-1)
  ui.move_child(observe_button,-1)
@@ -5015,6 +5069,7 @@ func begin_attack_payment(uid: int):
  if local_cost().values().all(func(n):return n==0):commit_local()
  else:render()
 func render_floating_resources():
+ if android_board!=null:return
  var pool=payment_sources().filter(func(r):return r.get("kind","")=="floating")
  if pool.is_empty():return
  var scroll=ScrollContainer.new();var rect=right_rect(Rect2(1330,480,237,118));scroll.position=rect.position;scroll.size=rect.size;hud.add_child(scroll)

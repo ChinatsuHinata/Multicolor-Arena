@@ -55,7 +55,7 @@ func run():
  check(host.is_host and not guest.is_host and host.cloud_ranked and guest.cloud_ranked,"automatic pairing assigns fixed battle seats")
  check(host.match_room_public and guest.match_room_public,"both public queue preferences produce a public match")
  check(host.room.format==Series.BO1_SIDEBOARD and guest.room.format==Series.BO1_SIDEBOARD and host.room.strict,"ranked format is strict BO1 sideboarding")
- check(host.room.rule_set==Store.RuleSet.OFFICIAL and guest.room.rule_set==Store.RuleSet.OFFICIAL,"both matched clients use the fixed official rule set")
+ check(host.room.rule_set==Store.RuleSet.RANKED and guest.room.rule_set==Store.RuleSet.RANKED,"both matched clients use the fixed ranked rule set")
  var matched_ranks=[accounts[0].rank,accounts[1].rank]
  check(host.room.get("ranks",[])==matched_ranks and guest.room.get("ranks",[])==matched_ranks,"both matched clients receive authenticated ranks in battle seat order")
  check(not host.can_move_cloud_seats(),"matchmaking disables moving seats")
@@ -68,30 +68,30 @@ func run():
  check(await until(func():return not snapshots.is_empty()),"authenticated observer gets directory")
  check(directory.queued==0,"directory reports no players after the pair leaves the queue")
  check(directory.rooms.any(func(info):return info.id==host.relay_code and info.watch_only),"matchmaking room appears with a spectator-only entry")
- check(directory.rooms.any(func(info):return info.id==host.relay_code and info.rule_set==Store.RuleSet.OFFICIAL),"directory publishes official matching rules")
+ check(directory.rooms.any(func(info):return info.id==host.relay_code and info.rule_set==Store.RuleSet.RANKED),"directory publishes ranked matching rules")
  var outsider=make_session(2);outsider.join_relay_room(ENDPOINT,host.relay_code,false,8)
  check(await until(func():return outsider.connected and not outsider.room_id.is_empty()),"observer joins the matchmaking room during registration")
  check(outsider.read_only and not outsider.can_act() and host.spectator_hub.watchers.size()==1,"matched observer has no battle actions")
- check(outsider.room.rule_set==Store.RuleSet.OFFICIAL,"observer receives the official rule set")
+ check(outsider.room.rule_set==Store.RuleSet.RANKED,"observer receives the ranked rule set")
  for index in range(2):
-  check(Store.validate(decks[index],true,Store.RuleSet.OFFICIAL).is_empty(),"match deck %d passes official validation" % index)
+  check(Store.validate(decks[index],true,Store.RuleSet.RANKED).is_empty(),"match deck %d passes ranked validation" % index)
  var errors=[]
  host.error_raised.connect(func(message):errors.append(message))
  guest.error_raised.connect(func(message):errors.append(message))
- for id in ["new-spx-001"]+Store.RuleSet.OFFICIAL_TWO:
+ for id in ["new-spx-001"]+Store.RuleSet.RANKED_TWO:
   var illegal=decks[1].duplicate(true);illegal.rule_set=Store.RuleSet.TEST;illegal.side=[id]
-  if id in Store.RuleSet.OFFICIAL_TWO:illegal.main[0]=id;illegal.main[1]=id
+  if id in Store.RuleSet.RANKED_TWO:illegal.main[0]=id;illegal.main[1]=id
   var unrestricted_error=Store.validate(illegal,true,Store.RuleSet.UNRESTRICTED)
   if Store.unavailable_card(id):check(not unrestricted_error.is_empty(),"disabled match card also remains unavailable under unrestricted rules: "+id)
   else:check(unrestricted_error.is_empty(),"rejected match deck is legal under unrestricted rules: "+id)
   errors.clear();guest.room_action({"name":"deck","deck":illegal})
   check(await until(func():return not errors.is_empty() and guest.can_act()),"guest deck rejection is synchronized: "+id)
-  check(not errors.is_empty() and str(errors[0]).contains("官限") and host.series.state.decks[1]==Store.clean_deck(decks[1]),"official matching rejects banned or excess cards despite the deck's test tag: "+id)
+  check(not errors.is_empty() and str(errors[0]).contains("段位匹配") and host.series.state.decks[1]==Store.clean_deck(decks[1]),"ranked matching rejects banned or excess cards despite the deck's test tag: "+id)
  check(host.room.status=="sideboarding" and guest.room.status=="sideboarding" and guest.room.has("leaders"),"prematched decks automatically register and expose leaders for sideboarding")
- check(host.room.rule_set==Store.RuleSet.OFFICIAL and guest.room.rule_set==Store.RuleSet.OFFICIAL,"sideboarding retains the official rule set")
+ check(host.room.rule_set==Store.RuleSet.RANKED and guest.room.rule_set==Store.RuleSet.RANKED,"sideboarding retains the ranked rule set")
  var illegal_sideboard=decks[0].duplicate(true);illegal_sideboard.rule_set=Store.RuleSet.TEST;illegal_sideboard.main[0]="new-spx-001"
  errors.clear();host.room_action({"name":"deck","deck":illegal_sideboard})
- check(not errors.is_empty() and str(errors[0]).contains("官限") and host.series.state.decks[0]==Store.clean_deck(decks[0]),"host sideboarding rejects banned cards without changing the registered deck")
+ check(not errors.is_empty() and str(errors[0]).contains("段位匹配") and host.series.state.decks[0]==Store.clean_deck(decks[0]),"host sideboarding rejects banned cards without changing the registered deck")
  check(await until(func():return outsider.room.get("status","")=="sideboarding" and outsider.room.has("leader_arts")),"observer receives public leaders during sideboarding")
  await ready_pair()
  check(host.room.status=="choosing" and guest.room.status=="choosing","second ready opens first-player choice")
@@ -116,7 +116,7 @@ func run():
  check(await until(func():return not host.connected),"ranked connection loss pauses the host")
  guest.retry_connection(Time.get_ticks_msec(),true)
  check(await until(func():return host.can_act() and guest.can_act()),"original player resumes its reserved match")
- check(host.room.rule_set==Store.RuleSet.OFFICIAL and guest.room.rule_set==Store.RuleSet.OFFICIAL,"reconnection preserves official matching rules")
+ check(host.room.rule_set==Store.RuleSet.RANKED and guest.room.rule_set==Store.RuleSet.RANKED,"reconnection preserves ranked matching rules")
  check(host.room.get("ranks",[])==matched_ranks and guest.room.get("ranks",[])==matched_ranks,"reconnection preserves the opponent rank snapshot")
  check(host.Codec.capture(host.authority)==opening,"reconnection preserves both original hands and the staged choice")
  sync_views()

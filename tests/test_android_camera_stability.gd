@@ -3,6 +3,10 @@ extends SceneTree
 const View=preload("res://scripts/duel_view.gd")
 const Table=preload("res://scripts/duel_table.gd")
 
+class CameraView extends View:
+ # Camera-only fixture has no battle HUD; pager placement has its own UI suite.
+ func update_zone_pager_positions():pass
+
 class Metrics:
  extends RefCounted
  var gap=10.0
@@ -71,7 +75,7 @@ func check_interrupted_switches(top_down: bool):
  expect(view.table.camera.global_transform.is_equal_approx(reset),"reset cancels the old camera animation "+str(top_down))
 
 func run():
- view=View.new();root.add_child(view);view.set_process(false)
+ view=CameraView.new();root.add_child(view);view.set_process(false)
  view.is_android=true;view.STAGE=Rect2(0,0,1600,900);view.HAND=Rect2(260,660,1050,232)
  var viewport=SubViewport.new();viewport.size=Vector2i(1600,900);view.add_child(viewport);view.viewport=viewport
  var table=Table.new();viewport.add_child(table);view.table=table

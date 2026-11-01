@@ -34,7 +34,7 @@ class DeckPlazaTests(unittest.TestCase):
         return plaza.handle(self.conn, data, account) if account["ok"] else account
 
     def test_retired_rule_migrates_to_unrestricted(self):
-        self.assertEqual(plaza.RULES, ("unrestricted", "official", "test"))
+        self.assertEqual(plaza.RULES, ("unrestricted", "official", "ranked", "test"))
         parts = self.parts.copy()
         parts[4] = "official_spx"
         raw = json.dumps(parts, ensure_ascii=False).encode("utf-8")
@@ -48,6 +48,20 @@ class DeckPlazaTests(unittest.TestCase):
                 self.assertTrue(result["ok"], result)
                 detail = self.request({"action": "detail", "id": result["id"], "token": self.login["token"]})
                 self.assertEqual(plaza.deck_parts(detail["deck"]["deck_code"])[4], "unrestricted")
+
+    def test_ranked_codes_upload_and_preserve_rules_cards_and_art(self):
+        parts = self.parts.copy()
+        parts[4] = "ranked"
+        raw = json.dumps(parts, ensure_ascii=False).encode("utf-8")
+        compressed = "MA1Z:" + str(len(raw)) + ":" + base64.b64encode(zlib.compress(raw)).decode().rstrip("=")
+        for code in ("MA1:" + raw.decode("utf-8"), compressed):
+            with self.subTest(code=code[:5]):
+                result = self.request(dict(self.payload, deck_code=code))
+                self.assertTrue(result["ok"], result)
+                detail = self.request({"action": "detail", "id": result["id"], "token": self.login["token"]})
+                saved = plaza.deck_parts(detail["deck"]["deck_code"])
+                self.assertEqual(saved[0], self.payload["title"])
+                self.assertEqual(saved[1:], parts[1:])
 
     def test_disabled_cards_rejected_in_every_rule_set(self):
         for card_id in (f"new-spx-{number:03d}" for number in range(1, 8)):

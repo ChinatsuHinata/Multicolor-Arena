@@ -28,6 +28,9 @@ var saved_hand: Dictionary={}
 var shown_at=0
 var started_at=0
 var move_ends={}
+var palette_owner=-1
+var palette_cards: Array=[]
+var palette_slot=Rect2()
 ## 正在占用演出队列的符卡特效模块（见 fx_spell_module.holding()）。
 var spell_effects: Array=[]
 var spell_wait_started=0
@@ -46,6 +49,7 @@ func reset():
   hand_node.visible=saved_hand.visible;hand_node.hidden_card=saved_hand.hidden;hand_node.art.texture=saved_hand.texture
  queue.clear();current={};public_uids.clear();completed.clear();movements.clear();results.clear();move_ends.clear();spell_effects.clear();busy=false
  hand_node=null;saved_hand={};face=null;result_label=null
+ palette_owner=-1;palette_cards.clear();palette_slot=Rect2()
 func enqueue(events: Array):
  # Generated keystones become one visible stack immediately, without one
  # travelling card and input delay per token. Android move runs share a tween.
@@ -59,8 +63,43 @@ func enqueue(events: Array):
  if queue.is_empty():return
  busy=true
  view.close_overlay()
+ begin_possession(events)
  if is_instance_valid(view.banner):view.banner.hide()
  call_deferred("next_card")
+func enemy_possession(events: Array) -> bool:
+ if view.android_board==null:return false
+ var outgoing=false;var incoming=false
+ for event in events:
+  if event.get("type","")!="move" or event.card.owner!=1-view.local_seat:continue
+  if event.from=="palette" and event.to=="hand":outgoing=true
+  if event.from=="hand" and event.to=="palette":incoming=true
+ return outgoing and incoming
+func begin_possession(events: Array):
+ if not enemy_possession(events):return
+ palette_owner=1-view.local_seat
+ palette_cards=view.engine.players[palette_owner].palette.duplicate(true)
+ # Network snapshots already contain the completed exchange. Rewind only the
+ # public palette for presentation; the authoritative cards stay untouched.
+ for i in range(events.size()-1,-1,-1):
+  var event=events[i]
+  if event.get("type","")!="move":continue
+  if event.to=="palette" and event.to_owner==palette_owner:
+   palette_cards=palette_cards.filter(func(c):return c.uid!=event.card.uid)
+  if event.from=="palette" and event.card.owner==palette_owner:palette_cards.append(event.card.duplicate(true))
+ for event in events:
+  if event.get("type","")=="move" and event.from=="palette" and event.card.owner==palette_owner:
+   view.android_board.anchors["palette-"+str(palette_owner)]="card_"+str(event.card.uid);break
+ view.android_manual_focus_override=-1
+ view.sync_automatic_camera_focus();view.android_board.sync();view.rebuild_badges()
+func advance_possession(event: Dictionary):
+ if palette_owner<0:return
+ if event.from=="palette" and event.card.owner==palette_owner:
+  palette_cards=palette_cards.filter(func(c):return c.uid!=event.card.uid)
+ if event.to=="palette" and event.to_owner==palette_owner:
+  var card=event.card.duplicate(true);card.zone="palette";card.owner=palette_owner
+  palette_cards.append(card)
+  view.android_board.anchors["palette-"+str(palette_owner)]="card_"+str(card.uid)
+ view.android_board.sync();view.rebuild_badges()
 func instant_keystone(event: Dictionary) -> bool:
  return event.get("type","")=="move" and event.get("from","")=="token" and event.get("to","")=="field" and event.get("card",{}).get("card_id","")=="token-fdf-129"
 func batch_moves(events: Array) -> Array:
@@ -74,7 +113,7 @@ func batch_moves(events: Array) -> Array:
 func append_move_run(out: Array,run: Array):
  # Public reveals and result messages delimit runs. Multiple moves of the
  # same card keep their original records but travel to the final destination.
- if run.size()<MOVE_BATCH_THRESHOLD:out.append_array(run);return
+ if run.size()<MOVE_BATCH_THRESHOLD or enemy_possession(run):out.append_array(run);return
  var by_uid={}
  for event in run:
   var uid=event.card.uid
@@ -88,6 +127,7 @@ func next_card():
  if not busy:return
  if queue.is_empty():
   busy=false;current={};move_ends.clear()
+  palette_owner=-1;palette_cards.clear();palette_slot=Rect2()
   if is_instance_valid(view.banner):view.banner.show()
   view.clock_time=0;view.render();return
  current=queue.pop_front();started_at=Time.get_ticks_msec()
@@ -150,6 +190,15 @@ func show_result():
 func zone_rect(zone: String,owner: int,uid: int,source: bool,destination_layout: Dictionary={}) -> Rect2:
  var key="card_"+str(uid)
  if source and move_ends.has(uid):return move_ends[uid]
+ if palette_owner==owner:
+  if zone=="palette":
+   var board=view.android_board
+   if source and board.cards.has(key) and board.cards[key].visible:
+    return Rect2(board.position+board.cards[key].home.position,board.cards[key].home.size)
+   if not source and palette_slot.has_area():return palette_slot
+  if zone=="hand":
+   var dimensions=Vector2(54,75)
+   return Rect2(view.android_board.zone_rect(owner,"hand").get_center()-dimensions/2,dimensions)
  if zone=="hand" and owner!=view.local_seat and not view.debug_mode:
   var dimensions=Vector2(54,75)
   return Rect2(view.OPPONENT_HAND_COUNT.get_center()-dimensions/2,dimensions)
@@ -198,12 +247,17 @@ func hide_move_source(event: Dictionary,flight: Dictionary={}) -> float:
  if view.table.visuals.has(key):view.table.stop_tween(key);view.table.visuals[key].hide()
  for nodes in [view.hand_nodes,view.enemy_nodes]:
   if nodes.has(c.uid):nodes[c.uid].hide()
+ if palette_owner>=0 and view.android_board.cards.has(key):view.android_board.cards[key].hide()
  view.table.presented_moves[c.uid]=true
  # 单位牌此刻开始飞向战场："进入前"入场特效与飞行同时开播，而非落地后。
  if event.to=="field":return view.table.unit_departing(c.uid,MOVE_SECONDS,flight)
  return 0.0
 func show_move():
+ if palette_owner>=0 and current.from=="palette" and current.card.owner==palette_owner:
+  view.android_board.anchors["palette-"+str(palette_owner)]="card_"+str(current.card.uid)
+  view.android_board.sync()
  var c=current.card;var from=zone_rect(current.from,c.owner,c.uid,true);var to=zone_rect(current.to,current.to_owner,c.uid,false)
+ if palette_owner==c.owner and current.from=="palette":palette_slot=from
  var hidden=hidden_move(current)
  var texture=view.host.texture("back") if hidden else view.card_texture(c)
  create_face(from.size,from.get_center(),texture)
@@ -218,6 +272,7 @@ func show_move():
  sequence.chain().tween_callback(func():
   move_ends[c.uid]=to
   movements.append({"uid":c.uid,"from":current.from,"to":current.to,"hidden":hidden})
+  advance_possession(current)
   face.queue_free();next_card())
 func show_move_batch():
  var layout=view.table.layout();var destinations={}

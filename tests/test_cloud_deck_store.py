@@ -77,6 +77,14 @@ class CloudDeckTests(unittest.TestCase):
         self.assertTrue(answer["ok"], answer)
         self.assertTrue(self.save(1.0, float(answer["decks"][0]["revision"]))["ok"])
 
+    def test_ranked_deck_persists_rules_cards_and_art(self):
+        parts = json.loads(self.code[4:])
+        parts[4] = "ranked"
+        code = "MA1:" + json.dumps(parts, ensure_ascii=False)
+        result = self.request("save", slot=0, revision=0, deck_code=code)
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(cloud.codes.deck_parts(self.request()["decks"][0]["deck_code"]), parts)
+
     def test_retired_rule_migrates_without_losing_cards_or_art(self):
         parts = json.loads(self.code[4:])
         parts[4] = "official_spx"

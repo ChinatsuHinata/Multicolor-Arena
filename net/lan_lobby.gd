@@ -458,7 +458,7 @@ func build_cloud_home():
  var match_actions=VBoxContainer.new() if compact_side_by_side else HBoxContainer.new();matching.add_child(match_actions)
  match_actions.add_theme_constant_override("separation",int(app.ui_metrics.gap))
  var mode=OptionButton.new();match_actions.add_child(mode);mode.name="MatchmakingMode";app.ui_metrics.button(mode)
- mode.add_item("排位模式 · 官限");mode.add_item("休闲模式 · 无限制");mode.add_item("娱乐模式")
+ mode.add_item("排位模式 · 段位匹配");mode.add_item("休闲模式 · 无限制");mode.add_item("娱乐模式")
  mode.text_overrun_behavior=TextServer.OVERRUN_NO_TRIMMING
  mode.custom_minimum_size.x=mode.get_theme_font("font").get_string_size("探索幻想乡 · 固定卡组",HORIZONTAL_ALIGNMENT_LEFT,-1,mode.get_theme_font_size("font_size")).x+app.ui_metrics.padding*3+mode.get_theme_icon("arrow").get_width()
  if compact_side_by_side:mode.custom_minimum_size.x=0;mode.size_flags_horizontal=Control.SIZE_EXPAND_FILL;compact_cloud_control(mode)

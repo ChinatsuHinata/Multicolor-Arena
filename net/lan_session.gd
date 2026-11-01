@@ -13,7 +13,7 @@ const Journal=preload("res://net/journal_store.gd")
 const Identity=preload("res://net/local_identity.gd")
 const PlayerNameDisplay=preload("res://scripts/player_name_display.gd")
 const Series=preload("res://net/series_controller.gd")
-const MATCH_RULE_SET=Series.RuleSet.OFFICIAL
+const MATCH_RULE_SET=Series.RuleSet.RANKED
 const MATCH_CATEGORIES=["ranked","casual","entertainment"]
 # Entertainment submodes use distinct queue IDs to prevent mixed matches.
 const MATCH_MODES=["ranked","casual","exploration","exploration_random"]

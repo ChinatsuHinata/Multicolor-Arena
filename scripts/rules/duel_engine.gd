@@ -746,6 +746,7 @@ func pump_choices():
   if not returns.is_empty() or not timer_changes.is_empty() or not zone_replacements.is_empty():pump_choices();return
  finish_reveal_resolution()
  if not pending.is_empty():return
+ for t in triggers:Cat.prepare_reveal_trigger(self,t)
  while not triggers.is_empty():
   triggers=triggers.filter(func(t):return not skip_murder_dolls_trigger(t) and not skip_flower_cast_trigger(t) and (t.get("effect","")!="miracle" or not miracle_blocked(t.source,t.owner)))
   if triggers.is_empty():trigger_order_queue.clear();break

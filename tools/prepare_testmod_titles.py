@@ -7,6 +7,7 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from psd_tools import PSDImage
+from PIL import Image
 from outline_testmod_text import resolve_fonts
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +37,12 @@ def main():
         shutil.copy2(BASE / name, OUT / name)
     pack = ROOT / 'examples/testmod'
     manifest = json.loads((pack / 'manifest.json').read_text(encoding='utf8'))
+    if OUT == ROOT / 'output/testmod-frames':
+        for filename in manifest['cards']:
+            card = json.loads((pack / filename).read_text(encoding='utf8'))
+            target = OUT/'illustrations'/f"{card['卡牌ID'].split('/')[-1]}.png"
+            if not card['图片'].startswith('res://') and not target.exists():
+                Image.open(pack/card['图片']).convert('RGBA').save(target)
     files = manifest['cards'] + ['abilities.gd', 'scarlet_moon.gd', 'manifest.json', 'README.txt']
     snapshot = OUT / 'source-rules.sha256.json'
     if not snapshot.exists():
@@ -53,6 +60,8 @@ def main():
                'vertical': {'max_size': 100, 'tracking': 220, 'faux_bold_ratio': .03,
                             'center': [1828, 745], 'max_ink_height': 1260,
                             'positioning': 'vmtx-origin-and-advance'}}
+    if OUT == ROOT / 'output/testmod-frames':
+        profile['preserve_non_title_pixels'] = False
     for kind, (filename, indices) in SOURCES.items():
         source = Path(filename)
         psd = PSDImage.open(source)

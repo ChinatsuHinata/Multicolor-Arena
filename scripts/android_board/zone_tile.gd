@@ -12,6 +12,7 @@ func configure(rect: Rect2,value: Dictionary,callback: Callable):
  position=rect.position-board.position;size=rect.size;props=value;action=callback
  kind=props.get("kind","zone");disabled=props.get("disabled",false)
  mouse_filter=MOUSE_FILTER_IGNORE if disabled else MOUSE_FILTER_STOP
+ mouse_default_cursor_shape=CURSOR_ARROW if disabled else CURSOR_POINTING_HAND
  modulate.a=0.45 if props.get("empty",false) else 1.0
  queue_redraw()
 
@@ -42,17 +43,23 @@ func hex(center: Vector2,width: float,color: Color):
 
 func _draw():
  var m=board.view.host.ui_metrics
- var style=board.view.host.style(Color("#1b1420",0.96),Color("#5aa8ff") if props.get("legal",false) else Color("#6a5265"))
- style.set_corner_radius_all(6);style.set_border_width_all(2 if props.get("legal",false) else 1)
+ var style=board.view.host.style(Color("#1b1420",0.96),Color("#e9c175") if props.get("selected",false) else Color("#5aa8ff") if props.get("legal",false) else Color("#6a5265"))
+ style.set_corner_radius_all(6);style.set_border_width_all(2 if props.get("legal",false) or props.get("selected",false) else 1)
  draw_style_box(style,Rect2(Vector2.ZERO,size))
  match kind:
   "summary":draw_summary()
   "permanent":
    var texture=props.get("texture")
-   if texture is Texture2D:
+   if props.has("previews"):
+    draw_item_previews()
+   elif texture is Texture2D:
     var dest=Rect2(2,2,size.x-4,size.y-4)
+    if props.get("landscape",false):
+     draw_set_transform(dest.get_center(),-PI/2)
+     dest=Rect2(-Vector2(dest.size.y,dest.size.x)/2,Vector2(dest.size.y,dest.size.x))
     var scale_value=maxf(dest.size.x/texture.get_width(),dest.size.y/texture.get_height());var crop=dest.size/scale_value
     draw_texture_rect_region(texture,dest,Rect2((texture.get_size()-crop)/2,crop),Color(1,1,1,0.85))
+    draw_set_transform(Vector2.ZERO)
     draw_rect(Rect2(2,size.y-m.small-9,size.x-4,m.small+7),Color("#1b1420",0.85))
    text(props.label,Vector2(5,size.y-6),m.small,Color.WHITE,size.x-10)
    if props.has("count"):
@@ -71,6 +78,25 @@ func _draw():
   var caption="▶"+str(props.usable);var width=get_theme_default_font().get_string_size(caption,HORIZONTAL_ALIGNMENT_LEFT,-1,m.small).x+8
   draw_style_box(board.view.host.style(Color("#5aa8ff"),Color.TRANSPARENT),Rect2(size.x-width,0,width,m.small+6))
   text(caption,Vector2(size.x-width+4,m.small+1),m.small)
+
+func draw_item_previews():
+ var previews=props.previews;var m=board.view.host.ui_metrics
+ if previews.is_empty():return
+ var area=Rect2(4,4,size.x-8,maxf(1,size.y-m.small-13))
+ var gap=3.0;var width=(area.size.x-gap*(previews.size()-1))/previews.size()
+ for i in range(previews.size()):
+  var preview=previews[i];var texture=preview.texture
+  if not texture is Texture2D:continue
+  var ratio=1.4 if preview.tapped else 1.0/1.4
+  var extent=Vector2(minf(width,area.size.y*ratio),minf(area.size.y,width/ratio))
+  var center=Vector2(area.position.x+i*(width+gap)+width/2,area.get_center().y)
+  var dest=Rect2(center-extent/2,extent)
+  draw_rect(dest.grow(1),Color("#e9c175") if not preview.tapped else Color("#7e7280"))
+  if preview.tapped:
+   draw_set_transform(dest.get_center(),-PI/2)
+   dest=Rect2(-Vector2(extent.y,extent.x)/2,Vector2(extent.y,extent.x))
+  draw_texture_rect(texture,dest,false,Color(0.7,0.7,0.7) if preview.tapped else Color.WHITE)
+  draw_set_transform(Vector2.ZERO)
 
 func draw_summary():
  var m=board.view.host.ui_metrics;var fs=m.small

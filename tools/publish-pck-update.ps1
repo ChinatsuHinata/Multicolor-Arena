@@ -14,7 +14,8 @@ param(
     [string]$Server = '8.137.122.187',
     [string]$User = 'codex',
     [int]$SshPort = 22,
-    [string]$KeyPath = "$env:USERPROFILE\.ssh\id_ed25519_multicolor_ecs"
+    [string]$KeyPath = "$env:USERPROFILE\.ssh\id_ed25519_multicolor_ecs",
+    [string]$SshProxyCommand
 )
 
 $ErrorActionPreference = 'Stop'
@@ -72,6 +73,7 @@ if ($Publish -or $CheckConnection) {
     $connectionOptions = @('-i', $KeyPath, '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes',
         '-o', 'ConnectTimeout=10', '-o', 'ConnectionAttempts=1',
         '-o', 'ServerAliveInterval=10', '-o', 'ServerAliveCountMax=2')
+    if ($SshProxyCommand) { $connectionOptions += @('-o', "ProxyCommand=$SshProxyCommand") }
     $sshOptions = $connectionOptions + @('-p', "$SshPort")
     if ($CheckConnection) {
         Write-Host "Checking cloud SSH connection: ${target}:$SshPort"

@@ -67,12 +67,16 @@ func available() -> bool:
  return e.emote_remaining(view.local_seat)<=0.0
 
 func entry_rect() -> Rect2:
+ if view.android_board!=null:return view.android_board.emote_rect
  var safe=view.responsive.safe
  var extent=maxf(52.0,view.host.ui_metrics.hit) if view.is_android else 52.0
  var at=Vector2(safe.position.x,view.responsive.hand_toggle_rect.position.y-extent-view.host.ui_metrics.gap) if view.is_android else Vector2(view.responsive.own_life.end.x+10,view.responsive.own_life.position.y)
  return Rect2(at,Vector2(extent+12 if view.is_android else extent,extent))
 
 func opponent_entry_rect() -> Rect2:
+ if view.android_board!=null:
+  var slot=toolbar_slot(view.host.ui_metrics.hit,view.host.ui_metrics.gap)
+  return Rect2(slot.position.round(),slot.size.round())
  var entry=entry_rect()
  if view.is_android:
   # Only measured layout rects here: render() rebuilds the toolbar and calls
@@ -143,6 +147,7 @@ func refresh():
   reset();game_key=key
  observed_serial=int(view.engine.emote_serial)
  var bounds=entry_rect();button.position=bounds.position;button.size=bounds.size
+ if view.android_board!=null:view.android_board.place_left_button(button,bounds)
  button.visible=enabled() and not view.replay_view() and not view.spectator_view()
  button.disabled=not available()
  var remaining=ceili(view.engine.emote_remaining(view.local_seat))
@@ -166,7 +171,7 @@ func refresh():
    opponent_button.add_theme_color_override(color_name,opponent_icon_color)
    icon_changed=true
  if icon_changed:opponent_button.queue_redraw()
- opponent_button.visible=not view.replay_view() and not view.spectator_view()
+ opponent_button.visible=not view.replay_view() and not view.spectator_view() and (view.android_board==null or opponent_bounds.has_area())
  opponent_button.disabled=other_popup() or view.tutorial_runtime!=null and (not view.tutorial_controls_enabled or view.tutorial_runtime.playing_sequence())
  opponent_button.set_pressed_no_signal(view.host.show_opponent_emotes)
  opponent_button.tooltip_text="点击关闭对方表情" if view.host.show_opponent_emotes else "点击开启对方表情"
@@ -292,8 +297,10 @@ func bubble_target(who: int) -> Rect2:
  var leader=view.engine.find_card(uid)
  if leader.is_empty():leader=view.engine.players[who].leader
  if leader.get("zone","") not in ["leader","field"]:return Rect2()
- var visual=view.table.visuals.get("card_"+str(leader.uid))
- if is_instance_valid(visual):return view.projected_card_rect(visual)
+ # The side-column board resolves leaders to its 2D cards, tiles or pagers.
+ # A missing anchor there must use the edge bubble, never the hidden 3D board.
+ var rect=view.card_screen_rect("card_"+str(leader.uid))
+ if rect.has_area() or view.android_board!=null:return rect
  if leader.zone=="leader":return Rect2(view.project(view.table.zone_position("leader",who))-Vector2(24,32),Vector2(48,64))
  # A paged-out unit has no screen card; point at its battlefield page control.
  var group=view.table.field_group(leader)

@@ -108,7 +108,11 @@ func measure_hand_controls():
 
 func render_hand_controls():
  # Hand visibility is local UI state, available even to read-only spectators.
- var toggle=view.host.button(view.hud,"隐藏手牌" if view.hand_display_enabled else "显示手牌",hand_toggle_rect,func():view.set_hand_display(not view.hand_display_enabled),not view.hand_display_enabled)
+ var toggle_caption="隐藏手牌" if view.hand_display_enabled else "显示手牌"
+ if view.android_board!=null:
+  hand_toggle_rect=view.android_board.hand_toggle_rect
+  if view.android_board.left_single_row:toggle_caption="手牌" if view.hand_display_enabled else "显示"
+ var toggle=view.host.button(view.hud,toggle_caption,hand_toggle_rect,func():view.set_hand_display(not view.hand_display_enabled),not view.hand_display_enabled)
  toggle.name="HandDisplayToggle"
  if view.is_android:metrics.button(toggle)
  position_hand_toggle()
@@ -144,6 +148,11 @@ func render_hand_controls():
  position_hand_count()
 
 func position_hand_toggle():
+ if view.android_board!=null:
+  hand_toggle_rect=view.android_board.hand_toggle_rect
+  var control=view.hud.get_node_or_null("HandDisplayToggle")
+  if control!=null:view.android_board.place_left_button(control,hand_toggle_rect)
+  return
  if view.is_android or not is_instance_valid(view.hud) or not is_instance_valid(view.table):return
  var toggle=view.hud.get_node_or_null("HandDisplayToggle")
  if toggle==null:return

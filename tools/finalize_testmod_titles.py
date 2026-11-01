@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / os.environ.get('TESTMOD_OUTPUT', 'output/testmod-titles')
 BASE = ROOT / 'output/testmod-spacing'
 PACK = ROOT / 'examples/testmod'
+FRAMES = OUT == ROOT / 'output/testmod-frames'
 
 
 def load(path):
@@ -58,11 +59,27 @@ def main():
     manifest = load(PACK/'manifest.json')
     expected = {load(PACK/name)['卡牌ID'].split('/')[-1] for name in manifest['cards'] if not load(PACK/name)['图片'].startswith('res://')}
     assert {r['id'] for r in report} == {r['id'] for r in typography} == {r['id'] for r in psds} == expected
-    assert all(r['rules_exact'] and r['native_spacing_verified'] and r['title_native_styles_verified'] and r['non_title_pixels_unchanged'] for r in typography)
+    assert all(r['rules_exact'] and r['native_spacing_verified'] and r['title_native_styles_verified'] for r in typography)
+    kinds = {r['id']:r['kind'] for r in report}
+    assert all(r['non_title_pixels_unchanged'] is True or
+               (FRAMES and r['non_title_pixels_unchanged'] is None and r.get('relaxed_checks'))
+               for r in typography)
     assert all(r['title_raw_caches_exact'] and r['source_title_effects_exact'] for r in psds)
     assert len(glyphs)==2 and all(r['passed'] for r in glyphs)
     snapshot = load(OUT/'source-rules.sha256.json')
     assert all(digest(PACK/name) == value for name, value in snapshot.items()), 'card definitions changed'
+    if FRAMES:
+        relaxations = {'scope':'output/testmod-frames only; unit/spell frames and items with rules newer than the historical baseline',
+                       'cards':[r['id'] for r in typography if r['non_title_pixels_unchanged'] is None],
+                       'item_cards_with_changed_rules':[r['id'] for r in typography if kinds[r['id']]=='item' and r['non_title_pixels_unchanged'] is None],
+                       'relaxed_checks':[
+                           {'source':'verify_testmod_typography.py', 'check':'non-title pixels equal testmod-spacing',
+                            'reason':'expected frame/label changes, or item JSON rules newer than the baseline; title-profile preserve_non_title_pixels=false'},
+                           {'source':'finalize_testmod_titles.py', 'check':'all non_title_pixels_unchanged values are true',
+                            'reason':'accept explicitly reported skipped comparisons only in frames output'}],
+                       'retained_checks':['item non-title pixels when rules match baseline', 'exact rules and source hashes', 'native text spacing',
+                                          'title faces, bounds and glyph overlap', 'PSD layers, raw title caches and native effects']}
+        (OUT/'validation-relaxations.json').write_text(json.dumps(relaxations, ensure_ascii=False, indent=2), encoding='utf8')
     comparisons(report)
     notes = '''PSD 制卡：标题字体与原卡呈现校准
 
@@ -94,10 +111,19 @@ before-revision.zip：修改前工作区示例与启用模组的备份。
 同步到当前工作区模组：powershell -File tools/build_testmod_titles.ps1 -Install
 工作流说明：docs/PSD制卡工作流.md
 '''
+    if FRAMES:
+        notes = notes.replace('PSD 制卡：标题字体与原卡呈现校准', 'PSD 制卡：原始像素卡框与标题校准')
+        notes = notes.replace('24 张卡的非标题区域逐像素保持与 testmod-spacing 一致；牌文、插画和能力脚本不变。',
+                              '单位／自机与符卡／结界采用提取栅格卡框；种族、攻血与页脚按指定参数修正。\n'
+                              '仅本输出放宽改框卡和牌文已更新道具与 testmod-spacing 的非标题像素一致断言；其余道具仍逐像素核验。\n'
+                              '放宽明细见 validation-relaxations.json；牌文、字距、标题字形、PSD 层与规则哈希校验保留。')
+        notes = notes.replace('tools/build_testmod_titles.ps1', 'tools/build_testmod_frames.ps1')
     (OUT/'使用说明.txt').write_text(notes, encoding='utf8')
     gallery = OUT/'comparison-gallery.html'
     value = gallery.read_text(encoding='utf8')
     value = value.replace('<h1>testmod · 正确模板重制逐张对照</h1>', '<h1>testmod · 标题字体与原卡呈现校准</h1><p><a href="使用说明.txt">制作说明</a> · <a href="title-profile.json">源 PSD 标题参数</a></p><img src="title-comparison.png" alt="原卡、原工作流与修正后标题对比">')
+    if FRAMES:
+        value = value.replace('testmod · 标题字体与原卡呈现校准', 'testmod · 原始像素卡框与标题校准')
     for row in report:
         identifier = row['id']
         value = value.replace(f'cards/{identifier}.png">原尺寸 PNG</a>', f'cards/{identifier}.png">原尺寸 PNG</a> · <a href="psd/{identifier}.psd">分层 PSD</a>')
@@ -111,22 +137,29 @@ before-revision.zip：修改前工作区示例与启用模组的备份。
             for target in [PACK, active]:
                 shutil.copy2(OUT/'cards'/relative.name, target/relative)
                 assert digest(OUT/'cards'/relative.name) == digest(target/relative)
-    modzip = ROOT/'output'/f'testmod-{manifest["version"]}-titles.zip'
+    revision = 'frames' if FRAMES else 'titles'
+    modzip = ROOT/'output'/f'testmod-{manifest["version"]}-{revision}.zip'
     with ZipFile(modzip, 'w', ZIP_DEFLATED, compresslevel=3) as archive:
         for source in sorted(PACK.rglob('*')):
             if source.is_file() and source.suffix not in ['.uid', '.import'] and not any(p.startswith('.') for p in source.relative_to(PACK).parts):
                 relative = source.relative_to(PACK)
                 replacement = OUT/'cards'/relative.name if relative.parts[0] == 'art' and source.stem in expected else source
+                if FRAMES and replacement != source and replacement.suffix.lower() in ['.jpg', '.jpeg']:
+                    Image.open(replacement.with_suffix('.png')).convert('RGB').save(replacement)
                 archive.write(replacement, relative)
     files = [p for directory in ['cards', 'psd', 'comparisons'] for p in sorted((OUT/directory).glob('*')) if p.is_file() and not p.name.endswith('.preview.png')]
     files += sorted((OUT/'layouts').glob('*.fonts.json'))
     files += [OUT/name for name in ['使用说明.txt','title-profile.json','title-glyph-validation.json','spacing-profile.json','source-rules.sha256.json','render-report.json','typography-validation.json','psd-validation.json','title-comparison.png','comparison-gallery.html','overview.png']]
+    if FRAMES:
+        files += sorted((OUT/'frames').glob('*.png'))
+        files += [OUT/'frame-report.json', OUT/'validation-relaxations.json']
     (OUT/'sha256.json').write_text(json.dumps({str(p.relative_to(OUT)).replace('\\','/'):digest(p) for p in files}, indent=2), encoding='utf8')
-    bundle = ROOT/'output/testmod-titles.zip'
+    bundle = ROOT/'output'/f'testmod-{revision}.zip'
     with ZipFile(bundle, 'w', ZIP_DEFLATED, compresslevel=3) as archive:
         for source in files+[OUT/'sha256.json']:
-            archive.write(source, Path('testmod-titles')/source.relative_to(OUT))
-    print(f'PASS: {len(report)} title revisions, native PSD title caches/effects, unchanged non-title pixels; installed={install}; {modzip}; {bundle}', flush=True)
+            archive.write(source, Path(f'testmod-{revision}')/source.relative_to(OUT))
+    pixels = 'historical pixel checks selectively relaxed (validation-relaxations.json)' if FRAMES else 'unchanged non-title pixels'
+    print(f'PASS: {len(report)} {revision} revisions, native PSD title caches/effects, {pixels}; installed={install}; {modzip}; {bundle}', flush=True)
 
 
 if __name__ == '__main__':

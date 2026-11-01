@@ -158,6 +158,7 @@ function defs(c){
  const cs=c['颜色'].map(x=>tones[x]),a=cs[0],b=cs.at(-1);
  return `<defs>
  <filter id="titleGlowUnit" x="-.3" y="-1" width="1.6" height="3" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="5"/><feGaussianBlur stdDeviation="2.5" result="glowMask"/><feFlood flood-color="#020000" flood-opacity=".75"/><feComposite in2="glowMask" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="raceGlow" x="-.3" y="-1" width="1.6" height="3" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="2"/><feGaussianBlur stdDeviation="2.5" result="glowMask"/><feFlood flood-color="#ffffff" flood-opacity=".75"/><feComposite in2="glowMask" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
  <filter id="titleGlowSpell" x="-.5" y="-.5" width="2" height="2" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="3.33333" result="blur"/><feFlood flood-color="#fdfdfd"/><feComposite in2="blur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${a}"/><stop offset=".45" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
  <linearGradient id="soft" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${a}" stop-opacity=".49"/><stop offset="1" stop-color="${b}" stop-opacity=".46"/></linearGradient>
@@ -303,7 +304,7 @@ async function render(c,index){
  serial=0;
  const id=c['卡牌ID'].split('/')[1],landscape=['符卡','结界'].includes(c['类别']),kind=landscape?'spell':c['类别']==='道具'?'item':'unit';
  const [W,H]=landscape?[2079,1488]:[1488,2079],costs=costList(c);
- let o=defs(c),body,bodyBox;
+ let o=(kind==='item'?'':`<image data-role="frame" x="0" y="0" width="${W}" height="${H}" href="${uri(path.join(design,'frames',id+'.png'))}"/>`)+defs(c),body,bodyBox;
  if(landscape){
   const all=c['能力文字'],size=SPELL_SIZE;
   body=verticalLayout(all,size,1260,0);
@@ -312,21 +313,18 @@ async function render(c,index){
   o+=`<rect x="${left}" y="38" width="${width}" height="1419" rx="38" fill="#f1eff0" fill-opacity=".78"/>`;
   o+=badge(c['角色约束']?'角':'主',1609,66,59);
   o+=verticalDraw(body,1638,142,size,gap,'',true);
-  o+=capsule(1716,37,228,1418,'spell');
   const titleSize=Math.min(100,1260/verticalLayout(displayName(c),1,10000,0,'title').extent);
   o+=titleProfile?nativeVerticalTitle(c):verticalCentered(displayName(c),1828,95,1300,titleSize,`data-role="title" data-template="符卡 四重結界.psd:40" data-native-tracking="220" data-native-faux-bold="true" data-embolden="${titleSize*.03}" font-family="DFJinWen-W3-WIN-BF" fill="#070707" stroke="#fff" stroke-width="4" paint-order="stroke fill"`,'title');
   const label=typeLabel(c);
   // Database field cards place their sole type capsule around the lower middle.
   const typeY=c['类别']==='结界'?464:872;
-  o+=capsule(1911,typeY,101,576,'spell',true);
   o+=verticalCentered(label,1962,typeY+30,516,Math.min(58.33333,516/(label.length*.96)),`font-family="${BRUSH}" fill="white" letter-spacing="-.29166665"`);
   if(c['角色约束']){
-   o+=capsule(1909,40,101,576,'spell',true);
    o+=verticalCentered('「'+c['角色约束']+'」',1960,70,516,57,`font-family="${BRUSH}" fill="white"`);
   }
   costs.forEach((p,i)=>o+=cost(p.color,p.value,i===0?67:186+(i-1)*125,i===0?1167:1327,i===0?177:123));
  }else{
-  o+=capsule(205,111,1107,122,kind);
+  if(kind==='item')o+=capsule(205,111,1107,122,kind);
   const titleSize=Math.min(75,1002/(measure(displayName(c),1,'brush')-.005*([...displayName(c)].length-1)));
   o+=titleProfile?nativeHorizontalTitle(c):text(displayName(c),784,199,titleSize,`data-role="title" data-template="教学用 天才教师上白泽慧音.psd:76,77" text-anchor="middle" font-family="${BRUSH}" letter-spacing="${titleSize*-.005}" fill="#fdfdfd" stroke="#151313" stroke-width="10" paint-order="stroke fill"`);
   costs.forEach((p,i)=>{const positions=[[92,70,175],[34,232,141],[102,353,143],[34,485,141]];o+=cost(p.color,p.value,...positions[i]);});
@@ -343,17 +341,10 @@ async function render(c,index){
    }
    // Separator reaches y + 33; first native glyph starts below y + 65.
    o+=horizontalDraw(body,y+bodyInset);
-   o+=capsule(33,1786,1418,228,'unit');
-   const fan=uid('fan');
-   o+=`<filter id="${fan}"><feColorMatrix type="hueRotate" values="55"/></filter>`;
-   o+=img(component('unit','race'),195,1768,374,164,c['颜色'].includes('红')?'':`filter="url(#${fan})"`);
-   const race=c['种族'].join('·'),raceSize=Math.min(84,305/[...race].length);
-   o+=text(race,382,1872,raceSize,`text-anchor="middle" font-family="${BRUSH}" fill="#080808" stroke="white" stroke-width="3" paint-order="stroke fill"`);
-   o+=capsule(97,1905,576,101,'unit',true);
+   const race=c['种族'].join('·'),raceSize=Math.min(100,300/[...race].length);
+   o+=text(race,376,1880,raceSize,`text-anchor="middle" font-family="${BRUSH}" fill="#080808" filter="url(#raceGlow)"`);
    o+=text(c['类别']==='自机'?'单位·自机':'单位·普通',385,1979,58.33333,`text-anchor="middle" font-family="${BRUSH}" letter-spacing="-.29166665" fill="white"`);
-   o+=capsule(750,1876,427,128,'unit',true);
-   o+=text(`${c['攻击力']}/${c['血量']}`,964,1971,105,`text-anchor="middle" font-family="${BRUSH}" fill="white"`);
-   o+=img(component('unit','native-spirit'),1194,1794,215,215,'filter="url(#ornamentColor)"');
+   o+=`<g transform="translate(963 1966) scale(1.096 0.972)">${text(`${c['攻击力']}/${c['血量']}`,0,0,120,`text-anchor="middle" font-family="${BRUSH}" letter-spacing="${120*-.065}" fill="white"`)}</g>`;
    o+=text(c['灵力'],1301,1945,113,`text-anchor="middle" font-family="${BRUSH}" fill="white" stroke="#444" stroke-width="5" paint-order="stroke fill"`);
   }else{
    const h=Math.max(375,body.height+161),y=2020-h;
@@ -366,15 +357,20 @@ async function render(c,index){
   }
  }
  // Minimal source acknowledgement, outside all rules and statistics.
- o+=text(`TESTMOD-${String(index+1).padStart(2,'0')}  /  Illustration: AI`,landscape?520:55,H-18,20,`font-family="${BODY}" fill="white" stroke="#333" stroke-width="2" paint-order="stroke fill"`);
- o+=`<path d="M1 51 Q1 1 51 1 M${W-51} 1 Q${W-1} 1 ${W-1} 51 M1 ${H-51} Q1 ${H-1} 51 ${H-1} M${W-51} ${H-1} Q${W-1} ${H-1} ${W-1} ${H-51}" fill="none" stroke="#111" stroke-width="3"/>`;
+ const number=`TESTMOD-${String(index+1).padStart(2,'0')}`,footerStyle=`font-family="${BODY}" letter-spacing="${29.16667*.015}" fill="white" stroke="#000" stroke-width="2" paint-order="stroke fill"`;
+ if(kind==='item'){
+  o+=text(`${number}  /  Illustration: AI`,55,H-18,20,`font-family="${BODY}" fill="white" stroke="#333" stroke-width="2" paint-order="stroke fill"`);
+  o+=`<path d="M1 51 Q1 1 51 1 M${W-51} 1 Q${W-1} 1 ${W-1} 51 M1 ${H-51} Q1 ${H-1} 51 ${H-1} M${W-51} ${H-1} Q${W-1} ${H-1} ${W-1} ${H-51}" fill="none" stroke="#111" stroke-width="3"/>`;
+ }else if(landscape)o+=`<g transform="translate(2020 1430) rotate(-90)">${text(`${number}  Illustration: AI`,0,0,29.16667,footerStyle)}</g>`;
+ else o+=text(number,123,2056,29.16667,footerStyle)+text('Illustration: AI',864,2056,29.16667,footerStyle);
  const overlay=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" font-family="${BODY}">${o}</svg>`;
  const source=path.join(design,'layouts',id+'.text.svg'),outlined=path.join(design,'layouts',id+'.svg');
  fs.writeFileSync(source,overlay);
  execFileSync(process.env.TESTMOD_PYTHON||'C:/Users/Lenovo/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe',[path.join(root,'tools/outline_testmod_text.py'),source,outlined],{env:{...process.env,PYTHONPATH:path.join(root,'work/psd-python'),PYTHONIOENCODING:'utf-8'}});
  await sharp(path.join(art,id+'.png')).resize(W,H,{fit:'cover'}).composite([{input:fs.readFileSync(outlined)}]).png().toFile(path.join(design,'cards',id+'.png'));
  const bodySize=kind==='spell'?SPELL_SIZE:BODY_SIZE;
- const result={id,name:displayName(c),kind,dimensions:[W,H],reference:references[id],rules:c['能力文字'],costs,type:kind==='spell'?typeLabel(c):c['类别'],bodyBox,bodyLines:body.columns||body.rows.reduce((n,p)=>n+p.lines.length,0),bodyFont:BODY,bodySize,tracking:ruleTracking(bodySize)*1000,leading:kind==='spell'?65:BODY_SIZE,paragraphGap:kind==='spell'?null:0,rulesLeft:kind==='spell'?null:body.left,choiceReference:body.rows?.some(p=>p.option)?'character-fdf-112.jpg':null,bodyEmbolden:BODY_WEIGHT,keywordEmbolden:bodySize*.032,keywords:keywordRanges(c['能力文字']).map(r=>r.text),titleFont:kind==='spell'?'DFJinWen-W3-WIN-BF':BRUSH,titleMaxSize:kind==='spell'?100:75,titleTracking:kind==='spell'?220:-5,modifierTokens:[...c['能力文字'].matchAll(modifierPattern())].map(m=>m[0])};
+ const reference=references[id]||path.relative(path.join(root,'recourse/数据库'),path.join(pack,c['图片'])).replaceAll('\\','/');
+ const result={id,name:displayName(c),kind,dimensions:[W,H],reference,rules:c['能力文字'],costs,type:kind==='spell'?typeLabel(c):c['类别'],bodyBox,bodyLines:body.columns||body.rows.reduce((n,p)=>n+p.lines.length,0),bodyFont:BODY,bodySize,tracking:ruleTracking(bodySize)*1000,leading:kind==='spell'?65:BODY_SIZE,paragraphGap:kind==='spell'?null:0,rulesLeft:kind==='spell'?null:body.left,choiceReference:body.rows?.some(p=>p.option)?'character-fdf-112.jpg':null,bodyEmbolden:BODY_WEIGHT,keywordEmbolden:bodySize*.032,keywords:keywordRanges(c['能力文字']).map(r=>r.text),titleFont:kind==='spell'?'DFJinWen-W3-WIN-BF':BRUSH,titleMaxSize:kind==='spell'?100:75,titleTracking:kind==='spell'?220:-5,modifierTokens:[...c['能力文字'].matchAll(modifierPattern())].map(m=>m[0])};
  if(titleProfile)result.titleCalibration='native-ink-glow-vmtx';
  console.log(id,kind,result.bodyLines);return result;
 }

@@ -84,6 +84,7 @@ func build(host,swapping: bool):
   app.name_label.mouse_filter=Control.MOUSE_FILTER_STOP
   app.name_label.gui_input.connect(app.on_deck_title_input)
  var rules=OptionButton.new();rules.name="DeckRuleSet";deck_title.add_child(rules);metrics.button(rules)
+ rules.tooltip_text=app.RuleSet.HELP_TEXT
  rules.custom_minimum_size.x=metrics.body*8
  for caption in app.RuleSet.LABELS:rules.add_item("规则："+caption)
  rules.select(maxi(0,app.RuleSet.IDS.find(str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))))

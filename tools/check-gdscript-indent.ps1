@@ -4,7 +4,19 @@ $excludedDirectories = '\\(?:\.git|\.godot|\.godot-toolchain|builds|work|tmp|out
 $errors = @()
 $checked = 0
 
-foreach ($file in Get-ChildItem -LiteralPath $projectRoot -Recurse -File -Filter '*.gd') {
+function Get-GDScriptFiles($directory) {
+    foreach ($entry in Get-ChildItem -LiteralPath $directory) {
+        if ($entry.PSIsContainer) {
+            if (($entry.FullName + '\') -notmatch $excludedDirectories) {
+                Get-GDScriptFiles $entry.FullName
+            }
+        } elseif ($entry.Extension -eq '.gd') {
+            $entry
+        }
+    }
+}
+
+foreach ($file in Get-GDScriptFiles $projectRoot) {
     if ($file.FullName -match $excludedDirectories) { continue }
     $checked++
     $lines = [System.IO.File]::ReadAllLines($file.FullName, [System.Text.Encoding]::UTF8)

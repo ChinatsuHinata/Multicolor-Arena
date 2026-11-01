@@ -6,6 +6,17 @@
   ],
   "announcements": [
     {
+      "id": "release-1.2.9.7-subterranean-rose-limit",
+      "order": 0,
+      "version": "1.2.9.7",
+      "date": "2026-10-31",
+      "title": "段位匹配调整公告：「Subterranean Rose」限用 2 张",
+      "body": "极彩：对决 1.2.9.7 更新，Windows 与 Android 同步调整段位匹配规则集。\n\n「Subterranean Rose」在段位匹配规则集中的同名牌数量由 4 张调整为 2 张，主卡组与备牌合计计算，不因卡图不同而分别计数。\n\n官限与段位匹配为独立规则集；本次乐章限二仅适用于段位匹配规则集及采用该规则的对局，官限仍可使用 4 张。请在更新后检查已有卡组，将超出上限的该乐章移出，再登记卡组或参与匹配。\n\n本次为线上版本暂定调整，线下不受影响；后续完整平衡调整请留意官方公告。无限制、测试卡组及模组规则维持各自原有构筑上限。\n\n请登录或重新登录下载补丁，安装完成后完全退出并重新启动游戏；联机双方请更新到相同版本。\n\n本公告附带 10 铜钱，登录后点击下方领取，每个账号限领一次。",
+      "image": "res://assets/announcements/subterranean_rose_limit.jpg",
+      "image_alt": "线上版调整公告：「Subterranean Rose」数量由 4 张调整为 2 张",
+      "coins": 10
+    },
+    {
       "id": "release-1.2.9.4-replays-decklists",
       "order": 0,
       "version": "1.2.9.4",

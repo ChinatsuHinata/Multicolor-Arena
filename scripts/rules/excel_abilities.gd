@@ -594,8 +594,10 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
    e.resolving_spell=false;return true
   "fairy_revive":field_many(e,e.Pack.picked(t).filter(func(r):return valid(e,r)).map(func(r):return e.find_card(r.uid)),who)
   "tengu_pair":
-   for r in t.parts:
-    if unit(e,r):e.move_to(e.find_card(r.uid),"hand")
+   # Check the complete pair before moving either target.
+   if target_survives(e,c.card_id,t):
+    for r in t.parts:
+     if unit(e,r):e.move_to(e.find_card(r.uid),"hand")
   "leader_mark":
    if unit(e,t):Batch.counter(e,e.find_card(t.uid),"leader_counters",1,who)
   "grave_top":
@@ -923,6 +925,7 @@ static func copy_idol(e,who: int,source: Dictionary) -> Dictionary:
 static func target_survives(e,id: String,t: Dictionary) -> bool:
  if has(e.cards[id],"n21:LOC-006"):return unit(e,t) and e.Extra.cost_value(e,e.find_card(t.uid))<=4
  if has(e.cards[id],"n21:ETO-011"):return true
+ if has(e.cards[id],"tengu_pair"):return t.get("parts",[]).size()==2 and t.parts.all(func(r):return unit(e,r))
  if id in Cat.SPELLS:return Cat.target_survives(e,id,t)
  if has(e.cards[id],"angry_mask"):return unit(e,t)
  if has(e.cards[id],"emotions") and e.Pack.flatten(t).is_empty():return true

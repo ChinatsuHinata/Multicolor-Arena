@@ -2533,7 +2533,11 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  tile.long_press_enabled=not (is_android and page=="editor")
  tile.hold_to_drag=is_android and page=="editor"
  tile.card_id=id
- tile.face_texture=texture(id)
+ # Android deck tiles are small: share the editor's thumbnails and load full
+ # art only for a drag ghost, so a deck wider than the texture cache stays fast.
+ var thumbnail_tile=is_android and page=="editor" and source!="leader" and editor_ui!=null and editor_ui.has_method("request_thumbnail")
+ if thumbnail_tile:tile.texture_provider=func():return texture(id)
+ else:tile.face_texture=texture(id)
  tile.source_zone=source
  tile.source_index=index
  tile.tooltip_text=Store.CARDS[id].name
@@ -2545,12 +2549,13 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  (parent if parent else deck_canvas).add_child(tile)
  var art=TextureRect.new()
  art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
- art.texture=texture(id)
+ if not thumbnail_tile:art.texture=texture(id)
  art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  art.offset_left=3;art.offset_top=3;art.offset_right=-3;art.offset_bottom=-3
  art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  tile.add_child(art)
+ if thumbnail_tile:editor_ui.request_thumbnail(id,art)
  tile.preview_requested.connect(func(card_id): selected=card_id; update_preview())
  tile.art_requested.connect(open_art_picker)
  tile.clicked.connect(func(card_id,from,index_in_deck,right):
@@ -3021,7 +3026,7 @@ func desktop_editor(sideboarding: bool=false):
  rules.name="DeckRuleSet"
  rules.position=Vector2(826,78)
  rules.size=Vector2(250,40)
- rules.tooltip_text="无限制：普通同名最多 4 张，终言 1 张，限制级 2 张。\n官限：另有三张限 2，禁用线下独占卡。\n测试卡组：所有卡均可加入，同名张数不限。"
+ rules.tooltip_text=RuleSet.HELP_TEXT
  for index in range(RuleSet.IDS.size()):rules.add_item("规则集："+RuleSet.LABELS[index])
  rules.select(maxi(0,RuleSet.IDS.find(str(draft.get("rule_set",RuleSet.OFFICIAL)))))
  rules.disabled=sideboarding

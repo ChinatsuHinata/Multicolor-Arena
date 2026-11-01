@@ -31,6 +31,8 @@ func check_rank_rules(lobby,stage: String):
  var range_rules=popup.find_child("MatchmakingRangeRules",true,false) as Label
  check(range_rules!=null and range_rules.text.contains("所有级别") and range_rules.text.contains("20 秒") and range_rules.text.contains("1 个大段位") and range_rules.text.contains("贤者排名"),"popup explains major tier priority and expansion in "+stage)
  check(popup.find_child("RankProgressionRules",true,false)!=null and popup.find_child("RankFormatRules",true,false)!=null and popup.find_child("SageRankingRules",true,false)!=null,"popup includes progression, format and Sage settlement in "+stage)
+ var format_rules=popup.find_child("RankFormatRules",true,false) as Label
+ check(format_rules!=null and format_rules.text.contains("段位匹配规则集") and format_rules.text.contains("Subterranean Rose") and format_rules.text.contains("限 2 张"),"popup explains the independent ranked melody limit in "+stage)
  await capture("rules-"+stage)
  if lobby.app.is_android:
   var start=popup.scroll.get_global_rect().get_center()+Vector2(0,popup.scroll.size.y*0.25)
@@ -50,12 +52,16 @@ func check_rank_rules(lobby,stage: String):
  if stage.begins_with("waiting"):
   var event=InputEventKey.new();event.keycode=KEY_ESCAPE;event.pressed=true
   root.push_input(event,true)
+  event=event.duplicate();event.pressed=false;root.push_input(event,true)
  else:popup.close_button.pressed.emit()
- await process_frame
+ for i in range(3):await process_frame
  check(not lobby.app.menu_popup_open() and root.gui_get_focus_owner()==trigger,"closing rank rules returns focus to the lobby in "+stage)
 
 func app_popup(app):
  return app.menu_popup if app.menu_popup_open() else null
+
+func leave_control(lobby) -> Button:
+ return lobby.body.find_child("PreparationLeaveRoom",true,false) as Button if lobby.app.is_android else lobby.back_button
 
 func run():
  var app=load("res://main.tscn").instantiate()
@@ -103,7 +109,7 @@ func run():
   check(lobby.queue_caption(0).contains("暂无") and lobby.queue_caption(3).contains("3 人") and lobby.queue_caption(1,true).contains("暂无其他"),"queue labels distinguish nobody, others, and only yourself")
   await capture("match-"+str(mobile))
   var rules=lobby.body.find_child("MatchmakingRules",true,false) as Label
-  check(rules!=null and rules.text.contains("官限") and rules.text.contains("固定"),"cloud home explains the fixed official rule set for "+str(mobile))
+  check(rules!=null and rules.text.contains("段位匹配") and rules.text.contains("固定"),"cloud home explains the fixed ranked rule set for "+str(mobile))
   await check_rank_rules(lobby,"home-"+str(mobile))
   if mobile:
    (lobby.body.find_child("CloudRoomsTab",true,false) as Button).pressed.emit()
@@ -132,8 +138,9 @@ func run():
   mode=lobby.body.find_child("MatchmakingMode",true,false) as OptionButton
   check(app.screen.get_global_rect().grow(1).encloses(mode.get_global_rect()),"casual selector fits the screen for "+str(mobile))
   await capture("casual-home-"+str(mobile))
-  var unrestricted=queue_deck.duplicate(true);unrestricted.side=["new-spx-001"]
-  check(not app.Store.validate(unrestricted,true,session.MATCH_RULE_SET).is_empty(),"casual fixture is excluded from ranked matching")
+  var unrestricted=queue_deck.duplicate(true);unrestricted.main[0]="spell-ucs-011";unrestricted.main[1]="spell-ucs-011";unrestricted.side=["spell-ucs-011"]
+  unrestricted.id="TEST_ONLY_CASUAL_MELODY_"+str(mobile)
+  check(app.Store.validate(unrestricted,true,app.RuleSet.OFFICIAL).is_empty() and not app.Store.validate(unrestricted,true,session.MATCH_RULE_SET).is_empty(),"three melodies follow official rules and are excluded from ranked matching")
   app.decks.append(unrestricted);lobby.select_match_deck(app.decks.size()-1)
   check(lobby.match_deck_index==app.decks.size()-1,"casual deck picker accepts unrestricted cards for "+str(mobile))
   check(session.start_matchmaking("ws://127.0.0.1:1",unrestricted,false,"casual").is_empty() and session.transport.relay_options.mode=="casual","queue request locks in casual mode and unrestricted deck for "+str(mobile))
@@ -155,7 +162,7 @@ func run():
   var status=lobby.body.find_child("MatchmakingStatus",true,false) as Label
   var cancel=lobby.body.find_child("CancelMatchmaking",true,false) as Button
   rules=lobby.body.find_child("MatchmakingRules",true,false) as Label
-  check(rules!=null and rules.text.contains("官限") and rules.text.contains("固定"),"waiting view retains the fixed official rule set for "+str(mobile))
+  check(rules!=null and rules.text.contains("段位匹配") and rules.text.contains("固定"),"waiting view retains the fixed ranked rule set for "+str(mobile))
   check(status!=null and status.text.contains("0:20") and cancel!=null and not cancel.disabled,"waiting view displays progress and cancel for "+str(mobile))
   check(session.match_rank_gap==1 and status.text.contains("上下 1 个大段位") and not status.text.contains("分差"),"waiting progress displays the expanded major tier range")
   await check_rank_rules(lobby,"waiting-"+str(mobile))
@@ -171,11 +178,14 @@ func run():
   session.match_deck=app.Store.clean_deck(JSON.parse_string(FileAccess.get_file_as_string("res://data/test_precons.json")).decks[0])
   var match_ranks=[{"tier":2,"level":1,"stars":2},{"tier":1,"level":3,"stars":1}]
   session.on_match_found({"deck_hashes":[JSON.stringify(session.match_deck).sha256_text(),"x"],"ranks":match_ranks,"match_id":"TEST_ONLY_UI_MATCH","room":"TEST_ONLY_UI_ROOM","role":"host","seat":1,"format":session.Series.BO3,"rule_set":"test","public":false})
-  check(session.room.rule_set=="official" and session.room.strict and session.room.format==session.Series.BO1_SIDEBOARD,"matched session locks official rules even with different supplied options")
+  check(session.room.rule_set=="ranked" and session.room.strict and session.room.format==session.Series.BO1_SIDEBOARD,"matched session locks ranked rules even with different supplied options")
   session.series.state.names=["匹配玩家","对手"];session.room=session.series.public_state(0)
   session.cloud_seats=["匹配玩家","对手","","","","","",""];session.cloud_room_name="自动匹配"
   lobby.refresh(true);await process_frame
   privacy_status=lobby.body.find_child("MatchedRoomPrivacy",true,false) as Label
+  if mobile:
+   for label in lobby.body.find_children("*","Label",true,false):
+    if label.text.begins_with("本场房间："):privacy_status=label;break
   check(not session.match_room_public and privacy_status!=null and privacy_status.text.contains("私人"),"matched room shows the server's final privacy setting for "+str(mobile))
   check(lobby.body.find_child("CloudSeat1",true,false)==null and lobby.body.find_child("NetworkDeckSelect",true,false)==null,"matched room cannot change its preselected deck")
   check(not lobby.back_button.visible and lobby.back_button.disabled and lobby.body.find_children("*","Button",true,false).all(func(button):return not button.text.contains("离开")),"matched lobby has no return or leave entrance for "+str(mobile))
@@ -226,11 +236,14 @@ func run():
    if button.text=="返回云端，重新匹配":return_button=button
   check(return_button!=null and not return_button.disabled,"settlement enables matching again")
   session.room.status="aborted";lobby.refresh(true);await process_frame
-  check(lobby.back_button.visible and not lobby.back_button.disabled,"settled cancellation restores return for "+str(mobile))
+  var leave=leave_control(lobby)
+  check(leave!=null and leave.visible and not leave.disabled,"settled cancellation restores return for "+str(mobile))
   session.match_settled=false;session.read_only=true;session.room.status="sideboarding";lobby.refresh(true);await process_frame
-  check(lobby.back_button.visible and lobby.body.find_children("*","Button",true,false).any(func(button):return button.text=="离开观战"),"spectators can leave during ranked sideboarding for "+str(mobile))
+  leave=leave_control(lobby)
+  check(leave!=null and leave.visible and lobby.body.find_children("*","Button",true,false).any(func(button):return button.text=="离开观战"),"spectators can leave during ranked sideboarding for "+str(mobile))
   session.cloud_ranked=false;session.read_only=false;lobby.refresh(true);await process_frame
-  check(lobby.back_button.visible and lobby.body.find_children("*","Button",true,false).any(func(button):return button.text=="离开房间"),"custom rooms retain their sideboarding leave action for "+str(mobile))
+  leave=leave_control(lobby)
+  check(leave!=null and leave.visible and lobby.body.find_children("*","Button",true,false).any(func(button):return button.text=="离开房间"),"custom rooms retain their sideboarding leave action for "+str(mobile))
   session.leave(false)
   session.matchmaking=true;session.cloud_mode=true;session.cloud_ranked=true;session.match_mode="casual";session.match_deck=unrestricted
   session.on_match_found({"deck_hashes":[JSON.stringify(unrestricted).sha256_text(),"x"],"mode":"casual","match_id":"TEST_ONLY_CASUAL_UI","room":"TEST_ONLY_CASUAL_ROOM","role":"host","seat":1,"rule_set":"unrestricted","public":true})

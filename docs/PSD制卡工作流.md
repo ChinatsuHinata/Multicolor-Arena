@@ -24,3 +24,53 @@
 `title-comparison.png` 提供原卡参考、原工作流和修正后工作流的同倍率对照；`comparison-gallery.html` 提供全部卡牌和 PSD 链接。`output/testmod-titles.zip` 为 PSD 与成品图包；`output/testmod-<版本>-titles.zip` 为可导入模组包。
 
 psd-tools 不渲染外发光，因此 PSD 合并预览单独保存，文字层的原始字形和图层样式独立核验。本机没有 Photoshop，尚未在 Photoshop 内验证重新排版与实时渲染。
+
+## 卡框
+
+复现命令：`powershell -File tools/build_testmod_frames.ps1`。输出独立位于 `output/testmod-frames/`，不覆盖 `output/testmod-titles/`；`-Install` 的同步行为沿用标题构建流程。步骤为标题准备 → 卡框生成 → 卡图渲染 → 文字层导出 → PSD 构建 → 文字／字距校验 → 标题字形核验 → 打包，逐步耗时写入 `build-timings.json`。
+
+`tools/build_testmod_frames.py` 只读取 `output/testmod-design-v2/templates/{unit,spell}/manifest.json` 和 `layer-NNN.png`，不重新读取 PSD。按 manifest bbox 放置原始白／黑像素，生成 `frames/<id>.png`：RGBA 透明底，单位／自机 1488×2079、符卡／结界 2079×1488，仅含卡框图形。只处理 manifest 中图片不以 `res://` 开头的单位、自机、符卡和结界，道具保持原流程。标题准备和 PSD／标题校验继续读取源 PSD，以保留原有证据核验。
+
+当前 manifest 还包括旧 24 张插画缓存之外的 `pillar`：frames 构建缺少缓存时，以 JSON 指向的现有图片转换 PNG 作为输入；不更改源图片。无数据库参考映射时使用该图片作对照，打包保留原图片扩展名。
+
+颜色固定如下；单色卡使用 SINGLE 两端，多色卡按 JSON 中的颜色顺序使用 MAIN，等距分布，不重排。
+
+| 颜色 | MAIN | SINGLE 起点 | SINGLE 终点 |
+| --- | --- | --- | --- |
+| 红 | `#ff0000` | `#ff2a1a` | `#c8322c` |
+| 蓝 | `#392ec8` | `#1fa8d8` | `#3a5cc0` |
+| 绿 | `#00d21e` | `#00e01e` | `#00a896` |
+| 黄 | `#ffe600` | `#ffe600` | `#ffb83a` |
+| 黑 | `#3a3a3a` | `#8a8a8a` | `#1e1e1e` |
+
+渐变与每个图层自己的 bbox 对齐：单位从上到下，符卡从右到左，`stops[0]` 分别在顶部／右边缘。`overlay` 只将 RGB 按指定不透明度与渐变线性插值，保留 alpha；`scale<1` 时渐变占中央相应比例，两端钳制。`clip` 将花纹按自身坐标放置，花纹 alpha 乘指定不透明度和内底 alpha，再标准 source-over 叠加。投影为图层 alpha 的 σ=2.5 高斯模糊，黑色、不透明度 .75、偏移 (+3,+4)，画在该图层下方；所有合成为标准 source-over。
+
+单位／自机图层栈（自下而上）：
+
+| 顺序 | 图层与坐标 | 样式 |
+| --- | --- | --- |
+| 1 | 内底 010 @(37,1789)，花纹 011 @(31,1720) | 渐变 .70；花纹剪贴 125/255；无投影 |
+| 2 | 下框边 012 @(33,1786) | 渐变 1.0；投影 |
+| 3 | 标题内底 077 @(206,115)，花纹 078 @(39,34) | 渐变 .58；花纹剪贴 1.0（保留自身 alpha）；投影 |
+| 4 | 标题边 079 @(205,111) | 渐变 1.0；无投影 |
+| 5 | 种族扇 071 @(212,1756) | 与花瓣色 RGB(6,159,126) 距离 <60 的像素改为 stops[0]，与 (92,189,169) 距离 <60 的改为 stops[1]；保留 alpha、黄色扇心与扇柄；投影；在种类框之前绘制 |
+| 6 | 种类黑底 072、边 073 @(97,1905) | 黑底原样；边渐变 1.0＋投影 |
+| 7 | 攻血黑底 065、边 066 @(750,1876) | 黑底原样；边渐变 1.0，上黑下 stops[-1]；投影 |
+| 8 | 灵力框 083 @(1194,1794) | 渐变 1.0；投影 |
+
+花瓣掩模像素数写入 `frame-report.json`。
+
+符卡／结界图层栈（自下而上）：
+
+| 顺序 | 图层与坐标 | 样式 |
+| --- | --- | --- |
+| 1 | 标题内底 013 @(1719,42)，花纹 014 @(1650,36) | 渐变 .47，scale=.73；花纹剪贴 74/255（四重結界 PSD 第 27 层）；无投影 |
+| 2 | 标题边 015 @(1716,37) | 渐变 1.0；投影 |
+| 3 | 种类黑底 029、边 030 @(1911,872) | 黑底原样；边渐变 1.0＋投影；整体平移至渲染器 typeY（结界 464，其余 872） |
+| 4 | 有角色约束时：黑底 033、边 034 @(1909,40) | 黑底原样；边渐变 1.0＋投影 |
+
+渲染器从 `TESTMOD_DESIGN/frames` 读取卡框，作为 SVG 第一个元素（`data-role="frame"`）嵌入 data URI，文字层导出的 `ui.png` 因而保留完整卡框。自机 `native-leader` 分隔线保留。单位种族字为 `min(100,300/字数)`，基线 (376,1880) 居中、`#080808`；白色外发光为 dilate 2 → σ=2.5 → 白色 .75，不再使用白描边。攻血字为 SlideTownsoul 120px、字距 -7.8、白色，基线中心 (963,1966)，缩放 (1.096,.972)。
+
+页脚使用 BODY 29.16667px、字距 29.16667×.015、白字黑描边 2px：单位 `TESTMOD-nn` 在 (123,2056)，`Illustration: AI` 在 (864,2056)；符卡在 translate(2020,1430) rotate(-90) 内绘制 `TESTMOD-nn  Illustration: AI`。上述卡类不绘制四角黑圆弧（原 PSD「裁边」隐藏）；道具绘制保持原样。
+
+仅 `TESTMOD_OUTPUT=output/testmod-frames` 写入 `preserve_non_title_pixels:false`。对改动的单位／符卡跳过与 `testmod-spacing` 的非标题像素一致断言，并在 finalize 中接受对应跳过状态。道具绘制路径保持原样：与旧基准牌文相同的道具仍检查非标题像素一致；当前 JSON 的 `fuel`、`control` 牌文已不同于旧基准，只有这两张道具也放宽该像素断言，牌文仍严格按当前 JSON 检查。放宽明细写入 `validation-relaxations.json` 与逐卡 `typography-validation.json`；正文、字距、标题字形、PSD 层和源文件哈希校验全部保留。图包与模组包分别为 `output/testmod-frames.zip`、`output/testmod-<版本>-frames.zip`。

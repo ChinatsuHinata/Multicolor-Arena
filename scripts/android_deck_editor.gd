@@ -64,6 +64,9 @@ var list_scroll_positions={"main":0,"side":0}
 var list_switchers: HBoxContainer
 var list_buttons={}
 var thumbnails={}
+const THUMBNAIL_CACHE_SIZE=96
+const THUMBNAIL_FRAME_BUDGET_MS=12
+var thumbnail_queue: Array=[]
 var gallery_art_pending=false
 var touch_surfaces=preload("res://scripts/android_card_touch.gd").new()
 var finger=-1
@@ -95,6 +98,9 @@ func build(host,_swapping: bool=false):
  list_zone=str(app.get_meta("android_editor_list_zone","main"))
  library_page=int(app.get_meta("android_editor_library_page",0))
  library_filter_state=app.get_meta("android_editor_library_filters",{}).duplicate(true)
+ # Thumbnails outlive one editor build so switching decks reuses decoded art.
+ if not app.has_meta("android_editor_thumbnails"):app.set_meta("android_editor_thumbnails",{})
+ thumbnails=app.get_meta("android_editor_thumbnails")
  var root=column(app.screen);root.name="ResponsiveDeckEditor"
  editor_root=root
  root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -160,6 +166,7 @@ func build_switchers():
  app.saved_select=action(switchers,"选择卡组",app.open_editor_deck_picker);app.saved_select.name="SavedDeckSelect"
  editor_button(app.saved_select);expand(app.saved_select)
  var rules=OptionButton.new();rules.name="DeckRuleSet";switchers.add_child(rules);editor_button(rules)
+ rules.tooltip_text=app.RuleSet.HELP_TEXT
  for caption in app.RuleSet.LABELS:rules.add_item("规则："+caption)
  rules.select(maxi(0,app.RuleSet.IDS.find(str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))))
  rules.item_selected.connect(func(index):app.change_deck_rule_set(app.RuleSet.IDS[index]))
@@ -479,16 +486,34 @@ func refresh_gallery_art():
 
 func thumbnail(id: String) -> Texture2D:
  var path=app.CardArt.image_path(id,app.editor_art_id(id),app.Store.CARDS)
- if thumbnails.has(path):return thumbnails[path]
+ if thumbnails.has(path):
+  var cached=thumbnails[path];thumbnails.erase(path);thumbnails[path]=cached
+  return cached
  var original=app.CardArt.load_texture(path)
  if original==null:return null
  var image=original.get_image()
  if image.get_width()>image.get_height():image.rotate_90(CLOCKWISE)
  image.resize(240,335,Image.INTERPOLATE_BILINEAR)
  var result=ImageTexture.create_from_image(image)
- if thumbnails.size()>=64:thumbnails.erase(thumbnails.keys()[0])
+ # Hold a whole overview (leader, 50 main, 10 side) plus a library page.
+ if thumbnails.size()>=THUMBNAIL_CACHE_SIZE:thumbnails.erase(thumbnails.keys()[0])
  thumbnails[path]=result
  return result
+
+func request_thumbnail(id: String,picture: TextureRect):
+ # Decode uncached deck art a few cards per frame instead of stalling the switch.
+ if thumbnails.has(app.CardArt.image_path(id,app.editor_art_id(id),app.Store.CARDS)):
+  picture.texture=thumbnail(id);return
+ thumbnail_queue.append({"id":id,"picture":weakref(picture)})
+ if not app.get_tree().process_frame.is_connected(load_queued_thumbnails):app.get_tree().process_frame.connect(load_queued_thumbnails)
+
+func load_queued_thumbnails():
+ var started=Time.get_ticks_msec()
+ while not thumbnail_queue.is_empty() and Time.get_ticks_msec()-started<THUMBNAIL_FRAME_BUDGET_MS:
+  var entry=thumbnail_queue.pop_front();var picture=entry.picture.get_ref()
+  if is_instance_valid(picture) and picture.is_inside_tree():picture.texture=thumbnail(entry.id)
+ if thumbnail_queue.is_empty() and is_instance_valid(app) and app.is_inside_tree():
+  app.get_tree().process_frame.disconnect(load_queued_thumbnails)
 
 func update_deck():
  if app.counts.get_parent()!=center:app.counts.reparent(center)

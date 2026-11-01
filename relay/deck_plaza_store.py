@@ -12,7 +12,7 @@ PAGE_SIZE = 6
 MAX_CODE = 8192
 MAX_PLAIN = 16384
 IDENTIFIER = re.compile(r"[A-Za-z0-9_-]{1,64}\Z", re.ASCII)
-RULES = ("unrestricted", "official", "test")
+RULES = ("unrestricted", "official", "ranked", "test")
 COLORS = ("红", "蓝", "绿", "黄", "黑")
 
 

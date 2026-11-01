@@ -127,6 +127,17 @@ static func reveal(e,list,from_top=true,edge=""):
  for c in order:
   e.reveal_card(c,"top" if from_top and c.zone=="deck" else edge)
   if from_top and c.zone=="deck" and c.card_id in ["spell-fdf-075","spell-fdf-076","spell-fdf-077","spell-fdf-078","spell-fdf-079"]:events(e,c,"cat:element_reveal",true,{"ref":ref(e,c)})
+static func prepare_reveal_trigger(e,t):
+ if t.get("effect","")!="cat:element_reveal" or t.data.has("removal_ref"):return
+ # The revealing effect finishes moving its cards before triggers are ordered.
+ # Freeze that destination now; later responses must not follow a new object.
+ var c=e.find_card(t.data.ref.uid)
+ t.data.removal_ref={}
+ if c.is_empty() or c.card_id!=t.source.card_id or c.owner!=t.owner or c.zone not in ["deck","hand"]:
+  t.ability_text="牌库顶展示：该牌已不在牌库或手牌，无法移除。"
+  return
+ t.data.removal_ref=ref(e,c)
+ t.ability_text="牌库顶展示（已加入手牌）：可从手牌移除，并选择是否使用。" if c.zone=="hand" else "牌库顶展示（未加入手牌）：可从牌库移除，并选择是否使用。"
 static func continued_move(e,t,list,low,high,zone,title,after={},owner=-1):
  choose(e,t,"cat:move",pick(e,list,low,high,title),{"zone":zone,"after":after},owner)
 static func continuation(e,t):

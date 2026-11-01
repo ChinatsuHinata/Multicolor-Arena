@@ -16,7 +16,7 @@ const ENTRIES=[
  {"id":"counter","term":"反制","group":"能力词条","definition":"使对抗中的牌的使用或能力无效。若牌的使用被反制，则那张牌进入墓地。","patterns":["反制"],"numbered":false,"link":true},
  {"id":"pursuit","term":"追击","group":"能力词条","definition":"当具有追击的单位在你的回合第一次造成战斗伤害时，重置该单位。","patterns":["追击"],"numbered":false,"link":true},
  {"id":"ward","term":"防避X","group":"能力词条","definition":"具有防避X的单位在受到伤害时会防止其中的X点，并失去该能力。","patterns":["防避"],"numbered":true,"link":true},
- {"id":"restricted","term":"限制级符卡","group":"能力词条","definition":"限制级符卡和其同名牌在构筑时只能加入至多1张。","patterns":["限制级符卡","限制级"],"numbered":false,"link":true},
+ {"id":"restricted","term":"限制级符卡","group":"能力词条","definition":"限制级符卡和其同名牌在构筑时只能加入至多2张。","patterns":["限制级符卡","限制级"],"numbered":false,"link":true},
  {"id":"support","term":"支援","group":"能力词条","definition":"具有支援的角色符卡，在其对应的角色位于你的自机区中时也能使用。","patterns":["支援"],"numbered":false,"link":true},
  {"id":"permanent","term":"永久物","group":"基础概念","definition":"能持续存在于战场上的牌称之为“永久物”，包括但不限于（结界、道具、单位等）。","patterns":["永久物"],"numbered":false,"link":true},
  {"id":"ability","term":"能力","group":"基础概念","definition":"写在卡牌能力框内的文本为该牌的“能力”，分为规则类、基本类、启动类、触发类、静止类、代替类六种。","patterns":["能力"],"numbered":false,"link":false},

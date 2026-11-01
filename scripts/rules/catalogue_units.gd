@@ -271,8 +271,9 @@ static func resolve(e,t):
   "cat:unconscious_return":
    if same and c.zone=="grave":e.move_to(c,"hand")
   "cat:element_reveal":
-   var u=e.find_card(d.ref.uid)
-   if not u.is_empty() and u.card_id==source.card_id and u.owner==who and u.zone in ["deck","hand"]:
+   var removal=d.get("removal_ref",d.ref)
+   var u=e.find_card(removal.get("uid",-1))
+   if not removal.is_empty() and C.valid(e,removal) and u.card_id==source.card_id and u.owner==who and u.zone in ["deck","hand"]:
     e.move_to(u,"exile");C.grant_cast(e,u,who,u.card_id=="spell-fdf-079",{"红":1} if u.card_id=="spell-fdf-078" else {},u.card_id=="spell-fdf-079")
   _:return resolve_choices(e,t)
  return true

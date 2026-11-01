@@ -50,10 +50,10 @@ func run():
  waiting=sent.filter(func(item):return item.id==22 and item.kind=="match_queued")
  check(waiting.back().extra.wait_seconds==20 and waiting.back().extra.rank_gap==1,"relay reports one major tier of expansion at twenty seconds")
  var code=fixture();var room=rooms[code]
- check(room.rule_set=="official" and public_rooms()[0].rule_set=="official","ranked room and directory fix the rule set to official")
+ check(room.rule_set=="ranked" and public_rooms()[0].rule_set=="ranked","ranked room and directory fix the rule set to ranked")
  check(public_rooms().size()==1 and public_rooms()[0].watch_only and not JSON.stringify(public_rooms()).contains("elo"),"ranked room is listed for spectating without ratings")
  check(sent.filter(func(item):return item.kind=="matched").size()==2,"match success is delivered once to both players")
- check(sent.filter(func(item):return item.kind=="matched").all(func(item):return item.extra.rule_set=="official"),"both matched responses require the official rule set")
+ check(sent.filter(func(item):return item.kind=="matched").all(func(item):return item.extra.rule_set=="ranked"),"both matched responses require the ranked rule set")
  check(room.ranks==[clients[11].rank,clients[22].rank] and sent.filter(func(item):return item.kind=="matched").all(func(item):return item.extra.ranks==room.ranks and not item.extra.has("elo")),"both matched responses carry authenticated ranks in battle seat order without Elo")
  register(33,{"kind":"guest","room":code,"seat":1,"version":room.version})
  check(clients[33].role=="" and room.slots[0]==11,"outsider cannot join a matched battle seat")

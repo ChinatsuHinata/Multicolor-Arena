@@ -31,7 +31,7 @@ func _ready():
  mouse_entered.connect(func():art.material=null)
  mouse_exited.connect(func():art.material=unknown_material)
 
-func configure(c: Dictionary,available: Array,chosen: Array,targeting: bool,rotate_tapped: bool=true):
+func configure(c: Dictionary,available: Array,chosen: Array,targeting: bool,rotate_tapped: bool=true,force_landscape: bool=false):
  card=c;key="card_"+str(c.uid)
  var texture_key=str(c.card_id)+":"+str(c.get("art_id",""))+":"+str(UnknownArt.active(board.view.engine,c))
  if art.get_meta("texture_key","")!=texture_key:
@@ -43,15 +43,15 @@ func configure(c: Dictionary,available: Array,chosen: Array,targeting: bool,rota
  legal=c.uid in available;selected=c.uid in chosen
  var tapped=c.get("tapped",false)
  modulate=Color(0.78,0.78,0.78,0.45 if targeting and not legal else 1.0) if tapped else Color(1,1,1,0.45 if targeting and not legal else 1.0)
- var next_landscape=rotate_tapped and tapped
+ var next_landscape=force_landscape or rotate_tapped and tapped
  var changed=landscape!=next_landscape;landscape=next_landscape
  update_geometry()
  if not geometry_initialized:
-  art.rotation=PI/2 if landscape else 0.0;geometry_initialized=true
+  art.rotation=-PI/2 if landscape else 0.0;geometry_initialized=true
  elif changed:
   if is_instance_valid(rotation_tween):rotation_tween.kill()
   rotation_tween=create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-  rotation_tween.tween_property(art,"rotation",PI/2 if landscape else 0.0,0.18)
+  rotation_tween.tween_property(art,"rotation",-PI/2 if landscape else 0.0,0.18)
  queue_redraw();front.queue_redraw()
 
 func place(rect: Rect2):
@@ -92,7 +92,10 @@ func _has_point(point: Vector2) -> bool:
  return hit_rect().has_point(point)
 
 func activate():
- board.view.object_clicked(card.uid)
+ var view=board.view
+ if view.network_locked() or view.observing or card.owner!=view.acting_player() and not view.picker_active() and view.local.is_empty():
+  board.inspect(card)
+ else:view.object_clicked(card.uid)
 
 func inspect():
  board.view.android_inspection_allowed=true

@@ -148,7 +148,7 @@ func show_image(entry: Dictionary):
   var original=Image.load_from_file(path)
   if original!=null and not original.is_empty():texture=ImageTexture.create_from_image(original)
  if texture==null:
-  text("群聊配图暂未加载，请使用公告中的群号加入群聊。",host.ui_metrics.small,host.MUTED)
+  text("公告配图暂未加载，请参阅公告正文。",host.ui_metrics.small,host.MUTED)
   return
  var region=entry.get("image_region",[])
  if region is Array and region.size()==4:
@@ -174,7 +174,7 @@ func show_image(entry: Dictionary):
   image.size_flags_vertical=Control.SIZE_EXPAND_FILL
   image.custom_minimum_size.x=400
  image.mouse_filter=Control.MOUSE_FILTER_IGNORE
- image.tooltip_text="群头像、群名、群号与入群二维码"
+ image.tooltip_text=str(entry.get("image_alt","公告配图"))
 
 func connect_focus():
  var buttons: Array[Button]=[close_button]
