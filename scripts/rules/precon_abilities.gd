@@ -370,7 +370,7 @@ static func resolve_trigger(e,t: Dictionary):
   "patch_topthree":
    var top=refs(e,e.players[who].deck.slice(0,3))
    for r in top:
-    var u=e.find_card(r.uid); e.reveal_card(u)
+    var u=e.find_card(r.uid); e.Cat.reveal(e,[u])
    var spells=top.filter(func(r): return e.cards[e.find_card(r.uid).card_id].kind=="符卡")
    continue_choice(e,t,"patch_top_resolve",selection([group(spells,0,1,"选择一张符卡")],"topthree"),{"top":top})
   "patch_top_resolve":

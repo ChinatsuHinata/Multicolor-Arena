@@ -638,8 +638,11 @@ func skip_murder_dolls_trigger(t: Dictionary) -> bool:
  return t.get("effect","")=="cat:murder_dolls" and not t.source.get("murder_dolls_skip_disabled",false) and units(1-t.owner).is_empty()
 func skip_flower_cast_trigger(t: Dictionary) -> bool:
  return t.get("effect","")=="cat:flower_cast" and not Pack.has_character(self,t.owner,"风见幽香")
+func skip_exhausted_death_trigger(t: Dictionary) -> bool:
+ return t.get("effect","")=="leader_death_damage" and usage_count(int(t.get("source",{}).get("uid",0)),"death_ping")>=int(t.get("data",{}).get("limit",2))
+
 func begin_trigger(t: Dictionary):
- if skip_murder_dolls_trigger(t) or skip_flower_cast_trigger(t):return
+ if skip_murder_dolls_trigger(t) or skip_flower_cast_trigger(t) or skip_exhausted_death_trigger(t):return
  var options=trigger_options(t)
  # A hand ability stays private until its owner agrees to announce it.
  # Declining must not create a provisional stack entry or public history.
@@ -748,7 +751,7 @@ func pump_choices():
  if not pending.is_empty():return
  for t in triggers:Cat.prepare_reveal_trigger(self,t)
  while not triggers.is_empty():
-  triggers=triggers.filter(func(t):return not skip_murder_dolls_trigger(t) and not skip_flower_cast_trigger(t) and (t.get("effect","")!="miracle" or not miracle_blocked(t.source,t.owner)))
+  triggers=triggers.filter(func(t):return not skip_murder_dolls_trigger(t) and not skip_flower_cast_trigger(t) and not skip_exhausted_death_trigger(t) and (t.get("effect","")!="miracle" or not miracle_blocked(t.source,t.owner)))
   if triggers.is_empty():trigger_order_queue.clear();break
   if not trigger_order_queue.is_empty():
    var ordered=trigger_order_queue.pop_front()
@@ -1225,6 +1228,12 @@ func finish_turn():
   for c in p.field:
    c.erase("next_damage_prevention_turn")
    c.damage=0; c.erase("task_damage_owner"); c.modifiers=[]; c.spell_damage=false; c.wards=c.get("wards",[]).filter(func(w):return w.turn==-1); c.base_override={}; c.medicine=[]
+ # Cleanup may make a unit die. Announce its triggers before changing turns,
+ # so the current turn's usage limits and priority remain in force.
+ priority=active;passes=0
+ judge();pump_choices()
+ if not pending.is_empty() or not stack.is_empty() or not triggers.is_empty() or winner!=-2:return
+ if not returns.is_empty() or not timer_changes.is_empty() or not zone_replacements.is_empty() or not entry_choices.is_empty() or not mod_changes.is_empty() or not damage_queue.is_empty():return
  start_turn(extra_turns.pop_front() if not extra_turns.is_empty() else 1-active)
 func can_attack(who: int,uid: int) -> bool:
  var mod_card=find_card(uid)

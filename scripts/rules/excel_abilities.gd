@@ -489,7 +489,7 @@ static func resolve_trigger(e,t: Dictionary):
   "suwako_top","mist_lake":
    var top=refs(e,e.players[who].deck.slice(0,4));var options=[]
    for r in top:
-    var c=e.find_card(r.uid);e.reveal_card(c)
+    var c=e.find_card(r.uid);e.Cat.reveal(e,[c])
     if t.effect=="mist_lake":
      if e.is_unit(c) and race(e,c,"妖精"):options.append(r)
     elif (e.is_unit(c) and "绿" in e.cards[c.card_id].colors and e.Extra.cost_value(e,c)<=4) or character_matches("洩矢诹访子",e.cards[c.card_id].requires_character) and not e.cards[c.card_id].requires_character.is_empty():options.append(r)
@@ -637,7 +637,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
   "philosopher":
    var top=refs(e,e.players[who].deck.slice(0,7))
    for r in top:
-    var u=e.find_card(r.uid);e.reveal_card(u)
+    var u=e.find_card(r.uid);e.Cat.reveal(e,[u])
     if e.cards[u.card_id].kind=="符卡":e.move_to(u,"exile");u.excel_access={"owner":who,"turn":e.turn,"ignore":true}
    bottom_rest(e,top,who);exile=true
   "two_bats":
@@ -688,7 +688,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
   "door_reveal":
    var top=[];var chosen={}
    for u in e.players[who].deck:
-    top.append(e.Pack.ref(e,u));e.reveal_card(u)
+    top.append(e.Pack.ref(e,u));e.Cat.reveal(e,[u])
     if e.cards[u.card_id].kind=="自机":chosen=u;break
    if not chosen.is_empty():field_many(e,[chosen],who)
    bottom_rest(e,top,who)

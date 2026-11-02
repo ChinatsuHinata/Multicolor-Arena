@@ -2405,7 +2405,7 @@
     },
     {
       "卡牌ID": "spell-fdn-008",
-      "名称": "夜王「Deacula Cradle」",
+      "名称": "夜王「Dracula Cradle」",
       "数据": "res://cards/spell-fdn-008.json",
       "图片": "res://recourse/数据库/spell-fdn-008.jpg",
       "SHA256": "271A4DCBF8A8069DB4AE3070E6B88DF978C50E376A780FE8C0C67E45CB53CB97"

@@ -1745,7 +1745,7 @@
     "d7": {
       "type": "info",
       "guide": {
-        "text": "种族会影响部分牌的合法目标和效果。例如符卡夜王「Deacula Cradle」只能以吸血鬼单位为目标。",
+        "text": "种族会影响部分牌的合法目标和效果。例如符卡夜王「Dracula Cradle」只能以吸血鬼单位为目标。",
         "focus": {
           "alias": "vampire_fairy_hand"
         }
