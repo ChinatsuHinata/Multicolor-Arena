@@ -63,7 +63,8 @@ func frogs(label: String):
  clean(true);e.debug_free_payment=true
  put(N.id("SPX-003"),"field")
  var red=put(N.id("SPX-004"),"hand")
- expect(e.commit_cast(0,red.uid,{"none":true},[]).is_empty(),label+" Red Frog is cast")
+ var red_error=e.commit_cast(0,red.uid,{"none":true},[])
+ expect(red_error.is_empty(),label+" Red Frog is cast: "+red_error)
  resolve();e.priority=0
  var green=e.DB.IDS.filter(func(id):return e.cards[id].colors==["绿"])[0]
  var blue=e.DB.IDS.filter(func(id):return e.cards[id].colors==["蓝"])[0]
@@ -196,7 +197,9 @@ func run():
  DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://work/stack-target-persistence"))
  root.mode=Window.MODE_WINDOWED;root.content_scale_size=Vector2i(1600,900)
  root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS;root.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames();app.load_legacy_test_decks()
+ app=load("res://main.tscn").instantiate()
+ app.settings_path=Store.Paths.root_override.path_join("settings.json");app.account_session_path=Store.Paths.root_override.path_join("account.json");app.tutorial_local_directory=Store.Paths.root_override.path_join("tutorials")
+ root.add_child(app);await frames();app.load_legacy_test_decks()
  for fixture in [{"size":Vector2i(1600,900),"dpi":0},{"size":Vector2i(1280,720),"dpi":320}]:
   if is_instance_valid(view):view.queue_free();app.duel_view=null;await frames()
   app.is_android=fixture.dpi>0;app.layout_dpi_override=fixture.dpi;root.size=fixture.size
@@ -204,7 +207,10 @@ func run():
   await frames();app.refresh_responsive_layout();app.begin_battle(true);await frames()
   view=app.duel_view;view.set_process(false);e=view.engine
   var label="android" if app.is_android else "desktop"
-  await frogs(label);await komachi(label);await komachi(label+"-same",true);await grave_operators(label);await counter(label);await continuation(label)
+  if not OS.get_cmdline_user_args().has("--pile-targets"):await frogs(label)
+  await komachi(label);await komachi(label+"-same",true);await grave_operators(label)
+  if not OS.get_cmdline_user_args().has("--pile-targets"):
+   await counter(label);await continuation(label)
  app.queue_free();await frames()
  print("STACK TARGET PERSISTENCE: %d checks; %d failures" % [checks,failures.size()])
  quit(0 if failures.is_empty() else 1)

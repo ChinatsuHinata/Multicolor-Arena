@@ -1,5 +1,5 @@
 extends SceneTree
-## Camera framing must ignore temporary HUD slivers and recover on the next layout.
+## Overlay panels must never reframe the battlefield, including the palette view.
 const View=preload("res://scripts/duel_view.gd")
 const Table=preload("res://scripts/duel_table.gd")
 
@@ -42,15 +42,15 @@ func check_layout(top_down: bool,wide: bool):
  var original=view.table.camera.global_transform
  var original_scale=view.table.camera_frame_scale
  var area=view.responsive.camera_focus_rect()
- # A panel can briefly leave just one pixel during opening/reflow.
+ # Even a panel covering almost the whole board must leave its camera unchanged.
  var panel=Panel.new();view.add_child(panel);view.android_choice_panel=panel
  panel.position=area.position-Vector2(20,20);panel.size=area.size+Vector2(40,9)
  view.focus_palette_camera(false)
- expect(view.table.camera.global_transform.is_equal_approx(original) and is_equal_approx(view.table.camera_frame_scale,original_scale),title+" a one-pixel HUD gap preserves the previous camera")
- expect(view.android_camera_area!=view.responsive.camera_focus_rect(),title+" a temporary HUD gap remains pending for reframing")
+ expect(view.table.camera.global_transform.is_equal_approx(original) and is_equal_approx(view.table.camera_frame_scale,original_scale),title+" a floating panel preserves the previous camera")
+ expect(view.responsive.camera_focus_rect()==area and view.android_camera_area==area,title+" an overlay does not change the camera framing region")
  panel.size=area.size+Vector2(9,40)
  view.focus_palette_camera(false)
- expect(view.table.camera.global_transform.is_equal_approx(original),title+" a one-pixel vertical gap also preserves the camera")
+ expect(view.table.camera.global_transform.is_equal_approx(original),title+" resizing an overlay also preserves the camera")
  panel.free();view.android_choice_panel=null
  view.focus_palette_camera(false);check_frame(title+" after panel closes")
  # Large touch metrics/logs must never push the palette frame into the hand.

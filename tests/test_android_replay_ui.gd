@@ -9,12 +9,79 @@ func tap(at: Vector2):
  root.push_input(event,true);await process_frame
  event=event.duplicate();event.pressed=false;root.push_input(event,true);await frames()
 
+func check_camera_parity(player,label: String):
+ var current=app.duel_view
+ current.set_process(false)
+ # Put a visible card in the opposing back row so placement is tested against it.
+ var enemy_seat=1-current.local_seat
+ var back_card=current.engine.players[current.local_seat].hand[0].duplicate(true)
+ back_card.uid=900000;back_card.owner=enemy_seat;back_card.zone="palette";back_card.tapped=false
+ current.engine.players[enemy_seat].palette.append(back_card)
+ for top_down in [false,true]:
+  current.table.set_top_down_view(top_down)
+  # Use the identical snapshot with ordinary battle HUD/hidden opponent hand.
+  current.network_session=null;current.render();current.focus_android_camera(false);await frames()
+  var normal_frame=current.projected_android_focus(current.android_focus_bounds())
+  var normal_transform=current.table.camera.global_transform
+  var normal_scale=current.table.camera_frame_scale
+  expect(current.enemy_nodes.is_empty(),label+" normal battle hides opponent hand")
+  current.network_session=player;current.render();current.focus_android_camera(false);await create_timer(0.3).timeout;await frames()
+  var replay_frame=current.projected_android_focus(current.android_focus_bounds())
+  var mode="2d" if top_down else "3d"
+  expect(replay_frame.size.x>=normal_frame.size.x-1 and replay_frame.size.y>=normal_frame.size.y-1,label+" "+mode+" replay battlefield is at least normal battle size")
+  expect(current.table.camera.global_transform.is_equal_approx(normal_transform) and is_equal_approx(current.table.camera_frame_scale,normal_scale),label+" "+mode+" visible replay opponent hand does not reframe the battlefield")
+  var enemy=1-current.local_seat
+  var cards=current.engine.players[enemy].hand
+  expect(current.enemy_nodes.size()==cards.size(),label+" "+mode+" all opponent hand cards are present")
+  for tile in current.enemy_nodes.values():
+   expect(tile.is_visible_in_tree() and tile.modulate.a>0.95,label+" "+mode+" opponent card is visible")
+   expect(tile.get_global_rect().position.x>=current.SIDEBAR.position.x-1,label+" "+mode+" opponent card stays in the side rail")
+   var back_rect=current.card_screen_rect("card_"+str(back_card.uid))
+   expect(back_rect.has_area() and not tile.get_global_rect().intersects(back_rect),label+" "+mode+" opponent hand does not cover the opposing back row")
+  var button=find_button(current.hud,"对手手牌 "+str(cards.size()))
+  var start_index=player.index
+  player.playing=true
+  await tap(button.get_global_rect().get_center());await create_timer(0.8).timeout
+  expect(current.debug_open and player.index==start_index,label+" "+mode+" browsing pauses replay progress")
+  # Simulate an animation/browser leaving the hand layer and a card hidden.
+  current.opponent_layer.hide()
+  if not current.enemy_nodes.is_empty():
+   var hidden=current.enemy_nodes.values()[0];hidden.hide();hidden.modulate.a=0.0
+  await tap(current.browser_panel.find_child("ClosePileBrowser",true,false).get_global_rect().get_center());await frames()
+  expect(not current.debug_open and current.enemy_nodes.size()==cards.size() and current.enemy_nodes.values().all(func(tile):return tile.is_visible_in_tree() and tile.modulate.a>0.95),label+" "+mode+" closing browser restores all opponent hand cards")
+  expect(player.playing,label+" "+mode+" replay resumes after closing the browser")
+  player.playing=false
+  current.set_hand_display(false);await frames()
+  expect(not current.opponent_layer.visible,label+" "+mode+" hide hands hides opponent cards")
+  current.set_hand_display(true);await create_timer(0.5).timeout;await frames()
+  expect(current.opponent_layer.visible and current.enemy_nodes.size()==cards.size() and current.enemy_nodes.values().all(func(tile):return tile.is_visible_in_tree() and tile.modulate.a>0.95),label+" "+mode+" showing hands restores opponent cards")
+  await capture("android-replay-full-board-"+label+"-"+mode)
+  await tap(player.restore_button.get_global_rect().get_center())
+  expect(not player.collapsed and current.table.camera.global_transform.is_equal_approx(normal_transform),label+" "+mode+" expanded replay overlay preserves normal battle framing")
+  await capture("android-replay-expanded-"+label+"-"+mode)
+  await tap(player.dock.find_child("ReplayCollapse",true,false).get_global_rect().get_center())
+  expect(player.collapsed and current.table.camera.global_transform.is_equal_approx(normal_transform),label+" "+mode+" collapsed replay overlay preserves normal battle framing")
+  var card=current.engine.players[current.local_seat].hand[0]
+  current.android_inspection_allowed=true;current.inspect_card(card.card_id,card.uid);current.android_inspection_allowed=false;await frames()
+  expect(current.table.camera.global_transform.is_equal_approx(normal_transform),label+" "+mode+" preview leaves replay battlefield unchanged")
+  await capture("android-replay-preview-"+label+"-"+mode)
+  await create_timer(0.28).timeout
+  await tap(app.ui_metrics.safe.end-Vector2(4,4));await frames()
+  expect(not current.inspection.visible and current.table.camera.global_transform.is_equal_approx(normal_transform),label+" "+mode+" preview outside dismissal leaves replay camera unchanged")
+ current.engine.players[enemy_seat].palette.erase(back_card)
+ current.render()
+ current.set_process(true)
+
 func check_controls(player,label: String):
+ expect(player.collapsed,"replay initially leaves the battlefield unobstructed")
+ await tap(player.restore_button.get_global_rect().get_center())
+ var before_transform=app.duel_view.table.camera.transform
+ var before_scale=app.duel_view.table.camera_frame_scale
  var dock_rect=player.dock.get_global_rect()
  var safe=app.ui_metrics.safe
  expect(inside(dock_rect,safe),label+" playback controls stay in safe area")
  expect(absf(dock_rect.end.y-safe.end.y)<2 and dock_rect.size.y<=app.ui_metrics.hit+app.ui_metrics.gap*2+2,label+" controls use one compact row at the bottom edge")
- expect(app.duel_view.HAND.end.y<=dock_rect.position.y-app.ui_metrics.gap+2,label+" hand cards have their own space above the transport")
+ expect(is_equal_approx(app.duel_view.HAND.end.y,safe.end.y),label+" overlay controls reserve no extra battlefield or hand space")
  expect(not dock_rect.intersects(app.duel_view.responsive.log_rect) and not dock_rect.intersects(app.duel_view.responsive.toolbar_rect),label+" controls leave battle state and toolbar clear")
  for item in player.dock.find_children("*","Button",true,false):
   if not item.visible:continue
@@ -22,12 +89,14 @@ func check_controls(player,label: String):
  var collapse=player.dock.find_child("ReplayCollapse",true,false)
  await tap(collapse.get_global_rect().get_center())
  expect(player.collapsed and not player.dock.visible and player.restore_button.visible,label+" actual touch collapses the replay strip")
+ expect(app.duel_view.table.camera.transform.is_equal_approx(before_transform) and is_equal_approx(app.duel_view.table.camera_frame_scale,before_scale),label+" collapsing the strip does not resize or move the battlefield")
  expect(inside(player.restore_button.get_global_rect(),safe),label+" collapsed restore button stays reachable")
  expect(not player.restore_button.get_global_rect().intersects(app.duel_view.HAND) and not player.restore_button.get_global_rect().intersects(app.duel_view.responsive.hand_toggle_rect),label+" collapsed button leaves the hand and visibility button clear")
  expect(app.duel_view.camera_touches.is_empty() and app.duel_view.android_card_touch.finger<0,label+" replay tap never starts a battlefield gesture")
  await capture("android-replay-collapsed-"+label)
  await tap(player.restore_button.get_global_rect().get_center())
  expect(not player.collapsed and player.dock.visible and not player.restore_button.visible,label+" actual touch restores the strip")
+ expect(app.duel_view.table.camera.transform.is_equal_approx(before_transform) and is_equal_approx(app.duel_view.table.camera_frame_scale,before_scale),label+" expanding the strip does not resize or move the battlefield")
  var before=player.index
  var step=player.dock.find_child("ReplayNext",true,false)
  await tap(step.get_global_rect().get_center())
@@ -84,14 +153,16 @@ func check_controls(player,label: String):
  var card=current.engine.players[current.local_seat].hand[0]
  var before_camera=current.table.camera.transform
  current.android_inspection_allowed=true;current.inspect_card(card.card_id,card.uid);current.android_inspection_allowed=false;await frames()
- expect(current.inspection.visible and not current.inspection.get_global_rect().intersects(player.dock.get_global_rect()),label+" card preview does not overlap the expanded replay strip")
- current.inspect_id="";current.update_inspection();await frames()
+ expect(current.inspection.visible and not player.controls.visible and current.table.camera.transform.is_equal_approx(before_camera),label+" preview overlays HUD and blocks replay controls without moving the board")
+ var before_index=player.index
+ await tap(step.get_global_rect().get_center());await frames()
+ expect(not current.inspection.visible and player.index==before_index and not player.playing and current.local.is_empty(),label+" dismissing preview over replay step does not activate the underlying control")
  expect(current.table.camera.transform.is_equal_approx(before_camera),label+" closing card preview restores the replay camera")
- current.android_inspection_allowed=true;current.inspect_card(card.card_id,card.uid);current.android_inspection_allowed=false;await frames()
  await tap(player.dock.find_child("ReplayCollapse",true,false).get_global_rect().get_center())
- expect(current.inspection.visible and not current.inspection.get_global_rect().intersects(player.restore_button.get_global_rect()),label+" collapsing replay controls leaves the preview usable")
- current.inspect_id="";current.update_inspection();await frames()
- expect(current.android_inspection_camera_restore.is_empty() and current.android_camera_area==current.responsive.camera_focus_rect(),label+" closing preview adapts the camera to the newly available space")
+ current.android_inspection_allowed=true;current.inspect_card(card.card_id,card.uid);current.android_inspection_allowed=false;await frames()
+ expect(current.inspection.visible and not player.controls.visible and current.table.camera.transform.is_equal_approx(before_camera),label+" preview also leaves collapsed replay camera unchanged")
+ await tap(app.ui_metrics.safe.end-Vector2(4,4));await frames()
+ expect(not current.inspection.visible and player.controls.visible and current.table.camera.transform.is_equal_approx(before_camera),label+" outside tap closes preview and restores the collapsed control")
  await tap(player.restore_button.get_global_rect().get_center());await frames()
 
 func inside(rect: Rect2,outer: Rect2) -> bool:
@@ -156,6 +227,7 @@ func run():
   safe=app.ui_metrics.safe
   expect(is_instance_valid(player) and is_instance_valid(player.dock),str(dimensions)+" playback opens responsive controls")
   if not is_instance_valid(player) or not is_instance_valid(player.dock):continue
+  await check_camera_parity(player,str(dimensions.x))
   await check_controls(player,str(dimensions.x))
   view=app.duel_view
   safe=app.ui_metrics.safe

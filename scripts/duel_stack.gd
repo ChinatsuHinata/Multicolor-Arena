@@ -139,8 +139,12 @@ func apply_collapsed_state():
 func update_toggle_position():
  if not is_instance_valid(toggle_button):return
  toggle_button.size=TOGGLE_SIZE
- toggle_button.position=Vector2(maxf(0,size.x-TOGGLE_SIZE.x) if collapsed else -TOGGLE_SIZE.x,
-  maxf(0,minf(size.y-TOGGLE_SIZE.y,32)))
+ if collapsed:
+  toggle_button.position=Vector2(maxf(0,size.x-TOGGLE_SIZE.x),maxf(0,minf(size.y-TOGGLE_SIZE.y,32)))
+ else:
+  # Keep the expanded control above the target-card lane, fixed by HUD geometry.
+  var top=maxf(view.responsive.toolbar_rect.end.y+view.host.ui_metrics.gap,global_position.y-TOGGLE_SIZE.y-view.host.ui_metrics.gap)
+  toggle_button.position=Vector2(-TOGGLE_SIZE.x,top-global_position.y)
 func sync():
  var unresolved=view.engine.unresolved_stack_entries()
  visible=not unresolved.is_empty()

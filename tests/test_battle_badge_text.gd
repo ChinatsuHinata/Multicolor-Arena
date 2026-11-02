@@ -68,10 +68,12 @@ func verify_board(prefix: String):
  var copy=view.board_badge_label("12/100",16 if view.is_android else 14,app.GOLD,view.effects)
  text_fits(copy,prefix+" copy index")
  copy.queue_free()
- for label in view.table.field_capacity_labels.values():
-  var width=label.font.get_string_size(label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,label.font_size).x*label.pixel_size
-  expect(width<=2.3,prefix+" complete battlefield capacity fits the melody lane")
-  expect(label is Label3D and not label.text.is_empty(),prefix+" battlefield capacity is visible world text")
+ for who in range(2):
+  var label=view.card_badges["capacity"+str(who)].count_label
+  var pile=view.card_badges.pdeck.count_label
+  text_fits(label,prefix+" battlefield capacity")
+  expect(label.get_theme_font_size("font_size")==pile.get_theme_font_size("font_size"),prefix+" battlefield capacity matches pile-count font size")
+  expect(label.get_parent().get_parent()==pile.get_parent().get_parent(),prefix+" battlefield and pile counts share the same overlay")
 
 func verify_life_delta(delta: int,prefix: String):
  view.life_last[0]=200

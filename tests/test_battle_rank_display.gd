@@ -23,6 +23,9 @@ func check_player(who: int,rank: Dictionary):
  var button=widget.button
  var labels=[widget.BattlePlayerName,widget.BattleLifeValue,widget.BattleRank]
  expect(widget.BattleRank.text==RankBadge.caption(rank),"rank follows engine seat "+str(who))
+ var rank_label=widget.BattleRank
+ var natural=rank_label.get_theme_font("font").get_string_size(rank_label.text,HORIZONTAL_ALIGNMENT_LEFT,-1,rank_label.get_theme_font_size("font_size"))
+ expect(natural.x<=rank_label.size.x,"complete tier and stars are visible without ellipsis "+str(who))
  expect(widget.BattlePlayerName.text==view.player_caption(who) and widget.BattleLifeValue.text==str(e.players[who].life),"nickname and life value remain available "+str(who))
  for label in labels:
   expect(button.get_global_rect().grow(1).encloses(label.get_global_rect()),"player information fits its life panel: "+str(label.name))
@@ -37,7 +40,9 @@ func run():
  root.gui_embed_subwindows=true;root.content_scale_size=Vector2i(1600,900)
  root.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
  Store.Paths.root_override=ProjectSettings.globalize_path("res://work/battle-rank-display/"+str(Time.get_ticks_usec()))
- app=load("res://main.tscn").instantiate();root.add_child(app);await frames()
+ app=load("res://main.tscn").instantiate()
+ app.settings_path=Store.Paths.root_override.path_join("settings.json");app.account_session_path=Store.Paths.root_override.path_join("account.json");app.tutorial_local_directory=Store.Paths.root_override.path_join("tutorials")
+ root.add_child(app);await frames()
  var desktop_font=app.theme.default_font
  app.load_legacy_test_decks();app.begin_battle(true)
  view=app.duel_view;view.set_process(false);e=view.engine;clean()
@@ -49,7 +54,7 @@ func run():
  e.apply_snapshot(preload("res://net/observer_projection.gd").build(offline));view.engine=e;view.table.duel=e
  var session=PreviewSession.new();view.network_session=session
  e.session=session
- var ranks=[{"tier":1,"level":2,"stars":2},{"tier":4,"position":1234}]
+ var ranks=[{"tier":1,"level":3,"stars":2},{"tier":3,"level":3,"stars":3}]
  session.room.ranks=ranks
  for fixture in [[false,Vector2i(1600,900),0],[true,Vector2i(1280,720),160],[true,Vector2i(1280,720),240],[true,Vector2i(2340,1080),420]]:
   root.size=fixture[1]
@@ -60,12 +65,26 @@ func run():
   app.refresh_ui_metrics();view.resize_world();await frames()
   for seat in [0,1]:
    view.local_seat=seat;view.table.local_seat=seat;e.seat=seat
-   e.players[0].etb_curse=4;e.players[1].etb_curse=4
+   e.players[0].etb_curse=0;e.players[1].etb_curse=0
    view.render();await frames()
    for who in [0,1]:check_player(who,ranks[who])
    if view.is_android:
     expect(not view.life_widgets[1-seat].button.get_global_rect().intersects(view.hud.get_node("AndroidCameraFocusToggle").get_global_rect()),"rank panel clears the camera button")
     expect(not view.life_widgets[seat].button.get_global_rect().intersects(view.hud.get_node("HandDisplayToggle").get_global_rect()),"rank panel clears the hand toggle")
+  e.players[0].etb_curse=4;e.players[1].etb_curse=4
+  view.render();await frames()
+  for who in [0,1]:check_player(who,ranks[who])
+  e.players[0].etb_curse=0;e.players[1].etb_curse=0
+  view.render();await frames()
+  var hand_before=view.HAND
+  var camera_before=view.table.camera.transform
+  var camera_area_before=view.responsive.camera_focus_rect()
+  var camera_scale_before=view.table.camera_frame_scale
+  var alternate=[{"tier":4,"position":1234567},{"tier":2,"level":3,"stars":0}]
+  session.room.ranks=alternate;view.render();await frames()
+  for who in [0,1]:check_player(who,alternate[who])
+  expect(view.HAND==hand_before and view.responsive.camera_focus_rect()==camera_area_before and view.table.camera.transform.is_equal_approx(camera_before) and is_equal_approx(view.table.camera_frame_scale,camera_scale_before),"rank card width changes leave the battlefield and hand framing unchanged")
+  session.room.ranks=ranks;view.render();await frames()
   session.read_only=true;session.replay_mode=true
   app.account_rank={"tier":0,"level":2,"stars":0}
   view.render();await frames()

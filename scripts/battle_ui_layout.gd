@@ -32,8 +32,8 @@ func measure(owner_view):
   view.INSPECTION=Rect2(16,156,218,604)
   view.SIDEBAR=Rect2(1366,100,218,660)
   view.OPPONENT_HAND_COUNT=Rect2(1366,76,218,62)
-  enemy_life=Rect2(18,18,218,view.battle_life_height(1-view.local_seat,61))
-  own_life=Rect2(18,863-view.battle_life_height(view.local_seat,70),218,view.battle_life_height(view.local_seat,70))
+  enemy_life=Rect2(18,18,view.battle_life_width(1-view.local_seat,218),view.battle_life_height(1-view.local_seat,61))
+  own_life=Rect2(18,863-view.battle_life_height(view.local_seat,70),view.battle_life_width(view.local_seat,218),view.battle_life_height(view.local_seat,70))
   log_rect=Rect2(320,53,990,26)
   action_rect=Rect2(1330,675,237,214)
   view.ANDROID_ACTION_X=1330
@@ -44,9 +44,6 @@ func measure(owner_view):
   choice_rect=Rect2(1358,148,224,510)
   measure_hand_controls()
   return
- # Replay transport owns a bottom gutter, so it never covers cards or HUD controls.
- if view.replay_view() and view.network_session.has_method("android_bottom_inset"):
-  safe.size.y=maxf(1,safe.size.y-view.network_session.android_bottom_inset())
  var life_width=maxf(160,metrics.body*5.5)
  var curse_count=0 if view.engine==null else clampi(maxi(view.ConditionHints.curse_count(view.engine,0),view.ConditionHints.curse_count(view.engine,1)),0,view.CurseWarning.MAX_VISIBLE)
  if curse_count>0:
@@ -95,10 +92,15 @@ func measure(owner_view):
  board_rect=view.TOUCH_CAMERA_AREA
  left_column_rect=Rect2(safe.position.x,enemy_life.end.y+g,enemy_life.size.x,own_life.position.y-enemy_life.end.y-g*2)
  measure_hand_controls()
+ # Rank captions widen only their HUD cards, never the hand lane or camera frame.
+ enemy_life.size.x=view.battle_life_width(1-view.local_seat,life_width)
+ own_life.size.x=view.battle_life_width(view.local_seat,life_width)
+ toolbar_rect.position.x=enemy_life.end.x+g
+ toolbar_rect.size.x=safe.end.x-toolbar_rect.position.x
 
 func measure_hand_controls():
  if view.is_android:
-  hand_toggle_rect=Rect2(safe.position.x,view.HAND.position.y-metrics.hit,enemy_life.size.x,metrics.hit)
+  hand_toggle_rect=Rect2(safe.position.x,view.HAND.position.y-metrics.hit,left_column_rect.size.x,metrics.hit)
   hand_cards_rect=view.HAND
  else:
   var width=132.0
@@ -258,16 +260,10 @@ func add_phase_action(control: Button):
  else:control.custom_minimum_size=Vector2(237,49)
 
 func inspection_rect() -> Rect2:
- # Restore the wide reading panel inside the central lane, leaving life bars,
- # left-side controls, the toolbar, hands and right-side actions unobstructed.
- var left=maxf(enemy_life.end.x,own_life.end.x)+metrics.gap
- var right=back_rect.position.x-metrics.gap
- var available=maxf(1,right-left)
- var board_reserve=minf(maxf(240,metrics.hit*2),available*0.45)
- var width=minf(minf(620,safe.size.x*0.42),available-board_reserve-metrics.gap)
- var top=maxf(toolbar_rect.end.y,log_rect.end.y)+metrics.gap
- var bottom=view.HAND.position.y-metrics.gap
- return Rect2(left,top,maxf(1,width),maxf(1,bottom-top))
+ # Keep the overlay between both player panels, without changing camera framing.
+ var top=maxf(safe.position.y,enemy_life.end.y+metrics.gap)
+ var bottom=minf(safe.end.y,own_life.position.y-metrics.gap)
+ return Rect2(safe.position.x,top,safe.size.x*0.16,maxf(1,bottom-top))
 
 func camera_focus_rect() -> Rect2:
  if not view.is_android:
@@ -281,7 +277,7 @@ func camera_focus_rect() -> Rect2:
   top=maxf(top,bottom-maxf(150,metrics.hit*2))
  elif is_instance_valid(view.table) and not view.table.top_down_view and view.hand_display_enabled:
   # Frame the enemy palette below the opposing hand and move focus toward that end.
-  for card in view.enemy_nodes.values():
+  for card in ([] if view.replay_view() else view.enemy_nodes.values()):
    if is_instance_valid(card):top=maxf(top,card.get_meta("target",card.position).y+card.size.y+metrics.gap)
   if not view.hand_nodes.is_empty():
    bottom=view.HAND.end.y
@@ -289,30 +285,6 @@ func camera_focus_rect() -> Rect2:
     if is_instance_valid(card):bottom=minf(bottom,view.hand_scroll.position.y+card.get_meta("target",card.position).y-metrics.gap)
  var height=maxf(1,bottom-top) if view.android_palette_view else maxf(metrics.hit*2,bottom-top)
  var area=Rect2(view.HAND.position.x+metrics.gap,top,view.HAND.size.x-metrics.gap*2,height)
- if is_instance_valid(view.inspection) and view.inspection.visible:
-  var preview=inspection_rect()
-  var left=maxf(area.position.x,preview.end.x+metrics.gap)
-  area=Rect2(left,area.position.y,maxf(1,area.end.x-left),area.size.y)
- if view.android_palette_view:
-  # Target panels can sit beside the stack, inside the board's normal focus area.
-  # Fit the palette into the largest usable part of that area after HUD layout.
-  var overlays=[view.android_choice_panel,view.android_choice_restore,view.stack_panel]
-  if is_instance_valid(view.stack_panel):overlays.append(view.stack_panel.toggle_button)
-  for control in overlays:
-   if not is_instance_valid(control) or not control.is_visible_in_tree():continue
-   var blocked=area.intersection(control.get_global_rect().grow(metrics.gap))
-   if not blocked.has_area():continue
-   var candidates=[
-    Rect2(area.position,Vector2(blocked.position.x-area.position.x,area.size.y)),
-    Rect2(Vector2(blocked.end.x,area.position.y),Vector2(area.end.x-blocked.end.x,area.size.y)),
-    Rect2(area.position,Vector2(area.size.x,blocked.position.y-area.position.y)),
-    Rect2(Vector2(area.position.x,blocked.end.y),Vector2(area.size.x,area.end.y-blocked.end.y))]
-   var best_fit=0.0
-   var clear=area
-   for candidate in candidates:
-    var fit=minf(candidate.size.x/area.size.x,candidate.size.y/area.size.y)
-    if fit>best_fit:best_fit=fit;clear=candidate
-   area=clear
  return area
 
 func hand_zone_selector(caption: String,action: Callable) -> Button:
@@ -327,7 +299,7 @@ func hand_zone_selector(caption: String,action: Callable) -> Button:
 
 func camera_focus_toggle() -> Button:
  if view.android_board!=null:return null
- var rect=Rect2(safe.position.x,enemy_life.end.y+metrics.gap,enemy_life.size.x,metrics.hit)
+ var rect=Rect2(safe.position.x,enemy_life.end.y+metrics.gap,left_column_rect.size.x,metrics.hit)
  var caption=("我方颜色盘视角" if view.android_palette_focus_owner()==view.local_seat else "敌方颜色盘视角") if view.android_palette_view else "战场视角"
  var result=view.host.button(view.hud,caption,rect,view.toggle_android_camera_focus,view.android_palette_view)
  result.name="AndroidCameraFocusToggle"
@@ -602,6 +574,7 @@ func position_persistent():
   var scroll_height=maxf(0,stack_height-heading_height-stack_inset*2)
   view.stack_panel.scroll.size=Vector2(view.SIDEBAR.size.x-stack_inset*2,scroll_height)
   view.stack_panel.visible=view.stack_panel.visible and stack_height>=view.stack_panel.TOGGLE_SIZE.y
+  view.stack_panel.update_toggle_position()
  if is_instance_valid(view.inspection) and not view.is_android:
   view.inspection.position=view.INSPECTION.position;view.inspection.size=view.INSPECTION.size
 

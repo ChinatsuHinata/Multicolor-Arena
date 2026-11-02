@@ -57,7 +57,7 @@ func run():
  expect(snapshot()==before and view.local.is_empty(),"holding a hand card does not play or select it")
  var title=view.inspection.find_child("InspectionTitle",true,false)
  expect(title!=null and title.get_theme_font_size("font_size")>=20,"card details keep a readable title font")
- expect(view.inspection.size.x>=380 and view.responsive.camera_focus_rect().position.x>view.inspection.get_global_rect().end.x,"wide card details reserve a separate lane beside the battlefield")
+ expect(is_equal_approx(view.inspection.size.x,app.ui_metrics.safe.size.x*0.16) and not view.inspection.get_global_rect().intersects(view.life_widgets[0].button.get_global_rect()) and not view.inspection.get_global_rect().intersects(view.life_widgets[1].button.get_global_rect()),"card details stay in the narrow column between player IDs")
  expect(view.inspection.find_child("关闭详情",true,false)==null and find_button(view.inspection,"关闭详情")==null,"card details have no close button")
  expect(view.inspection_text.scroll_active and view.inspection_text.size.x<=view.inspection.size.x-20 and view.inspection_text.size.y>200,"long card rules have a readable scrolling area")
  await shot("android-hand-long-press")

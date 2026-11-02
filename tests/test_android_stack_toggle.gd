@@ -26,6 +26,7 @@ func run_case(screen_size: Vector2i,dpi: float):
  expect(stack.toggle_button.size.x>=90 and stack.toggle_button.size.y>=90,"%s stack toggle provides a large square touch area" % screen_size)
  expect(app.ui_metrics.safe.encloses(stack.toggle_button.get_global_rect()),"%s expanded toggle stays in the screen safe area" % screen_size)
  expect(not stack.toggle_button.get_global_rect().intersects(view.OPPONENT_HAND_COUNT),"%s enlarged toggle leaves the opponent hand button clear" % screen_size)
+ expect(not stack.toggle_button.get_global_rect().intersects(view.responsive.toolbar_rect),"%s expanded toggle stays below the battle toolbar" % screen_size)
  expect(stack.tiles[505].tile.custom_minimum_size.y>=280,"%s Android stack card uses a large portrait image" % screen_size)
  expect(not stack.toggle_button.get_global_rect().intersects(view.responsive.action_scroll.get_global_rect()),"%s stack toggle leaves phase actions clear" % screen_size)
  await touch_toggle(stack.toggle_button.get_global_rect().position+Vector2(8,8));await frames()

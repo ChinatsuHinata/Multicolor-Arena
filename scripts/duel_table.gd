@@ -53,7 +53,6 @@ const MAT_SLOTS={"exile":Vector2(124.0/1200.0,1027.0/1200.0),"deck":Vector2(1070
 const CARD_SIZE=Vector2(1.95,2.72)
 const UNIT_PAGE_SIZE=6
 const PALETTE_PAGE_SIZE=10
-var field_capacity_labels={}
 var camera: Camera3D
 var board: MeshInstance3D
 var wide_playmat=false
@@ -82,6 +81,8 @@ var tutorial_highlights: Array=[]
 var targetable_stacks=[]
 var selected_stacks=[]
 var stack_target_uids=[]
+var exposed_pile_targets=[]
+var pile_target_visuals={}
 var inspect_root: Node3D
 var inspect_page=0
 var animation_count=0
@@ -569,20 +570,9 @@ func unit_pager_position(who: int) -> Vector3:
  var row=field_position("unit",0,UNIT_PAGE_SIZE,who)
  return Vector3(7.7 if wide_playmat else board_x(6.8),0.08,row.z)
 
-func update_field_capacity(font: Font,own_color: Color,enemy_color: Color):
- for who in range(2):
-  if not field_capacity_labels.has(who):
-   var label=Label3D.new();label.name="FieldCapacity"+str(who)
-   label.rotation_degrees.x=-90;label.font_size=96;label.pixel_size=0.008
-   label.outline_size=12;label.outline_modulate=Color("#101e2b")
-   label.no_depth_test=false;label.billboard=BaseMaterial3D.BILLBOARD_DISABLED
-   add_child(label);field_capacity_labels[who]=label
-  var label=field_capacity_labels[who]
-  label.font=font;label.modulate=own_color if who==local_seat else enemy_color
-  label.text="%d/%d" % [duel.field_slots(who),duel.Cat.field_limit(duel,who)]
-  # Both totals flank the right melody slot in the player's current board view.
-  # They are real board-layer text, so panning/zooming cannot detach them.
-  label.position=Vector3(10.15 if wide_playmat else 9.2,0.09,1.7 if who==local_seat else -1.7)
+func field_capacity_position(who: int) -> Vector3:
+ # Both totals flank the right melody slot in the current player's board view.
+ return Vector3(10.15 if wide_playmat else 9.2,0.09,1.7 if who==local_seat else -1.7)
 
 func field_group(c: Dictionary) -> String:
  if duel.is_unit(c):return "unit"
@@ -875,6 +865,7 @@ func sync(payment_reservations: Array=[], selection: Array=[], available: Array=
   update_pile("pdeck" if who==0 else "adeck",duel.players[who].deck,zone_position("deck",who),false)
   update_pile("pgrave" if who==0 else "agrave",duel.players[who].grave,zone_position("grave",who),true)
   update_pile("pexile" if who==0 else "aexile",duel.players[who].exile,zone_position("exile",who),true)
+ if only_id.is_empty():sync_pile_targets()
  if only_id.is_empty() and not duel.combat.is_empty() and duel.combat.get("attacker",{})!=last_combat.get("attacker",{}):
   var key="card_"+str(duel.combat.attacker.uid)
   if visuals.has(key):
@@ -978,7 +969,9 @@ func pulse(node: Node3D,_color: Color):
 func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
  at.y=0.02
  var count=cards.size()
- var height=pile_height(count); stack_heights[key]=height
+ var visible_cards=cards.filter(func(card):return not exposed_pile_targets.any(func(ref):return ref.get("uid",-1)==card.uid and ref.get("epoch",-1)==card.epoch)) if face_up else cards
+ var top=visible_cards.back() if not visible_cards.is_empty() else {}
+ var height=pile_height(visible_cards.size()); stack_heights[key]=height
  if not piles.has(key):
   var root=Node3D.new(); root.position=at; add_child(root)
   var layers=MultiMeshInstance3D.new(); layers.name="Layers"
@@ -995,22 +988,64 @@ func update_pile(key: String,cards: Array,at: Vector3,face_up: bool):
  root.set_meta("count",count)
  root.visible=not ("exile" in key and count==0)
  var mm=root.get_node("Layers").multimesh
- if mm.instance_count!=count:
-  mm.instance_count=count
-  for i in range(count): mm.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(0,LAYER_HEIGHT*(i+0.5),0)))
+ if mm.instance_count!=visible_cards.size():
+  mm.instance_count=visible_cards.size()
+  for i in range(visible_cards.size()): mm.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(0,LAYER_HEIGHT*(i+0.5),0)))
  root.get_node("Top").position.y=height+0.003
- root.get_node("Top").visible=count>0
- root.get_node("Top").material_override=material(cards.back().card_id,cards.back().get("art_id","")) if face_up and count>0 else material("back")
- DevourMarker.apply_pile(root.get_node("Top"),cards.back() if "exile" in key and count>0 else {},local_seat)
+ root.get_node("Top").visible=not top.is_empty()
+ root.get_node("Top").material_override=material(top.card_id,top.get("art_id","")) if face_up and not top.is_empty() else material("back")
+ DevourMarker.apply_pile(root.get_node("Top"),top if "exile" in key else {},local_seat)
  # An empty pile still needs a tappable box. Capping it near the mat surface
  # keeps the box from standing proud of flat cards and stealing their taps in
  # the top-down view, where the grave sits beside the palette row.
  var hit=root.get_node("Hit"); hit.position.y=maxf(0.1,height)/2
  hit.get_child(0).shape.size.y=maxf(0.04,height)
- hit.set_meta("card_id",cards.back().card_id if face_up and count>0 else "back")
- hit.set_meta("uid",cards.back().uid if face_up and count>0 else 0)
+ hit.set_meta("card_id",top.card_id if face_up and not top.is_empty() else "back")
+ hit.set_meta("uid",top.uid if face_up and not top.is_empty() else 0)
  hit.collision_layer=0 if "exile" in key and count==0 else 1
  hit.set_meta("caption",("除外区" if "exile" in key else "墓地" if face_up else "牌库")+" · %d 张" % count)
+
+func sync_pile_targets():
+ var retained={}
+ for who in range(2):
+  for zone in ["grave","exile"]:
+   var cards=[]
+   for ref in exposed_pile_targets:
+    var c=duel.find_card(ref.get("uid",0))
+    if c.is_empty() or c.owner!=who or c.zone!=zone or c.epoch!=ref.get("epoch",-1):continue
+    if cards.any(func(other):return other.uid==c.uid):continue
+    cards.append(c)
+   if cards.is_empty():continue
+   var anchor=zone_position(zone,who)
+   var half_depth=CARD_SIZE.y*SLOT_SCALE/2.0
+   var board_depth=displayed_board_size().y/2.0
+   # Keep a fixed world column beside each pile. Opposite halves never overlap;
+   # extra targets fan together within that half instead of moving the camera.
+   var low=-board_depth+half_depth if anchor.z<0 else half_depth
+   var high=-half_depth if anchor.z<0 else board_depth-half_depth
+   var stride=minf(CARD_SIZE.y*SLOT_SCALE+0.14,(high-low)/maxi(1,cards.size()-1))
+   var first=clampf(anchor.z-stride*(cards.size()-1),low,high-stride*(cards.size()-1))
+   for index in range(cards.size()):
+    var c=cards[index]
+    retained[c.uid]=true
+    var node=pile_target_visuals.get(c.uid)
+    if not is_instance_valid(node):
+     node=Node3D.new();node.name="PileTarget_"+str(c.uid);add_child(node)
+     plane(node,Vector3.ZERO,CARD_SIZE,material(c.card_id,c.get("art_id",""))).name="Face"
+     var hit=area(node,Vector3.ZERO,Vector3(CARD_SIZE.x,0.12,CARD_SIZE.y));hit.name="Hit"
+     hit.set_meta("kind","object");hit.set_meta("uid",c.uid)
+     pile_target_visuals[c.uid]=node
+    node.scale=Vector3.ONE*SLOT_SCALE
+    node.position=Vector3(anchor.x+signf(anchor.x)*(CARD_SIZE.x*SLOT_SCALE+0.18),0.06+(cards.size()-index)*0.002,first+index*stride)
+    node.set_meta("target_ref",duel.ref_target(c));node.set_meta("target_owner",who);node.set_meta("target_zone",zone)
+    node.get_node("Face").material_override=material(c.card_id,c.get("art_id",""))
+    node.get_node("Hit").set_meta("card_id",c.card_id)
+    node.get_node("Hit").set_meta("caption",("墓地" if zone=="grave" else "除外区")+" · 堆叠目标")
+ for uid in pile_target_visuals.keys():
+  if retained.has(uid):continue
+  var node=pile_target_visuals[uid]
+  node.get_node("Hit").collision_layer=0;remove_child(node);node.queue_free()
+  pile_target_visuals.erase(uid)
 
 func pointer(event: InputEvent):
  if not event is InputEventMouseButton or not event.pressed: return

@@ -129,7 +129,6 @@ var deck_cast_tiles={}
 var deck_peek_tile
 var badges: Control
 var inspection: Control
-var android_inspection_camera_restore={}
 var android_inspection_dismiss: Control
 var android_inspection_dismiss_until=0
 var android_inspection_dismiss_point=Vector2.ZERO
@@ -146,7 +145,6 @@ var life_flashes={}
 var life_flash_tweens={}
 var arrow_layer: Control
 var stack_target_rects={}
-var grave_target_layer: Control
 var grave_target_tiles={}
 var local: Dictionary={}
 var selection: Array=[]
@@ -358,7 +356,6 @@ func begin(parent,a: Dictionary,b: Dictionary,first: int,seed_value: int=0,sessi
  if is_android:
   stack_panel.size.y=327
   stack_panel.scroll.size.y=294
- grave_target_layer=layer(ui)
  reveal_player=preload("res://scripts/duel_reveal.gd").new();reveal_player.view=self;ui.add_child(reveal_player)
  banner=layer(ui)
  ui.move_child(banner,0)
@@ -722,7 +719,7 @@ func touch_camera_available(point: Vector2) -> bool:
  var card=engine.find_card(uid)
  var zone=card.get("zone","")
  # Top-down cards can extend beyond the central camera gesture rectangle.
- return zone in ["leader","field","palette"]
+ return zone in ["leader","field","palette"] or zone in ["grave","exile"] and table.pile_target_visuals.has(uid)
 
 func touch_android_back_swipe(event: InputEvent) -> bool:
  if not is_android or not (event is InputEventScreenTouch or event is InputEventScreenDrag):return false
@@ -1210,7 +1207,7 @@ func render_android_payment_toggle(parent: Control=null,rect: Rect2=Rect2()):
 
 func keep_button_rect() -> Rect2:
  if android_board!=null:return android_board.keep_colors_rect
- if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.enemy_life.size.x,host.ui_metrics.hit)
+ if is_android:return Rect2(host.ui_metrics.safe.position.x,responsive.enemy_life.end.y+host.ui_metrics.gap*2+host.ui_metrics.hit,responsive.left_column_rect.size.x,host.ui_metrics.hit)
  return Rect2(INSPECTION.position.x,100,108 if debug_mode else INSPECTION.size.x,44)
 
 func keep_popup_rect() -> Rect2:
@@ -1358,7 +1355,6 @@ func render_android_palette(_available: Array):
 func render_zone_pagers():
  if android_board!=null:return
  zone_pagers={}
- render_field_capacity()
  var hit=host.ui_metrics.hit if is_android else 36.0
  for who in range(2):
   for group in ["palette","unit"]:
@@ -1381,15 +1377,6 @@ func render_zone_pagers():
    button.tooltip_text=("我方" if who==local_seat else "敌方")+("颜色盘" if group=="palette" else "单位栏")+"：下一页，末页返回第一页"
    zone_pagers[key]={"root":pager,"button":button,"owner":who,"group":group}
  update_zone_pager_positions()
-
-func render_field_capacity():
- if android_board!=null:return
- table.update_field_capacity(host.get_theme_font("font"),host.GOLD,Color("#ef5350"))
- update_field_capacity_position()
-
-func update_field_capacity_position():
- for label in table.field_capacity_labels.values():
-  label.visible=not (is_android and android_palette_view)
 
 func next_zone_page(who: int,group: String):
  if table.combat_animating or revealing() or modal or history_open:return
@@ -1539,7 +1526,6 @@ func update_zone_pager_positions():
   var unit_at=clear_palette_pager_position(unit_preferred,pager.size,unit_safe,fixed_hud+occupied)
   pager.position=unit_at if unit_at.is_finite() else unit_preferred.clamp(unit_safe.position,unit_safe.end-pager.size)
   pager.show();occupied.append(pager.get_global_rect().grow(host.ui_metrics.gap))
- update_field_capacity_position()
 
 func zone_page_button_at(point: Vector2) -> String:
  for key in zone_pagers:
@@ -1654,6 +1640,7 @@ func render():
  for entry in engine.stack:
   if not stack_target_sources({"stack_id":entry.id}).is_empty() and entry.id not in table.selected_stacks:table.selected_stacks.append(entry.id)
  table.stack_target_uids=interactive_stack_target_uids()
+ table.exposed_pile_targets=[] if android_board!=null else stack_grave_targets().values().reduce(func(all,refs):return all+refs,[])
  table.sync(local.get("plan",[]),selected_uids(),available,not previous_snapshot.is_empty())
  if android_board!=null:android_board.sync()
  render_deck_casts()
@@ -1774,6 +1761,19 @@ func sync_hand_nodes(who: int,nodes: Dictionary,parent: Control,available: Array
   var tile_size=arrangement.card if who==local_seat else Vector2(70,98) if is_android or debug_mode or replay_view() else Vector2(54,75)
   var stride=arrangement.stride if who==local_seat else minf(74 if is_android or debug_mode or replay_view() else 52,750.0/maxi(1,cards.size()))
   var target=Vector2(arrangement.inset+i*stride,maxf(6,HAND.size.y-tile_size.y-20) if is_android else 17) if who==local_seat else Vector2(STAGE.get_center().x-tile_size.x/2-(cards.size()-1)*stride/2+i*stride,responsive.log_rect.end.y+8 if is_android else 64)
+  if is_android and replay_view() and who!=local_seat:
+   # Keep replay hand cards in the right rail, below both hand browser buttons.
+   # The board and its camera retain their normal match size.
+   var gap=host.ui_metrics.gap
+   var safe=host.ui_metrics.safe
+   var top=OPPONENT_HAND_COUNT.end.y+2*(host.ui_metrics.hit+gap)+gap
+   var bottom=safe.end.y-host.ui_metrics.hit-gap*3
+   var rows=ceili(float(cards.size())/2.0)
+   var width=minf(70.0,(SIDEBAR.size.x-gap*3)*0.5)
+   var height=width*1.4
+   var step=minf(height+gap,maxf(0.0,bottom-top-height)/maxi(1,rows-1))
+   tile_size=Vector2(width,height)
+   target=Vector2(SIDEBAR.position.x+gap+(i%2)*(width+gap),top+int(i/2)*step)
   var fresh=not nodes.has(c.uid)
   if fresh:
    var tile=preload("res://scripts/duel_hand_card.gd").new()
@@ -1999,6 +1999,13 @@ func rebuild_badges():
   var label=board_badge_label({"deck":"牌库 ","grave":"墓地 ","exile":"除外 "}[zone_name]+str(count),clampi(host.ui_metrics.small,17,22) if is_android else 17,host.WHITE,root)
   label.position.x=-label.size.x*0.5
   card_badges[key].count_label=label
+ # Field capacity shares the pile-count overlay, so text stays upright and readable.
+ for who in range(2):
+  var root=Control.new();root.mouse_filter=Control.MOUSE_FILTER_IGNORE;badges.add_child(root)
+  var caption="%d/%d" % [engine.field_slots(who),engine.Cat.field_limit(engine,who)]
+  var label=board_badge_label(caption,clampi(host.ui_metrics.small,17,22) if is_android else 17,host.GOLD if who==local_seat else Color("#ef5350"),root)
+  label.position=-label.size*0.5
+  card_badges["capacity"+str(who)]={"root":root,"zone":"capacity","owner":who,"count_label":label}
  update_badge_positions()
 func refresh_stackable_badges():
  for key in card_badges:
@@ -2068,8 +2075,11 @@ func update_badge_positions():
     caption_rects.append(occupied)
   elif table.piles.has(key):
    root.position=project(table.piles[key].position+Vector3(0,0.03,1.3))
+  elif parts.zone=="capacity":
+   root.position=project(table.field_capacity_position(parts.owner))
   root.visible=card_screen_rect(key)!=Rect2() if android_board!=null else STAGE.grow(5).has_point(root.position) or parts.zone=="stack" and root.position.y<790
   if parts.zone!="stack" and stack_rects.any(func(r): return r.has_point(root.position)): root.visible=false
+  if parts.zone=="capacity" and is_android and android_palette_view:root.hide()
 
 func show_phase_banner():
  clear_children(banner)
@@ -2173,9 +2183,6 @@ func update_inspection():
  var enabled=not current.is_empty() and engine.has_leader_ability(current)
  inspection.visible=(is_android or host.show_card_inspection or tutorial_runtime!=null and not tutorial_controls_enabled) and not inspect_id.is_empty()
  if is_instance_valid(android_inspection_dismiss):android_inspection_dismiss.visible=inspection.visible
- if is_android:
-  if inspection.visible:remember_inspection_camera()
-  else:restore_inspection_camera()
  var counters=counter_lines(current)
  var shown_id=current.card_id if not current.is_empty() and inspect_id not in ["back","potato"] else inspect_id
  var info=engine.cards.get(shown_id,{})
@@ -2569,7 +2576,14 @@ func _input(event: InputEvent):
    get_viewport().set_input_as_handled();return
  if is_android and event is InputEventScreenDrag and event.index==android_inspection_dismiss_finger:
   get_viewport().set_input_as_handled();return
- if is_android and inspection.visible and (event is InputEventScreenTouch or event is InputEventMouseButton) and event.pressed and not inspection.get_global_rect().has_point(make_input_local(event).position):return
+ if is_android and inspection.visible and (event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouse):
+  # Details own pointer input above every HUD/board layer, including off-board targets.
+  # The GUI dismiss blocker still receives outside taps; only the text can scroll.
+  if event is InputEventScreenTouch and not event.pressed:
+   android_card_touch.cancel();camera_touches.erase(event.index)
+   if camera_touches.is_empty():camera_touch_mode=""
+  android_swipe_scroll.handle(event,inspection)
+  return
  if is_android and event is InputEventMouseButton and Time.get_ticks_msec()<android_inspection_dismiss_until and event.position.distance_to(android_inspection_dismiss_point)<28:
   get_viewport().set_input_as_handled();return
  if is_android and event is InputEventMouseButton and Time.get_ticks_msec()<suppress_touch_mouse_until and event.position.distance_to(suppress_touch_mouse_point)<28:
@@ -2891,6 +2905,7 @@ func object_clicked(uid: int):
  if c.is_empty(): return
  if c.owner==acting_player() and c.zone=="leader": leader_zone_clicked(c.owner)
  elif c.owner==acting_player() and c.zone=="field": open_actions(c)
+ elif c.zone in ["grave","exile"] and table.pile_target_visuals.has(uid):inspect_card(c.card_id,c.uid)
 func leader_zone_clicked(who: int):
  if network_locked() or history_open or observing or table.combat_animating or modal or not local.is_empty():return
  if who!=acting_player() or not engine.pending.is_empty():return
@@ -3721,6 +3736,7 @@ func open_deck_casts():
  hand_zones[acting_player()]="deck"
  render()
 func close_debug():
+ var restore_hand=debug_open and replay_view()
  if debug_drag_uid!=0: finish_debug_drag(true)
  if is_instance_valid(debug_root):
   debug_root.get_parent().remove_child(debug_root); debug_root.queue_free()
@@ -3732,6 +3748,16 @@ func close_debug():
    if widget.has_meta("choice_widget"): widget.visible=true
  responsive.position_hand_count()
  refresh_observation()
+ if restore_hand:call_deferred("restore_replay_enemy_hand")
+
+func restore_replay_enemy_hand():
+ if debug_open or not replay_view() or not hand_display_enabled or not is_instance_valid(opponent_layer):return
+ opponent_layer.show()
+ sync_hand_nodes(1-local_seat,enemy_nodes,opponent_layer,[])
+ if not revealing():
+  for uid in enemy_nodes:
+   if not table.presented_moves.has(uid):enemy_nodes[uid].modulate.a=1.0
+
 func zone_cards(who: int,zone: String) -> Array:
  if zone=="leader":
   return engine.leaders(who).filter(func(c):return c.zone=="leader")
@@ -4501,6 +4527,12 @@ func battle_rank(who: int) -> Dictionary:
 func battle_rank_font_size() -> int:
  return clampi(host.ui_metrics.small-2,16,22) if is_android else 13
 
+func battle_life_width(who: int,minimum: float) -> float:
+ var rank=battle_rank(who)
+ if rank.is_empty():return minimum
+ var font=host.get_theme_font("font")
+ return maxf(minimum,ceilf(font.get_string_size(RankBadge.caption(rank),HORIZONTAL_ALIGNMENT_LEFT,-1,battle_rank_font_size()).x)+24)
+
 func battle_life_height(who: int,minimum: float) -> float:
  var font=host.get_theme_font("font")
  var name_height=font.get_height(host.ui_metrics.body if is_android else 18)
@@ -4614,9 +4646,8 @@ func target_rect(target: Dictionary) -> Rect2:
     var art=row.get_node_or_null("PileCard")
     if art!=null and not art.get_meta("hidden",true) and art.get_meta("browser_uid",0)==c.uid:
      return clipped_arrow_rect(art.get_global_rect(),browser_scroll.get_global_rect())
-  if c.zone=="grave" and grave_target_tiles.has(c.uid):
-   var tile=grave_target_tiles[c.uid]
-   return clipped_arrow_rect(tile.get_global_rect(),tile.get_meta("target_scroll").get_global_rect())
+  if android_board==null and c.zone in ["grave","exile"] and grave_target_tiles.has(c.uid):
+   return projected_card_rect(grave_target_tiles[c.uid])
   if c.zone=="stack": return stack_panel.card_rect(c.uid)
   var key="card_"+str(c.uid)
   if android_board!=null or table.visuals.has(key):
@@ -4714,60 +4745,23 @@ func interactive_stack_target_uids() -> Array:
 
 func stack_grave_targets() -> Dictionary:
  var targets={0:[],1:[]}
- for entry in engine.unresolved_stack_entries():
+ # Newest declarations are at the top; the same physical card is displayed once.
+ var entries=engine.unresolved_stack_entries().duplicate();entries.reverse()
+ for entry in entries:
   for ref in arrow_targets(entry.get("target",{})):
    if not ref.has("uid"):continue
    var c=engine.find_card(ref.uid)
-   if c.is_empty() or c.zone!="grave" or c.epoch!=ref.get("epoch",-1):continue
+   if c.is_empty() or c.zone not in ["grave","exile"] or c.epoch!=ref.get("epoch",-1):continue
+   if c.card_id=="back" or c.get("network_hidden",false):continue
    if not targets[c.owner].any(func(other):return other.uid==c.uid):targets[c.owner].append(ref)
  return targets
 
-func exposed_grave_choice() -> bool:
- var atoms=region_atoms()
- if atoms.is_empty() or not atoms.all(func(atom):return region_card(atom).zone=="grave"):return false
- return atoms.any(func(atom):return grave_target_tiles.has(atom.value.uid))
-
 func render_grave_targets():
- clear_children(grave_target_layer);grave_target_tiles={}
- var targets=stack_grave_targets()
- var available=picker.available_refs() if picker_active() else []
- var selected=picker.selected_refs() if picker_active() else []
- for who in [1-local_seat,local_seat]:
-  var refs=targets[who]
-  if refs.is_empty():continue
-  var width=maxf(190.0,minf(600.0,26.0+refs.size()*126.0))
-  var at=Vector2(250,159 if who!=local_seat else 411)
-  var panel=host.box(grave_target_layer,Rect2(at,Vector2(width,249)),Color("#101c28e8"),Color("#8c7242"))
-  panel.name="GraveTargets%d" % who
-  txt(player_caption(who)+"墓地 · 堆叠目标",Rect2(12,7,width-24,27),17,host.GOLD,panel)
-  var scroll=ScrollContainer.new();scroll.position=Vector2(10,37);scroll.size=Vector2(width-20,178)
-  scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
-  var row=HBoxContainer.new();row.add_theme_constant_override("separation",8);scroll.add_child(row)
-  for ref in refs:
-   var c=engine.find_card(ref.uid)
-   var cell=Control.new();cell.custom_minimum_size=Vector2(118,174);row.add_child(cell)
-   var legal=available.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch)
-   var chosen=selected.any(func(option):return option.get("uid",-1)==c.uid and option.get("epoch",-1)==c.epoch) or not stack_target_sources(ref).is_empty()
-   var art=card_tile(cell,c,Rect2(4,0,110,153),func():
-    if legal:choose_target(ref)
-    else:inspect_card(c.card_id,c.uid))
-   art.name="GraveTargetCard";art.set_meta("target_uid",c.uid)
-   art.set_meta("target_scroll",scroll)
-   art.tooltip_text=engine.cards[c.card_id].name+" · "+player_caption(who)+"墓地"
-   art.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
-   var style=host.style(Color("#172936"),Color("#ffd65c") if chosen else Color("#359bff") if legal else Color("#8c7242"))
-   style.set_border_width_all(3 if legal or chosen else 1)
-   art.add_theme_stylebox_override("panel",style)
-   art.gui_input.connect(func(event):
-    if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_RIGHT:inspect_card(c.card_id,c.uid))
-   var name=txt(engine.cards[c.card_id].name,Rect2(0,155,118,19),13,host.WHITE,cell)
-   name.clip_text=true;name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-   grave_target_tiles[c.uid]=art
-  if picker_active() and not region_atoms().is_empty() and exposed_grave_choice():
-   var others=region_atoms().any(func(atom):return not grave_target_tiles.has(atom.value.uid))
-   if others and who==local_seat or others and targets[local_seat].is_empty():
-    var browse=btn("选择其他墓地牌",Rect2(width-169,218,157,27),region_picker,false,panel)
-    browse.add_theme_font_size_override("font_size",13)
+ # These are real table card faces, shared by every unresolved reference.
+ grave_target_tiles=table.pile_target_visuals
+ for uid in grave_target_tiles:
+  grave_target_tiles[uid].set_meta("stack_target_count",stack_target_sources(engine.ref_target(engine.find_card(uid))).size())
+
 func rect_edge(rect: Rect2,toward: Vector2) -> Vector2:
  var direction=(toward-rect.get_center()).normalized()
  var distance=minf(rect.size.x*0.5/maxf(0.001,absf(direction.x)),rect.size.y*0.5/maxf(0.001,absf(direction.y)))
@@ -5087,24 +5081,6 @@ func player_caption(who: int) -> String:
  if tutorial_runtime!=null:return PlayerNameDisplay.caption(engine.player_names[who])
  return PlayerNameDisplay.caption(engine.player_names[who]) if network_session!=null else ("你" if who==0 else "试验 AI" if experiment_agent.enabled else "人机")
 
-func remember_inspection_camera():
- if not android_inspection_camera_restore.is_empty() or not is_instance_valid(table):return
- if is_instance_valid(android_camera_tween):android_camera_tween.kill()
- android_inspection_camera_restore={"offset":table.camera_offset,"scale":table.camera_frame_scale,"distance":table.camera_distance,"size":table.top_down_camera_size,"top_down":table.top_down_view,"safe":responsive.safe,"restored":android_camera_restored}
-
-func restore_inspection_camera():
- if android_inspection_camera_restore.is_empty() or not is_instance_valid(table):return
- var saved=android_inspection_camera_restore
- android_inspection_camera_restore={}
- if is_instance_valid(android_camera_tween):android_camera_tween.kill()
- if saved.safe==responsive.safe and saved.top_down==table.top_down_view:
-  table.camera_offset=saved.offset;table.camera_frame_scale=saved.scale
-  table.camera_distance=saved.distance;table.top_down_camera_size=saved.size
-  android_camera_restored=saved.restored
-  android_camera_area=responsive.camera_focus_rect();android_camera_bounds=android_focus_bounds()
-  table.set_camera();update_badge_positions()
- else:focus_android_camera(false)
-
 func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Dictionary):
  if not is_android:return
  var m=host.ui_metrics
@@ -5120,25 +5096,30 @@ func layout_inspection(bg: Control,image: TextureRect,title: Label,info: Diction
  var padding=12.0
  var landscape=host.landscape_card(inspect_id)
  var aspect=156.0/218.0 if landscape else 305.0/218.0
- var image_width=minf(minf(width*0.34,216.0 if landscape else 190.0),inspection.size.y*0.42/aspect)
- image.position=Vector2(padding,padding)
+ # Leave enough height for the card name, colors and readable rules.
+ var image_width=minf((width-padding*2)*0.72,inspection.size.y*0.28/aspect)
+ image.name="InspectionImage"
+ image.position=Vector2((width-image_width)*0.5,padding)
  image.size=Vector2(image_width,image_width*aspect)
  var title_size=maxi(20,mini(28,roundi(m.title*0.72)))
- var text_left=image.position.x+image.size.x+m.gap
- var text_width=maxf(1,width-text_left-padding)
- title.position=Vector2(text_left,padding)
+ var text_width=maxf(1,width-padding*2)
+ title.position=Vector2(padding,image.position.y+image.size.y+m.gap)
  title.name="InspectionTitle"
  title.add_theme_font_size_override("font_size",title_size)
- var title_height=title.get_theme_font("font").get_multiline_string_size(title.text,HORIZONTAL_ALIGNMENT_LEFT,text_width,title_size).y
+ # Ask Label for its own word-smart wrapping; Font's default word wrapping
+ # differs for mixed CJK/Latin and can miss an entire line in a narrow panel.
+ title.size=Vector2(text_width,1)
+ var line_count=title.get_line_count()
+ var title_height=title.get_theme_font("font").get_height(title_size)*line_count+maxi(0,line_count-1)*title.get_theme_constant("line_spacing")
  title.size=Vector2(text_width,maxf(title_size*1.4,title_height+4))
  var cost_bottom=title.position.y+title.size.y
  for child in bg.get_children():
   if child.get_script()==HexCost:
+   child.name="InspectionCost"
    child.configure(CostDisplay.for_card(info),false,text_width,minf(34.0,text_width*0.18),info.get("variable_cost",""),info.get("variable_multiplier",1))
-   child.position=Vector2(text_left,cost_bottom+m.gap)
+   child.position=Vector2(padding,cost_bottom+m.gap)
    cost_bottom=child.position.y+child.size.y
- inspection_text.position=Vector2(padding,maxf(image.position.y+image.size.y,cost_bottom)+m.gap)
- inspection_text.size=Vector2(width-padding*2,maxf(0,inspection.size.y-inspection_text.position.y-padding))
+ inspection_text.position=Vector2(padding,cost_bottom+m.gap)
+ inspection_text.size=Vector2(text_width,maxf(0,inspection.size.y-inspection_text.position.y-padding))
  inspection_text.add_theme_font_size_override("normal_font_size",maxi(18,mini(24,m.body-2)))
  inspection_text.scroll_active=true
- focus_android_camera(false)

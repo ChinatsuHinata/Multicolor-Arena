@@ -7,11 +7,14 @@ func frames(count: int=6):
 func shown_units(who: int=0) -> Array:
  return view.table.descriptors.values().filter(func(d):return d.zone=="field" and d.get("group","")=="unit" and d.owner==who).map(func(d):return d.uid)
 
+func capacity_label(who: int) -> Label:
+ return view.card_badges["capacity"+str(who)].count_label
+
 func capacity() -> String:
- return view.table.field_capacity_labels[view.local_seat].text
+ return capacity_label(view.local_seat).text
 
 func enemy_capacity() -> String:
- return view.table.field_capacity_labels[1-view.local_seat].text
+ return capacity_label(1-view.local_seat).text
 
 func next_page(who: int=0,group: String="unit"):
  var button=view.zone_pagers[group+str(who)].button
@@ -83,7 +86,7 @@ func verify_board(android: bool):
  view.table.zone_pages={0:{"unit":0,"palette":0},1:{"unit":0,"palette":0}}
  view.table.unit_order={0:[],1:[]}
  view.render();await frames()
- expect(capacity()=="0/6" and view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"empty battlefield shows 0/6")
+ expect(capacity()=="0/6" and capacity_label(view.local_seat).is_visible_in_tree(),"empty battlefield shows 0/6")
  var units=[]
  for i in range(6):units.append(put("53","field"))
  view.render();await frames()
@@ -99,10 +102,11 @@ func verify_board(android: bool):
  expect(capacity()=="6/6","six extra units that do not occupy slots keep the count at 6/6")
  expect(enemy_capacity()=="7/6","enemy slot count is shown above the right melody zone")
  for who in range(2):
-  var label=view.table.field_capacity_labels[who]
-  expect(label.get_parent()==view.table and label is Label3D,"capacity belongs to the battlefield world")
-  expect(label.position.x>9 and (label.position.z>1.05 if who==view.local_seat else label.position.z< -1.05),"capacity sits below/above the right melody zone")
-  expect(not label.no_depth_test and label.billboard==BaseMaterial3D.BILLBOARD_DISABLED,"capacity stays on the board plane")
+  var label=capacity_label(who)
+  var anchor=view.table.field_capacity_position(who)
+  expect(label.get_parent().get_parent()==view.badges,"capacity shares the battlefield pile-count overlay")
+  expect(anchor.x>9 and (anchor.z>1.05 if who==view.local_seat else anchor.z< -1.05),"capacity sits below/above the right melody zone")
+  expect(label.get_global_rect().get_center().is_equal_approx(view.project(anchor)),"floating capacity follows its projected board anchor")
  expect(view.zone_pagers.unit0.button.text.begins_with("1/2") and view.zone_pagers.unit1.button.text.begins_with("1/2"),"both unit rows paginate after six units")
  expect(view.table.descriptors.values().filter(func(d):return d.zone=="palette" and d.owner==0 and d.uid>0).size()==10,"color palette still displays ten cards per page")
  await settle();view.update_badge_positions();view.banner.hide()
@@ -151,9 +155,9 @@ func verify_board(android: bool):
  expect(capacity()=="5/6","removing battlefield expansion restores the normal limit")
  var before=snapshot()
  view.table.set_top_down_view(true);view.render();await frames()
- expect(view.table.field_capacity_labels[view.local_seat].is_visible_in_tree() and app.ui_metrics.safe.has_point(view.project(view.table.field_capacity_labels[view.local_seat].position)),"slot count stays visible in the safe area in 2D view")
+ expect(capacity_label(view.local_seat).is_visible_in_tree() and app.ui_metrics.safe.encloses(capacity_label(view.local_seat).get_global_rect()),"slot count stays visible in the safe area in 2D view")
  view.set_hand_display(false);await frames()
- expect(capacity()=="5/6" and view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"hiding hands preserves the slot count")
+ expect(capacity()=="5/6" and capacity_label(view.local_seat).is_visible_in_tree(),"hiding hands preserves the slot count")
  expect(snapshot()==before,"paging and display controls do not mutate game state")
  view.local_seat=1;view.table.local_seat=1;view.render();await frames()
  expect(capacity()=="7/6","slot counter follows the local player's seat")
@@ -161,9 +165,9 @@ func verify_board(android: bool):
  view.set_hand_display(true)
  if android:
   view.set_android_camera_focus(view.local_seat);await frames()
-  expect(not view.table.field_capacity_labels[view.local_seat].visible,"palette focus hides the battlefield counter")
+  expect(not capacity_label(view.local_seat).is_visible_in_tree(),"palette focus hides the battlefield counter")
   view.set_android_camera_focus(-1);await frames()
-  expect(view.table.field_capacity_labels[view.local_seat].is_visible_in_tree(),"returning to battlefield focus restores the counter")
+  expect(capacity_label(view.local_seat).is_visible_in_tree(),"returning to battlefield focus restores the counter")
  await capture("battlefield-capacity-"+("android" if android else "desktop"))
 
 func run():

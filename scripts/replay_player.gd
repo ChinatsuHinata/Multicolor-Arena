@@ -43,6 +43,8 @@ func build(parent,data,path: String=""):
  seek(0)
  controls=Control.new();controls.mouse_filter=Control.MOUSE_FILTER_IGNORE;app.screen.add_child(controls)
  if app.is_android:
+  collapsed=true
+  controls.z_index=201
   controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
   build_android_controls()
   update_training_button()
@@ -100,13 +102,8 @@ func cycle_speed():
  speed=rates[(rates.find(speed)+1)%rates.size()]
  speed_button.text=str(speed).trim_suffix(".0")+"×"
 
-func android_bottom_inset() -> float:
- if not app.is_android or collapsed:return 0.0
- return app.ui_metrics.hit+app.ui_metrics.gap*3
-
 func toggle_controls():
  collapsed=not collapsed
- if is_instance_valid(app.duel_view):app.duel_view.resize_world()
  layout_controls()
 
 func layout_controls():
@@ -152,6 +149,7 @@ func android_controls_blocked() -> bool:
  if not is_instance_valid(app.duel_view):return true
  var view=app.duel_view
  if view.modal or view.history_open or view.debug_open or app.menu_popup_open():return true
+ if is_instance_valid(view.inspection) and view.inspection.visible:return true
  if is_instance_valid(view.android_battle_menu_root) and view.android_battle_menu_root.is_visible_in_tree():return true
  for child in app.get_children():
   if child is AcceptDialog and child.visible:return true
@@ -256,7 +254,7 @@ func _process(delta):
   if app.is_android and not controls.visible:cancel_controls_touch()
  if training_editor!=null and training_editor.is_open():playing=false;return
  if not playing or not snapshots.is_empty() or not is_instance_valid(app.duel_view):return
- if app.duel_view.revealing() or app.duel_view.table.is_animating() or app.duel_view.history_open:return
+ if app.duel_view.revealing() or app.duel_view.table.is_animating() or app.duel_view.history_open or app.duel_view.debug_open:return
  if index+1>=archive.frames.size():playing=false;update_controls();return
  elapsed+=delta*speed
  var delay=clampf(float(archive.frames[index+1].time-archive.frames[index].time)/1000.0,0.25,3.0)
