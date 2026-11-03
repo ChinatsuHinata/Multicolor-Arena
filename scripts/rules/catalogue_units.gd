@@ -261,7 +261,7 @@ static func resolve(e,t):
   "spell-fdf-123":
    for u in C.selected(e,a):e.Roster.Batch.counter(e,u,"scare",d.amount,who)
   "character-ucs-073":
-   for u in C.selected(e,a):e.destroy(u)
+   e.destroy_batch(C.selected(e,a))
   "character-fdf-091":if C.valid(e,a):e.move_to(e.find_card(a.uid),"hand")
   "character-fdn-026":
    if e.flip_coin(who):C.random_discard(e,d.player,1)

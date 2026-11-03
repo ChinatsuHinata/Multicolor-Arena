@@ -172,7 +172,6 @@ static func trigger_options(e,t: Dictionary) -> Array:
     for aim in e.ability_targets(): result.append({"parts":[dead,aim]})
    return result
   "returned_spirit_damage","death_damage","leader_death_damage","counter_six":
-   if t.effect=="leader_death_damage" and e.usage_count(source.uid,"death_ping")>=int(t.get("data",{}).get("limit",2)): return []
    return e.ability_targets()
   "enter_color_evasion":
    var result=[]
@@ -209,6 +208,7 @@ static func resolve_trigger(e,t: Dictionary):
  var dead=e.find_card(data.get("ref",{}).get("uid",-1))
  var dead_valid=data.has("ref") and valid(e,data.ref)
  match effect:
+  "timed_life_expired":e.lose(who,"返魂蝶计时归零")
   "end_grave_return":
    if valid(e,target): e.move_to(e.find_card(target.uid),"hand")
   "leader_enter_modes":

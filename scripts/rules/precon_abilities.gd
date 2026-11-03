@@ -585,7 +585,10 @@ static func on_gain_life(e,who: int,amount: int):
 static func state_checks(e):
  for c in (e.players[0].field+e.players[1].field).duplicate():
   var info=e.cards[c.card_id]
-  if info.kind=="符卡" and "时符" in info.get("spell_type","") and c.timer<=0: e.move_to(c,"grave")
+  if info.kind=="符卡" and "时符" in info.get("spell_type","") and c.timer<=0:
+   # Capture the triggered ability before the zero-timer time spell leaves play.
+   if e.Extra.has(info,"timed_life"):e.Extra.event(e,c,"timed_life_expired",false)
+   e.move_to(c,"grave")
 static func direct_attack(e,c: Dictionary) -> bool:
  return e.Extra.keyword(e,c,"直接攻击单位") or has(e.cards[c.card_id],"flandre_direct") and e.has_leader_ability(c)
 static func target_survives(e,id: String,t: Dictionary) -> bool:

@@ -702,8 +702,7 @@ static func spell_resolve(e,entry: Dictionary) -> bool:
   "fire_scry":begin_scry(e,entry,who,2,true)
   "tap_destroy":
    if unit(e,t):e.tap_card(e.find_card(t.uid))
-   for u in e.units(1-who).duplicate():
-    if u.tapped:e.destroy(u)
+   e.destroy_batch(e.units(1-who).filter(func(u):return u.tapped))
   "fairy_festival":
    for u in e.units(who):
     if race(e,u,"妖精"):e.apply_turn_buff(e.ref_target(u),{"攻击力":3,"血量":3,"灵力":3})

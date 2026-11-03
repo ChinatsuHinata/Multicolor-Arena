@@ -280,7 +280,7 @@ func shift(c: Dictionary, location: String):
  if location=="field" and old!="field":
   var usage_prefix=str(c.uid)+":"
   for usage_key in turn_usage.keys():
-   if usage_key.begins_with(usage_prefix):turn_usage.erase(usage_key)
+   if usage_key.begins_with(usage_prefix) and usage_key!=usage_prefix+"death_ping":turn_usage.erase(usage_key)
  present_move(c,location)
  if c.has("copy_original") or c.has("habitat_base"):
   c.card_id=c.get("copy_original",c.get("habitat_base",c.card_id));c.erase("copy_original");c.erase("habitat_base");c.erase("inherited_self")
@@ -643,6 +643,8 @@ func skip_exhausted_death_trigger(t: Dictionary) -> bool:
 
 func begin_trigger(t: Dictionary):
  if skip_murder_dolls_trigger(t) or skip_flower_cast_trigger(t) or skip_exhausted_death_trigger(t):return
+ # The first two deaths consume the allowance even if the optional effect is declined.
+ if t.get("effect","")=="leader_death_damage":use_once(t.source.uid,"death_ping")
  var options=trigger_options(t)
  # A hand ability stays private until its owner agrees to announce it.
  # Declining must not create a provisional stack entry or public history.
@@ -688,7 +690,6 @@ func decline_stacked_trigger():
 func accept_trigger(entry: Dictionary):
  if entry.get("announced",false):return
  entry.announced=true
- if entry.get("effect","")=="leader_death_damage" and not entry.get("no_legal_targets",false):use_once(entry.source.uid,"death_ping")
  if not entry.get("no_legal_targets",false):Roster.on_ability_announced(self,entry);Roster.New.on_target(self,entry.target,entry);Mods.targeted(self,entry.target,entry.owner)
 func choose_trigger_order(index: Variant):
  if pending.get("kind","")!="trigger_order":return
@@ -841,7 +842,10 @@ func choose_return(yes: bool):
  c.erase("return_snapshot"); c.erase("return_destination"); c.erase("return_death_observers")
  revision+=1; pump_choices()
 func enter_field(c: Dictionary,who: int) -> bool:
- if not field_error(c,who).is_empty(): to_grave(c); return false
+ if not field_error(c,who).is_empty():
+  # A newly generated token that cannot enter is not created in another zone.
+  if not (c.get("zone","")=="token" and c.get("token",false)):to_grave(c)
+  return false
  shift(c,"field"); c.entered=turn; c.entered_turns=players[who].turns; players[who].field.append(c)
  replace_melody(c)
  Extra.on_enter(self,c)
@@ -1204,7 +1208,6 @@ func cleanup_end():
   for c in players[active].field+leaders(active):
    if c.zone not in ["field","leader"] or c.timer<=0: continue
    c.timer=maxi(0,c.timer-1)
-   if c.zone=="field" and Extra.has(cards[c.card_id],"timed_life") and c.timer==0: move_to(c,"grave"); lose(active,"返魂蝶计时归零",true)
   judge(); pump_choices()
   if not pending.is_empty() or not stack.is_empty() or winner!=-2: return
  if players[active].hand.size()>7: pending={"kind":"discard","owner":active,"count":players[active].hand.size()-7}; return
@@ -1912,6 +1915,12 @@ func choose_grave_replacement(to_field: bool):
    if moon and active==c.owner:c.tapped=true
   else: move_to(c,"hand",true,false)
  revision+=1; pump_choices()
+func destroy_batch(victims: Array):
+ # Simultaneous deaths see the same battlefield, regardless of iteration order.
+ var previous=death_observers
+ if previous.is_empty():death_observers=(units(0)+units(1)).duplicate(true)
+ for c in victims:destroy(c)
+ death_observers=previous
 func destroy(c: Dictionary):
  if c.is_empty() or Extra.keyword(self,c,"不会被消灭"): return
  TaskProbes.destroyed(self,c)

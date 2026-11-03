@@ -2,6 +2,7 @@ extends RefCounted
 ## Short stack captions identify the specific ability, never every ability on the card.
 const Catalogue=preload("res://scripts/rules/catalogue_abilities.gd")
 const TEXT={
+ "timed_life_expired":"计时归零：你输掉游戏。",
  "end_grave_return":"结束阶段：将目标非自机单位牌从墓地移回手牌。",
  "leader_enter_modes":"自机能力：造成2点伤害、横置目标单位或抓一张牌。",
  "enter_haste":"进场：目标单位本回合获得疾行。",

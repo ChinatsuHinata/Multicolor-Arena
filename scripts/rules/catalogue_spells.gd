@@ -114,8 +114,7 @@ static func resolve(e,t):
  e.resolving_spell=true
  match id:
   "spell-fdf-085":
-   for u in (e.units(0)+e.units(1)).duplicate():
-    if e.Extra.cost_value(e,u)<=3:e.destroy(u)
+   e.destroy_batch((e.units(0)+e.units(1)).filter(func(u):return e.Extra.cost_value(e,u)<=3))
   "spell-fdf-086":
    var n=e.units(who).size()+p.field.filter(func(u):return e.cards[u.card_id].kind=="结界").size()
    C.damage(e,{"player":foe},n)
@@ -222,7 +221,7 @@ static func resolve(e,t):
    if id=="spell-fdn-030":e.gain_life(who,2)
    if id=="spell-fdn-031":search(e,t,p.deck.filter(func(u):return e.cards[u.card_id].name=="非想「非想非非想ノ剑」"),0,1,"hand")
   "spell-fdf-074":
-   for u in C.selected(e,aim):e.destroy(u)
+   e.destroy_batch(C.selected(e,aim))
   "spell-fdn-009":
    if C.unit(e,aim):e.Roster.to_top(e,e.find_card(aim.uid))
   "spell-fdf-120","spell-soi-119","spell-fdf-056":
@@ -357,7 +356,7 @@ static func resolve_complex(e,t):
   "spell-ucs-054":C.choose(e,t,"cat:split_grave",C.pick(e,p.grave,0,p.grave.size(),"分出墓地第一堆"),{"controller":who,"all":C.refs(e,p.grave)},foe)
   "spell-fdf-060":
    var victims=(e.units(0)+e.units(1)).duplicate()
-   for u in victims:e.destroy(u)
+   e.destroy_batch(victims)
    var fallen=[]
    for u in victims:
     if u.zone not in ["grave","return_pending"]:continue
