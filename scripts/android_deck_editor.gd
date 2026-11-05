@@ -434,8 +434,9 @@ func render_library_page():
   var picture=TextureRect.new();picture.name="LibraryCardArt"
   picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
   tile.add_child(picture);picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
+  app.add_editor_art_limit(picture,id)
   tile.resized.connect(func():layout_gallery_tile(tile))
-  if not available:picture.modulate=Color(0.6,0.6,0.6)
+  if not available:picture.self_modulate=Color(0.6,0.6,0.6)
   var inventory=text(tile,"余 %d" % remaining if remaining>=0 else "余 ∞",metrics.small)
   inventory.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
   inventory.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
@@ -467,7 +468,9 @@ func layout_gallery_tile(tile: Control):
  picture.position=Vector2((tile.size.x-picture.size.x)*0.5,0)
  var inventory=tile.find_child("LibraryRemaining",true,false) as Label
  inventory.size=inventory.get_combined_minimum_size()
- inventory.position=Vector2(picture.get_rect().end.x-inventory.size.x-4,picture.position.y+4)
+ var badge=picture.get_node_or_null("DeckLimitBadge") as Label
+ var right=picture.get_rect().end.x if badge==null else picture.position.x+badge.position.x
+ inventory.position=Vector2(right-inventory.size.x-4,picture.position.y+4)
 
 func queue_gallery_art():
  if gallery_art_pending:return
@@ -584,6 +587,10 @@ func row_card(id: String,source: String,index: int,parent: Node,width: float,cop
   var quantity=text(line,"×%d" % copies,22);quantity.name="DeckListQuantity"
   quantity.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;quantity.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
   quantity.add_theme_color_override("font_color",app.GOLD)
+ var maximum=app.editor_card_limit(id)
+ if maximum>=0:
+  var badge=app.editor_limit_badge(maximum);line.add_child(badge)
+  badge.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  return tile
 
 func remove_list_card(id: String,source: String,index: int):
@@ -776,6 +783,7 @@ func update_preview():
  var picture=TextureRect.new();picture.name="CardDetailsArt";picture.texture=app.preview_texture(app.selected)
  picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
  panes.add_child(picture);expand(picture,true);picture.size_flags_stretch_ratio=0.92;picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ app.add_editor_art_limit(picture,app.selected)
  var remaining=app.RuleSet.remaining(app.draft,app.selected,app.Store.CARDS,str(app.draft.get("rule_set",app.RuleSet.OFFICIAL)))
  var inventory=Label.new();inventory.name="CardDetailsRemaining"
  inventory.text="余 %d" % remaining if remaining>=0 else "余 ∞"
@@ -790,12 +798,12 @@ func update_preview():
 
 func fit_detail_inventory(picture: TextureRect,inventory: Label):
  if not is_instance_valid(picture) or not is_instance_valid(inventory):return
- var displayed=picture.size
- if picture.texture!=null:
-  var dimensions=picture.texture.get_size()
-  displayed=dimensions*minf(picture.size.x/dimensions.x,picture.size.y/dimensions.y)
+ var visible_art=app.editor_art_rect(picture)
+ var badge=picture.get_node_or_null("DeckLimitBadge") as Label
+ var right=visible_art.end.x if badge==null else badge.position.x
+ var gap=detail_metrics.padding if badge==null else 4
  inventory.size=inventory.get_combined_minimum_size()
- inventory.position=Vector2((picture.size.x+displayed.x)*0.5-inventory.size.x-detail_metrics.padding,(picture.size.y-displayed.y)*0.5+detail_metrics.padding)
+ inventory.position=Vector2(right-inventory.size.x-gap,visible_art.position.y+detail_metrics.padding)
 
 func remove_deck_copy(id: String,source: String,index: int) -> bool:
  if source=="leader":

@@ -2526,6 +2526,51 @@ func choose_leader_from_picker(id: String,dialog: Control):
  update_preview()
  dialog.queue_free()
 
+func editor_card_limit(id: String) -> int:
+ if page!="editor":return -1
+ var rule_set=str(draft.get("rule_set",RuleSet.OFFICIAL))
+ if rule_set not in [RuleSet.OFFICIAL,RuleSet.RANKED]:return -1
+ var info=Store.CARDS[id]
+ var keywords=info.get("keywords",[])
+ if "终言" in keywords or "限制级" in keywords or "限制级符卡" in keywords:return -1
+ var ordinary=RuleSet.limit(id,info,RuleSet.UNRESTRICTED)
+ var maximum=RuleSet.limit(id,info,rule_set)
+ return maximum if maximum>=0 and (ordinary<0 or maximum<ordinary) else -1
+
+func editor_limit_badge(maximum: int) -> Label:
+ var badge=Label.new();badge.name="DeckLimitBadge";badge.text=str(maximum)
+ badge.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ badge.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ badge.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ badge.custom_minimum_size=Vector2(22,22)
+ badge.add_theme_font_size_override("font_size",15)
+ badge.add_theme_color_override("font_color",Color.WHITE)
+ var background=StyleBoxFlat.new()
+ background.bg_color=Color("#921f32");background.border_color=Color("#ffdbbf")
+ background.set_border_width_all(1);background.set_corner_radius_all(18)
+ badge.add_theme_stylebox_override("normal",background)
+ return badge
+
+func editor_art_rect(art: TextureRect) -> Rect2:
+ # Gallery and deck thumbnails may load after layout; their aspect is fixed.
+ var dimensions=art.texture.get_size() if art.texture!=null else Vector2(1200,1676)
+ var displayed=dimensions*minf(art.size.x/dimensions.x,art.size.y/dimensions.y)
+ return Rect2((art.size-displayed)*0.5,displayed)
+
+func add_editor_art_limit(art: TextureRect,id: String):
+ var maximum=editor_card_limit(id)
+ if maximum<0:return
+ var badge=editor_limit_badge(maximum);art.add_child(badge)
+ var place=func():
+  var visible_art=editor_art_rect(art)
+  var diameter=roundi(clampf(minf(visible_art.size.x,visible_art.size.y)*0.18,17,34))
+  badge.add_theme_font_size_override("font_size",roundi(diameter*0.68))
+  badge.custom_minimum_size=Vector2(diameter,diameter);badge.size=badge.get_combined_minimum_size()
+  var inset=maxf(2,roundf(diameter*0.15))
+  badge.position=Vector2(visible_art.end.x-badge.size.x-inset,visible_art.position.y+inset)
+ art.resized.connect(place)
+ place.call()
+
 func editor_card(id: String, source: String, index: int, rect: Rect2, parent: Node = null):
  var tile=preload("res://scripts/deck_card.gd").new()
  tile.is_android=is_android
@@ -2556,6 +2601,7 @@ func editor_card(id: String, source: String, index: int, rect: Rect2, parent: No
  art.mouse_filter=Control.MOUSE_FILTER_IGNORE
  tile.add_child(art)
  if thumbnail_tile:editor_ui.request_thumbnail(id,art)
+ add_editor_art_limit(art,id)
  tile.preview_requested.connect(func(card_id): selected=card_id; update_preview())
  tile.art_requested.connect(open_art_picker)
  tile.clicked.connect(func(card_id,from,index_in_deck,right):
@@ -3116,7 +3162,9 @@ func desktop_update_preview():
  free_children(preview)
  var landscape=landscape_card(selected)
  var picture=card(preview,selected,Rect2(0,0,260,190 if landscape else 350))
- picture.get_child(0).texture=preview_texture(selected)
+ var art=picture.get_child(0) as TextureRect
+ art.texture=preview_texture(selected)
+ add_editor_art_limit(art,selected)
  var info=Store.CARDS[selected]
  var scroll=ScrollContainer.new()
  scroll.name="CardTextScroll"
@@ -3167,14 +3215,20 @@ func desktop_update_library():
   row.custom_minimum_size=Vector2(296,64)
   row.add_theme_stylebox_override("panel",style(Color("#142737") if available else Color("#24303a"),Color("#3d5161") if available else MUTED))
   library.add_child(row)
-  var full_name=label(row,info.name,Rect2(10,4,222 if available and remaining>=0 else 276,54),17,WHITE if available else MUTED)
+  var maximum=editor_card_limit(id)
+  var badge_space=28 if maximum>=0 else 0
+  var name_width=(222 if available and remaining>=0 else 276)-badge_space
+  var full_name=label(row,info.name,Rect2(10,4,name_width,54),17,WHITE if available else MUTED)
   full_name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   full_name.clip_text=false
   full_name.mouse_filter=Control.MOUSE_FILTER_IGNORE
   var remaining_label: Label=null
   if available and remaining>=0:
-   remaining_label=label(row,"余 %d" % remaining,Rect2(232,4,54,32),16,GOLD if remaining>0 else MUTED)
+   remaining_label=label(row,"余 %d" % remaining,Rect2(232-badge_space,4,54,32),16,GOLD if remaining>0 else MUTED)
    remaining_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+  if maximum>=0:
+   var badge=editor_limit_badge(maximum);row.add_child(badge)
+   badge.position=Vector2(264,8)
   library_rows[id]={"row":row,"remaining_label":remaining_label}
   var reason="仅供查看 · 不可加入卡组" if not info.get("constructible",false) or info.get("token",false) else "此规则集不可加入卡组"
   row.tooltip_text=info.name if available else info.name+"\n"+reason
